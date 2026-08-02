@@ -20,4 +20,4 @@ ENV JAVA_OPTS_APPEND="-Xms64m -Xmx320m -XX:MaxMetaspaceSize=128m"
 # Render tiêm biến PORT lúc chạy (không cố định lúc build) -> phải qua shell
 # để giãn ${PORT}, không dùng exec-form CMD.
 ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["/opt/keycloak/bin/kc.sh start --optimized --import-realm --http-enabled=true --hostname-strict=false --proxy=edge --http-port=${PORT:-8080}"]
+CMD ["/opt/keycloak/bin/kc.sh start --optimized --cache=local --import-realm --http-enabled=true --hostname-strict=false --proxy=edge --http-port=${PORT:-8080}"]
