@@ -1,0 +1,87 @@
+services:
+  - type: web
+    name: tsudev-user
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/backend-service.Dockerfile
+    dockerContext: .
+    dockerCommand: node services/user-service/src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+
+  - type: web
+    name: tsudev-content
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/backend-service.Dockerfile
+    dockerContext: .
+    dockerCommand: node services/content-service/src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: tsudev-storage
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/backend-service.Dockerfile
+    dockerContext: .
+    dockerCommand: node services/storage-service/src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_PUBLIC_ENDPOINT
+        sync: false
+      - key: S3_BUCKET
+        value: tsudev
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+
+  - type: web
+    name: tsudev-trust
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/backend-service.Dockerfile
+    dockerContext: .
+    dockerCommand: node services/trust-service/src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: TRUST_SIGNING_KEY
+        sync: false
+      - key: TRUST_SIGNING_KEY_ID
+        sync: false
+      - key: TRUST_ISSUER
+        value: https://tsudev.dev-nguyentrangtinhsu.workers.dev
+
+  - type: web
+    name: tsudev-sso
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/keycloak.Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/ready
+    envVars:
+      - key: KEYCLOAK_ADMIN
+        value: tsudev-admin
+      - key: KEYCLOAK_ADMIN_PASSWORD
+        sync: false

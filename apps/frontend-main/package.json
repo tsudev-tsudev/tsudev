@@ -3,20 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start -p 3000"
+    "dev": "next dev -p 3000",
+    "start": "next start -p 3000",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
-    "next": "^13.5.11",
-    "next-auth": "^4.22.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "next": "15.5.22",
+    "next-auth": "^4.24.15",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
-    "tailwindcss": "^3.4.7"
+    "tailwindcss": "^3.4.7",
+    "wrangler": "^4.118.0"
   }
 }
