@@ -6,7 +6,11 @@
 FROM quay.io/keycloak/keycloak:21.1.1 AS builder
 ENV KC_HEALTH_ENABLED=true
 ENV KC_METRICS_ENABLED=false
-ENV KC_DB=dev-mem
+# Chỉ chọn VENDOR db lúc build (postgres) — URL/user/pass là runtime option,
+# đọc từ biến môi trường thật lúc container khởi động (Render secrets), KHÔNG
+# bake vào image. dev-mem (H2 RAM) đã thử trước đó SAI: free tier Render ngủ
+# rồi khởi động lại thường xuyên sẽ xoá sạch toàn bộ tài khoản mỗi lần.
+ENV KC_DB=postgres
 RUN /opt/keycloak/bin/kc.sh build
 
 FROM quay.io/keycloak/keycloak:21.1.1

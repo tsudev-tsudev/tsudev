@@ -85,3 +85,9 @@ services:
         value: tsudev-admin
       - key: KEYCLOAK_ADMIN_PASSWORD
         sync: false
+      - key: KC_DB_URL
+        sync: false
+      - key: KC_DB_USERNAME
+        sync: false
+      - key: KC_DB_PASSWORD
+        sync: false
