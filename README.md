@@ -4,6 +4,13 @@
 
 Hệ sinh thái công nghệ đa nền tảng cho developer (theo `documents-tsudev.md`): trang chủ portfolio, blog, tài liệu, **diễn đàn** (forum engine với uy tín/xếp hạng, kiểm duyệt, tin nhắn, marketplace), SSO và object storage.
 
+Repo GitHub: private, **https://github.com/b4djl1h/tsudev**. GitHub Free không
+cho bật branch protection trên repo private (cần nâng Pro/Team) nên `main`
+được chắn ở phía client: hook `.husky/pre-push` chặn `git push` thẳng lên
+`main` — làm việc trên nhánh feature rồi mở PR. Cần vượt qua thật sự thì
+`ALLOW_MAIN_FORCE=1 git push`. Hook tự cài khi `npm install` chạy
+`prepare` (husky).
+
 ## Trạng thái triển khai
 
 | Phase | Nội dung                                                                             | Trạng thái                                        |

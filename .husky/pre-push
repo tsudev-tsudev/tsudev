@@ -1,0 +1,18 @@
+#!/bin/sh
+# Chặn push thẳng lên main — GitHub Free không hỗ trợ branch protection cho
+# repo private (cần Pro/Team) nên đây là lớp chắn phía client thay thế.
+# Vượt qua khi thật sự cần: ALLOW_MAIN_FORCE=1 git push
+if [ "$ALLOW_MAIN_FORCE" = "1" ]; then
+  exit 0
+fi
+
+protected="main"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  branch=$(echo "$remote_ref" | sed -n 's#^refs/heads/##p')
+  if [ "$branch" = "$protected" ]; then
+    echo "🚫 Chặn push thẳng lên '$protected'. Tạo nhánh feature + PR, hoặc dùng ALLOW_MAIN_FORCE=1 nếu thật sự cần." >&2
+    exit 1
+  fi
+done
+
+exit 0
