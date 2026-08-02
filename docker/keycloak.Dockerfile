@@ -4,4 +4,4 @@ COPY apps/sso-auth/keycloak/realm-export.prod.json /opt/keycloak/data/import/rea
 # Render tiêm biến PORT lúc chạy (không cố định lúc build) -> phải qua shell
 # để giãn ${PORT}, không dùng exec-form CMD.
 ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["/opt/keycloak/bin/kc.sh start-dev --import-realm --http-enabled=true --hostname-strict=false --proxy-headers=xforwarded --health-enabled=true --http-port=${PORT:-8080}"]
+CMD ["/opt/keycloak/bin/kc.sh start-dev --import-realm --http-enabled=true --hostname-strict=false --proxy=edge --health-enabled=true --http-port=${PORT:-8080}"]

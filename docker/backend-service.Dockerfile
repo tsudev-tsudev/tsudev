@@ -13,8 +13,10 @@ COPY packages ./packages
 COPY services ./services
 
 # Cần cả devDependencies ở bước này vì prisma CLI (devDependency của
-# packages/db) phải có mặt để chạy `prisma generate`.
-RUN npm install --workspaces --no-audit --no-fund
+# packages/db) phải có mặt để chạy `prisma generate`. --ignore-scripts vì
+# script "prepare" (husky install) của root package.json không cần trong
+# image production và không có .git để chạy đúng cách.
+RUN npm install --workspaces --no-audit --no-fund --ignore-scripts
 RUN npm exec --workspace packages/db -- prisma generate
 
 # dockerCommand của từng service trong render.yaml override lệnh này.
