@@ -26,4 +26,9 @@ const nextConfig = {
 
 module.exports = nextConfig;
 
-import('@opennextjs/cloudflare').then((m) => m.initOpenNextCloudflareForDev());
+// Không gọi initOpenNextCloudflareForDev() ở đây — nó dựng proxy wrangler
+// dev cho Cloudflare bindings (R2/KV) mà app này chưa dùng trực tiếp, và
+// từng treo cứng `next dev` cục bộ (server "Starting..." không bao giờ
+// xong). Cần preview đúng runtime Cloudflare thì dùng `npm run preview`
+// (opennextjs-cloudflare build && opennextjs-cloudflare preview) thay vì
+// `next dev`.
