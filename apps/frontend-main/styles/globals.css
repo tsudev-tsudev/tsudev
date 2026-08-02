@@ -1,0 +1,112 @@
+@import '../../../packages/ui/src/tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#__next {
+  height: 100%;
+}
+/* color-scheme do tokens.css khai báo (:root { color-scheme: dark }) */
+
+@layer base {
+  body {
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  a {
+    color: var(--primary);
+  }
+  ::selection {
+    background: var(--glow);
+  }
+  * {
+    border-color: var(--border);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .bg-brand {
+    background-color: var(--primary);
+  }
+  .bg-teal {
+    background-color: var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Markdown content rendered from the DB */
+.prose-tsu {
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.prose-tsu h1,
+.prose-tsu h2,
+.prose-tsu h3 {
+  color: var(--ink);
+  font-weight: 700;
+  margin: 1.4em 0 0.5em;
+  line-height: 1.25;
+}
+.prose-tsu h1 {
+  font-size: 1.7rem;
+}
+.prose-tsu h2 {
+  font-size: 1.35rem;
+}
+.prose-tsu h3 {
+  font-size: 1.12rem;
+}
+.prose-tsu p {
+  margin: 0.8em 0;
+}
+.prose-tsu a {
+  color: var(--primary-ink);
+  text-decoration: underline;
+}
+.prose-tsu ul {
+  list-style: disc;
+  padding-left: 1.4em;
+  margin: 0.8em 0;
+}
+.prose-tsu code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--panel-2);
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
+}
+.prose-tsu pre {
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.prose-tsu pre code {
+  background: transparent;
+  padding: 0;
+}
+.prose-tsu blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1em;
+  color: var(--muted);
+  margin: 1em 0;
+}

@@ -1,0 +1,13 @@
+node_modules
+.next
+dist
+build
+coverage
+verify-output
+.vscode
+*.log
+
+# Đặc tả dự án do người viết, không phải mã. Prettier hiểu nhầm các mục
+# "7.2", "7.3"… là phần tiếp của danh sách phía trên rồi thụt chúng thành
+# mục con, và đánh số lại danh sách — tức là làm sai cấu trúc tài liệu.
+documents-tsudev.md

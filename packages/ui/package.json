@@ -1,0 +1,29 @@
+{
+  "name": "@tsudev/ui",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.tsx",
+  "module": "src/index.tsx",
+  "scripts": {
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "build": "storybook build -o build",
+    "build:lib": "esbuild src/index.tsx --bundle --format=esm --outfile=dist/index.js --platform=browser --external:react --external:react-dom --loader:.tsx=tsx --loader:.ts=ts --sourcemap"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "^7.0.0",
+    "@storybook/react": "^7.0.0"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-dom": "*"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": false
+    },
+    "react-dom": {
+      "optional": false
+    }
+  }
+}

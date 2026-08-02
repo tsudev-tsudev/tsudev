@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, 'feat/**']
+  pull_request: {}
+
+jobs:
+  lint:
+    name: Lint & format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint --silent
+
+  test:
+    name: Migrate & test services
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tsudev
+          POSTGRES_PASSWORD: tsudev
+          POSTGRES_DB: tsudev
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tsudev"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://tsudev:tsudev@localhost:5432/tsudev?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Prisma generate + migrate (deploy)
+        run: |
+          npm run db:generate
+          npm run db:migrate
+      - name: Run service unit tests
+        run: |
+          npm --workspace services/user-service test
+          npm --workspace services/content-service test
+          npm --workspace services/storage-service test
+          npm --workspace services/trust-service test
+
+  build:
+    name: Build frontends
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Build Next.js apps
+        run: |
+          npm --workspace apps/frontend-main run build
+          npm --workspace apps/frontend-forum run build
+        env:
+          NEXTAUTH_SECRET: build-time-placeholder

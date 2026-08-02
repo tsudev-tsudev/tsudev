@@ -1,0 +1,4 @@
+#!/bin/sh
+# Run lint-staged if available; keep hook minimal to avoid requiring `husky install`.
+command -v npx >/dev/null 2>&1 || exit 0
+npx --no-install lint-staged || exit 1

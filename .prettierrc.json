@@ -1,0 +1,18 @@
+{
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "comment": "Backend viết không dấu chấm phẩy (871 dòng so với 27) trong khi cấu hình chung đòi có. Ghi nhận quy ước đang tồn tại thay vì viết lại toàn bộ backend chỉ để chiều một dòng cấu hình chưa ai từng chạy.",
+      "files": ["services/**/*.js", "packages/db/**/*.js"],
+      "options": { "semi": false }
+    }
+  ]
+}

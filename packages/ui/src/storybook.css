@@ -1,0 +1,20 @@
+/* Vỏ ngoài cho Storybook — bám theo token của site (một giao diện tối duy nhất).
+   Không khai báo lại --primary ở đây, nếu không sẽ ghi đè tokens.css. */
+body {
+  font-family: var(--font-sans);
+  background: var(--surface);
+  color: var(--ink);
+  margin: 0;
+  padding: 20px;
+}
+.sb-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.primary-btn {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+}

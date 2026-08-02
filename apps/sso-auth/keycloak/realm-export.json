@@ -1,0 +1,34 @@
+{
+  "realm": "tsudev-local",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "tsudev-frontend",
+      "name": "tsudev-frontend",
+      "rootUrl": "http://frontend-main:3000",
+      "redirectUris": ["http://frontend-main:3000/*", "http://frontend-forum:3001/*"],
+      "webOrigins": ["http://frontend-main:3000", "http://frontend-forum:3001"],
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "devuser",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Dev",
+      "lastName": "User",
+      "email": "dev@example.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "devpass",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

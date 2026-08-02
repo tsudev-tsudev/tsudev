@@ -1,0 +1,584 @@
+// tsudev — Prisma schema
+// Nền tảng dữ liệu chung cho toàn hệ thống (users, blog, docs, files, forum).
+// Provider: PostgreSQL. Local dev chạy trên cluster user-space (port 5433).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  GUEST
+  MEMBER
+  VIP
+  MODERATOR
+  ADMIN
+}
+
+enum ReportTargetType {
+  THREAD
+  POST
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum ModActionType {
+  PIN
+  UNPIN
+  LOCK
+  UNLOCK
+  DELETE_POST
+  BAN_USER
+  UNBAN_USER
+  RESOLVE_REPORT
+  DISMISS_REPORT
+}
+
+enum ListingStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SOLD
+}
+
+enum OrderStatus {
+  HELD
+  RELEASED
+  REFUNDED
+}
+
+enum ReactionType {
+  LIKE
+  UPVOTE
+  DOWNVOTE
+  HEART
+  FIRE
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+model User {
+  id          String   @id @default(cuid())
+  keycloakId  String?  @unique
+  username    String   @unique
+  email       String   @unique
+  displayName String?
+  avatarUrl   String?
+  bio         String?
+  signature   String?
+  role        Role     @default(MEMBER)
+  reputation  Int      @default(0)
+  credits     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts        Post[]
+  files        FileObject[]
+  threads      Thread[]
+  forumPosts   ForumPost[]
+  reactions    Reaction[]
+  repEvents    ReputationEvent[]
+
+  @@index([reputation])
+}
+
+// ---------------------------------------------------------------------------
+// Content: Blog & Docs
+// ---------------------------------------------------------------------------
+model Post {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  excerpt   String?
+  contentMd String
+  tags      String[] @default([])
+  published Boolean  @default(true)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, createdAt])
+}
+
+model Doc {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  contentMd String
+  category  String   @default("general")
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, position])
+}
+
+// ---------------------------------------------------------------------------
+// Storage
+// ---------------------------------------------------------------------------
+model FileObject {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  fileName    String
+  contentType String
+  size        Int      @default(0)
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Forum engine — Discussion context
+// ---------------------------------------------------------------------------
+model Category {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String?
+  position    Int     @default(0)
+  boards      Board[]
+}
+
+model Board {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  position    Int      @default(0)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  threads     Thread[]
+
+  @@index([categoryId, position])
+}
+
+model Thread {
+  id         String      @id @default(cuid())
+  boardId    String
+  board      Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  title      String
+  slug       String
+  pinned     Boolean     @default(false)
+  locked     Boolean     @default(false)
+  views      Int         @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  lastPostAt DateTime    @default(now())
+  posts      ForumPost[]
+
+  @@unique([boardId, slug])
+  @@index([boardId, pinned, lastPostAt])
+}
+
+model ForumPost {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  contentMd String
+  isSolution Boolean   @default(false)
+  deleted   Boolean    @default(false)
+  deletedAt DateTime?
+  createdAt DateTime   @default(now())
+  editedAt  DateTime?
+  reactions Reaction[]
+
+  @@index([threadId, createdAt])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  postId    String
+  post      ForumPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ReactionType @default(LIKE)
+  createdAt DateTime     @default(now())
+
+  @@unique([postId, userId, type])
+}
+
+// ---------------------------------------------------------------------------
+// Reputation context
+// ---------------------------------------------------------------------------
+model ReputationEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta      Int
+  reason     String
+  sourceType String?
+  sourceId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Moderation context — reports, mod actions (audit trail), bans.
+// Actor/target identities are denormalized (id + name) so the audit log stays
+// readable even if a user is later renamed or removed.
+// ---------------------------------------------------------------------------
+model Report {
+  id             String           @id @default(cuid())
+  reporterId     String
+  reporterName   String
+  targetType     ReportTargetType
+  targetId       String
+  targetPreview  String?
+  reason         String
+  status         ReportStatus     @default(OPEN)
+  resolvedById   String?
+  resolvedByName String?
+  resolution     String?
+  createdAt      DateTime         @default(now())
+  resolvedAt     DateTime?
+
+  @@index([status, createdAt])
+}
+
+model ModAction {
+  id            String        @id @default(cuid())
+  moderatorId   String
+  moderatorName String
+  action        ModActionType
+  targetType    String
+  targetId      String
+  targetLabel   String?
+  note          String?
+  createdAt     DateTime      @default(now())
+
+  @@index([createdAt])
+}
+
+model Ban {
+  id            String    @id @default(cuid())
+  userId        String
+  username      String
+  moderatorName String
+  reason        String
+  until         DateTime?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  @@index([username, active])
+}
+
+// ---------------------------------------------------------------------------
+// Messaging context — private conversations between members.
+// ---------------------------------------------------------------------------
+model Conversation {
+  id            String                    @id @default(cuid())
+  createdAt     DateTime                  @default(now())
+  lastMessageAt DateTime                  @default(now())
+  participants  ConversationParticipant[]
+  messages      Message[]
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  username       String
+  lastReadAt     DateTime?
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  senderName     String
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace context — moderated listings + credit escrow + seller ratings.
+// Trades use the internal credit balance only (no real currency). Listings are
+// held for moderation before going live; funds are escrowed until the buyer
+// confirms receipt. Scope is generic, lawful goods/services.
+// ---------------------------------------------------------------------------
+model Listing {
+  id           String        @id @default(cuid())
+  sellerId     String
+  sellerName   String
+  title        String
+  description  String
+  priceCredits Int
+  category     String        @default("general")
+  status       ListingStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  orders       Order[]
+
+  @@index([status, createdAt])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  listingId     String
+  listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId       String
+  buyerName     String
+  sellerId      String
+  amountCredits Int
+  status        OrderStatus @default(HELD)
+  rating        Int?
+  ratingComment String?
+  createdAt     DateTime    @default(now())
+
+  @@index([buyerId])
+  @@index([sellerId])
+}
+
+// ---------------------------------------------------------------------------
+// Trust Seal — Nhà cung cấp Con dấu tín nhiệm
+//
+// Vòng đời: tổ chức đăng ký -> xác minh sở hữu domain -> nộp đơn theo chương
+// trình -> kiểm tra tự động + admin duyệt -> cấp chứng chỉ (có serial, hạn,
+// chữ ký Ed25519) -> tái kiểm định kỳ -> gia hạn / treo / thu hồi.
+//
+// Chương trình dấu để trong BẢNG chứ không phải enum: thêm loại dấu mới chỉ là
+// thêm một dòng dữ liệu, không cần migration.
+// ---------------------------------------------------------------------------
+
+enum TrustOrgStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum DomainVerifyMethod {
+  DNS_TXT
+  META_TAG
+  FILE
+}
+
+enum DomainVerifyStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+enum SealApplicationStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  NEEDS_INFO
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum CertificateStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
+
+/// Cơ sở đánh giá — in trên trang xác thực để người đọc biết con dấu dựa vào
+/// đâu. Cấp dấu pháp lý mà chỉ SELF_DECLARED là rủi ro, nên admin phải chọn.
+enum AssessmentBasis {
+  SELF_DECLARED
+  EVIDENCE_REVIEWED
+  AUDITED
+}
+
+/// Tổ chức/khách hàng đứng tên xin cấp dấu. Gắn với một tài khoản tsudev.
+model TrustOrganization {
+  id           String         @id @default(cuid())
+  ownerUserId  String
+  ownerName    String
+  name         String
+  legalName    String?
+  country      String?
+  contactEmail String
+  websiteUrl   String?
+  status       TrustOrgStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  domains      TrustDomain[]
+  applications SealApplication[]
+  certificates TrustCertificate[]
+
+  @@index([ownerUserId])
+}
+
+/// Một hostname thuộc tổ chức. Chỉ domain đã VERIFIED mới được nộp đơn.
+model TrustDomain {
+  id            String             @id @default(cuid())
+  orgId         String
+  org           TrustOrganization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  hostname      String             @unique
+  method        DomainVerifyMethod @default(DNS_TXT)
+  /// Token ngẫu nhiên khách phải đặt vào DNS/meta/file để chứng minh quyền kiểm soát.
+  token         String
+  status        DomainVerifyStatus @default(PENDING)
+  verifiedAt    DateTime?
+  lastCheckedAt DateTime?
+  lastError     String?
+  createdAt     DateTime           @default(now())
+
+  applications SealApplication[]
+  certificates TrustCertificate[]
+
+  @@index([orgId])
+  @@index([status])
+}
+
+/// Chương trình dấu (copyright-verified, ownership-attested, ...).
+model SealProgram {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  name         String
+  summary      String
+  /// Danh sách tiêu chí công khai, dạng [{ key, label, detail }].
+  criteria     Json
+  /// Loại bằng chứng bắt buộc, dạng [{ kind, label, required }].
+  evidenceSpec Json
+  validityDays Int     @default(365)
+  /// Phí nộp đơn tính bằng credits (tái dụng ví sẵn có của chợ).
+  feeCredits   Int     @default(0)
+  /// Biến thể huy hiệu: quyết định màu/nhãn khi render SVG.
+  badgeVariant String  @default("default")
+  active       Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  applications SealApplication[]
+  certificates TrustCertificate[]
+}
+
+/// Đơn xin cấp dấu.
+model SealApplication {
+  id           String                @id @default(cuid())
+  orgId        String
+  org          TrustOrganization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  domainId     String
+  domain       TrustDomain           @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  programId    String
+  program      SealProgram           @relation(fields: [programId], references: [id])
+  applicantId  String
+  status       SealApplicationStatus @default(DRAFT)
+  /// Phạm vi khẳng định, in nguyên văn lên chứng chỉ và trang xác thực.
+  scope        String?
+  /// Câu trả lời của khách cho từng tiêu chí, dạng { [criteriaKey]: value }.
+  answers      Json?
+  feeCharged   Int                   @default(0)
+  submittedAt  DateTime?
+  reviewerId   String?
+  reviewerName String?
+  reviewNote   String?
+  decidedAt    DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  evidence    SealEvidence[]
+  certificate TrustCertificate?
+
+  @@index([status, submittedAt])
+  @@index([orgId])
+  @@index([applicantId])
+}
+
+/// Bằng chứng khách nộp kèm đơn (link, file trong storage-service, hoặc ghi chú).
+model SealEvidence {
+  id            String          @id @default(cuid())
+  applicationId String
+  application   SealApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  kind          String
+  label         String?
+  url           String?
+  fileObjectId  String?
+  note          String?
+  createdAt     DateTime        @default(now())
+
+  @@index([applicationId])
+}
+
+/// Chứng chỉ đã cấp. `signature` là JWS Ed25519 của `payload` — bên thứ ba xác
+/// minh offline được bằng khoá công khai ở /.well-known/tsudev-trust-jwks.json.
+model TrustCertificate {
+  id              String            @id @default(cuid())
+  /// Serial người đọc được, ví dụ TSU-CR-2026-000123.
+  serial          String            @unique
+  applicationId   String            @unique
+  application     SealApplication   @relation(fields: [applicationId], references: [id])
+  orgId           String
+  org             TrustOrganization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  domainId        String
+  domain          TrustDomain       @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  programId       String
+  program         SealProgram       @relation(fields: [programId], references: [id])
+  status          CertificateStatus @default(ACTIVE)
+  basis           AssessmentBasis   @default(EVIDENCE_REVIEWED)
+  scope           String
+  issuedAt        DateTime          @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  revokeReason    String?
+  /// Nội dung đã ký, công khai trên trang xác thực.
+  payload         Json
+  signature       String
+  /// `kid` của khoá đã ký — cho phép xoay khoá mà chứng chỉ cũ vẫn xác minh được.
+  signingKeyId    String
+  issuedById      String
+  issuedByName    String
+  lastCheckAt     DateTime?
+  lastCheckPassed Boolean?
+
+  checks TrustCheck[]
+
+  @@index([status, expiresAt])
+  @@index([domainId])
+  @@index([orgId])
+}
+
+/// Kết quả tái kiểm định kỳ (domain còn trỏ đúng, token còn đó, TLS còn hạn...).
+model TrustCheck {
+  id            String           @id @default(cuid())
+  certificateId String
+  certificate   TrustCertificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  ranAt         DateTime         @default(now())
+  passed        Boolean
+  details       Json?
+
+  @@index([certificateId, ranAt])
+}
+
+/// Nhật ký bất biến cho mọi hành động trên hệ thống dấu — theo đúng khuôn mẫu
+/// ModAction của kiểm duyệt. Cần cho trách nhiệm pháp lý khi cấp dấu.
+model TrustAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actorName  String
+  action     String
+  targetType String
+  targetId   String
+  targetLabel String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}

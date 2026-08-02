@@ -1,0 +1,61 @@
+{
+  "name": "tsudev-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "env:local": "node scripts/write-env-local.js",
+    "dev": "npm run env:local && concurrently \"npm --workspace services/user-service run dev\" \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\" \"npm --workspace apps/frontend-main run dev\" \"npm --workspace apps/frontend-forum run dev\"",
+    "dev:local": "node scripts/run-dev.js",
+    "bootstrap": "npm ci",
+    "dev:services": "concurrently \"npm --workspace services/user-service run dev\" \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\"",
+    "dev:frontends": "npm run env:local && concurrently \"npm --workspace apps/frontend-main run dev\" \"npm --workspace apps/frontend-forum run dev\"",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx . --ignore-path .eslintignore",
+    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx . --fix --ignore-path .eslintignore",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky install",
+    "db:up": "bash scripts/start-db.sh",
+    "db:migrate": "npm --workspace packages/db run migrate:deploy",
+    "db:generate": "npm --workspace packages/db run generate",
+    "db:seed": "npm --workspace packages/db run seed",
+    "db:reset": "npm --workspace packages/db exec -- prisma migrate reset --force",
+    "dev:full": "npm run db:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run dev:local"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "concurrently": "^8.2.0",
+    "esbuild": "^0.19.4",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^14.0.0",
+    "playwright": "^1.59.1",
+    "prettier": "^2.8.8",
+    "typescript": "^5.5.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,md}": [
+      "prettier --write"
+    ],
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
