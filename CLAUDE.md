@@ -10,16 +10,25 @@ Repo: private, `github.com/b4djl1h/tsudev`.
 
 ## Bản đồ
 
-| Thành phần                | Cổng | Ghi chú                                     |
-| ------------------------- | ---- | ------------------------------------------- |
-| `apps/frontend-main`      | 3000 | Next 15 + React 19 · blog, docs, market, trust, admin |
-| `apps/frontend-forum`     | 3001 | Next 13 + React 18 · diễn đàn               |
-| `apps/sso-auth`           | —    | KHÔNG phải app Node, chỉ realm export Keycloak |
-| `services/user-service`   | 4000 | hồ sơ, uy tín                               |
-| `services/content-service`| 4001 | blog, docs, forum, kiểm duyệt, tin nhắn, chợ |
-| `services/storage-service`| 4002 | presign S3/R2, upload                       |
-| `services/trust-service`  | 4003 | con dấu tín nhiệm                           |
-| PostgreSQL                | 5433 | cluster user-space, **không** phải 5432     |
+**Nguồn sự thật về cổng/tên miền là `config/topology.json`**, không phải bảng
+này. Đổi cổng ⇒ sửa ở đó rồi `npm run topology:gen`. `npm run topology:check`
+(trong CI và `.husky/pre-push`) chặn hardcode mọc lại.
+
+Ở dev chỉ có **một cổng công khai**: `scripts/dev-proxy.js` nghe 8080 và phân
+biệt bằng subdomain, đúng hình trạng production.
+
+| Thành phần                | Địa chỉ dev                        | Cổng nội bộ | Ghi chú                          |
+| ------------------------- | ---------------------------------- | ----------- | -------------------------------- |
+| `apps/frontend-main`      | `tsudev.localhost:8080`            | 3000        | Next 15 · blog, docs, market, trust, admin |
+| `apps/frontend-forum`     | `forum.tsudev.localhost:8080`      | 3001        | Next 13 · diễn đàn               |
+| Keycloak                  | `auth.tsudev.localhost:8080`       | 4100        | **không** còn 8080 (nhường proxy) |
+| MinIO / R2                | `cdn.tsudev.localhost:8080`        | 9000        | đích của URL presign             |
+| `apps/sso-auth`           | —                                  | —           | KHÔNG phải app Node, chỉ realm export |
+| `services/user-service`   | *(chỉ SSR/BFF)*                    | 4000        | hồ sơ, uy tín                    |
+| `services/content-service`| *(chỉ SSR/BFF)*                    | 4001        | blog, docs, forum, kiểm duyệt, tin nhắn, chợ |
+| `services/storage-service`| *(chỉ SSR/BFF)*                    | 4002        | presign S3/R2, upload            |
+| `services/trust-service`  | *(chỉ SSR/BFF)*                    | 4003        | con dấu tín nhiệm                |
+| PostgreSQL                | —                                  | 5433        | cluster user-space, **không** phải 5432 |
 
 `packages/`: `@tsudev/db` (Prisma) · `@tsudev/ui` (design system) ·
 `@tsudev/types` · `@tsudev/utils` · `brand/` (ảnh nguồn) · `observability/`
@@ -33,8 +42,15 @@ npm run dev:full     # lần đầu: dựng DB + generate + migrate + seed + ch�
 npm run dev:local    # các lần sau
 ```
 
+Mở ở **http://tsudev.localhost:8080** (diễn đàn: `forum.tsudev.localhost:8080`).
+`*.localhost` tự trỏ loopback — không phải sửa `/etc/hosts`. Proxy hỏng thì
+`DEV_PROXY=0 npm run dev:local` quay về gõ thẳng cổng từng app.
+
 Đăng nhập dev: bất kỳ username + `devpass` (`.env` đã đặt `E2E_BYPASS_KEYCLOAK=1`).
 `tsudev`=ADMIN, `alice`=MEMBER, `bob`=VIP.
+
+⚠️ Vào bằng `localhost:3000` hay `127.0.0.1:3000` thì **đăng nhập không chạy**:
+cookie phiên mang `Domain=.tsudev.localhost` nên không gắn được vào host khác.
 
 Test theo workspace, **không** có lệnh test ở gốc:
 `npm --workspace services/<tên> test`. Cổng chung:
@@ -59,8 +75,11 @@ nguồn là hiện trạng; TSD là đích đến.
   chấm phẩy, nháy đơn.
 - **DB**: chỉ qua `@tsudev/db`. Một database, một schema, bốn service dùng chung.
 - **Trình duyệt KHÔNG gọi thẳng cổng service.** Mọi lời gọi qua route proxy
-  `apps/*/pages/api/<domain>/[...path].js`. Thêm endpoint ⇒ phải mở rộng proxy,
-  nếu không CORS chặn.
+  `apps/*/pages/api/<domain>/[...path].js` (kể cả storage: `/api/storage/*`).
+  Thêm endpoint ⇒ phải mở rộng proxy, nếu không CORS chặn.
+- **Địa chỉ service lấy từ `apps/*/lib/services.js`**, đừng khai lại
+  `process.env.X_SERVICE_URL || 'http://…'` trong file mới — `topology:check`
+  sẽ bắt.
 - **Link liên-site** dùng `siteUrl()`/`MAIN_URL`/`FORUM_URL` của `@tsudev/ui`.
   `href="/blog"` tương đối bám origin đang mở ⇒ 404 khi bấm từ diễn đàn.
 - **Giao diện chỉ có chế độ tối.** Không thêm nhánh sáng. Thứ bậc bằng độ sáng
@@ -87,6 +106,13 @@ nguồn là hiện trạng; TSD là đích đến.
 - **`TRUST_ISSUER` được ký vào chứng chỉ**; `TRUST_SIGNING_KEY` thiếu ở
   production ⇒ service từ chối khởi động (cố ý). Xoay khoá phải chuyển khoá cũ
   vào `TRUST_SIGNING_KEYS_RETIRED` trước.
+- **`REQUIRE_ROLE_ENFORCEMENT=true` hiện KHÔNG bật được ở production.** Chỉ 5/75
+  route có `requireRole`, và **không realm nào khai một vai trò nào** — bật lên
+  là năm route đó 403 vĩnh viễn (mất blog, danh sách thành viên, upload). Phải
+  thiết kế chính sách vai trò trước; xem `docs/refactor-network-topology.md` §2B.
+- **`INTERNAL_API_TOKEN` gác `/api` của user/content/storage** khi được đặt
+  (không đặt = no-op). `trust-service` cố ý đứng ngoài — endpoint của nó phải
+  công khai cho bên thứ ba.
 - **Keycloak trên Render free tier (512MB)**: `--cache=local` là build-time
   option (đặt vào `start` ⇒ treo cứng); `start-dev` ⇒ OOM; H2 in-memory ⇒ mất
   sạch tài khoản mỗi lần dịch vụ ngủ dậy. Bốn commit liên tiếp đã trả giá —

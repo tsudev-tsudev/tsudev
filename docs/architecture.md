@@ -7,9 +7,9 @@ build monorepo (Turbo/Nx): mọi thứ chạy qua `npm --workspace <path> run <s
 
 ```
 apps/
-  frontend-main/     Next.js 15 + React 19 · :3000 · trang chủ, blog, docs,
+  frontend-main/     Next.js 15 + React 19 · tsudev.localhost · trang chủ, blog, docs,
                      members, messages, market, trust, admin
-  frontend-forum/    Next.js 13 + React 18 · :3001 · diễn đàn (board, thread)
+  frontend-forum/    Next.js 13 + React 18 · forum.tsudev.localhost · diễn đàn
   sso-auth/          KHÔNG phải app Node — chỉ chứa realm export Keycloak
 services/            Express + CommonJS, mỗi service một tiến trình
   user-service/      :4000  hồ sơ thành viên, uy tín, xếp hạng
@@ -28,9 +28,14 @@ packages/
 
 ## Luồng request
 
+Ở dev, mọi thứ trình duyệt chạm tới đi qua **một cổng vào duy nhất**
+(`scripts/dev-proxy.js`, cổng 8080) và phân biệt bằng subdomain —
+`tsudev.localhost`, `forum.tsudev.localhost`, `auth.…`, `cdn.…` — đúng hình
+trạng production. Bảng cổng: `config/topology.json`.
+
 ```
 trình duyệt
-   │  chỉ gọi cùng origin (:3000 hoặc :3001)
+   │  chỉ gọi cùng origin (tsudev.localhost | forum.tsudev.localhost)
    ▼
 Next.js API route  (pages/api/<domain>/[...path].js)
    │  chuyển tiếp kèm token, thêm header nội bộ

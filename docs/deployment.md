@@ -66,6 +66,37 @@ quanh chỗ này; đừng lặp lại:
 
 Realm production: `apps/sso-auth/keycloak/realm-export.prod.json` (khác bản dev).
 
+## Hợp đồng cổng & tên miền
+
+Nguồn sự thật là **`config/topology.json`**. Nó khai cả hình trạng dev lẫn tên
+miền production; `npm run topology:check` (chạy trong CI và `.husky/pre-push`)
+chặn cổng hardcode mọc lại. Đổi cổng ⇒ sửa file đó rồi `npm run topology:gen`.
+
+| Tên miền          | Trỏ về         | Nền tảng           |
+| ----------------- | -------------- | ------------------ |
+| `tsudev.vn`       | frontend-main  | Cloudflare Workers |
+| `forum.tsudev.vn` | frontend-forum | **chưa có đường**  |
+| `auth.tsudev.vn`  | Keycloak       | Render             |
+| `cdn.tsudev.vn`   | R2 public      | Cloudflare R2      |
+
+Bốn service backend **không** có tên miền công khai và cũng **không giấu được
+sau mạng nội bộ Render**: `frontend-main` chạy trên Cloudflare Workers, ngoài
+mạng đó, nên SSR/BFF của nó buộc phải gọi qua Internet công cộng. Lớp bù là
+`INTERNAL_API_TOKEN` (§dưới).
+
+## Cổng chặn `INTERNAL_API_TOKEN`
+
+`user`, `content`, `storage` từ chối mọi request tới `/api` nếu thiếu header
+`x-internal-token` khớp giá trị. **Tự nguyện**: biến không đặt ⇒ middleware là
+no-op, nên local và CI không đổi hành vi. Bật ở production bằng cách đặt cùng
+một giá trị cho ba service **và** cho frontend-main.
+
+`/health` đứng ngoài cổng chặn để health check của Render vẫn chạy.
+
+**`trust-service` cố ý KHÔNG có cổng chặn này** — nhiều endpoint của nó phải
+công khai cho bên thứ ba: huy hiệu SVG, trang xác minh, JWKS. Thêm vào là làm
+hỏng chính chức năng của nó.
+
 ## Biến môi trường
 
 Mẫu: `.env.production.example` ở gốc. Secret đặt trong dashboard Render
@@ -75,6 +106,7 @@ Bắt buộc theo service:
 
 | Service       | Biến bắt buộc                                                                                      |
 | ------------- | -------------------------------------------------------------------------------------------------- |
+| cả bốn        | `KEYCLOAK_ISSUER` — thiếu là rơi về mặc định local, JWKS trỏ vào hư vô, **mọi token thật bị 401**  |
 | user, content | `DATABASE_URL`                                                                                     |
 | storage       | `DATABASE_URL`, `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` |
 | trust         | `DATABASE_URL`, `TRUST_SIGNING_KEY`, `TRUST_SIGNING_KEY_ID`, `TRUST_ISSUER`                        |

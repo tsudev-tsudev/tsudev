@@ -36,9 +36,20 @@ npx playwright install --with-deps chromium   # lần đầu
 npm --prefix e2e test
 ```
 
-`E2E_BASE_URL` mặc định `http://localhost:3000`. Stack phải đang chạy
-(`npm run dev:local`) và `.env` phải có `E2E_BYPASS_KEYCLOAK=1` để kịch bản đăng
-nhập được bằng `devpass`.
+URL lấy từ `config/topology.json` — không đặt tay. Playwright **tự dựng** hai
+frontend và `dev-proxy` (mục `webServer`), nên không cần chạy `npm run dev:local`
+trước; đang chạy sẵn thì nó dùng lại.
+
+Hai project, tách theo thứ chúng cần:
+
+| Lệnh                  | Project   | Cần gì               | Ở CI |
+| --------------------- | --------- | -------------------- | ---- |
+| `npm run e2e:session` | `session` | hai frontend + proxy | ✅   |
+| `npm run e2e`         | cả hai    | + MinIO, Keycloak    | ❌   |
+
+`session` là lưới an toàn của việc tái cấu trúc cổng/tên miền: đăng nhập ở main,
+bấm link "Diễn đàn", phải sang đúng origin và **còn phiên**. Bản không cần trình
+duyệt: `node scripts/check-session-sharing.js`.
 
 Kịch bản duy nhất hiện có: `e2e/tests/sso-upload.spec.js` — đăng nhập, presign,
 upload.

@@ -36,6 +36,13 @@ Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
 - PostgreSQL → dịch vụ ngoài (Neon), truyền qua `DATABASE_URL` / `KC_DB_*`.
 - `apps/frontend-forum` **chưa có** đường deploy.
 
+Hợp đồng cổng/tên miền (cả dev lẫn production) khai ở **`config/topology.json`**,
+có cổng chặn hồi quy `npm run topology:check`. Ở local, mọi thứ trình duyệt chạm
+tới đi qua **một cổng vào duy nhất** (`scripts/dev-proxy.js`) và phân biệt bằng
+subdomain `*.tsudev.localhost` — cùng hình trạng với `*.tsudev.vn`, nên đường
+chia sẻ phiên đăng nhập kiểm chứng được ngay ở máy dev.
+Chi tiết và lộ trình: [../docs/refactor-network-topology.md](../docs/refactor-network-topology.md).
+
 `docker-compose.yml` ở gốc dựng full stack (Keycloak, Postgres, Redis, MinIO,
 services, frontends) — dùng cho phát triển và E2E, không phải cho production.
 

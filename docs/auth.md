@@ -10,10 +10,16 @@ Cấu hình ở `apps/*/pages/api/auth/[...nextauth].js` (mỗi app một bản)
 - Provider chính: Keycloak OIDC (`KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`,
   `KEYCLOAK_CLIENT_SECRET`).
 - `session.strategy = 'jwt'`, cookie `secure` chỉ khi `NODE_ENV=production`.
-- `NEXTAUTH_COOKIE_DOMAIN` đặt thành `.tsudev.vn` để chia sẻ phiên giữa các
-  subdomain. Để trống ở local vì `localhost:3000` và `localhost:3001` **không**
-  chia sẻ được cookie theo domain — mỗi app đăng nhập riêng, đó là hành vi đúng
-  ở local chứ không phải lỗi.
+- `NEXTAUTH_COOKIE_DOMAIN` chia sẻ phiên giữa các subdomain: `.tsudev.vn` ở
+  production, `.tsudev.localhost` ở local. Giá trị do `config/topology.json`
+  sinh ra, đừng đặt tay.
+  Từ giai đoạn 3, local đi qua `dev-proxy` nên hai app nằm trên hai subdomain
+  thật (`tsudev.localhost`, `forum.tsudev.localhost`) — nghĩa là **đường chia sẻ
+  phiên kiểm chứng được ngay ở local**, đúng như trên production. Trước đó thì
+  không: `localhost:3000` và `localhost:3001` vốn dùng chung kho cookie, nên bug
+  về phạm vi cookie chỉ lộ ra lần đầu khi lên production.
+  Đã đo trên Chromium và Firefox: cookie host-only **không** sang được
+  subdomain, cookie có `Domain=.tsudev.localhost` thì sang được.
 - `NEXTAUTH_URL` phải khớp origin của **chính app đang chạy**, xem
   [development.md](development.md#biến-môi-trường).
 
@@ -49,8 +55,10 @@ mình đang sửa:
 
 ```bash
 export AUTH_DEV_BYPASS=true
+# Gọi thẳng cổng service — chỉ để gỡ rối. Từ giai đoạn 4, TRÌNH DUYỆT phải đi
+# qua BFF cùng origin: /api/storage/presign trên frontend-main.
 curl -H 'x-dev-user: alice' -H 'x-dev-roles: storage:presign' \
-     'http://localhost:4002/api/presign?fileName=foo.txt'
+     "$STORAGE_SERVICE_URL/api/presign?fileName=foo.txt"
 ```
 
 - `x-dev-user` → `sub` và `preferred_username`.
@@ -101,7 +109,7 @@ Realm export: `apps/sso-auth/keycloak/realm-export.json` — định nghĩa clie
 public `tsudev-frontend` và user `devuser` / `devpass`.
 
 ```bash
-docker compose up keycloak   # :8080, tự import realm
+docker compose up keycloak   # :4100, qua proxy: auth.tsudev.localhost:8080
 ```
 
 Không có Docker thì trỏ `KEYCLOAK_ISSUER` sang một instance bên ngoài. Production

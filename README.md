@@ -18,7 +18,9 @@ npm run dev:full     # dựng Postgres user-space (:5433) + migrate + seed + ch�
 
 Các lần sau chỉ cần `npm run dev:local` (DB đã có sẵn).
 
-- Trang chính: http://localhost:3000 · Diễn đàn: http://localhost:3001
+- Trang chính: http://tsudev.localhost:8080 · Diễn đàn: http://forum.tsudev.localhost:8080
+  (một cổng vào duy nhất qua `scripts/dev-proxy.js`; `*.localhost` tự trỏ 127.0.0.1,
+  không phải sửa `/etc/hosts`). Cần quay lại kiểu cũ: `DEV_PROXY=0 npm run dev:local`.
 - Đăng nhập dev: **bất kỳ username** + mật khẩu `devpass`
   (`.env` đã đặt `E2E_BYPASS_KEYCLOAK=1`, không cần Keycloak).
   `tsudev` = ADMIN (xem `/admin`), `alice` = MEMBER, `bob` = VIP.
