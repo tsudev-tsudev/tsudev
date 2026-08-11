@@ -12,10 +12,7 @@ verify-output
 # mục con, và đánh số lại danh sách — tức là làm sai cấu trúc tài liệu.
 documents-tsudev.md
 
-# Log/board điều phối, không phải văn xuôi: prettier escape "_"/"*" bên
-# trong nội dung (vd 019_*.sql -> 019\_**.sql) làm sai lệch glob pattern,
-# tên biến trong log — giữ nguyên văn.
-AGENTS_BOARD.md
-AGENTS_KICKOFF.md
-AGENTS_LOG.md
+# Ngữ cảnh tự nạp mỗi phiên. Prettier escape "_"/"*" bên trong nội dung
+# (vd services/** -> services/\*\*) làm sai lệch glob pattern và tên đường dẫn
+# — giữ nguyên văn. AGENTS.md KHÔNG nằm ở đây: nó là văn xuôi bình thường.
 CLAUDE.md

@@ -13,3 +13,7 @@ verify-output/
 *:Zone.Identifier
 .env.local
 .pgdata/
+
+# Trạng thái runtime của Claude Code — riêng .claude/agents/ thì PHẢI commit
+.claude/scheduled_tasks.lock
+.claude/settings.local.json

@@ -1,19 +1,35 @@
-# SSO / Authentication
+# sso-auth
 
-This folder contains guidance and configuration for the Identity Provider (Keycloak) and SSO plumbing.
+**Không phải app Node.** Thư mục này chỉ chứa cấu hình Keycloak (Identity
+Provider) cho hệ thống SSO. Không có `package.json`, không có gì để `npm run`.
 
-We use Keycloak in dev for OIDC/OAuth2 flows. The `docker-compose.yml` starts a Keycloak container on port 8080.
+## Nội dung
 
-Place custom realm exports under `apps/sso-auth/keycloak/realm-export.json` for automatic import in development.
+| File                              | Dùng ở đâu                                                |
+| --------------------------------- | --------------------------------------------------------- |
+| `keycloak/realm-export.json`      | local dev — `docker compose up keycloak` tự import        |
+| `keycloak/realm-export.prod.json` | production — `docker/keycloak.Dockerfile` nướng vào image |
 
-Local Keycloak setup (dev):
+Realm dev định nghĩa client public `tsudev-frontend` và user `devuser` /
+`devpass`.
 
-1. Start Docker Desktop (or run Keycloak directly). Then `docker compose up keycloak` to start Keycloak.
-2. Keycloak will import the realm export at `apps/sso-auth/keycloak/realm-export.json` (it is configured in `docker-compose.yml` for dev import).
-3. The included realm defines a `tsudev-frontend` public client and a development user `devuser` / `devpass`.
-4. Configure frontend envs: copy `.env.example` → `.env` and ensure `KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`, and `KEYCLOAK_CLIENT_SECRET` match values in the realm export.
+## Chạy Keycloak local
 
-Notes:
+```bash
+docker compose up keycloak   # :8080
+```
 
-- If Docker is not available, you can use an external Keycloak instance and point `KEYCLOAK_ISSUER` to it.
-- For production, clients should be `confidential` and have secure client secrets; use HTTPS.
+Rồi khớp `.env` với realm: `KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`,
+`KEYCLOAK_CLIENT_SECRET`.
+
+**Việc thường ngày không cần Keycloak.** `.env` đặt sẵn `E2E_BYPASS_KEYCLOAK=1`
+nên đăng nhập bằng bất kỳ username + `devpass`. Chỉ dựng Keycloak khi thật sự
+cần kiểm thử luồng OIDC. Chi tiết: [../../docs/auth.md](../../docs/auth.md).
+
+## Production
+
+- Client phải là **confidential**, có secret thật, bắt buộc HTTPS.
+- Chạy trên Render với Keycloak 21.1.1 đã build sẵn, giới hạn heap JVM để vừa
+  512MB. Đây là chỗ đã trả giá bằng bốn lần sửa liên tiếp — đọc phần Keycloak
+  trong [../../docs/deployment.md](../../docs/deployment.md) trước khi đụng vào
+  `docker/keycloak.Dockerfile`.

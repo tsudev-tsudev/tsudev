@@ -28,13 +28,28 @@ Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
 
 ## 2. Triển khai container
 
-- Mỗi service/app đã có `Dockerfile`; `docker-compose.yml` ở gốc dựng full stack (Keycloak, Postgres, Redis, MinIO, services, frontends).
-- Production: build image trong CI, push registry, deploy (compose trên VPS, hoặc k8s). Chạy `prisma migrate deploy` trước khi khởi động service (xem CI job `test`).
-- Biến môi trường: xem `.env.production.example` ở gốc repo. **Không hardcode credential** (tiêu chí §6.4).
+**Hiện trạng đã chạy** khác với kế hoạch ban đầu (VPS/k8s) — thực tế dùng PaaS:
+
+- `apps/frontend-main` → **Cloudflare Workers** qua `@opennextjs/cloudflare`.
+- 4 service backend + Keycloak → **Render**, khai báo trong `render.yaml`,
+  build từ `docker/backend-service.Dockerfile` và `docker/keycloak.Dockerfile`.
+- PostgreSQL → dịch vụ ngoài (Neon), truyền qua `DATABASE_URL` / `KC_DB_*`.
+- `apps/frontend-forum` **chưa có** đường deploy.
+
+`docker-compose.yml` ở gốc dựng full stack (Keycloak, Postgres, Redis, MinIO,
+services, frontends) — dùng cho phát triển và E2E, không phải cho production.
+
+`prisma migrate deploy` **không** tự chạy khi service khởi động; phải chạy trước
+khi phát hành phiên bản có migration mới.
+
+Quy trình đầy đủ, biến môi trường bắt buộc và các bẫy đã trả giá (đặc biệt là
+Keycloak trên free tier 512MB): **[../docs/deployment.md](../docs/deployment.md)**.
+Không hardcode credential (tiêu chí §6.4).
 
 ## 3. Giám sát & cảnh báo (§4)
 
 - **Sentry**: đặt `SENTRY_DSN` → `packages/observability/initSentry` tự bật cho cả server & browser.
+  Cấu hình chi tiết: [../packages/observability/README.md](../packages/observability/README.md).
 - **New Relic**: `newrelic.js` + `NEW_RELIC_LICENSE_KEY`.
 - **Alerting**: `packages/observability/notify.js` gửi cảnh báo tới **Telegram** (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` → @nguyentrangtinhsu) và **email** (`ALERT_EMAIL_WEBHOOK` / `ALERT_EMAIL_TO=nguyentrangtinhsu@gmail.com`). Khi chưa cấu hình, hàm log "would send" (an toàn cho dev).
   - Kích hoạt bởi: error rate > 1%, downtime, exception (gọi từ error handler của service).
@@ -42,11 +57,14 @@ Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
 
 ## 4. Trạng thái
 
-| Hạng mục                         | Trạng thái                                       |
-| -------------------------------- | ------------------------------------------------ |
-| Docker Compose full stack        | ✅ có sẵn                                        |
-| Prisma migrate trong CI          | ✅                                               |
-| Alerting utility + test endpoint | ✅ (cần token để gửi thật)                       |
-| Sentry / New Relic hooks         | ✅ (cần DSN/key)                                 |
-| Cloudflare CDN/WAF/R2/Zero Trust | 📋 quy trình (cần tài khoản Cloudflare + domain) |
-| IaC (Terraform/Ansible)          | 📋 để bổ sung                                    |
+| Hạng mục                           | Trạng thái                                       |
+| ---------------------------------- | ------------------------------------------------ |
+| Docker Compose full stack (dev)    | ✅                                               |
+| Render blueprint (4 service + SSO) | ✅                                               |
+| Cloudflare Workers (frontend-main) | ✅                                               |
+| Đường deploy `frontend-forum`      | ❌ chưa có                                       |
+| Prisma migrate trong CI            | ✅                                               |
+| Alerting utility + endpoint thử    | ✅ cần token để gửi thật                         |
+| Sentry / New Relic hooks           | ✅ cần DSN/key                                   |
+| Cloudflare CDN/WAF/R2/Zero Trust   | 📋 quy trình (cần tài khoản Cloudflare + domain) |
+| IaC (Terraform/Ansible)            | 📋 để bổ sung                                    |

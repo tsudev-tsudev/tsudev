@@ -2,127 +2,107 @@
 
 [![CI](https://github.com/b4djl1h/tsudev/actions/workflows/ci.yml/badge.svg)](https://github.com/b4djl1h/tsudev/actions/workflows/ci.yml)
 
-Hệ sinh thái công nghệ đa nền tảng cho developer (theo `documents-tsudev.md`): trang chủ portfolio, blog, tài liệu, **diễn đàn** (forum engine với uy tín/xếp hạng, kiểm duyệt, tin nhắn, marketplace), SSO và object storage.
+Hệ sinh thái công nghệ đa nền tảng cho developer: trang chủ portfolio, blog, kho
+tài liệu, **diễn đàn** (uy tín/xếp hạng, kiểm duyệt, tin nhắn riêng, chợ có ký
+quỹ), **SSO** và **con dấu tín nhiệm** cho website bên thứ ba.
 
-Repo GitHub: private, **https://github.com/b4djl1h/tsudev**. GitHub Free không
-cho bật branch protection trên repo private (cần nâng Pro/Team) nên `main`
-được chắn ở phía client: hook `.husky/pre-push` chặn `git push` thẳng lên
-`main` — làm việc trên nhánh feature rồi mở PR. Cần vượt qua thật sự thì
-`ALLOW_MAIN_FORCE=1 git push`. Hook tự cài khi `npm install` chạy
-`prepare` (husky).
+Monorepo npm workspaces. Đặc tả gốc: [`documents-tsudev.md`](documents-tsudev.md).
 
-## Trạng thái triển khai
-
-| Phase | Nội dung                                                                             | Trạng thái                                        |
-| ----- | ------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| 0     | Nền móng: Postgres + Prisma + migration/seed, packages `@tsudev/db`, `@tsudev/types` | ✅                                                |
-| 1     | Backend dùng dữ liệu thật (users/blog/docs/files) + RBAC                             | ✅                                                |
-| 2     | Design system theme-aware + trang chủ SSR                                            | ✅                                                |
-| 3     | Forum engine: chuyên mục/chủ đề/bài viết, reply, vote                                | ✅                                                |
-| 4     | Uy tín, xếp hạng, bảng xếp hạng, hồ sơ thành viên                                    | ✅                                                |
-| 5     | Kiểm duyệt (report/ban/audit), tin nhắn riêng, marketplace escrow                    | ✅                                                |
-| 6     | Hạ tầng & giám sát: alerting Telegram/email, CI, Docker, Cloudflare docs             | ✅ (cần credential/cloud để kích hoạt thật)       |
-| 7     | Con dấu tín nhiệm: `trust-service`, cấp/xác thực/phân phối huy hiệu                  | ✅ (xem [docs/trust-seal.md](docs/trust-seal.md)) |
-
-## Quick start (một lệnh, không cần Docker)
+## Bắt đầu
 
 ```bash
 npm install
-npm run dev:full   # dựng Postgres user-space (5433) + migrate + seed + chạy 5 process
+cp .env.example .env
+npm run dev:full     # dựng Postgres user-space (:5433) + migrate + seed + chạy 6 tiến trình
 ```
 
-- Frontend chính: http://localhost:3000 · Diễn đàn: http://localhost:3001
-- Đăng nhập dev (khi `E2E_BYPASS_KEYCLOAK=1`): bất kỳ username + mật khẩu `devpass`.
-  - `tsudev` = quản trị (xem `/admin`), `alice`/`bob` = thành viên.
+Các lần sau chỉ cần `npm run dev:local` (DB đã có sẵn).
 
-Các lệnh DB: `npm run db:up | db:migrate | db:seed | db:reset`.
+- Trang chính: http://localhost:3000 · Diễn đàn: http://localhost:3001
+- Đăng nhập dev: **bất kỳ username** + mật khẩu `devpass`
+  (`.env` đã đặt `E2E_BYPASS_KEYCLOAK=1`, không cần Keycloak).
+  `tsudev` = ADMIN (xem `/admin`), `alice` = MEMBER, `bob` = VIP.
 
-> Bản gốc scaffold dùng `docker-compose up` (Keycloak, MinIO, Postgres, Redis, services, frontends). `dev:full` là đường chạy local không cần Docker.
+Không cần Docker cho việc thường ngày. `docker-compose.yml` chỉ dùng khi cần
+Keycloak/MinIO thật.
 
-Overview:
+**Chi tiết, gỡ lỗi khởi động, đổi cổng → [docs/development.md](docs/development.md).**
 
-- Multi-app monorepo với `apps/`, `services/`, `packages/`, và `infrastructure/`.
-- Dev bootstrap qua `docker-compose up` HOẶC `npm run dev:full` (local, không Docker).
+## Cấu trúc
 
-Quick start (development):
+| Thư mục                    | Nội dung                                              | Cổng |
+| -------------------------- | ----------------------------------------------------- | ---- |
+| `apps/frontend-main`       | Next.js 15 — trang chủ, blog, docs, chợ, trust, admin | 3000 |
+| `apps/frontend-forum`      | Next.js 13 — diễn đàn                                 | 3001 |
+| `apps/sso-auth`            | cấu hình realm Keycloak (không phải app Node)         | —    |
+| `services/user-service`    | hồ sơ thành viên, uy tín, xếp hạng                    | 4000 |
+| `services/content-service` | blog, docs, forum, kiểm duyệt, tin nhắn, chợ          | 4001 |
+| `services/storage-service` | presign S3/R2, upload                                 | 4002 |
+| `services/trust-service`   | con dấu tín nhiệm                                     | 4003 |
+| `packages/db`              | schema Prisma, migration, seed                        | —    |
+| `packages/ui`              | design system + Storybook                             | 6006 |
+| `packages/brand`           | ảnh nguồn logo/favicon/avatar                         | —    |
+| `infrastructure/`          | tài liệu hạ tầng & giám sát                           | —    |
 
-1. Copy `.env.example` to `.env` and edit values.
-2. Run `docker-compose up --build` to start the development environment.
+Mỗi thư mục có `README.md` riêng.
 
-This scaffold provides minimal, extensible placeholders so you can incrementally implement the full production-quality system.
-
-## Local development without Docker (real-time hot-reload)
-
-If Docker Desktop is unavailable or you prefer local dev that updates immediately on file save, you can run the services and frontends directly with file watchers.
-
-Prerequisites:
-
-- Node.js 18+ and `npm` installed on your machine.
-
-Install tools (from repo root):
-
-```powershell
-# Install workspace dependencies (root will install workspaces)
-npm install
-
-# Optionally install per-package dependencies if you prefer:
-npm --prefix services/user-service install
-npm --prefix services/content-service install
-npm --prefix services/storage-service install
-npm --prefix apps/frontend-main install
-npm --prefix apps/frontend-forum install
-```
-
-Start all dev servers (hot-reload enabled):
-
-```powershell
-npm run dev
-```
-
-## Run everything locally (no Docker)
-
-To run the full dev stack locally (frontends with Fast Refresh and services with nodemon) without Docker, use the helper added in this repo:
+## Lệnh thường dùng
 
 ```bash
-# install workspace deps
-npm run bootstrap
-
-# start all local dev servers and sync .env into frontends
-npm run dev:local
+npm run dev:local        # chạy toàn bộ stack
+npm run dev:services     # chỉ 4 service
+npm run dev:frontends    # chỉ 2 app Next
+npm run db:migrate       # prisma migrate deploy
+npm run db:generate      # BẮT BUỘC sau khi đổi schema.prisma
+npm run db:seed
+npm run db:reset         # xoá sạch + migrate + seed (chỉ local)
+npm run lint             # eslint toàn repo
+npm run format           # prettier --write
+npm --workspace services/<tên> test
+npm --workspace packages/ui run storybook
 ```
 
-The `dev:local` helper generates each frontend's `.env.local` from your root `.env` (via `scripts/write-env-local.js`) and spawns the `npm run dev` scripts for the services and frontends with the same environment. For full SSO/DB/storage behavior you still need Keycloak/Postgres/Redis/MinIO; you can run only those infra containers with Docker if desired.
+Không có lệnh `test` ở gốc — test chạy theo từng service.
 
-Notes about environment variables:
+## Tài liệu
 
-- Copy `.env.example` to `.env` at the repository root and update values.
-- `NEXT_PUBLIC_MAIN_URL` / `NEXT_PUBLIC_FORUM_URL` are the origins of the two frontends. The shared `SiteHeader`/`SiteFooter` build absolute links from them, because a relative `/blog` would follow whichever origin the visitor is on and 404 on the forum. Set them to the real domains before deploying.
-- `apps/*/.env.local` is generated — do not hand-edit it. Each app gets its own `NEXTAUTH_URL` (derived from the two variables above) so next-auth builds callbacks against the right port; a shared value would bounce forum logins to `:3000`. Regenerate at any time with `npm run env:local`; `npm run dev`, `dev:frontends` and `dev:local` do it automatically.
+| Chủ đề                             | File                                           |
+| ---------------------------------- | ---------------------------------------------- |
+| Bản đồ hệ thống, luồng request     | [docs/architecture.md](docs/architecture.md)   |
+| Chạy local, biến môi trường        | [docs/development.md](docs/development.md)     |
+| SSO, JWT, RBAC                     | [docs/auth.md](docs/auth.md)                   |
+| Unit test, E2E, chẩn đoán CI       | [docs/testing.md](docs/testing.md)             |
+| Token màu, component, a11y         | [docs/design-system.md](docs/design-system.md) |
+| Render, Cloudflare Workers, secret | [docs/deployment.md](docs/deployment.md)       |
+| Vận hành con dấu tín nhiệm         | [docs/trust-seal.md](docs/trust-seal.md)       |
+| Phân vai agent, kỷ luật token      | [AGENTS.md](AGENTS.md)                         |
 
-Keycloak / SSO:
+## Trạng thái
 
-- For the local SSO to work, start Keycloak via Docker (see `apps/sso-auth/README.md`). The included realm export creates a `tsudev-frontend` public client and a development user `devuser` / `devpass`.
+| Phase | Nội dung                                                           | Trạng thái                               |
+| ----- | ------------------------------------------------------------------ | ---------------------------------------- |
+| 0     | Postgres + Prisma + migration/seed, `@tsudev/db`, `@tsudev/types`  | ✅                                       |
+| 1     | Backend dùng dữ liệu thật (users/blog/docs/files) + RBAC           | ✅                                       |
+| 2     | Design system + trang chủ SSR                                      | ✅                                       |
+| 3     | Forum engine: chuyên mục, chủ đề, bài, reply, vote                 | ✅                                       |
+| 4     | Uy tín, xếp hạng, bảng xếp hạng, hồ sơ thành viên                  | ✅                                       |
+| 5     | Kiểm duyệt (report/ban/audit), tin nhắn riêng, chợ ký quỹ          | ✅                                       |
+| 6     | Hạ tầng & giám sát: alerting Telegram/email, CI, Docker            | ✅ cần credential để kích hoạt thật      |
+| 7     | Con dấu tín nhiệm: cấp, ký, xác thực, phân phối huy hiệu           | ✅                                       |
+| 8     | Production: Cloudflare Workers (main) + Render (service, Keycloak) | 🚧 `frontend-forum` chưa có đường deploy |
 
-Notes:
+## Đóng góp
 
-- Frontend Next.js apps run with `next dev` and provide React Fast Refresh on edits.
-- Backend services use `nodemon` (watching `src/`) to restart automatically on changes.
-- You can run subsets: `npm run dev:services` or `npm run dev:frontends`.
+`main` **không** có branch protection — GitHub Free không hỗ trợ cho repo
+private. Lớp chắn duy nhất là hook client `.husky/pre-push`, tự cài khi
+`npm install`. Làm việc trên nhánh feature rồi mở PR; thật sự cần vượt thì
+`ALLOW_MAIN_FORCE=1 git push`.
 
-See individual `apps/*` and `services/*` READMEs for per-component details.
-
-## Running tests & CI
-
-Unit tests for backend services are run per-service. To run tests locally for a service, from the repository root:
+Trước khi commit:
 
 ```bash
-# example: run tests for storage-service
-npm --prefix services/storage-service install
-npm --prefix services/storage-service test
+npm run format:check && npm run lint
+npm --workspace services/<tên đã sửa> test
 ```
 
-CI is configured with GitHub Actions (file: `.github/workflows/ci.yml`) to run `npm ci` and `npm test` for the core services on push and PRs.
-
-## Role-based enforcement (RBAC)
-
-Authentication is enforced via Keycloak JWT verification in `services/*/src/authMiddleware.js`. Role checks are available but opt-in to avoid breaking local development: set the environment variable `REQUIRE_ROLE_ENFORCEMENT=true` to enable role checks across services. Role names can be configured via service-specific environment variables such as `STORAGE_UPLOAD_ROLE` and `STORAGE_PRESIGN_ROLE`.
+Commit theo [Conventional Commits](https://www.conventionalcommits.org/).

@@ -1,198 +1,126 @@
-# CLAUDE.md — ubndxanuicamnoibo
+# CLAUDE.md — tsudev
 
-Hệ thống điều hành công việc UBND xã Núi Cấm (monorepo backend + frontend).
-Repo GitHub **canonical = `xanuicam/ubnd`** (private; repo cũ
-`dieuhanhcongviecxanuicam/ubndxanuicamnoibo` đã bỏ). Làm việc trên nhánh
-feature/refactor, **PR về `main`**; có pre-push hook bảo vệ `main`
-(`scripts/install-hooks.sh`). KHÔNG push thẳng `main`.
-**Production ĐÃ LIVE**: https://www.xanuicam.vn — kiến trúc PaaS không-VPS:
-Cloudflare Pages (frontend + Pages Functions proxy `/api|/uploads|/socket.io`) →
-Render (`ubnd-backend.onrender.com`, Express) → Neon (PostgreSQL) + Upstash
-(Redis, `rediss://`) + Cloudflare R2 (uploads, `STORAGE_DRIVER=r2`). **Push lên
-`main` → Render + Pages TỰ deploy** (không qua GitHub Actions). Dựng lại/biến môi
-trường: `docs/DEPLOYMENT/PAAS_SETUP.md`. Gotcha deploy: memory `paas-deploy-gotchas`.
-Local dev vẫn CHỈ localhost, khởi động thủ công (mục dưới).
+Hệ sinh thái công nghệ cho developer: trang chủ/blog/tài liệu, diễn đàn, chợ có
+ký quỹ, SSO, object storage, con dấu tín nhiệm. Monorepo npm workspaces.
+Repo: private, `github.com/b4djl1h/tsudev`.
 
-> File này là NGỮ CẢNH TĨNH được Claude Code tự nạp + cache ở đầu MỌI phiên.
-> TUYỆT ĐỐI không sửa file này giữa phiên (sửa = bust cache toàn bộ phía sau).
-> Đọc kỹ 1 lần, tuân thủ trong suốt phiên.
+> File này là NGỮ CẢNH TĨNH được nạp + cache ở đầu MỌI phiên. Đọc kỹ một lần,
+> tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
+> bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-## Stack
-- `backend/` — Express + TypeScript (ts-node/nodemon) · PostgreSQL 18 (raw SQL qua
-  tầng repository, KHÔNG ORM) · Redis · Socket.IO · JWT cookie-only · port **8080**.
-- `frontend/` — React + Vite + TypeScript · Vitest · Playwright · port **3001**.
-- `frontend-kiosk/` — MPA Vanilla TS/Vite (13 trang dịch vụ công), cổng
-  Vite mặc định **5173**; `npm run serve` dùng **8005**. Có `CLAUDE.md` riêng đã
-  gắn banner ĐÃ HỢP NHẤT — quy tắc phối hợp theo FILE NÀY, không theo file đó.
-- `packages/shared-types/` — `@ubnd/shared-types`: **PHẢI build TRƯỚC** khi
-  typecheck/build backend hoặc frontend (thiếu → TS2307 hàng loạt).
+## Bản đồ
 
-## Chạy local & lệnh chuẩn (CHỈ localhost, khởi động thủ công)
-- **Khởi động, cổng bị chiếm, đổi cổng → `docs/development.md`** (đã kiểm chứng
-  bằng chạy thật). Đọc file đó khi cần dựng môi trường; ĐỪNG tự dò lại.
-- Tóm tắt: Postgres/Redis KHÔNG tự chạy (`sudo service postgresql start` +
-  `redis-server --daemonize yes`) → build `packages/shared-types` → `npm run dev`
-  ở `backend/` (:8080) và `frontend/` (:3001), mỗi cái một terminal.
-- Port bận: `fuser -k 3001/tcp 8080/tcp` (KHÔNG fuser-kill 5432/6379 — restart
-  bằng `sudo service ... restart`). Thủ phạm quen: vite cũ của clone
-  `~/projects/ubndxanuicam`. Đổi cổng backend KHÔNG dùng được biến shell
-  (`backend/.env` nạp với `override:true` đè ngược) — xem tài liệu trên.
-- Mỗi workspace: `npm run type-check` · `npm run lint` · `npm test`.
-- DB (trong `backend/`): `db:migrate` · `db:seed` · `db:bootstrap-test` ·
-  `db:bootstrap-superadmins`. Test `*.real.test.ts` cần chuỗi:
-  `database.sql → db:migrate → db:bootstrap-test → db:seed`.
-- Đăng nhập API: GET `/api/csrf-token` → POST `/api/auth/login` header
-  `X-CSRF-Token`, body dùng trường **`identifier`**. Tài khoản dev: `admin` +
-  `test_a..d` (A/B/C/D) — mật khẩu trong `.env` (`SUPERADMIN_*`, `TEST_*`),
-  reset bằng `db:bootstrap-superadmins` + `scripts/reset-test-passwords.ts`.
+| Thành phần                | Cổng | Ghi chú                                     |
+| ------------------------- | ---- | ------------------------------------------- |
+| `apps/frontend-main`      | 3000 | Next 15 + React 19 · blog, docs, market, trust, admin |
+| `apps/frontend-forum`     | 3001 | Next 13 + React 18 · diễn đàn               |
+| `apps/sso-auth`           | —    | KHÔNG phải app Node, chỉ realm export Keycloak |
+| `services/user-service`   | 4000 | hồ sơ, uy tín                               |
+| `services/content-service`| 4001 | blog, docs, forum, kiểm duyệt, tin nhắn, chợ |
+| `services/storage-service`| 4002 | presign S3/R2, upload                       |
+| `services/trust-service`  | 4003 | con dấu tín nhiệm                           |
+| PostgreSQL                | 5433 | cluster user-space, **không** phải 5432     |
 
-## Tài liệu tĩnh cốt lõi (đọc CHỌN LỌC theo task — KHÔNG nạp tất cả)
-Mục lục: `docs/README.md`. Theo vùng task:
-- Kiến trúc/DB → `docs/ARCHITECTURE/CODEBASE_ARCHITECTURE.md` · `DATA_MODEL_REFERENCE.md`
-- API/envelope → `docs/API/API_PATTERNS_AND_ERRORS.md` · `API_REFERENCE.md`
-- Pattern backend → `docs/BACKEND/` (controller, middleware, database)
-- RBAC → `docs/ARCHITECTURE/ADRS/004_RBAC_4_TIER_HIERARCHY.md`
+`packages/`: `@tsudev/db` (Prisma) · `@tsudev/ui` (design system) ·
+`@tsudev/types` · `@tsudev/utils` · `brand/` (ảnh nguồn) · `observability/`
+(thư mục thuần, không phải workspace).
 
-⚠️ `docs/` có thể ASPIRATIONAL/lỗi thời (mô tả DDD, coverage… không khớp code
-thật). Coi docs là TUYÊN BỐ cần đối chiếu source, không phải chân lý.
+## Chạy local
 
-## Quy ước code (đã kiểm chứng theo source — tuân thủ khi sửa)
-- **Response**: controller chỉ `res.json(data)` — middleware `responseEnvelope`
-  tự bọc `{data, message?, pagination?}`. KHÔNG tự lắp envelope; lỗi thì
-  `throw AppError` qua `errorMiddleware`, không hand-roll `res.status().json()`.
-- **SQL**: LUÔN parameterized (`$1,$2…`) — cấm nối chuỗi vào SQL.
-- **Route bảo vệ**: `verifyToken` + `hasPermission([...])`; quyền chưa đủ thì
-  kiểm tra sở hữu (IDOR) trong controller — mẫu `assertTaskAccess` (taskController).
-- **Task assignee**: bảng `task_assignees` (nhiều-nhiều) — đừng tái sinh
-  `tasks.assignee_id`. `/api/v1/*` là alias rewrite trong `app.ts` — không viết
-  route v1 riêng.
-- **Frontend**: gọi API qua `apiService` (mở rộng nó, đừng gọi axios thẳng từ
-  component). Endpoint PHÂN TRANG đi qua `handleListResponse` → luôn trả
-  `{data, pagination}` với `data` CHẮC CHẮN là mảng. ĐỪNG "sửa" `handleResponse`
-  cho bóc thẳng `payload.data` — sẽ làm rơi pagination của DocumentsPage/
-  ComputerConfigsPage. Test hợp đồng 2 nửa (`responseEnvelope.contract.test.ts`
-  + round-trip trong `apiService.test.ts`) khoá lại lớp lỗi này.
-  KHÔNG lưu token ở JS/localStorage — `AuthContext` hydrate qua `/auth/me`,
-  axios tự refresh single-flight khi 401. UI tiếng Việt — giữ thuật ngữ và
-  class dark-mode hiện có.
-- **Hệ thống giao diện** (chuẩn hoá 29/07/2026, PR #23): token `.btn-*`,
-  `.input-style`, `.page-title`, `.nav-link`/`.nav-link-active` khai báo ở MỘT
-  nơi duy nhất là `frontend/src/index.css @layer components` —
-  `tailwind.config.js` CHỈ giữ `theme`, đừng thêm plugin `addComponents` (trước
-  kia trùng 2 nguồn nên nút lệch padding/màu dark giữa các trang). Tiêu đề trang
-  dùng `components/layout/PageHeader.tsx`; câu khẩu hiệu (`PageMotivation`) nằm
-  ở `Header` và `LoginPage` — ĐỪNG render lại trong trang con.
-- **Mật khẩu**: Argon2id (`utils/passwordHash.ts`, tương thích bcrypt + tự
-  rehash khi login). Secrets: KHÔNG commit `.env`; hook `pre-commit` quét secret,
-  `pre-push` chặn force-push main (override chủ đích: `ALLOW_MAIN_FORCE=1`).
-- **Commit**: Conventional Commits (commitlint trong CI); đang có hậu tố
-  `(Pha N)` cho nỗ lực migration nội bộ — theo pattern đó nếu cùng nỗ lực.
+```bash
+npm install && cp .env.example .env
+npm run dev:full     # lần đầu: dựng DB + generate + migrate + seed + chạy
+npm run dev:local    # các lần sau
+```
 
-## Module kiosk (hợp nhất 29/07/2026, PR #29)
-> **Games ĐÃ GỠ 30/07/2026**: `backend/src/modules/games`, `frontend-kiosk/public/games`,
-> SDK game và schema DB `games` không còn. Migration `023_drop_games_module.sql` xoá schema
-> + quyền `game_manage_registry` (021/022 giữ nguyên vì migration BẤT BIẾN). Trò chơi sẽ làm
-> lại thành **webapp độc lập**, tích hợp bằng link — ĐỪNG thêm `/games/` trở lại vào repo này.
-- Code MỚI đặt ở `backend/src/modules/kiosk` — auth và điều hành công việc
-  GIỮ NGUYÊN ở `controllers/`, `routes/`, `repositories/`. Đọc `src/modules/README.md`.
-- Schema DB riêng `kiosk.*`, **không nằm trong search_path** ⇒ SQL phải gọi tên đầy đủ.
-  Soft-delete ở đây là cột `deleted_at` ĐƠN GIẢN — KHÔNG có cơ chế VIEW `*_all`, đừng áp
-  `resolveBaseTable()` cho chúng.
-- **Hợp đồng response**: controller kiosk trả ĐÚNG body cũ (mảng chuỗi, `{data}`,
-  camelCase, số dạng CHUỖI); envelope hệ thống bọc ngoài; `frontend-kiosk/public/js/api.ts`
-  bóc ra. Đổi hình dạng ở controller = 13 trang MPA hiển thị trống mà không báo lỗi.
-- `call_status` đảo chiều: DB `serving` ↔ API `calling` (`kioskMapper.ts`).
-- Cột cá nhân (họ tên, CCCD, SĐT, địa chỉ…) **mã hoá** bằng `utils/encryption.ts` ⇒
-  `LIKE` trên chúng luôn rỗng. Tìm kiếm làm ở TẦNG ỨNG DỤNG sau khi giải mã (rẻ vì
-  mọi truy vấn đã lọc theo đúng một ngày).
-- Số quầy = `display_order` trong danh mục sắp xếp theo **thứ tự byte** (SQLite BINARY),
-  KHÔNG phải `localeCompare('vi')`. `counter_number` trên phiếu cũ là giá trị LỊCH SỬ.
-- Nạp dữ liệu kiosk: `npm run kiosk:load -- --sqlite <file>` (cần `python3`). Chạy TAY,
-  không qua git/CI vì chứa dữ liệu công dân thật.
+Đăng nhập dev: bất kỳ username + `devpass` (`.env` đã đặt `E2E_BYPASS_KEYCLOAK=1`).
+`tsudev`=ADMIN, `alice`=MEMBER, `bob`=VIP.
 
-## Gotcha cứng (đọc trước khi sửa vùng liên quan)
-- **`index.css`**: comment CSS chứa chuỗi `*/` (vd viết tắt `.btn-*` rồi `/`) sẽ
-  ĐÓNG SỚM block comment → PostCSS `Unknown word`. `type-check` và `vitest`
-  KHÔNG bắt được, chỉ `npm run build` bắt ⇒ sửa `index.css` thì phải chạy build.
-- **Soft-delete VIEW**: 11 entity lõi (`users`, `tasks`, `roles`, `departments`…)
-  là VIEW trên bảng `*_all` (migration 014). DDL trên tên entity lỗi 42809 →
-  `resolveBaseTable()` (`backend/src/utils/baseTable.ts`); `GROUP BY` cột view
-  lỗi 42803 (view không có PK); FK phải trỏ `*_all`; UPDATE trực tiếp bằng SQL
-  (vd reset mật khẩu) → ghi bảng `*_all`.
-- **`backend/.env` ĐÈ `root/.env`** (`src/config/env.ts` nạp backend/.env với
-  override ngoài test): biến trùng tên phải đồng bộ CẢ HAI file, nếu không
-  script/app âm thầm dùng giá trị cũ ở backend/.env.
-- **RBAC A+/A/B/C/D + scope**: `userScope` chỉ áp ở 3/27 repository; các domain
-  khác gate bằng permission toàn org. Mở rộng scoping = quyết định sản phẩm,
-  đừng tự ý.
-- **CI (cập nhật 31/07/2026)**: 6 check đều XANH trên PR #38 (`label`, `Test Suite`,
-  `Quality`, `Build Application`, `commitlint`, `Cloudflare Pages`). `label` từng đỏ
-  ở mọi PR (403 "Resource not accessible by integration") — ĐÃ VÁ, nên **`label` đỏ
-  từ nay là lỗi thật, phải điều tra**. Gốc rễ: repo đặt
-  `default_workflow_permissions: read` ⇒ workflow nào cần GHI lên PR/issue phải TỰ
-  khai khối `permissions:`, đừng trông vào mặc định. Muốn biết thiếu quyền gì, đọc
-  header `x-accepted-github-permissions` trong log — nó nói thẳng.
-  ⚠️ Trong `.github/workflows/*.yml`, khối `script:` được nội suy TRƯỚC khi chạy,
-  kể cả phần trong chú thích JS. Viết literal dấu nội suy `${`+`{ }}` vào comment =
-  GitHub từ chối CẢ FILE: run hiện dưới sự kiện `push`, chết trong 0 giây, không có
-  job nào, và check BIẾN MẤT khỏi PR thay vì đỏ. `yaml.safe_load` vẫn báo hợp lệ vì
-  đây là lỗi tầng biểu thức, không phải YAML. Cùng họ bẫy `*/` của `index.css`.
-  ⚠️ `Test Suite` chạy `npm run test:coverage`, có **coverageThreshold global 70%**
-  (`jest.config.ts`). Jest báo "1095 passed" mà job vẫn ĐỎ = rớt ngưỡng coverage,
-  không phải test hỏng. Thêm code thì phải thêm test, đừng hạ ngưỡng.
-- **Migration là BẤT BIẾN**: sửa file đã áp dụng (kể cả một dòng comment) làm lệch
-  checksum → `db:migrate` dừng → Render `db:migrate && npm start` KHÔNG BOOT. Hook
-  `pre-commit` chặn sẵn. Lỡ rồi: `npm run db:migrate:repair` (xem trước; `-- --yes`
-  mới ghi).
-- Auth (đợt hardening 07/2026): access+refresh cookie-only, rotation + reuse-detect, idle 30
-  phút / tối đa 5 phiên, lockout luỹ tiến sau 5 lần sai (login thành công reset);
-  Turnstile CAPTCHA mặc định TẮT tới khi có key.
+Test theo workspace, **không** có lệnh test ở gốc:
+`npm --workspace services/<tên> test`. Cổng chung:
+`npm run format:check` · `npm run lint`.
 
-## Nhiều agent song song (điều phối nhẹ, tiết kiệm token)
-Mỗi terminal = 1 agent. TRẠNG THÁI SỐNG ở `AGENTS_BOARD.md` (xem qua `./agents.sh`);
-quyết định/gotcha ở `AGENTS_LOG.md` (chỉ `grep`, ĐỪNG đọc cả file).
-- **Claim TRƯỚC khi sửa**: `./agents.sh lock "agent-N · file · việc"`. File có LOCK
-  của agent khác → TUYỆT ĐỐI KHÔNG đụng.
-- Xong: `./agents.sh unlock <file>`. Ghi quyết định: `./agents.sh log "…"`;
-  cảnh báo còn hiệu lực: `./agents.sh note "…"`.
-- Board > 30 dòng → `./agents.sh clean` + BÁO người dùng.
-- KHÔNG `git add -A` khi có agent khác đang sửa — chỉ `git add <file cụ thể>`.
+Chi tiết → `docs/development.md`.
 
-## Chiến lược phiên — tối ưu token/chi phí (BẮT BUỘC)
+## Tài liệu — đọc CHỌN LỌC theo task
 
-### 1. Context window
-- Đọc CÓ MỤC TIÊU: đúng file/đoạn cần cho task, KHÔNG nạp cả project — ngữ cảnh
-  càng dài càng "loãng" thông tin + chi phí tăng phi mã. Grep/tìm trước, đọc sau.
-- TUYỆT ĐỐI không đọc: `node_modules/`, `.git/`, `build/`, `dist/`, `coverage/`,
-  `uploads/`, `logs/`, file media/nhị phân (`.gitignore` đã chặn — tôn trọng nó).
-- Dữ liệu TĨNH xếp lên ĐẦU phiên (file này + tài liệu cốt lõi đúng vùng task) và
-  giữ NGUYÊN trong phiên — sửa file "đầu dòng" giữa chừng là vô hiệu (bust) toàn
-  bộ cache phía sau. Cần sửa CLAUDE.md/tài liệu kiến trúc → dồn về CUỐI phiên.
+Mục lục: `docs/README.md`. Theo vùng: kiến trúc → `docs/architecture.md` ·
+chạy local → `docs/development.md` · auth/RBAC → `docs/auth.md` · test/CI →
+`docs/testing.md` · giao diện → `docs/design-system.md` · production →
+`docs/deployment.md` · con dấu → `docs/trust-seal.md`.
 
-### 2. Chế độ chạy — CHỈ Standard
-- Dùng **Standard cho MỌI tác vụ**. KHÔNG gợi ý, KHÔNG bật `/fast`: Fast Mode
-  đốt token nhanh hơn nhiều mà không giúp gì cho loại việc ở repo này (sửa code,
-  chạy test, build, deploy). Người dùng tự bật nếu cần — đừng chủ động đề xuất.
-- Thay vào đó, tiết kiệm bằng CÁCH LÀM VIỆC:
-  - Gộp các lệnh độc lập vào MỘT lượt (nhiều tool call song song) thay vì hỏi–đáp
-    từng bước; mỗi lượt qua lại là một lần trả tiền cho toàn bộ ngữ cảnh.
-  - `grep`/`rg` để định vị TRƯỚC, chỉ `Read` đúng đoạn cần (dùng offset/limit);
-    đừng đọc lại file vừa sửa để "kiểm tra" — tool đã báo lỗi nếu sửa hỏng.
-  - Sửa hàng loạt theo khuôn mẫu lặp lại → viết script biến đổi + chạy thử
-    (dry-run) rồi mới `--apply`, thay vì sửa tay từng file.
-  - Chạy cổng kiểm tra MỘT lần ở cuối cụm thay đổi, không chạy sau mỗi file.
-  - Đừng tóm tắt lại việc vừa làm ở mỗi lượt; chỉ báo cáo khi xong một pha.
+`documents-tsudev.md` là **đặc tả yêu cầu**, không phải mô tả hiện trạng. Mã
+nguồn là hiện trạng; TSD là đích đến.
 
-### 3. Cổng an toàn git/deploy
-- **Xin xác nhận TRƯỚC khi `git push` / deploy** (chống vòng lặp lỗi đốt token
-  vô ích). CHỈ commit/push khi người dùng yêu cầu. Trước commit: build
-  `@ubnd/shared-types` → `npm run type-check` + `npm run lint` sạch ở workspace
-  đã sửa.
+## Quy ước code
 
-### 4. Session refresh (tóm tắt & đóng phiên)
-- Sau khi sửa + test + commit THÀNH CÔNG: chạy `./agents.sh cleanup` (quét
-  `_tmp_*`, `*.log`, `*.zip/.tar`, `__pycache__`, `.venv` — mặc định xem trước,
-  `--force` để xóa thật) → xác nhận thư mục sạch → `./agents.sh unlock` các file
-  đã khóa → GỢI Ý người dùng ĐÓNG terminal, mở phiên mới cho task kế tiếp.
-- TUYỆT ĐỐI không kéo dài một hội thoại từ ngày này qua ngày khác — bối cảnh cũ
-  là chi phí chết. Tri thức cần giữ lại → ghi `AGENTS_LOG.md` / `./agents.sh note`.
+- **Service**: CommonJS, **không dấu chấm phẩy** (`.prettierrc.json` ghi đè
+  `semi:false` cho `services/**`, `packages/db/**`). App/package khác: **có**
+  chấm phẩy, nháy đơn.
+- **DB**: chỉ qua `@tsudev/db`. Một database, một schema, bốn service dùng chung.
+- **Trình duyệt KHÔNG gọi thẳng cổng service.** Mọi lời gọi qua route proxy
+  `apps/*/pages/api/<domain>/[...path].js`. Thêm endpoint ⇒ phải mở rộng proxy,
+  nếu không CORS chặn.
+- **Link liên-site** dùng `siteUrl()`/`MAIN_URL`/`FORUM_URL` của `@tsudev/ui`.
+  `href="/blog"` tương đối bám origin đang mở ⇒ 404 khi bấm từ diễn đàn.
+- **Giao diện chỉ có chế độ tối.** Không thêm nhánh sáng. Thứ bậc bằng độ sáng
+  nền (`--surface` < `--panel` < `--panel-2`), không bằng viền/đổ bóng.
+- **`apps/*/.env.local` được sinh tự động** — sửa tay vô ích, lần chạy dev sau
+  ghi đè. Sửa `.env` gốc.
+- **Component `@tsudev/ui` phải chạy được trên cả React 19 lẫn React 18** (hai
+  app lệch phiên bản lớn).
+- **Commit**: Conventional Commits.
+
+## Gotcha cứng — đọc trước khi sửa vùng liên quan
+
+- **Migration là BẤT BIẾN.** Sửa file migration đã áp dụng (kể cả comment) làm
+  lệch checksum ⇒ `prisma migrate deploy` dừng ⇒ CI đỏ + production không boot.
+  Tạo migration mới.
+- **Đổi `schema.prisma` ⇒ bắt buộc `npm run db:generate`.** Quên là job "Build
+  frontends" của CI đỏ dù không ai đụng frontend — nguyên nhân hay bị chẩn nhầm.
+- **`requireRole()` là no-op** trừ khi `REQUIRE_ROLE_ENFORCEMENT=true`. Ở local
+  mọi route "được bảo vệ" đều mở. Route nhạy cảm mới phải thử một lần với biến
+  đó bật.
+- **trust-service gắn auth theo NHÁNH, không cho cả `/api`** (khác ba service
+  kia). Mặc định là công khai — thêm nhánh riêng tư mà quên khai thì nó lộ ra và
+  **không có gì báo lỗi**.
+- **`TRUST_ISSUER` được ký vào chứng chỉ**; `TRUST_SIGNING_KEY` thiếu ở
+  production ⇒ service từ chối khởi động (cố ý). Xoay khoá phải chuyển khoá cũ
+  vào `TRUST_SIGNING_KEYS_RETIRED` trước.
+- **Keycloak trên Render free tier (512MB)**: `--cache=local` là build-time
+  option (đặt vào `start` ⇒ treo cứng); `start-dev` ⇒ OOM; H2 in-memory ⇒ mất
+  sạch tài khoản mỗi lần dịch vụ ngủ dậy. Bốn commit liên tiếp đã trả giá —
+  đọc `docs/deployment.md` trước khi đụng `docker/keycloak.Dockerfile`.
+- **Docker build context phải là gốc repo** — service phụ thuộc package nội bộ
+  không có trên npm registry.
+- **`S3_ENDPOINT` (nội bộ) và `S3_PUBLIC_ENDPOINT` (CDN) là hai biến khác nhau.**
+  Gộp lại thì URL presign trỏ vào host nội bộ.
+- **Bốn `authMiddleware.js` gần trùng nhau.** Đổi hành vi xác thực phải sửa cả
+  bốn.
+- **`main` không có branch protection** (GitHub Free + repo private). Lớp chắn
+  duy nhất là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
+  `ALLOW_MAIN_FORCE=1 git push`.
+- `.prettierignore` cố ý bỏ qua `documents-tsudev.md` và `CLAUDE.md` — prettier
+  đánh số lại danh sách và escape ký tự trong hai file này. Đừng gỡ ra.
+
+## Nhiều agent song song
+
+8 agent chuyên trách định nghĩa ở `.claude/agents/`, sở hữu các vùng đường dẫn
+tách rời. Bảng phân vai, thứ tự thay đổi xuyên vùng và giao thức: **`AGENTS.md`**.
+Cần đổi file thuộc vùng agent khác ⇒ mô tả và báo lại, đừng tự sửa.
+
+## Kỷ luật token (BẮT BUỘC)
+
+1. **Định vị trước, đọc sau.** `grep -n` tìm dòng → `sed -n 'X,Yp'` đọc đúng
+   đoạn. `content-service/src/index.js` hơn 1000 dòng.
+2. **Đọc theo bảng định tuyến** ở mục Tài liệu, không nạp cả `docs/`. Mỗi file
+   thừa được trả tiền ở **mọi** lượt còn lại của phiên.
+3. **Không bao giờ đọc**: `node_modules/`, `.git/`, `.next/`, `dist/`, `build/`,
+   `coverage/`, `package-lock.json`, file nhị phân.
+4. **Gộp lượt**: nhiều lệnh độc lập ⇒ một lượt nhiều tool call.
+5. Đừng đọc lại file vừa sửa để kiểm tra; đừng tóm tắt lại ở mỗi lượt; chạy cổng
+   kiểm tra một lần ở cuối cụm thay đổi.
+6. Dùng **Standard cho mọi tác vụ** — không tự bật/gợi ý `/fast`.
+7. Phiên dài thì đóng terminal, mở phiên mới. Ngữ cảnh cũ là chi phí chết.
+
+**Xin xác nhận trước khi `git push` hoặc deploy.** Chỉ commit/push khi được yêu cầu.

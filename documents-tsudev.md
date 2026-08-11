@@ -1,6 +1,18 @@
-Dưới đây là tài liệu đặc tả kỹ thuật (Technical Specification Document \- TSD) được biên soạn theo chuẩn kỹ sư phần mềm quốc tế, sẵn sàng để bạn chuyển giao cho đội ngũ phát triển.
-
-Tài liệu này bao quát toàn bộ kiến trúc hệ thống, từ hệ sinh thái đa phân hệ, giải pháp SSO, lưu trữ dữ liệu lớn, cho đến quy trình giám sát và cảnh báo khắt khe mà bạn đã yêu cầu.
+> **Đây là tài liệu YÊU CẦU, không phải mô tả hiện trạng.**
+> Đặc tả kỹ thuật gốc do chủ dự án ban hành, giữ nguyên làm đích đến và căn cứ
+> nghiệm thu. Khi tài liệu này và mã nguồn mâu thuẫn: **mã nguồn là hiện trạng,
+> tài liệu này là đích đến**. Muốn biết hệ thống đang thực sự chạy ra sao, đọc
+> [`docs/architecture.md`](docs/architecture.md) và [`README.md`](README.md).
+>
+> Chênh lệch đã biết tính đến 11/08/2026:
+> - `services/api-gateway` (§5) **chưa tồn tại** — vai trò gateway hiện do route
+>   proxy của Next đảm nhiệm.
+> - Blog và kho tài liệu (§2.1) đang là nhánh `/blog`, `/docs` của `frontend-main`
+>   chứ chưa tách thành subdomain riêng.
+> - `packages/ui` (§7.5) **đã có** với 17 component + Storybook — phần "hiện trạng
+>   là scaffold" ở §7 đã lỗi thời.
+> - Đã bổ sung ngoài đặc tả gốc: `services/trust-service` (con dấu tín nhiệm),
+>   chợ có ký quỹ, tin nhắn riêng.
 
 # ---
 
@@ -12,9 +24,9 @@ Tài liệu này bao quát toàn bộ kiến trúc hệ thống, từ hệ sinh 
 
 **Chủ sở hữu dự án:** Nguyễn Trang Tình Sử
 
-**Thư mục lưu trữ Codebase gốc:** G:\\Projects\\tsudev
+**Repo:** https://github.com/b4djl1h/tsudev (private)
 
-**Tài liệu tham chiếu thiết kế nội bộ:** G:\\Projects\\tsudev\\documents-tsudev.html
+**Tài liệu tham chiếu thiết kế nội bộ:** `documents-tsudev.html`
 
 ## ---
 
@@ -72,7 +84,7 @@ _(Tech stack đề xuất đảm bảo sự tương thích tối đa với quy t
 - **Database:** \* PostgreSQL (Cho dữ liệu quan hệ: User, Bài viết, Bình luận).
   - Redis (Cho Caching, Quản lý Session SSO, Rate Limiting).
 - **Infrastructure & DevOps:**
-  - **Containerization:** Toàn bộ service phải được đóng gói bằng **Docker** (cung cấp sẵn docker-compose.yml và Dockerfile tại thư mục gốc G:\\Projects\\tsudev).
+  - **Containerization:** Toàn bộ service phải được đóng gói bằng **Docker** (có sẵn `docker-compose.yml` và Dockerfile ở thư mục gốc repo).
   - **CI/CD:** Tích hợp **GitHub Actions** cho quy trình tự động kiểm tra code (Linting), quét bảo mật (Secret scanning), build image và deploy.
     - **HTTPS** https://github.com/b4djl1h/tsudev.git
     - **SSH** git@github.com:b4djl1h/tsudev.git
@@ -103,11 +115,11 @@ _(Tech stack đề xuất đảm bảo sự tương thích tối đa với quy t
 
 **5\. CẤU TRÚC REPOSITORY (CODEBASE STRUCTURE)**
 
-Toàn bộ Source Code bàn giao tại thư mục G:\\Projects\\tsudev phải tuân thủ chuẩn Monorepo (hoặc Multi-repo quản lý qua submodule) với cấu trúc cơ bản như sau:
+Toàn bộ source code phải tuân thủ chuẩn Monorepo (hoặc Multi-repo quản lý qua submodule) với cấu trúc cơ bản như sau:
 
 Plaintext
 
-G:\\Projects\\tsudev\\  
+tsudev/  
 ├── .github/ \# Cấu hình GitHub Actions CI/CD workflows  
 ├── docs/ \# Bản sao tài liệu documents-tsudev.html và API Docs  
 ├── apps/  
@@ -131,7 +143,7 @@ G:\\Projects\\tsudev\\
 1. **SSO:** Dev team phải demo được việc đăng nhập tại auth.tsudev.vn, sau đó tự động có phiên làm việc hợp lệ tại diễn đàn và có quyền tải file private tại kho lưu trữ.
 2. **Object Storage:** Khách truy cập tải một file tài liệu 100MB, header của trình duyệt phải hiển thị file được serve qua đường truyền của CDN (ví dụ cf-cache-status: HIT) chứ không tải trực tiếp từ băng thông của server backend.
 3. **Alerting:** Tạo ra một lỗi "chủ động" trên backend (ví dụ: chia cho 0 hoặc gọi một API không tồn tại), hệ thống phải tự động đẩy thông báo báo lỗi chi tiết đến Telegram @nguyentrangtinhsu và email nguyentrangtinhsu@gmail.com trong vòng 30 giây.
-4. **Code Quality:** Không chứa hardcode credentials. Repo tại G:\\Projects\\tsudev phải chạy mượt mà trên môi trường giả lập cục bộ thông qua một lệnh khởi tạo duy nhất (docker-compose up).
+4. **Code Quality:** Không chứa hardcode credentials. Repo phải chạy được trên môi trường cục bộ bằng một lệnh khởi tạo duy nhất (`docker-compose up`, hoặc `npm run dev:full` — đường chạy không cần Docker).
 
 ---
 
@@ -258,7 +270,3 @@ Mục tiêu của phần này: xác định đầy đủ site, luồng người 
 - QA: Run automated Lighthouse audits and accessibility tests.
 
 ---
-
-Tóm tắt: giao diện hiện đang là scaffold/placeholder vì chưa có design system và các component UI triển khai. Tôi đã bổ sung phần "Giao diện & Đặc tả hiển thị" bên trên — xin kiểm tra và cho phép tôi tiếp tục: (A) tạo file Figma + tokens, (B) hiện thực hoá `packages/ui` và layout trong `apps/frontend-main`, hoặc (C) tôi có thể tạo PR mẫu từng bước nếu bạn muốn.  
-
-File đã cập nhật: [documents-tsudev.md](documents-tsudev.md)
