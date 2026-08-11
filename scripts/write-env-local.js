@@ -30,12 +30,21 @@ function parseEnv(content) {
   return out;
 }
 
+// Cổng/URL lấy từ config/topology.json — không hardcode. Ở chế độ proxy, URL
+// công khai phân biệt bằng subdomain qua dev-proxy chứ không bằng số cổng.
+const { loadTopology, publicUrl } = require('./topology/load');
+const TOPO = loadTopology();
+
 const APPS = [
-  { dir: 'apps/frontend-main', urlKey: 'NEXT_PUBLIC_MAIN_URL', fallback: 'http://localhost:3000' },
+  {
+    dir: 'apps/frontend-main',
+    urlKey: 'NEXT_PUBLIC_MAIN_URL',
+    fallback: publicUrl(TOPO, 'main'),
+  },
   {
     dir: 'apps/frontend-forum',
     urlKey: 'NEXT_PUBLIC_FORUM_URL',
-    fallback: 'http://localhost:3001',
+    fallback: publicUrl(TOPO, 'forum'),
   },
 ];
 

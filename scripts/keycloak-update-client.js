@@ -6,7 +6,9 @@ const fetch = globalThis.fetch || require('node-fetch');
     const pass = process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin';
     const realm = process.env.KEYCLOAK_REALM || 'tsudev-local';
     const clientId = process.env.KEYCLOAK_CLIENT_ID || 'tsudev-frontend';
-    const kcBase = process.env.KEYCLOAK_BASE || 'http://localhost:8080';
+    const kcBase =
+      process.env.KEYCLOAK_BASE ||
+      require('./topology/load').publicUrl(require('./topology/load').loadTopology(), 'auth');
 
     console.log('Getting admin token...');
     const tokenResp = await fetch(`${kcBase}/realms/master/protocol/openid-connect/token`, {

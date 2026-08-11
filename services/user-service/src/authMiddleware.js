@@ -1,7 +1,8 @@
 const { createRemoteJWKSet, jwtVerify } = require('jose')
 const { URL } = require('url')
 
-const ISSUER = process.env.KEYCLOAK_ISSUER || 'http://localhost:8080/realms/tsudev-local'
+const ISSUER =
+  process.env.KEYCLOAK_ISSUER || 'http://auth.tsudev.localhost:8080/realms/tsudev-local'
 const AUDIENCE = process.env.KEYCLOAK_CLIENT_ID || undefined
 
 const jwksUri = `${ISSUER}/protocol/openid-connect/certs`
