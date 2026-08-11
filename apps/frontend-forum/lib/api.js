@@ -1,10 +1,9 @@
 // Server-side reads for the forum app (getServerSideProps).
-const CONTENT = process.env.CONTENT_SERVICE_URL || 'http://localhost:4001';
-const USER = process.env.USER_SERVICE_URL || 'http://localhost:4000';
+import { CONTENT, USER, internalHeaders } from './services';
 
 async function getJSON(url, fallback) {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: internalHeaders() });
     if (!res.ok) return fallback;
     return await res.json();
   } catch (e) {

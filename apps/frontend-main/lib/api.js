@@ -1,11 +1,12 @@
 // Server-side data helpers for frontend-main.
 // In dev these hit the local microservices; override via env in other envs.
-const CONTENT = process.env.CONTENT_SERVICE_URL || 'http://localhost:4001';
-const USER = process.env.USER_SERVICE_URL || 'http://localhost:4000';
+import { CONTENT, USER, internalHeaders } from './services';
 
 async function getJSON(url, fallback) {
   try {
-    const res = await fetch(url, { headers: { 'x-dev-user': 'tsudev', 'x-dev-roles': 'admin' } });
+    const res = await fetch(url, {
+      headers: { ...internalHeaders(), 'x-dev-user': 'tsudev', 'x-dev-roles': 'admin' },
+    });
     if (!res.ok) return fallback;
     return await res.json();
   } catch (e) {

@@ -13,7 +13,7 @@
 // bên trong đổi thì khách không phải sửa gì.
 import { getToken } from 'next-auth/jwt';
 
-const TRUST = process.env.TRUST_SERVICE_URL || 'http://localhost:4003';
+import { TRUST } from '../../../lib/services';
 
 const PUBLIC_PREFIXES = new Set(['programs', 'verify', 'directory', 'seal']);
 const PRIVATE_PREFIXES = new Set(['orgs', 'domains', 'applications', 'certificates', 'admin']);

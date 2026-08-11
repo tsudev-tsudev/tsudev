@@ -33,6 +33,9 @@ try {
 const app = express()
 app.use(express.json({ limit: '1mb' }))
 const port = process.env.PORT || process.env.PORT_TRUST_SERVICE || 4003
+// Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
+// lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
+const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
 let auth
 try {
@@ -1001,9 +1004,9 @@ app.use((err, req, res, next) => {
 })
 
 async function startServer() {
-  app.listen(port, () =>
+  app.listen(port, bindHost, () =>
     console.log(
-      `trust-service listening on ${port} (signing key: ${signing.kid}${
+      `trust-service listening on ${bindHost}:${port} (signing key: ${signing.kid}${
         signing.usingDevKey ? ', DEV — không dùng cho production' : ''
       })`
     )

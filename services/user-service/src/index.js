@@ -24,6 +24,9 @@ try {
 const app = express()
 app.use(express.json())
 const port = process.env.PORT || process.env.PORT_USER_SERVICE || 4000
+// Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
+// lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
+const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
 // Try to load auth middleware; fallback to permissive middleware in dev
 let auth
@@ -56,6 +59,20 @@ const publicUser = (u) => ({
 app.use('/api', auth)
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'user-service' }))
+
+// Bốn service backend nằm trên URL Render CÔNG KHAI — không giấu sau mạng nội bộ
+// được, vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render. Cổng
+// chặn này là lớp bù: chỉ ai biết INTERNAL_API_TOKEN mới gọi được /api.
+//
+// TỰ NGUYỆN: biến không đặt thì middleware là no-op, nên local dev và CI không
+// đổi hành vi. Đặt nó ở Render (và cùng giá trị cho biến của frontend) là bật.
+// /health đứng ngoài để health check của Render vẫn chạy.
+const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN || ''
+app.use('/api', (req, res, next) => {
+  if (!INTERNAL_TOKEN) return next()
+  if (req.get('x-internal-token') === INTERNAL_TOKEN) return next()
+  return res.status(401).json({ error: 'Thiếu hoặc sai x-internal-token' })
+})
 
 // List members (leaderboard-friendly: sorted by reputation)
 app.get(
@@ -99,7 +116,7 @@ app.use((err, req, res, next) => {
 })
 
 async function startServer() {
-  app.listen(port, () => console.log(`user-service listening on ${port}`))
+  app.listen(port, bindHost, () => console.log(`user-service listening on ${bindHost}:${port}`))
 }
 
 if (process.env.NODE_ENV !== 'test') startServer().catch(() => {})

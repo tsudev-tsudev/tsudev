@@ -2,7 +2,7 @@
 // injecting the caller's identity from the next-auth session (dev bypass header).
 import { getToken } from 'next-auth/jwt';
 
-const CONTENT = process.env.CONTENT_SERVICE_URL || 'http://localhost:4001';
+import { CONTENT, internalHeaders } from '../../../lib/services';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...internalHeaders(),
         'x-dev-user': username,
         'x-dev-roles': token.role || 'member',
       },
