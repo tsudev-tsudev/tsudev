@@ -17,3 +17,7 @@ verify-output/
 # Trạng thái runtime của Claude Code — riêng .claude/agents/ thì PHẢI commit
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+
+# Playwright
+e2e/playwright-report/
+e2e/test-results/

@@ -1,0 +1,63 @@
+# File được phép chứa literal `localhost:<cổng>`.
+#
+# Danh sách này là NỢ CÓ ĐĂNG KÝ, không phải giấy phép. Mỗi mục ghi rõ giai đoạn
+# nào gỡ nó (xem docs/refactor-network-topology.md). `topology:check` báo lỗi khi
+# một mục ở đây không còn hit nào — dọn ngay, đừng để danh sách phình ra.
+#
+# Cổng trong các file này VẪN bị kiểm: số nào không có trong topology thì đỏ,
+# kể cả ở đây. Miễn trừ là về vị trí, không phải về giá trị.
+
+# ── Miễn trừ VĨNH VIỄN ──────────────────────────────────────────────────────
+# HEALTHCHECK chạy BÊN TRONG container — `localhost` ở đó đúng nghĩa đen, không
+# có gì để thay bằng biến.
+services/user-service/Dockerfile
+services/content-service/Dockerfile
+services/storage-service/Dockerfile
+services/trust-service/Dockerfile
+
+# Giá trị do scripts/topology/gen-env.js quản lý, phần còn lại là tài liệu.
+.env.example
+
+# Postgres của GitHub Actions là service container 5432 — đã khai ở
+# topology.overrides.ci kèm lý do.
+.github/workflows/ci.yml
+
+# docker/backend-service.Dockerfile KHÔNG copy config/ vào image, nên bốn service
+# không thể require topology. Giá trị dự phòng buộc phải là literal — đã cập nhật
+# theo hình trạng mới (auth.tsudev.localhost:8080). Quy tắc B vẫn kiểm số cổng.
+services/user-service/src/authMiddleware.js
+services/content-service/src/authMiddleware.js
+services/storage-service/src/authMiddleware.js
+services/trust-service/src/authMiddleware.js
+
+# Next chỉ inline được process.env.NEXT_PUBLIC_* khi viết NGUYÊN VĂN, và file này
+# chạy cả trong trình duyệt — không import JSON topology vào bundle được.
+packages/ui/src/lib/siteUrls.js
+
+# Cấu hình của Keycloak, không phải mã: redirectUris/webOrigins phải là URL thật
+# và phải giữ CẢ hostname Docker (compose) lẫn hostname qua proxy. Giai đoạn 5
+# thêm domain production. Quy tắc B vẫn kiểm số cổng.
+apps/sso-auth/keycloak/realm-export.json
+
+# Tài liệu: URL là NỘI DUNG, không phải cấu hình — không thể "lấy từ topology".
+# Quét chúng vẫn có giá trị nhờ quy tắc B: cổng bịa ra trong docs sẽ bị bắt, và
+# đó đúng là cách docs/testing.md bị phát hiện nói sai sau giai đoạn 3.
+docs/auth.md
+docs/development.md
+docs/refactor-network-topology.md
+README.md
+
+# ── Gỡ ở GIAI ĐOẠN 3 (dev-proxy + Keycloak 8080→4100) ───────────────────────
+scripts/import_realm.sh               # shell, KEYCLOAK_BASE — chưa chuyển
+scripts/measure-playwright.js
+scripts/e2e-sso-upload.js             # còn ánh xạ localhost↔hostname Docker
+
+# Cùng lý do với packages/ui: hai app build cho Cloudflare Workers, không có
+# filesystem của repo để đọc config/topology.json. Nhưng sau giai đoạn 4 mỗi app
+# chỉ còn MỘT file giữ literal (trước là sáu), và quy tắc B vẫn kiểm số cổng.
+apps/frontend-main/lib/services.js
+apps/frontend-forum/lib/services.js
+
+# ── Gỡ ở GIAI ĐOẠN 5 hoặc sau ───────────────────────────────────────────────
+scripts/test-presign.js               # script gỡ rối thủ công
+scripts/generate-dev-jwt.js           # chuỗi ví dụ trong hướng dẫn in ra màn hình

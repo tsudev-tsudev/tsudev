@@ -16,6 +16,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Hợp đồng mạng (cổng/tên miền)
+        run: npm run topology:check
       - run: npm run format:check
       - run: npm run lint --silent
 
@@ -52,6 +54,36 @@ jobs:
           npm --workspace services/content-service test
           npm --workspace services/storage-service test
           npm --workspace services/trust-service test
+
+  e2e-session:
+    name: E2E — phiên xuyên origin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      # Chỉ chromium: bộ `session` không cần trình duyệt khác, tải đủ 3 engine
+      # là thêm vài phút cho mỗi lần chạy CI mà không đổi kết quả.
+      - run: npx playwright install --with-deps chromium
+      # Không cần `db:generate`: hai app Next không import @tsudev/db, chỉ gọi
+      # service qua HTTP. (Khác job "Build frontends" — ở đó thì cần.)
+      # Lưới an toàn của việc tái cấu trúc cổng/tên miền: đăng nhập ở main rồi
+      # bấm link "Diễn đàn" phải sang đúng origin forum và còn phiên.
+      # Playwright tự dựng hai frontend (webServer trong e2e/playwright.config.js).
+      # Không cần Postgres/Keycloak: lib/api.js nuốt lỗi và trả fallback rỗng,
+      # còn đăng nhập đi qua provider `e2e-dev`.
+      - run: npm run e2e:session
+        env:
+          NEXTAUTH_SECRET: e2e-placeholder-secret
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
 
   build:
     name: Build frontends

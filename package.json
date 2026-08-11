@@ -19,6 +19,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky install",
+    "e2e": "playwright test --config=e2e/playwright.config.js",
+    "e2e:session": "playwright test --config=e2e/playwright.config.js --project=session",
+    "topology:gen": "node scripts/topology/gen-env.js",
+    "topology:check": "node scripts/topology/check.js && node scripts/topology/gen-env.js --check",
     "db:up": "bash scripts/start-db.sh",
     "db:migrate": "npm --workspace packages/db run migrate:deploy",
     "db:generate": "npm --workspace packages/db run generate",
@@ -27,6 +31,7 @@
     "dev:full": "npm run db:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run dev:local"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "concurrently": "^8.2.0",
