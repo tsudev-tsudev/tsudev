@@ -24,6 +24,7 @@ export const trust = {
   programs: () => getJSON('/api/trust/programs', []),
   program: (slug) => getJSON(`/api/trust/programs/${encodeURIComponent(slug)}`, null),
   directory: (params = '') => getJSON(`/api/trust/directory${params}`, []),
+  profile: (orgId) => getJSON(`/api/trust/profile/${encodeURIComponent(orgId)}`, null),
 
   /** @returns {{state:'found'|'missing'|'unavailable', certificate?:object}} */
   async verify(serial) {

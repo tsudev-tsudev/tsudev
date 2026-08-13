@@ -15,7 +15,7 @@ import { getToken } from 'next-auth/jwt';
 
 import { TRUST } from '../../../lib/services';
 
-const PUBLIC_PREFIXES = new Set(['programs', 'verify', 'directory', 'seal']);
+const PUBLIC_PREFIXES = new Set(['programs', 'verify', 'directory', 'seal', 'profile']);
 const PRIVATE_PREFIXES = new Set(['orgs', 'domains', 'applications', 'certificates', 'admin']);
 
 export default async function handler(req, res) {

@@ -130,6 +130,9 @@ const certCard = (c) => ({
   scope: c.scope,
   hostname: c.domain ? c.domain.hostname : undefined,
   organization: c.org ? c.org.name : undefined,
+  // Khoá để mở hồ sơ uy tín công khai của tổ chức. Không phải dữ liệu nhạy cảm:
+  // hồ sơ đó công khai, và id đã là địa chỉ của nó.
+  organizationId: c.org ? c.org.id : undefined,
   program: c.program
     ? { slug: c.program.slug, name: c.program.name, badgeVariant: c.program.badgeVariant }
     : undefined,
@@ -247,6 +250,81 @@ app.get(
       take: Math.min(100, parseInt(req.query.limit) || 50),
     })
     res.json(certs.map(certCard))
+  })
+)
+
+/**
+ * Hồ sơ uy tín của một tổ chức — CÔNG KHAI.
+ *
+ * "Uy tín" ở tsudev không còn là điểm số cộng dồn theo hoạt động (cơ chế cũ của
+ * diễn đàn, đã bỏ cùng ReputationEvent). Nó được DẪN RA từ dữ liệu cấp dấu đã
+ * có: chứng chỉ còn hiệu lực, chứng chỉ bị thu hồi, thâm niên, và tỉ lệ vượt
+ * qua các lần giám sát tên miền định kỳ.
+ *
+ * Cố ý KHÔNG quy về một con số duy nhất. Một điểm "87/100" trông có thẩm quyền
+ * hơn nhiều so với thứ nó thật sự đo được, và người đọc không kiểm chứng được
+ * cách tính. Bốn chỉ số thô, mỗi cái truy về được nguồn, trung thực hơn.
+ *
+ * Chỉ lộ thứ đã công khai ở nơi khác (danh bạ, trang xác thực). KHÔNG có
+ * contactEmail, ownerUserId hay đơn đang chờ duyệt.
+ */
+app.get(
+  '/api/trust/profile/:orgId',
+  asyncHandler(async (req, res) => {
+    const org = await prisma.trustOrganization.findUnique({
+      where: { id: String(req.params.orgId) },
+      include: {
+        domains: { where: { status: 'VERIFIED' }, orderBy: { verifiedAt: 'asc' } },
+        certificates: {
+          include: { domain: true, program: true },
+          orderBy: { issuedAt: 'desc' },
+        },
+      },
+    })
+    if (!org || org.status !== 'ACTIVE')
+      return res.status(404).json({ error: 'Không tìm thấy tổ chức' })
+
+    const certs = org.certificates.map((c) => ({ card: certCard(c), row: c }))
+    const active = certs.filter((c) => c.card.status === 'ACTIVE')
+    const revoked = certs.filter((c) => c.card.status === 'REVOKED')
+
+    // Thâm niên tính từ chứng chỉ ĐẦU TIÊN được cấp, không phải từ ngày tạo hồ
+    // sơ: tạo hồ sơ rồi bỏ đó không phải là thâm niên.
+    const firstIssued = certs.length ? certs[certs.length - 1].row.issuedAt : null
+
+    const checks = await prisma.trustCheck.findMany({
+      where: { certificateId: { in: certs.map((c) => c.row.id) } },
+      orderBy: { ranAt: 'desc' },
+      take: 200,
+    })
+    const passed = checks.filter((c) => c.passed).length
+
+    res.json({
+      id: org.id,
+      name: org.name,
+      legalName: org.legalName,
+      country: org.country,
+      websiteUrl: org.websiteUrl,
+      createdAt: org.createdAt,
+      reputation: {
+        activeCertificates: active.length,
+        revokedCertificates: revoked.length,
+        verifiedDomains: org.domains.length,
+        firstIssuedAt: firstIssued,
+        // null chứ không phải 100 khi chưa có lần kiểm nào — "chưa đo" và "hoàn
+        // hảo" là hai chuyện khác nhau, và trang phải nói được sự khác nhau đó.
+        checksTotal: checks.length,
+        checksPassed: passed,
+        checkPassRate: checks.length ? Math.round((passed / checks.length) * 100) : null,
+        lastCheckedAt: checks.length ? checks[0].ranAt : null,
+      },
+      domains: org.domains.map((d) => ({ hostname: d.hostname, verifiedAt: d.verifiedAt })),
+      certificates: active.map((c) => c.card),
+      history: certs
+        .filter((c) => c.card.status !== 'ACTIVE')
+        .map((c) => c.card)
+        .slice(0, 20),
+    })
   })
 )
 

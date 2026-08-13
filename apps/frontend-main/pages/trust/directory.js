@@ -49,22 +49,36 @@ export default function TrustDirectory({ certificates, programs, activeProgram }
         )}
 
         <div className="divide-y divide-[color:var(--border)]">
+          {/* Hàng KHÔNG còn là một thẻ <a> bọc ngoài: nó chứa hai đích khác nhau
+              (chứng chỉ và hồ sơ tổ chức), mà <a> lồng trong <a> là HTML không
+              hợp lệ — trình duyệt tự gỡ và cả hai link cùng hỏng. */}
           {certificates.map((c) => (
-            <a
+            <div
               key={c.serial}
-              href={`/trust/verify/${c.serial}`}
-              className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-4 px-3 -mx-3 rounded-lg hover:bg-panel transition-colors group"
+              className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-4 px-3 -mx-3 rounded-lg hover:bg-panel transition-colors"
             >
-              <span className="font-mono text-ink font-medium group-hover:text-brandink transition-colors">
+              <a
+                href={`/trust/verify/${c.serial}`}
+                className="font-mono text-ink font-medium hover:text-brandink transition-colors"
+              >
                 {c.hostname}
-              </span>
+              </a>
               <Badge tone="neutral" mono>
                 {c.program?.name}
               </Badge>
-              <span className="text-xs text-muted">{c.organization}</span>
+              {c.organizationId ? (
+                <a
+                  href={`/trust/org/${c.organizationId}`}
+                  className="text-xs text-muted hover:text-brandink transition-colors"
+                >
+                  {c.organization}
+                </a>
+              ) : (
+                <span className="text-xs text-muted">{c.organization}</span>
+              )}
               <span className="ml-auto font-mono text-xs text-muted">{c.serial}</span>
               <span className="text-xs text-muted w-24 text-right">đến {fmtDate(c.expiresAt)}</span>
-            </a>
+            </div>
           ))}
         </div>
       </div>
