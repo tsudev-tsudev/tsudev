@@ -5,7 +5,6 @@
 Mỗi service tự chạy test của mình — **không** có lệnh test ở gốc repo.
 
 ```bash
-npm --workspace services/user-service test
 npm --workspace services/content-service test
 npm --workspace services/storage-service test
 npm --workspace services/trust-service test
@@ -15,7 +14,6 @@ Hiện có:
 
 | File                                          | Giữ hợp đồng gì                       |
 | --------------------------------------------- | ------------------------------------- |
-| `user-service/test/auth.test.js`              | request không xác thực bị từ chối     |
 | `content-service/test/auth.test.js`           | request không xác thực bị từ chối     |
 | `storage-service/test/authMiddleware.test.js` | presign/upload đòi xác thực + vai trò |
 | `trust-service/test/signing.test.js`          | vòng khoá ký, quy trình xoay khoá     |
@@ -48,7 +46,7 @@ Hai project, tách theo thứ chúng cần:
 | `npm run e2e`         | cả hai    | + MinIO, Keycloak    | ❌   |
 
 `session` là lưới an toàn của việc tái cấu trúc cổng/tên miền: đăng nhập ở main,
-bấm link "Diễn đàn", phải sang đúng origin và **còn phiên**. Bản không cần trình
+bấm link điều hướng, phải sang đúng trang và **còn phiên**. Bản không cần trình
 duyệt: `node scripts/check-session-sharing.js`.
 
 Kịch bản duy nhất hiện có: `e2e/tests/sso-upload.spec.js` — đăng nhập, presign,
@@ -72,7 +70,7 @@ Muốn nghiệm thu đường trực tiếp thì chạy runner **bên trong** m�
 `E2E_FORCE_FALLBACK=0`, khi đó tên host giữa các container mới khớp:
 
 ```bash
-docker compose up -d minio postgres redis user-service content-service \
+docker compose up -d minio postgres redis content-service \
                      storage-service keycloak frontend-main
 docker compose build e2e-runner
 docker compose run --rm -e E2E_FORCE_FALLBACK=0 e2e-runner
@@ -88,7 +86,7 @@ Mã liên quan: `scripts/e2e-sso-upload.js` (kịch bản có ghi vết), và
 
 1. **Lint & format** — `npm run format:check` + `npm run lint`.
 2. **Migrate & test services** — dựng Postgres 16, `db:generate`, `db:migrate`
-   (`prisma migrate deploy`), rồi test cả bốn service.
+   (`prisma migrate deploy`), rồi test cả ba service.
 3. **Build frontends** — `db:generate` rồi build cả hai app Next.
 
 Ba lỗi CI hay gặp và nguyên nhân thật:

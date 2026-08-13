@@ -13,9 +13,10 @@ nguồn (`services/trust-service/src/*`), phần đầu mỗi tệp giải thíc
 | Mặt                         | Đường dẫn                                    | Ai dùng                        |
 | --------------------------- | -------------------------------------------- | ------------------------------ |
 | Giới thiệu & chương trình   | `/trust`, `/trust/programs/<slug>`           | công khai                      |
-| Nộp hồ sơ & cổng khách hàng | `/trust/apply`, `/trust/portal`              | thành viên đã đăng nhập        |
+| Nộp hồ sơ & cổng khách hàng | `/trust/apply`, `/trust/portal`              | người dùng đã đăng nhập        |
 | Quản trị & thẩm định        | `/admin/trust`                               | MODERATOR trở lên              |
 | Xác thực & thư mục          | `/trust/verify/<serial>`, `/trust/directory` | công khai, không cần đăng nhập |
+| Hồ sơ uy tín tổ chức        | `/trust/org/<id>`                            | công khai, không cần đăng nhập |
 
 Service chạy ở `:4003`. Trình duyệt **không bao giờ** gọi thẳng cổng này — mọi
 thứ đi qua proxy `/api/trust/*` của `frontend-main`, nên mã nhúng của khách chỉ

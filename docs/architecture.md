@@ -3,17 +3,19 @@
 Monorepo npm workspaces (`apps/*`, `services/*`, `packages/*`). Không có công cụ
 build monorepo (Turbo/Nx): mọi thứ chạy qua `npm --workspace <path> run <script>`.
 
+**Một app, ba service.** tsudev là website dự án cá nhân: dự án/bản quyền, blog,
+tài liệu và con dấu tín nhiệm. Diễn đàn, chợ ký quỹ, tin nhắn và hồ sơ thành
+viên đã được gỡ — xem [refactor-personal-site.md](refactor-personal-site.md).
+
 ## Bản đồ
 
 ```
 apps/
-  frontend-main/     Next.js 15 + React 19 · tsudev.localhost · trang chủ, blog, docs,
-                     members, messages, market, trust, admin
-  frontend-forum/    Next.js 13 + React 18 · forum.tsudev.localhost · diễn đàn
+  frontend-main/     Next.js 15 + React 19 · tsudev.localhost · app DUY NHẤT
+                     trang chủ, dự án, blog, docs, trust, admin
   sso-auth/          KHÔNG phải app Node — chỉ chứa realm export Keycloak
 services/            Express + CommonJS, mỗi service một tiến trình
-  user-service/      :4000  hồ sơ thành viên, uy tín, xếp hạng
-  content-service/   :4001  blog, docs, forum, kiểm duyệt, tin nhắn, market
+  content-service/   :4001  blog, docs, dự án & bản quyền
   storage-service/   :4002  presign S3/R2, upload phía server, liệt kê file
   trust-service/     :4003  con dấu tín nhiệm (cấp, ký, xác thực, giám sát)
 packages/
@@ -30,41 +32,49 @@ packages/
 
 Ở dev, mọi thứ trình duyệt chạm tới đi qua **một cổng vào duy nhất**
 (`scripts/dev-proxy.js`, cổng 8080) và phân biệt bằng subdomain —
-`tsudev.localhost`, `forum.tsudev.localhost`, `auth.…`, `cdn.…` — đúng hình
-trạng production. Bảng cổng: `config/topology.json`.
+`tsudev.localhost`, `auth.…`, `cdn.…` — đúng hình trạng production. Bảng cổng:
+`config/topology.json`.
 
 ```
 trình duyệt
-   │  chỉ gọi cùng origin (tsudev.localhost | forum.tsudev.localhost)
+   │  chỉ gọi cùng origin (tsudev.localhost)
    ▼
-Next.js API route  (pages/api/<domain>/[...path].js)
+Next.js: getServerSideProps  •  hoặc  API route (pages/api/<domain>/[...path].js)
    │  chuyển tiếp kèm token, thêm header nội bộ
    ▼
-service Express  (:4000–:4003)
+service Express  (:4001–:4003)
    │  jose xác thực JWT theo JWKS của Keycloak
    ▼
 Prisma → PostgreSQL      ·      S3/R2 (chỉ storage-service)
 ```
 
-**Trình duyệt không bao giờ gọi thẳng cổng service.** Các route proxy hiện có:
+**Trình duyệt không bao giờ gọi thẳng cổng service.** Hai đường vào service:
 
-| Proxy                                                     | Đích            |
-| --------------------------------------------------------- | --------------- |
-| `frontend-forum` `/api/forum/[...path]`                   | content-service |
-| `frontend-main` `/api/mod`, `/api/msg`, `/api/market`     | content-service |
-| `frontend-main` `/api/trust/[...path]`, `/api/trust/jwks` | trust-service   |
+- **Đọc công khai** (blog, docs, dự án, danh bạ dấu) đi qua
+  `getServerSideProps` — chạy trên server, không cần proxy.
+- **Ghi và đọc riêng tư** đi qua route proxy; trình duyệt không tự khai được vai
+  trò của mình, danh tính lấy từ phiên next-auth rồi tiêm vào header.
+
+| Proxy                                        | Đích            |
+| -------------------------------------------- | --------------- |
+| `/api/content/[...path]` — chỉ nhánh `admin` | content-service |
+| `/api/storage/[...path]`                     | storage-service |
+| `/api/trust/[...path]`, `/api/trust/jwks`    | trust-service   |
 
 Nhờ vậy mã nhúng của bên thứ ba (huy hiệu trust) chỉ trỏ tới **một** domain, và
 hạ tầng phía sau đổi được mà không phiền ai. Thêm endpoint service mới thì phải
-thêm/ mở rộng proxy tương ứng, nếu không trình duyệt sẽ chặn CORS.
+thêm/mở rộng proxy tương ứng, nếu không trình duyệt sẽ chặn CORS.
+
+Cả `/api/content/*` và `/api/trust/*` dùng **danh sách trắng tiền tố**, không
+phải danh sách đen: nhánh chưa khai thì 404. Bỏ sót một nhánh là nó không chạy —
+an toàn hơn lỡ mở cả `/api`.
 
 ## Bề mặt API
 
 Đầy đủ trong mã (`services/*/src/index.js`). Nhóm chính:
 
-- **user-service** — `/api/users`, `/api/users/:username`
-- **content-service** — `/api/posts`, `/api/docs`, `/api/forum/*`,
-  `/api/market/*`, `/api/messages/*`, `/api/mod/*`
+- **content-service** — `/api/posts`, `/api/docs`, `/api/projects`,
+  `/api/admin/projects` (chỉ ADMIN)
 - **storage-service** — `/api/presign`, `/api/upload`, `/api/files`
 - **trust-service** — `/api/trust/*`, `/api/trust/admin/*`,
   `/.well-known/tsudev-trust-jwks.json`
@@ -79,6 +89,10 @@ Một database PostgreSQL, một schema Prisma dùng chung
 (`packages/db/prisma/schema.prisma`). Các service **không** có DB riêng — đây là
 microservice về mặt tiến trình, không phải về mặt dữ liệu.
 
+13 model: `User` `Post` `Doc` `FileObject` `Project`, cộng 8 model của con dấu
+(`TrustOrganization` `TrustDomain` `SealProgram` `SealApplication`
+`SealEvidence` `TrustCertificate` `TrustCheck` `TrustAuditLog`).
+
 - Vai trò: enum `Role` = `GUEST`, `MEMBER`, `VIP`, `MODERATOR`, `ADMIN` — mặc định `MEMBER`.
 - Migration đã áp dụng là **bất biến** — sửa file cũ làm lệch checksum và
   `prisma migrate deploy` sẽ dừng, kéo theo CI đỏ và deploy không boot. Cần đổi
@@ -88,10 +102,13 @@ microservice về mặt tiến trình, không phải về mặt dữ liệu.
 
 ## Điểm lệch cần biết
 
-- **Hai app Next lệch phiên bản lớn**: main dùng Next 15/React 19, forum dùng
-  Next 13/React 18. Component trong `@tsudev/ui` phải chạy được ở **cả hai** —
-  đừng dùng API chỉ có ở React 19.
-- Chỉ `frontend-main` có cấu hình Cloudflare Workers (`wrangler.jsonc`,
-  `open-next.config.ts`). `frontend-forum` chưa có đường deploy tương ứng.
+- **`User.credits` KHÔNG phải di sản của chợ ký quỹ.** Trust-service thu phí nộp
+  đơn cấp dấu bằng cột này, trong cùng transaction với việc đổi trạng thái đơn.
+  Xoá theo vì tưởng là ví của chợ thì hỏng luồng nộp đơn, và **không test nào
+  bắt được**.
+- **Uy tín không phải điểm số.** `ReputationEvent` và `User.reputation` đã bị
+  xoá. "Uy tín" nay là hồ sơ tổ chức (`/trust/org/<id>`), dẫn ra từ dữ liệu cấp
+  dấu đã có: chứng chỉ hiệu lực, tên miền đã xác minh, thâm niên, tỉ lệ vượt
+  giám sát. Cố ý không quy về một con số.
 - `services/api-gateway` xuất hiện trong TSD nhưng **không tồn tại** trong repo;
   vai trò gateway hiện do các route proxy của Next đảm nhiệm.

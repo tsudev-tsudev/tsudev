@@ -23,8 +23,8 @@ npm i --no-save sharp                    # sharp không nằm trong dependency c
 node packages/brand/build-assets.js
 ```
 
-Script ghi đồng thời vào `public/` của **cả hai** app (`frontend-main`,
-`frontend-forum`). Muốn thêm app, bổ sung vào mảng `APPS` trong script.
+Script ghi vào `public/` của `frontend-main`. Muốn thêm app, bổ sung vào mảng
+`APPS` trong script.
 
 ### Đầu ra
 
@@ -66,7 +66,9 @@ file dưới 11 kB, và đổi màu chính xác theo từng biến thể thay v�
 3 kinh + 5 vĩ bị rối nét. Bộ `avatars/sm/` rút còn 2 kinh + 3 vĩ, ít nút hơn và
 tăng bề dày nét tương đối (`strokeScale`) để vẫn rõ khi thu nhỏ; file nhẹ hơn
 khoảng 60%. `Avatar.jsx` tự chọn bộ theo prop `size`, ngưỡng 48px (`SMALL_MAX`).
-Chỉ trang hồ sơ thành viên (80px) và ô người bán ở chợ (64px) dùng bản đầy đủ.
+Sau khi gỡ Diễn đàn/Chợ, **không trang nào còn dùng avatar trên 48px** — nghĩa
+là bộ đầy đủ hiện chỉ phục vụ Storybook. Đừng xoá: thêm một trang hồ sơ cỡ lớn
+là cần lại ngay, và bộ này sinh từ ảnh gốc chứ không chép tay.
 
 **Xoá nền favicon.** Bộ gốc bị nung sẵn nền trắng (0% pixel trong suốt). Script
 tách nền trên bản 512 rồi thu nhỏ xuống các cỡ còn lại — hạ cỡ từ ảnh đã có alpha

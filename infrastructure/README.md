@@ -8,7 +8,6 @@ Hạ tầng, giám sát và quy trình triển khai cho hệ sinh thái tsudev.
 Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
         │
         ├─ tsudev.vn         → frontend-main   (Next.js, SSR)
-        ├─ forum.tsudev.vn   → frontend-forum  (Next.js, SSR)
         └─ auth.tsudev.vn    → Keycloak (OIDC IdP)
                 │  (API qua BFF/proxy)
                 └─ services: user · content · storage
@@ -20,7 +19,7 @@ Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
 
 ## 1. Cloudflare (CDN, WAF, Zero Trust)
 
-- **DNS + TLS**: tạo zone `tsudev.vn`, bản ghi cho `@`, `forum`, `auth`, `docs`; bật Universal SSL (wildcard `*.tsudev.vn`).
+- **DNS + TLS**: tạo zone `tsudev.vn`, bản ghi cho `@`, `auth`, `cdn`; bật Universal SSL (wildcard `*.tsudev.vn`).
 - **CDN cache**: Cache Rules cho asset tĩnh (PDF, ZIP, ảnh, SVG) — TTL dài ở edge để giảm ~90% egress. Kiểm chứng bằng header `cf-cache-status: HIT` (tiêu chí nghiệm thu §6.2).
 - **R2**: dùng làm object storage tương thích S3. Đặt `S3_ENDPOINT` (nội bộ) và `S3_PUBLIC_ENDPOINT` (public qua CDN) để presigned URL trỏ về host công khai.
 - **WAF**: bật managed ruleset + rate-limiting cho `/api/*` chống lạm dụng.
@@ -34,7 +33,6 @@ Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
 - 4 service backend + Keycloak → **Render**, khai báo trong `render.yaml`,
   build từ `docker/backend-service.Dockerfile` và `docker/keycloak.Dockerfile`.
 - PostgreSQL → dịch vụ ngoài (Neon), truyền qua `DATABASE_URL` / `KC_DB_*`.
-- `apps/frontend-forum` **chưa có** đường deploy.
 
 Hợp đồng cổng/tên miền (cả dev lẫn production) khai ở **`config/topology.json`**,
 có cổng chặn hồi quy `npm run topology:check`. Ở local, mọi thứ trình duyệt chạm
@@ -69,7 +67,6 @@ Không hardcode credential (tiêu chí §6.4).
 | Docker Compose full stack (dev)    | ✅                                               |
 | Render blueprint (4 service + SSO) | ✅                                               |
 | Cloudflare Workers (frontend-main) | ✅                                               |
-| Đường deploy `frontend-forum`      | ❌ chưa có                                       |
 | Prisma migrate trong CI            | ✅                                               |
 | Alerting utility + endpoint thử    | ✅ cần token để gửi thật                         |
 | Sentry / New Relic hooks           | ✅ cần DSN/key                                   |

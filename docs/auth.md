@@ -14,10 +14,11 @@ Cấu hình ở `apps/*/pages/api/auth/[...nextauth].js` (mỗi app một bản)
   production, `.tsudev.localhost` ở local. Giá trị do `config/topology.json`
   sinh ra, đừng đặt tay.
   Từ giai đoạn 3, local đi qua `dev-proxy` nên hai app nằm trên hai subdomain
-  thật (`tsudev.localhost`, `forum.tsudev.localhost`) — nghĩa là **đường chia sẻ
+  thật (`tsudev.localhost`) — nghĩa là **đường chia sẻ
   phiên kiểm chứng được ngay ở local**, đúng như trên production. Trước đó thì
-  không: `localhost:3000` và `localhost:3001` vốn dùng chung kho cookie, nên bug
-  về phạm vi cookie chỉ lộ ra lần đầu khi lên production.
+  không: hai app hồi đó nằm trên cùng host `localhost` khác cổng, mà cookie thì
+  không phân biệt cổng — nên bug về phạm vi cookie chỉ lộ ra lần đầu khi lên
+  production.
   Đã đo trên Chromium và Firefox: cookie host-only **không** sang được
   subdomain, cookie có `Domain=.tsudev.localhost` thì sang được.
 - `NEXTAUTH_URL` phải khớp origin của **chính app đang chạy**, xem
@@ -42,7 +43,7 @@ không đặt biến này.
 **Hai service gắn middleware theo hai kiểu khác nhau** — nhớ kiểu của service
 mình đang sửa:
 
-- `content-service`, `user-service`, `storage-service`: `app.use('/api', auth)`.
+- `content-service`, `storage-service`: `app.use('/api', auth)`.
   Route công khai (`/health`) phải đăng ký **trước** dòng đó.
 - `trust-service`: chỉ gắn `auth` cho từng nhánh cần danh tính (`/api/trust/orgs`,
   `/api/trust/domains`, `/api/trust/applications`, `/api/trust/certificates`,

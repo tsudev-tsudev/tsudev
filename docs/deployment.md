@@ -5,10 +5,9 @@ Hai nhà cung cấp, hai đường deploy khác nhau. Biết mình đang đổi 
 | Thành phần        | Nền tảng           | Định nghĩa ở đâu                                    |
 | ----------------- | ------------------ | --------------------------------------------------- |
 | `frontend-main`   | Cloudflare Workers | `apps/frontend-main/wrangler.jsonc`                 |
-| 4 service backend | Render (Docker)    | `render.yaml` + `docker/backend-service.Dockerfile` |
+| 3 service backend | Render (Docker)    | `render.yaml` + `docker/backend-service.Dockerfile` |
 | Keycloak (SSO)    | Render (Docker)    | `render.yaml` + `docker/keycloak.Dockerfile`        |
 | PostgreSQL        | ngoài (Neon)       | `DATABASE_URL`, `KC_DB_*` (secret Render)           |
-| `frontend-forum`  | **chưa có**        | —                                                   |
 
 ## Frontend — Cloudflare Workers
 
@@ -24,13 +23,9 @@ Worker tên `tsudev`. `wrangler.jsonc` có **service binding tự trỏ về ch�
 (`WORKER_SELF_REFERENCE`) mà OpenNext cần cho tầng cache — tên binding phải khớp
 đúng tên worker, đổi tên worker mà quên sửa binding thì cache hỏng lặng lẽ.
 
-`frontend-forum` chưa có đường deploy. Thêm thì phải đối chiếu phiên bản Next
-(forum đang ở Next 13, main ở Next 15) — `@opennextjs/cloudflare` hỗ trợ theo
-phiên bản Next.
-
 ## Backend — Render
 
-Blueprint `render.yaml` khai báo 5 web service, tất cả `plan: free`,
+Blueprint `render.yaml` khai báo 4 web service, tất cả `plan: free`,
 `healthCheckPath: /health` (Keycloak dùng `/health/ready`).
 
 Bốn service backend dùng **chung một image**
@@ -72,21 +67,20 @@ Nguồn sự thật là **`config/topology.json`**. Nó khai cả hình trạng 
 miền production; `npm run topology:check` (chạy trong CI và `.husky/pre-push`)
 chặn cổng hardcode mọc lại. Đổi cổng ⇒ sửa file đó rồi `npm run topology:gen`.
 
-| Tên miền          | Trỏ về         | Nền tảng           |
-| ----------------- | -------------- | ------------------ |
-| `tsudev.vn`       | frontend-main  | Cloudflare Workers |
-| `forum.tsudev.vn` | frontend-forum | **chưa có đường**  |
-| `auth.tsudev.vn`  | Keycloak       | Render             |
-| `cdn.tsudev.vn`   | R2 public      | Cloudflare R2      |
+| Tên miền         | Trỏ về        | Nền tảng           |
+| ---------------- | ------------- | ------------------ |
+| `tsudev.vn`      | frontend-main | Cloudflare Workers |
+| `auth.tsudev.vn` | Keycloak      | Render             |
+| `cdn.tsudev.vn`  | R2 public     | Cloudflare R2      |
 
-Bốn service backend **không** có tên miền công khai và cũng **không giấu được
+Ba service backend **không** có tên miền công khai và cũng **không giấu được
 sau mạng nội bộ Render**: `frontend-main` chạy trên Cloudflare Workers, ngoài
 mạng đó, nên SSR/BFF của nó buộc phải gọi qua Internet công cộng. Lớp bù là
 `INTERNAL_API_TOKEN` (§dưới).
 
 ## Cổng chặn `INTERNAL_API_TOKEN`
 
-`user`, `content`, `storage` từ chối mọi request tới `/api` nếu thiếu header
+`content` và `storage` từ chối mọi request tới `/api` nếu thiếu header
 `x-internal-token` khớp giá trị. **Tự nguyện**: biến không đặt ⇒ middleware là
 no-op, nên local và CI không đổi hành vi. Bật ở production bằng cách đặt cùng
 một giá trị cho ba service **và** cho frontend-main.

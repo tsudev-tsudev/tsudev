@@ -64,8 +64,8 @@ chuỗi việc.
 ### 1.4 Vì sao hình trạng dev sai lệch là đắt
 
 `packages/ui/src/lib/siteUrls.js` tồn tại **chỉ để** bắc cầu hai origin. Nhưng
-`localhost:3000` và `localhost:3001` **dùng chung kho cookie** (cookie không
-phân biệt cổng), còn `tsudev.vn` và `forum.tsudev.vn` thì **không** — chúng cần
+hai app hồi đó nằm trên cùng host `localhost` khác cổng nên **dùng chung kho
+cookie** (cookie không phân biệt cổng), còn hai subdomain thật thì **không** — chúng cần
 `NEXTAUTH_COOKIE_DOMAIN=.tsudev.vn`. Nghĩa là:
 
 > Lớp chia sẻ phiên đăng nhập giữa hai app **không thể kiểm chứng ở dev** với

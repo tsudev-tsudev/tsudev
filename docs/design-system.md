@@ -52,15 +52,16 @@ Export từ `packages/ui/src/index.tsx`:
 `Input` · `Card` · `Modal` · `Toast` · `Badge` · `Avatar` · `Logo` ·
 `SectionHeading` · `Stat` · `Article` · `ThreadRow` · `Upload`
 
-Kèm tiện ích liên-site: `siteUrl`, `MAIN_URL`, `FORUM_URL`.
+Kèm `MAIN_URL` — gốc tuyệt đối cho canonical/OG. Điều hướng trong site dùng
+href tương đối: tsudev chỉ còn MỘT origin.
 
 ### Ràng buộc khi viết component
 
-- **Phải chạy được trên cả Next 15/React 19 (main) lẫn Next 13/React 18
-  (forum).** Đừng dùng API chỉ có ở React 19. Đây là ràng buộc thật, không phải
-  đề phòng: hai app đang lệch phiên bản lớn.
-- Điều hướng giữa hai site phải qua `siteUrl()` / `MAIN_URL` / `FORUM_URL`.
-  `href="/blog"` tương đối sẽ bám origin đang mở và ra 404 khi bấm từ diễn đàn.
+- Component chỉ còn phải chạy trên Next 15 / React 19. Ràng buộc "cả React 18"
+  đã nghỉ hưu cùng `frontend-forum`. Root `package.json` **vẫn** ghim
+  `react@18.3.1` cho Storybook — nợ đã ghi, xem `next.config.js`.
+- Điều hướng trong site dùng href tương đối. `MAIN_URL` chỉ dành cho URL tuyệt
+  đối thật sự cần (canonical, OG, mã nhúng huy hiệu cho bên thứ ba).
 - `Avatar` chọn biến thể theo băm FNV-1a của username và **tự đổi bộ ảnh theo
   `size`** (ngưỡng 48px). Đừng ép đường dẫn ảnh bằng tay — chi tiết ở
   [../packages/brand/README.md](../packages/brand/README.md).

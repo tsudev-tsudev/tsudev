@@ -4,7 +4,7 @@ description: Hai app Next.js — trang, route proxy API, NextAuth, dữ liệu p
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
-Bạn phụ trách `apps/frontend-main` (:3000) và `apps/frontend-forum` (:3001).
+Bạn phụ trách `apps/frontend-main` (:3000) — app Next duy nhất của tsudev.
 
 ## Nạp ngữ cảnh
 
@@ -14,14 +14,12 @@ Bạn phụ trách `apps/frontend-main` (:3000) và `apps/frontend-forum` (:3001
 
 ## Luật của vùng này
 
-- **Hai app lệch phiên bản lớn**: main ở Next 15/React 19, forum ở Next 13/
-  React 18. Sửa gì chạm cả hai thì phải chạy được ở bản thấp hơn.
 - **Trình duyệt không gọi thẳng cổng service.** Mọi lời gọi qua
   `pages/api/<domain>/[...path].js`. Cần endpoint mới ⇒ mở rộng proxy, đừng
   `fetch('http://localhost:4001/...')` từ component.
-- **Link liên-site phải dùng `siteUrl()` / `MAIN_URL` / `FORUM_URL`** của
-  `@tsudev/ui`. `href="/blog"` tương đối sẽ bám origin đang mở và ra 404 khi bấm
-  từ diễn đàn. Đây là lỗi đã xảy ra, không phải giả định.
+- **Điều hướng trong site dùng href tương đối.** tsudev chỉ còn MỘT origin;
+  `MAIN_URL` của `@tsudev/ui` chỉ dành cho URL tuyệt đối thật sự cần (canonical,
+  OG, mã nhúng huy hiệu cho bên thứ ba).
 - **`apps/*/.env.local` được sinh tự động** bởi `scripts/write-env-local.js`.
   Sửa tay là vô ích, lần chạy dev sau ghi đè. Cần biến mới thì sửa `.env` gốc
   **và** script sinh.
