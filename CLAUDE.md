@@ -8,6 +8,11 @@ Repo: private, `github.com/b4djl1h/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
+⚠️ **Đang có việc bàn giao dở: đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt
+tay.** Nhánh `refactor/network-topology` đã push nhưng **chưa qua CI** (workflow
+không kích hoạt cho nhánh `refactor/**`), và migration DROP **chưa lên
+production**. Xong việc trong đó thì xoá file, và xoá cả đoạn cảnh báo này.
+
 ## Bản đồ
 
 **Nguồn sự thật về cổng/tên miền là `config/topology.json`**, không phải bảng
