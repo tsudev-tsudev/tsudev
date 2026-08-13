@@ -1,41 +1,25 @@
 # Phiếu bàn giao — đợt "website dự án cá nhân"
 
-> Đọc file này **sau** `CLAUDE.md`, trước khi động vào việc. Nó là **trạng thái
-> bàn giao**, không phải tài liệu vận hành: xong việc thì xoá, đừng để nó trở
-> thành tầng tài liệu thứ hai nói khác `docs/`.
+> **Trạng thái tạm.** Xong hai việc ở §1 thì **xoá file này** và xoá cả đoạn
+> cảnh báo ở đầu `CLAUDE.md`. Để lâu nó thành tầng tài liệu thứ hai nói khác
+> `docs/`.
 >
-> Nguồn sự thật về đợt tái cấu trúc này:
+> Nguồn sự thật về đợt tái cấu trúc:
 > [`docs/refactor-personal-site.md`](docs/refactor-personal-site.md).
 
-**Trạng thái:** đã merge vào `main` @ `c36568c` (PR #9), CI trên `main` xanh cả
-bốn job. Nhánh `refactor/network-topology` đã xoá. Bảy giai đoạn GĐ 0–7 xong.
+**Mã nguồn xong.** `main` @ `b00d71a`, cây sạch, CI xanh cả bốn job. PR #9 đã
+merge, nhánh `refactor/network-topology` đã xoá, service `tsudev-user` đã xoá
+khỏi Render. Bảy giai đoạn GĐ 0–7 hoàn tất.
 
-**Việc còn lại đều nằm NGOÀI repo** — §1 dưới đây. Mã nguồn không còn gì dở.
+**Còn đúng hai việc, cả hai nằm NGOÀI repo, và THỨ TỰ QUAN TRỌNG.**
 
 ---
 
-## 1. Việc kế tiếp, theo thứ tự
+## 1. Hai việc còn lại
 
-### 1.1 ~~Mở PR~~ ✅ xong — nhưng đọc phần này trước khi mở nhánh mới
+### 1.1 Migration DROP lên Neon — **cửa một chiều, làm TRƯỚC**
 
-PR #9 đã merge, CI trên `main` xanh. Hai điều rút ra, còn giá trị cho lần sau:
-
-**`.github/workflows/ci.yml` chỉ chạy `on.push` với `[main, master, 'feat/**']`.**
-Nhánh tên khác (ví dụ `refactor/…`, `fix/…`) push lên thì **CI không chạy** — chỉ
-`on.pull_request`(không lọc nhánh) mới kích hoạt. Đừng tưởng CI im lặng nghĩa là
-xanh. Đặt tên nhánh`feat/…` hoặc mở PR sớm.
-
-**CI bắt được một lỗi mà local không thấy:** test hồ sơ uy tín phụ thuộc
-`seed-demo.js`, vốn được chạy tay lúc dựng tính năng. Máy sạch không có dấu vết
-đó. Đã sửa bằng cách thêm vào bước seed của job E2E.
-
-Bốn job phải xanh: `Lint & format` · `Migrate & test services` · `E2E — smoke
-các trang được giữ` · `Build frontends`.
-
-### 1.2 Deploy migration DROP lên Neon — **cửa một chiều**
-
-Chưa làm, **cố ý**. Hai migration mới đang nằm trong repo, mới chỉ áp dụng lên
-DB local:
+Hai migration đang nằm trong repo, mới chỉ áp dụng lên DB local:
 
 | Migration                                    | Việc                                   |
 | -------------------------------------------- | -------------------------------------- |
@@ -45,140 +29,146 @@ DB local:
 **Trình tự bắt buộc, không đảo:**
 
 ```bash
-# 1. XUẤT DỮ LIỆU PRODUCTION TRƯỚC. Không có bước này thì không có đường lùi.
+# 1. XUẤT DỮ LIỆU PRODUCTION. Không có bước này thì không có đường lùi.
 DATABASE_URL='<chuỗi kết nối Neon>' node scripts/export-legacy-data.js
 
-# 2. Đọc backup/legacy-<ngày>/manifest.json, xác nhận số bản ghi hợp lý.
+# 2. Mở backup/legacy-<ngày>/manifest.json. Số bản ghi có hợp lý không?
+#    `failures` phải rỗng. Nếu không, DỪNG.
 
-# 3. Chỉ khi đó mới deploy.
+# 3. Chỉ khi đó mới deploy migration.
 DATABASE_URL='<Neon>' npm run db:migrate
 ```
 
-`backup/legacy-2026-08-12/` hiện có **chỉ là 10 bản ghi máy local**. Nó **KHÔNG**
-là đường lùi cho dữ liệu thật. `backup/` đã bị gitignore — đừng commit.
+`backup/legacy-2026-08-12/` hiện có **chỉ là 10 bản ghi máy local** — **KHÔNG**
+phải đường lùi cho dữ liệu thật. `backup/` đã gitignore, đừng commit.
 
-Nếu `export-legacy-data.js` in "DB này đã qua migration DROP" thì DB đó đã bị áp
-rồi; dừng lại và tìm hiểu vì sao, đừng chạy tiếp.
+Nếu bước 1 in _"DB này đã qua migration DROP"_ thì DB đó đã bị áp rồi. Dừng lại
+và tìm hiểu vì sao, đừng chạy tiếp.
 
-### 1.3 Sau khi merge
+### 1.2 Deploy — **làm SAU §1.1**
 
-- ✅ **`tsudev-user` đã xoá khỏi Render** (2026-08-13, thủ công trên dashboard).
-  Blueprint không tự dọn service đã gỡ khỏi `render.yaml` — lần sau gỡ service
-  khỏi file thì nhớ xoá trên dashboard, nếu không nó vẫn chạy và vẫn tính tài
-  nguyên.
-- Deploy `frontend-main` lên Cloudflare Workers và ba service còn lại lên Render.
-- Kiểm `/projects`, `/trust/org/<id>` trên production — **sau** khi đã chạy
-  migration ở §1.2. Trước đó `/projects` sẽ rỗng vì bảng `Project` chưa tồn tại.
+```bash
+npm --workspace apps/frontend-main run deploy   # Cloudflare Workers
+```
+
+Ba service backend trên Render: đẩy theo blueprint như thường lệ.
+
+**Vì sao phải sau:** mã mới đọc bảng `Project`. Deploy trước khi migrate thì
+`/projects` rỗng và `/projects/<slug>` trả 404. Trang chủ vẫn sống — `lib/api.js`
+nuốt lỗi thành `[]` — nên **triệu chứng là trang trống, không phải trang lỗi**.
+Đừng đi tìm bug ở chỗ khác.
+
+Nếu Render đã tự deploy theo merge (blueprint không khai `autoDeploy`, mặc định
+của Render là bật) thì bạn đang ở đúng tình huống đó rồi; chạy §1.1 là hết.
+
+**Nghiệm thu trên production, sau cả hai bước:**
+
+- `/projects` hiện 4 dự án, `/projects/tsudev-trust-seal` hiện số giấy chứng nhận
+- `/trust/directory` hiện chứng chỉ, bấm tên tổ chức ra `/trust/org/<id>`
+- `/blog`, `/docs` còn nguyên
 
 ---
 
 ## 2. Nợ có đăng ký — biết rồi, chưa trả
 
-Xếp theo mức đau nếu bỏ qua.
-
 ### 2.1 `REQUIRE_ROLE_ENFORCEMENT` vẫn không bật được — 🔴
 
 Chỉ **4/46** route khai `requireRole`, và **không realm Keycloak nào khai một
 vai trò nào**. Bật lên là bốn route đó 403 vĩnh viễn: `/api/posts` (mất blog),
-presign ×2, upload.
-
-Phải thiết kế chính sách vai trò trong realm trước. Xem
+presign ×2, upload. Phải thiết kế chính sách vai trò trong realm trước — xem
 `docs/refactor-network-topology.md` §2B.
 
-**Hệ quả cho mọi việc mới:** đường ghi phải **tự kiểm vai trò từ DB**, đừng dựa
+**Hệ quả cho MỌI việc mới:** đường ghi phải **tự kiểm vai trò từ DB**, đừng dựa
 vào `requireRole`. Khuôn mẫu: `requireAdmin` trong
 `services/content-service/src/index.js`.
 
 ### 2.2 Root `package.json` còn ghim `react@18.3.1` — 🟠
 
-Di sản của `frontend-forum` đã xoá. Nay chỉ Storybook lấy từ đó; app thật chạy
-React 19.
-
-Gỡ mù là **hỏng âm thầm**: `packages/ui` khai react là `peerDependency`, và
-**Storybook không nằm trong CI** (đã kiểm: `ci.yml` không có job nào chạy
-Storybook). Việc dọn đúng:
+Di sản của `frontend-forum` đã xoá; nay chỉ Storybook lấy từ đó, app thật chạy
+React 19. Gỡ mù là **hỏng âm thầm**: `packages/ui` khai react là
+`peerDependency`, và **Storybook không nằm trong CI**.
 
 1. Chuyển `react`/`react-dom` xuống `devDependencies` của `packages/ui`.
-2. Chạy `npm --workspace packages/ui run build-storybook` và xác nhận xanh.
+2. `npm --workspace packages/ui run build-storybook` — phải xanh.
 3. Cân nhắc thêm job Storybook vào CI, nếu không lần sau vẫn mù.
 
 Ghi chú đã đặt sẵn trong `apps/frontend-main/next.config.js`.
 
 ### 2.3 `npm run db:migrate` hỏng từ shell sạch — 🟡
 
-```
-Error: Environment variable not found: DATABASE_URL
-```
-
-`packages/db/prisma/seed.js` tự nạp `.env` ở gốc repo, nhưng `prisma migrate
-deploy` thì không. Phải tự truyền:
+`Error: Environment variable not found: DATABASE_URL`. `seed.js` tự nạp `.env` ở
+gốc repo, `prisma migrate deploy` thì không. Phải tự truyền:
 
 ```bash
 DATABASE_URL=$(grep -m1 '^DATABASE_URL=' .env | cut -d= -f2-) npm run db:migrate
 ```
 
-CI không dính vì nó đặt `DATABASE_URL` tường minh. Chỉ đau ở máy dev, nhưng đau
-mỗi lần.
+CI không dính vì nó đặt biến tường minh. Chỉ đau ở máy dev, nhưng đau mỗi lần.
 
 ### 2.4 `.env.bak-*` còn trên đĩa — 🟡
 
-`.env.bak-1786550933` ở thư mục gốc là **bản sao nguyên văn** `.env`, gồm cả
-`TRUST_SIGNING_KEY`. Đã thêm `.env.bak*` vào `.gitignore` (commit `894229f`) nên
-không lọt vào git nữa, nhưng file vẫn nằm đó. Xoá hay giữ là quyết định của chủ
-dự án — **đừng tự xoá**.
+`.env.bak-1786550933` ở thư mục gốc là bản sao nguyên văn `.env`, gồm cả
+`TRUST_SIGNING_KEY`. Đã thêm `.env.bak*` vào `.gitignore` nên không lọt vào git,
+nhưng file vẫn nằm đó. **Đừng tự xoá** — quyết định của chủ dự án.
 
 ---
 
-## 3. Hai cái bẫy đã trả giá trong đợt này
+## 3. Bẫy đã trả giá — đọc trước khi mất thời gian chẩn đoán
 
-### 3.1 `next build` và `next dev` dùng chung `.next/`
+### 3.1 CI im lặng KHÔNG có nghĩa là xanh
 
-Chạy `npm --workspace apps/frontend-main run build` trong lúc một `next dev` còn
-sống sẽ **làm hỏng tiến trình dev đó**. Playwright (`reuseExistingServer`) sau đó
-**dùng lại** nó và báo hàng loạt trang 500 — trông y hệt lỗi mã nguồn. Đã mất
-một vòng chẩn đoán vì chuyện này.
+`.github/workflows/ci.yml` chỉ chạy `on.push` cho `main`, `master`, và nhánh
+khớp mẫu `feat/` + hai dấu sao. Nhánh tên khác (`refactor/…`, `fix/…`) push lên
+thì **CI không chạy gì hết**. Chỉ `on.pull_request` (không lọc nhánh) mới kích
+hoạt. Đặt tên nhánh `feat/…`, hoặc mở PR sớm.
 
-Dọn cổng trước khi chạy E2E:
+`.husky/pre-push` **chặn push thẳng lên `main`**. Cửa thoát có chủ đích:
+`ALLOW_MAIN_FORCE=1 git push` — không phải force push, chỉ bỏ chốt "phải qua PR".
 
-```bash
-fuser -k 8080/tcp 3000/tcp 4001/tcp 4002/tcp 4003/tcp
-cd e2e && npx playwright test --project=app
-```
+### 3.2 Test có thể phụ thuộc dữ liệu bạn seed bằng tay
 
-### 3.2 `git commit` cuốn cả index
+Test "hồ sơ uy tín tổ chức" xanh ở local, đỏ ở CI: `db:seed` chỉ tạo chương
+trình dấu, **không tạo chứng chỉ nào**. Nó xanh ở local chỉ vì
+`services/trust-service/scripts/seed-demo.js` đã được chạy tay lúc dựng tính
+năng. Đã sửa bằng cách thêm script đó vào bước seed của job E2E.
 
-`git rm` từ trước để lại 64 file xoá **đã staged**. `git add <một-file>` rồi
-`git commit` sẽ commit **toàn bộ index**, không chỉ file vừa add. Kết quả: một
-commit mang nhãn `chore: gitignore` nhưng xoá cả app diễn đàn. Đã `git reset` và
-làm lại.
+Bài học rộng hơn: **trạng thái máy dev không phải mặc định.**
 
-Trước mỗi commit: `git diff --cached --stat` và đọc con số cuối.
+### 3.3 `next build` và `next dev` dùng chung `.next/`
+
+Chạy build trong lúc một `next dev` còn sống sẽ **làm hỏng tiến trình dev đó**.
+Playwright (`reuseExistingServer`) sau đó dùng lại nó và báo hàng loạt trang 500
+— trông y hệt lỗi mã nguồn. Dọn cổng trước khi chạy E2E.
+
+### 3.4 `git commit` cuốn cả index
+
+`git rm` từ trước để lại file xoá **đã staged**; `git add <một-file>` rồi
+`git commit` sẽ commit **toàn bộ index**. Trước mỗi commit:
+`git diff --cached --stat`, đọc con số cuối.
 
 ---
 
-## 4. Bối cảnh để không phá nhầm
-
-Ba thứ trông như rác nhưng **không phải**:
+## 4. Ba thứ trông như rác nhưng KHÔNG phải
 
 - **`User.credits`** — trust-service thu phí nộp đơn cấp dấu bằng cột này
-  (`services/trust-service/src/index.js` — hàm nộp đơn, quanh dòng 666). Nhìn tên thì tưởng là
-  ví của chợ ký quỹ đã xoá. Xoá theo là hỏng luồng nộp đơn, và **không test nào
-  bắt được**.
-- **`TrustCertificate.signature`** — chữ ký Ed25519, khác hẳn `User.signature`
+  (`services/trust-service/src/index.js`, hàm nộp đơn, quanh dòng 666). Nhìn tên
+  thì tưởng là ví của chợ ký quỹ đã xoá. Xoá theo là hỏng luồng nộp đơn, và
+  **không test nào bắt được**.
+- **`TrustCertificate.signature`** — chữ ký Ed25519. Khác hẳn `User.signature`
   (chữ ký chân bài diễn đàn) đã DROP. Tên trùng, nghĩa khác.
-- **`packages/brand` bộ avatar đầy đủ** — nay không trang nào dùng cỡ >48px,
-  nhưng nó sinh từ ảnh gốc chứ không chép tay. Giữ.
+- **Bộ avatar đầy đủ trong `packages/brand`** — nay không trang nào dùng cỡ trên
+  48px, nhưng nó sinh từ ảnh gốc chứ không chép tay. Giữ.
 
-Và một thứ **cố ý không sửa**: `docs/refactor-network-topology.md` là biên bản
-đợt trước, cổng ghi trong đó đúng tại thời điểm đó. `documents-tsudev.md` là đặc
-tả **yêu cầu**, không phải mô tả hiện trạng.
+**Hai file cố ý không sửa:** `docs/refactor-network-topology.md` là biên bản đợt
+trước (cổng ghi trong đó đúng tại thời điểm đó); `documents-tsudev.md` là đặc tả
+**yêu cầu**, không phải mô tả hiện trạng.
 
 ---
 
 ## 5. Chạy lại bộ kiểm
 
 ```bash
-npm run db:up                                   # Postgres user-space :5433
+npm run db:up
 export DATABASE_URL=$(grep -m1 '^DATABASE_URL=' .env | cut -d= -f2-)
 
 npm run topology:check                          # 66 literal cổng, 20 file miễn trừ
@@ -188,8 +178,14 @@ npm --workspace services/storage-service test   # 9
 npm --workspace services/trust-service  test    # 20
 npm --workspace apps/frontend-main run build    # 27 tuyến
 
-fuser -k 8080/tcp 3000/tcp 4001/tcp 4002/tcp 4003/tcp
+fuser -k 8080/tcp 3000/tcp 4001/tcp 4002/tcp 4003/tcp   # xem §3.3
 cd e2e && npx playwright test --project=app     # 11/11
 ```
 
-Toàn bộ đã xanh tại `a4ea028` trên máy local, chạy nguội.
+Muốn E2E chạm được dữ liệu con dấu thì seed thêm — script idempotent:
+
+```bash
+node services/trust-service/scripts/seed-demo.js
+```
+
+Toàn bộ đã xanh tại `b00d71a`, cả trên máy local lẫn trên CI.
