@@ -9,9 +9,9 @@ Repo: private, `github.com/b4djl1h/tsudev`.
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
 ⚠️ **Đang có việc bàn giao dở: đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt
-tay.** Nhánh `refactor/network-topology` đã push nhưng **chưa qua CI** (workflow
-không kích hoạt cho nhánh `refactor/**`), và migration DROP **chưa lên
-production**. Xong việc trong đó thì xoá file, và xoá cả đoạn cảnh báo này.
+tay.** Mã nguồn đã merge vào `main` và CI xanh, nhưng **migration DROP chưa chạy
+trên production** — mã mới đang (hoặc sắp) chạy trên DB chưa migrate. Xong việc
+trong đó thì xoá file, và xoá cả đoạn cảnh báo này.
 
 ## Bản đồ
 

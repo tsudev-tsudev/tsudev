@@ -7,31 +7,27 @@
 > Nguồn sự thật về đợt tái cấu trúc này:
 > [`docs/refactor-personal-site.md`](docs/refactor-personal-site.md).
 
-**Trạng thái:** nhánh `refactor/network-topology` @ `a4ea028`, **đã push**, cây
-làm việc sạch. Bảy giai đoạn GĐ 0–7 đã xong ở local.
+**Trạng thái:** đã merge vào `main` @ `c36568c` (PR #9), CI trên `main` xanh cả
+bốn job. Nhánh `refactor/network-topology` đã xoá. Bảy giai đoạn GĐ 0–7 xong.
+
+**Việc còn lại đều nằm NGOÀI repo** — §1 dưới đây. Mã nguồn không còn gì dở.
 
 ---
 
 ## 1. Việc kế tiếp, theo thứ tự
 
-### 1.1 Mở PR — **BẮT BUỘC, và gấp hơn vẻ ngoài**
+### 1.1 ~~Mở PR~~ ✅ xong — nhưng đọc phần này trước khi mở nhánh mới
 
-**PR đã mở: https://github.com/b4djl1h/tsudev/pull/9**
+PR #9 đã merge, CI trên `main` xanh. Hai điều rút ra, còn giá trị cho lần sau:
 
-`.github/workflows/ci.yml` chỉ chạy `on.push` với `[main, master, 'feat/**']`.
-Nhánh này tên `refactor/…` nên **push xong CI không chạy** — chỉ `on.pull_request`
-(không lọc nhánh) mới kích hoạt. Nhớ điều này nếu sau này push thêm commit và
-tưởng CI im lặng nghĩa là xanh.
+**`.github/workflows/ci.yml` chỉ chạy `on.push` với `[main, master, 'feat/**']`.**
+Nhánh tên khác (ví dụ `refactor/…`, `fix/…`) push lên thì **CI không chạy** — chỉ
+`on.pull_request`(không lọc nhánh) mới kích hoạt. Đừng tưởng CI im lặng nghĩa là
+xanh. Đặt tên nhánh`feat/…` hoặc mở PR sớm.
 
-Lần chạy đầu: 3/4 job xanh, `E2E` đỏ — test hồ sơ uy tín phụ thuộc dữ liệu demo
-mà CI không tạo. Đã sửa (thêm `seed-demo.js` vào bước seed). `npm ci` với
-`package-lock.json` vừa dựng lại **qua được** — đây từng là chỗ tôi đoán dễ đỏ
-nhất, đoán sai.
-
-```bash
-gh run list --branch refactor/network-topology --limit 3
-gh run view <id> --log-failed
-```
+**CI bắt được một lỗi mà local không thấy:** test hồ sơ uy tín phụ thuộc
+`seed-demo.js`, vốn được chạy tay lúc dựng tính năng. Máy sạch không có dấu vết
+đó. Đã sửa bằng cách thêm vào bước seed của job E2E.
 
 Bốn job phải xanh: `Lint & format` · `Migrate & test services` · `E2E — smoke
 các trang được giữ` · `Build frontends`.
