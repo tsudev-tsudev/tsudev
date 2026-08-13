@@ -86,11 +86,17 @@ jobs:
       # Smoke khẳng định NỘI DUNG THẬT (tiêu đề bài lấy từ DB), nên phải có DB đã
       # migrate + seed. Không có nó thì getServerSideProps nuốt lỗi, trang rỗng
       # vẫn trả 200 và test xanh mà chẳng chứng minh được gì.
+      # seed-demo dựng tổ chức + chứng chỉ đã ký. `db:seed` chỉ tạo chương trình
+      # dấu, KHÔNG tạo chứng chỉ nào — mà không có chứng chỉ thì /trust/directory
+      # rỗng và trang hồ sơ uy tín không có đường nào dẫn tới. Ký bằng khoá dev
+      # (chưa đặt TRUST_SIGNING_KEY) là đủ cho smoke; script tự chặn khi
+      # NODE_ENV=production.
       - name: Prisma generate + migrate + seed
         run: |
           npm run db:generate
           npm run db:migrate
           npm run db:seed
+          node services/trust-service/scripts/seed-demo.js
       # Playwright tự dựng content-service, trust-service, frontend-main và
       # dev-proxy (webServer trong e2e/playwright.config.js).
       - run: npm run e2e:app

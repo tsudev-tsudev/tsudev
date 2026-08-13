@@ -16,25 +16,25 @@ làm việc sạch. Bảy giai đoạn GĐ 0–7 đã xong ở local.
 
 ### 1.1 Mở PR — **BẮT BUỘC, và gấp hơn vẻ ngoài**
 
-`.github/workflows/ci.yml` chỉ chạy `on.push` với `[main, master, 'feat/**']`.
-Nhánh này tên `refactor/…` nên **push xong CI KHÔNG chạy**. Sáu commit hiện tại
-**chưa từng qua CI**.
+**PR đã mở: https://github.com/b4djl1h/tsudev/pull/9**
 
-`on.pull_request: {}` không lọc nhánh, nên **mở PR là cách duy nhất** để bộ cổng
-kiểm chạy trên máy chủ.
+`.github/workflows/ci.yml` chỉ chạy `on.push` với `[main, master, 'feat/**']`.
+Nhánh này tên `refactor/…` nên **push xong CI không chạy** — chỉ `on.pull_request`
+(không lọc nhánh) mới kích hoạt. Nhớ điều này nếu sau này push thêm commit và
+tưởng CI im lặng nghĩa là xanh.
+
+Lần chạy đầu: 3/4 job xanh, `E2E` đỏ — test hồ sơ uy tín phụ thuộc dữ liệu demo
+mà CI không tạo. Đã sửa (thêm `seed-demo.js` vào bước seed). `npm ci` với
+`package-lock.json` vừa dựng lại **qua được** — đây từng là chỗ tôi đoán dễ đỏ
+nhất, đoán sai.
 
 ```bash
-gh pr create --base main --head refactor/network-topology
-gh run watch          # hoặc: gh run list --branch refactor/network-topology
+gh run list --branch refactor/network-topology --limit 3
+gh run view <id> --log-failed
 ```
 
 Bốn job phải xanh: `Lint & format` · `Migrate & test services` · `E2E — smoke
 các trang được giữ` · `Build frontends`.
-
-**Chỗ đáng ngờ nhất khi CI chạy lần đầu:** `package-lock.json` vừa được dựng
-lại trong đợt này (hai workspace đã xoá còn sót lại trong đó). Local mới chỉ
-kiểm bằng `npm install`; CI dùng **`npm ci`**, nghiêm hơn — nó đòi lock khớp
-tuyệt đối với `package.json`. Đây là thứ có khả năng đỏ cao nhất.
 
 ### 1.2 Deploy migration DROP lên Neon — **cửa một chiều**
 

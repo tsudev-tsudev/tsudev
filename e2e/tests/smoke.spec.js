@@ -110,6 +110,10 @@ test('quản trị dự án mở được và thấy danh sách', async ({ page 
   await expect(page.getByText('tsudev-platform')).toBeVisible({ timeout: 10000 });
 });
 
+// PHỤ THUỘC DỮ LIỆU: cần `services/trust-service/scripts/seed-demo.js` đã chạy.
+// `db:seed` chỉ tạo chương trình dấu, không tạo chứng chỉ nào — mà danh bạ chỉ
+// hiện chứng chỉ ACTIVE còn hạn. Thiếu bước đó thì test này đỏ ở CI dù mã đúng
+// (đã xảy ra một lần); xem bước seed trong .github/workflows/ci.yml.
 test('hồ sơ uy tín tổ chức mở được từ danh bạ', async ({ page }) => {
   await page.goto(`${MAIN}/trust/directory`, { waitUntil: 'networkidle' });
   const orgLink = page.locator('a[href^="/trust/org/"]').first();
