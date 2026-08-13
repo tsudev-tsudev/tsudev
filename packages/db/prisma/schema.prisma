@@ -1,5 +1,5 @@
 // tsudev — Prisma schema
-// Nền tảng dữ liệu chung cho toàn hệ thống (users, blog, docs, files, forum).
+// Nền tảng dữ liệu chung cho toàn hệ thống (users, blog, docs, files, con dấu).
 // Provider: PostgreSQL. Local dev chạy trên cluster user-space (port 5433).
 
 generator client {
@@ -19,50 +19,6 @@ enum Role {
   ADMIN
 }
 
-enum ReportTargetType {
-  THREAD
-  POST
-}
-
-enum ReportStatus {
-  OPEN
-  RESOLVED
-  DISMISSED
-}
-
-enum ModActionType {
-  PIN
-  UNPIN
-  LOCK
-  UNLOCK
-  DELETE_POST
-  BAN_USER
-  UNBAN_USER
-  RESOLVE_REPORT
-  DISMISS_REPORT
-}
-
-enum ListingStatus {
-  PENDING
-  ACTIVE
-  REJECTED
-  SOLD
-}
-
-enum OrderStatus {
-  HELD
-  RELEASED
-  REFUNDED
-}
-
-enum ReactionType {
-  LIKE
-  UPVOTE
-  DOWNVOTE
-  HEART
-  FIRE
-}
-
 // ---------------------------------------------------------------------------
 // Identity
 // ---------------------------------------------------------------------------
@@ -74,21 +30,15 @@ model User {
   displayName String?
   avatarUrl   String?
   bio         String?
-  signature   String?
   role        Role     @default(MEMBER)
-  reputation  Int      @default(0)
+  /// Đơn vị thu phí khi nộp đơn xin cấp dấu — trust-service trừ trong cùng
+  /// transaction với việc đổi trạng thái đơn. KHÔNG phải tiền tệ của chợ cũ.
   credits     Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  posts        Post[]
-  files        FileObject[]
-  threads      Thread[]
-  forumPosts   ForumPost[]
-  reactions    Reaction[]
-  repEvents    ReputationEvent[]
-
-  @@index([reputation])
+  posts Post[]
+  files FileObject[]
 }
 
 // ---------------------------------------------------------------------------
@@ -135,219 +85,6 @@ model FileObject {
   ownerId     String?
   owner       User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
-}
-
-// ---------------------------------------------------------------------------
-// Forum engine — Discussion context
-// ---------------------------------------------------------------------------
-model Category {
-  id          String  @id @default(cuid())
-  slug        String  @unique
-  name        String
-  description String?
-  position    Int     @default(0)
-  boards      Board[]
-}
-
-model Board {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  description String?
-  position    Int      @default(0)
-  categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  threads     Thread[]
-
-  @@index([categoryId, position])
-}
-
-model Thread {
-  id         String      @id @default(cuid())
-  boardId    String
-  board      Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  authorId   String?
-  author     User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  title      String
-  slug       String
-  pinned     Boolean     @default(false)
-  locked     Boolean     @default(false)
-  views      Int         @default(0)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  lastPostAt DateTime    @default(now())
-  posts      ForumPost[]
-
-  @@unique([boardId, slug])
-  @@index([boardId, pinned, lastPostAt])
-}
-
-model ForumPost {
-  id        String     @id @default(cuid())
-  threadId  String
-  thread    Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  authorId  String?
-  author    User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  contentMd String
-  isSolution Boolean   @default(false)
-  deleted   Boolean    @default(false)
-  deletedAt DateTime?
-  createdAt DateTime   @default(now())
-  editedAt  DateTime?
-  reactions Reaction[]
-
-  @@index([threadId, createdAt])
-}
-
-model Reaction {
-  id        String       @id @default(cuid())
-  postId    String
-  post      ForumPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      ReactionType @default(LIKE)
-  createdAt DateTime     @default(now())
-
-  @@unique([postId, userId, type])
-}
-
-// ---------------------------------------------------------------------------
-// Reputation context
-// ---------------------------------------------------------------------------
-model ReputationEvent {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  delta      Int
-  reason     String
-  sourceType String?
-  sourceId   String?
-  createdAt  DateTime @default(now())
-
-  @@index([userId, createdAt])
-}
-
-// ---------------------------------------------------------------------------
-// Moderation context — reports, mod actions (audit trail), bans.
-// Actor/target identities are denormalized (id + name) so the audit log stays
-// readable even if a user is later renamed or removed.
-// ---------------------------------------------------------------------------
-model Report {
-  id             String           @id @default(cuid())
-  reporterId     String
-  reporterName   String
-  targetType     ReportTargetType
-  targetId       String
-  targetPreview  String?
-  reason         String
-  status         ReportStatus     @default(OPEN)
-  resolvedById   String?
-  resolvedByName String?
-  resolution     String?
-  createdAt      DateTime         @default(now())
-  resolvedAt     DateTime?
-
-  @@index([status, createdAt])
-}
-
-model ModAction {
-  id            String        @id @default(cuid())
-  moderatorId   String
-  moderatorName String
-  action        ModActionType
-  targetType    String
-  targetId      String
-  targetLabel   String?
-  note          String?
-  createdAt     DateTime      @default(now())
-
-  @@index([createdAt])
-}
-
-model Ban {
-  id            String    @id @default(cuid())
-  userId        String
-  username      String
-  moderatorName String
-  reason        String
-  until         DateTime?
-  active        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-
-  @@index([username, active])
-}
-
-// ---------------------------------------------------------------------------
-// Messaging context — private conversations between members.
-// ---------------------------------------------------------------------------
-model Conversation {
-  id            String                    @id @default(cuid())
-  createdAt     DateTime                  @default(now())
-  lastMessageAt DateTime                  @default(now())
-  participants  ConversationParticipant[]
-  messages      Message[]
-}
-
-model ConversationParticipant {
-  id             String       @id @default(cuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  userId         String
-  username       String
-  lastReadAt     DateTime?
-
-  @@unique([conversationId, userId])
-  @@index([userId])
-}
-
-model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  senderId       String
-  senderName     String
-  body           String
-  createdAt      DateTime     @default(now())
-
-  @@index([conversationId, createdAt])
-}
-
-// ---------------------------------------------------------------------------
-// Marketplace context — moderated listings + credit escrow + seller ratings.
-// Trades use the internal credit balance only (no real currency). Listings are
-// held for moderation before going live; funds are escrowed until the buyer
-// confirms receipt. Scope is generic, lawful goods/services.
-// ---------------------------------------------------------------------------
-model Listing {
-  id           String        @id @default(cuid())
-  sellerId     String
-  sellerName   String
-  title        String
-  description  String
-  priceCredits Int
-  category     String        @default("general")
-  status       ListingStatus @default(PENDING)
-  createdAt    DateTime      @default(now())
-  orders       Order[]
-
-  @@index([status, createdAt])
-}
-
-model Order {
-  id            String      @id @default(cuid())
-  listingId     String
-  listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  buyerId       String
-  buyerName     String
-  sellerId      String
-  amountCredits Int
-  status        OrderStatus @default(HELD)
-  rating        Int?
-  ratingComment String?
-  createdAt     DateTime    @default(now())
-
-  @@index([buyerId])
-  @@index([sellerId])
 }
 
 // ---------------------------------------------------------------------------
@@ -458,7 +195,7 @@ model SealProgram {
   /// Loại bằng chứng bắt buộc, dạng [{ kind, label, required }].
   evidenceSpec Json
   validityDays Int     @default(365)
-  /// Phí nộp đơn tính bằng credits (tái dụng ví sẵn có của chợ).
+  /// Phí nộp đơn tính bằng credits (User.credits).
   feeCredits   Int     @default(0)
   /// Biến thể huy hiệu: quyết định màu/nhãn khi render SVG.
   badgeVariant String  @default("default")
@@ -569,16 +306,86 @@ model TrustCheck {
 /// Nhật ký bất biến cho mọi hành động trên hệ thống dấu — theo đúng khuôn mẫu
 /// ModAction của kiểm duyệt. Cần cho trách nhiệm pháp lý khi cấp dấu.
 model TrustAuditLog {
-  id         String   @id @default(cuid())
-  actorId    String
-  actorName  String
-  action     String
-  targetType String
-  targetId   String
+  id          String   @id @default(cuid())
+  actorId     String
+  actorName   String
+  action      String
+  targetType  String
+  targetId    String
   targetLabel String?
-  note       String?
-  createdAt  DateTime @default(now())
+  note        String?
+  createdAt   DateTime @default(now())
 
   @@index([createdAt])
   @@index([targetType, targetId])
+}
+
+// ---------------------------------------------------------------------------
+// Dự án & bản quyền — trọng tâm mới của website
+//
+// Mỗi dòng là một dự án/tool/phần mềm do tsudev phát triển. Ba nhóm trường:
+// giới thiệu, phát hành, và bản quyền. Nhóm bản quyền là cầu nối sang Con dấu
+// tín nhiệm: dự án có bản quyền -> website dùng dự án đó -> được cấp huy hiệu.
+// ---------------------------------------------------------------------------
+
+enum ProjectKind {
+  APP
+  TOOL
+  LIBRARY
+  SERVICE
+}
+
+enum ProjectStatus {
+  WIP
+  BETA
+  STABLE
+  ARCHIVED
+}
+
+/// NONE: chưa nộp · PENDING: đã nộp, đang chờ · REGISTERED: đã có giấy chứng nhận.
+enum CopyrightStatus {
+  NONE
+  PENDING
+  REGISTERED
+}
+
+model Project {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  name          String
+  summary       String
+  descriptionMd String        @default("")
+  kind          ProjectKind   @default(TOOL)
+  status        ProjectStatus @default(WIP)
+
+  // Phát hành
+  version     String?
+  releasedAt  DateTime?
+  repoUrl     String?
+  homepageUrl String?
+  downloadUrl String?
+  /// Mã giấy phép theo SPDX (MIT, Apache-2.0, ...). Để trống nghĩa là chưa công bố.
+  license     String?
+
+  // Bản quyền
+  copyrightStatus CopyrightStatus @default(NONE)
+  /// Số giấy chứng nhận đăng ký quyền tác giả. Chỉ có nghĩa khi status=REGISTERED.
+  copyrightNo     String?
+  copyrightAt     DateTime?
+  copyrightOwner  String?
+
+  /// Nối sang chương trình dấu tương ứng. Cố ý KHÔNG phải quan hệ khoá ngoại:
+  /// dự án tồn tại độc lập, chương trình dấu có thể chưa được tạo, và xoá một
+  /// chương trình không được phép kéo theo dự án.
+  trustProgramSlug String?
+
+  featured  Boolean  @default(false)
+  published Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, sortOrder])
+  @@index([kind, status])
+  @@index([copyrightStatus])
 }

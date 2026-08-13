@@ -21,7 +21,11 @@ checksum ⇒ `prisma migrate deploy` dừng ⇒ CI đỏ ở bước migrate và
 không boot. Cần đổi thì tạo migration mới.
 
 Migration hiện có: `init` → `moderation` → `messaging_marketplace` →
-`trust_seal`.
+`trust_seal` → `drop_forum_market_messaging` → `add_project_copyright`.
+
+Hai migration cuối là đợt chuyển thành website dự án cá nhân: một cái DROP 14
+bảng của Diễn đàn/Chợ/Tin nhắn/Kiểm duyệt, một cái thêm `Project`. Migration cũ
+**không** bị sửa — checksum còn nguyên.
 
 ## Đổi schema
 
