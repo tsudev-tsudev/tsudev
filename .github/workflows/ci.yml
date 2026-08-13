@@ -50,14 +50,29 @@ jobs:
           npm run db:migrate
       - name: Run service unit tests
         run: |
-          npm --workspace services/user-service test
           npm --workspace services/content-service test
           npm --workspace services/storage-service test
           npm --workspace services/trust-service test
 
-  e2e-session:
-    name: E2E — phiên xuyên origin
+  e2e-app:
+    name: E2E — smoke các trang được giữ
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tsudev
+          POSTGRES_PASSWORD: tsudev
+          POSTGRES_DB: tsudev
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tsudev"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      # 5432 là cổng service container của GitHub Actions, khai ở
+      # config/topology.json → overrides.ci kèm lý do.
+      DATABASE_URL: postgresql://tsudev:tsudev@localhost:5432/tsudev?schema=public
+      NEXTAUTH_SECRET: e2e-placeholder-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,19 +80,20 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      # Chỉ chromium: bộ `session` không cần trình duyệt khác, tải đủ 3 engine
-      # là thêm vài phút cho mỗi lần chạy CI mà không đổi kết quả.
+      # Chỉ chromium: bộ `app` không cần engine khác, tải đủ ba là thêm vài phút
+      # mỗi lần chạy CI mà không đổi kết quả.
       - run: npx playwright install --with-deps chromium
-      # Không cần `db:generate`: hai app Next không import @tsudev/db, chỉ gọi
-      # service qua HTTP. (Khác job "Build frontends" — ở đó thì cần.)
-      # Lưới an toàn của việc tái cấu trúc cổng/tên miền: đăng nhập ở main rồi
-      # bấm link "Diễn đàn" phải sang đúng origin forum và còn phiên.
-      # Playwright tự dựng hai frontend (webServer trong e2e/playwright.config.js).
-      # Không cần Postgres/Keycloak: lib/api.js nuốt lỗi và trả fallback rỗng,
-      # còn đăng nhập đi qua provider `e2e-dev`.
-      - run: npm run e2e:session
-        env:
-          NEXTAUTH_SECRET: e2e-placeholder-secret
+      # Smoke khẳng định NỘI DUNG THẬT (tiêu đề bài lấy từ DB), nên phải có DB đã
+      # migrate + seed. Không có nó thì getServerSideProps nuốt lỗi, trang rỗng
+      # vẫn trả 200 và test xanh mà chẳng chứng minh được gì.
+      - name: Prisma generate + migrate + seed
+        run: |
+          npm run db:generate
+          npm run db:migrate
+          npm run db:seed
+      # Playwright tự dựng content-service, trust-service, frontend-main và
+      # dev-proxy (webServer trong e2e/playwright.config.js).
+      - run: npm run e2e:app
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -100,6 +116,5 @@ jobs:
       - name: Build Next.js apps
         run: |
           npm --workspace apps/frontend-main run build
-          npm --workspace apps/frontend-forum run build
         env:
           NEXTAUTH_SECRET: build-time-placeholder

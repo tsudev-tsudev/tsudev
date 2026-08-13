@@ -68,7 +68,6 @@ const TOPO = loadTopology();
 const USE_PROXY = TOPO.dev.mode === 'proxy' && process.env.DEV_PROXY !== '0';
 
 const processes = [
-  { name: 'user-service', type: 'service', cwd: path.join(ROOT, 'services/user-service') },
   { name: 'content-service', type: 'service', cwd: path.join(ROOT, 'services/content-service') },
   { name: 'storage-service', type: 'service', cwd: path.join(ROOT, 'services/storage-service') },
   { name: 'trust-service', type: 'service', cwd: path.join(ROOT, 'services/trust-service') },
@@ -78,13 +77,6 @@ const processes = [
     port: portOf(TOPO, 'main'),
     url: USE_PROXY ? publicUrl(TOPO, 'main') : `http://localhost:${portOf(TOPO, 'main')}`,
     cwd: path.join(ROOT, 'apps/frontend-main'),
-  },
-  {
-    name: 'frontend-forum',
-    type: 'next',
-    port: portOf(TOPO, 'forum'),
-    url: USE_PROXY ? publicUrl(TOPO, 'forum') : `http://localhost:${portOf(TOPO, 'forum')}`,
-    cwd: path.join(ROOT, 'apps/frontend-forum'),
   },
 ];
 

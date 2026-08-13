@@ -25,7 +25,7 @@ try {
 
 const ROOT = path.join(__dirname, '..', '..');
 const SRC = path.join(__dirname, 'source');
-const APPS = ['apps/frontend-main', 'apps/frontend-forum'].map((a) => path.join(ROOT, a, 'public'));
+const APPS = ['apps/frontend-main'].map((a) => path.join(ROOT, a, 'public'));
 
 // Số biến thể avatar mặc định + góc xoay hue (độ) so với ảnh gốc (xanh dương).
 const AVATAR_VARIANTS = [

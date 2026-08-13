@@ -9,10 +9,8 @@ const { loadTopology, internalUrl, publicUrl } = require('./topology/load');
 const topo = loadTopology();
 const URL_OF = {
   storage: internalUrl(topo, 'storage'),
-  user: internalUrl(topo, 'user'),
   content: internalUrl(topo, 'content'),
   main: publicUrl(topo, 'main'),
-  forum: publicUrl(topo, 'forum'),
   auth: publicUrl(topo, 'auth'),
 };
 
@@ -74,17 +72,15 @@ async function main() {
 
   // logs
   await run(
-    `${compose} logs --tail=200 keycloak minio postgres user-service content-service storage-service frontend-main frontend-forum`,
+    `${compose} logs --tail=200 keycloak minio postgres content-service storage-service frontend-main`,
     'compose-logs.txt'
   );
 
   // health endpoints
   const endpoints = [
     { name: 'storage', url: `${URL_OF.storage}/health` },
-    { name: 'user', url: `${URL_OF.user}/health` },
     { name: 'content', url: `${URL_OF.content}/health` },
     { name: 'frontend-main', url: `${URL_OF.main}/` },
-    { name: 'frontend-forum', url: `${URL_OF.forum}/` },
     {
       name: 'keycloak-oidc',
       url: `${URL_OF.auth}/realms/${topo.dev.realm}/.well-known/openid-configuration`,

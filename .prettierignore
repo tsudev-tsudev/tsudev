@@ -5,6 +5,9 @@ dist
 build
 coverage
 verify-output
+
+# Bản xuất dữ liệu trước migration DROP — dữ liệu, không phải mã.
+backup
 e2e/test-results
 e2e/playwright-report
 .vscode

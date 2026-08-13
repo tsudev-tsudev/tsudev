@@ -159,7 +159,7 @@ async function ensureBucket() {
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'storage-service' }))
 
-// Bốn service backend nằm trên URL Render CÔNG KHAI — không giấu sau mạng nội bộ
+// Ba service backend nằm trên URL Render CÔNG KHAI — không giấu sau mạng nội bộ
 // được, vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render. Cổng
 // chặn này là lớp bù: chỉ ai biết INTERNAL_API_TOKEN mới gọi được /api.
 //

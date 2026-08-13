@@ -196,8 +196,8 @@ const SECTIONS = [
             đồng có điều khoản bảo vệ dữ liệu.
           </li>
           <li>
-            <strong>Nội dung bạn chủ động công khai:</strong> tên hiển thị, ảnh đại diện và bài đăng
-            trên diễn đàn, blog, chợ là công khai với mọi người truy cập, kể cả người chưa đăng
+            <strong>Nội dung bạn chủ động công khai:</strong> thông tin tổ chức và tên miền trong hồ
+            sơ đăng ký Con dấu tín nhiệm là công khai với mọi người truy cập, kể cả người chưa đăng
             nhập.
           </li>
           <li>

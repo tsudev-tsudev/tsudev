@@ -3,9 +3,9 @@
 // Sinh apps/*/.env.local từ .env gốc để Next đọc được lúc dev.
 //
 // Không thể copy nguyên .env sang cả hai app: NEXTAUTH_URL phải trỏ về origin
-// của chính app đó, nếu dùng chung một giá trị thì đăng nhập ở diễn đàn (:3001)
-// sẽ bị next-auth đá callback về :3000. Nên ở đây ta thay dòng NEXTAUTH_URL
-// bằng URL riêng của từng app, lấy từ NEXT_PUBLIC_MAIN_URL/NEXT_PUBLIC_FORUM_URL.
+// của chính app đó. Trước đây có hai app nên mỗi app cần một giá trị riêng;
+// nay chỉ còn frontend-main nhưng vẫn giữ cơ chế sinh file để .env.local không
+// bị lệch với .env gốc.
 
 const fs = require('fs');
 const path = require('path');
@@ -40,11 +40,6 @@ const APPS = [
     dir: 'apps/frontend-main',
     urlKey: 'NEXT_PUBLIC_MAIN_URL',
     fallback: publicUrl(TOPO, 'main'),
-  },
-  {
-    dir: 'apps/frontend-forum',
-    urlKey: 'NEXT_PUBLIC_FORUM_URL',
-    fallback: publicUrl(TOPO, 'forum'),
   },
 ];
 

@@ -43,20 +43,9 @@ const fetch = globalThis.fetch || require('node-fetch');
     });
     const rep = await repResp.json();
 
-    const addRedirects = [
-      'http://frontend-main:3000/*',
-      'http://frontend-main:3000',
-      'http://frontend-forum:3001/*',
-      'http://frontend-forum:3001',
-    ];
+    const addRedirects = ['http://frontend-main:3000/*', 'http://frontend-main:3000'];
     rep.redirectUris = Array.from(new Set([...(rep.redirectUris || []), ...addRedirects]));
-    rep.webOrigins = Array.from(
-      new Set([
-        ...(rep.webOrigins || []),
-        'http://frontend-main:3000',
-        'http://frontend-forum:3001',
-      ])
-    );
+    rep.webOrigins = Array.from(new Set([...(rep.webOrigins || []), 'http://frontend-main:3000']));
     rep.rootUrl = rep.rootUrl || 'http://frontend-main:3000';
 
     console.log('Updating client with new redirectUris/webOrigins...');

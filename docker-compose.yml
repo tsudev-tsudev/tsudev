@@ -48,14 +48,6 @@ services:
     volumes:
       - minio_data:/data
 
-  user-service:
-    build: ./services/user-service
-    ports:
-      - '4000:4000'
-    depends_on:
-      - postgres
-      - redis
-
   content-service:
     build: ./services/content-service
     ports:
@@ -83,27 +75,11 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      - user-service
       - content-service
     environment:
       - NEXTAUTH_URL=http://frontend-main:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - E2E_BYPASS_KEYCLOAK=1
-      - KEYCLOAK_ISSUER=http://keycloak:4100/realms/tsudev-local
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-
-  frontend-forum:
-    build:
-      context: .
-      dockerfile: apps/frontend-forum/Dockerfile
-    ports:
-      - '3001:3001'
-    depends_on:
-      - user-service
-    environment:
-      - NEXTAUTH_URL=http://frontend-forum:3001
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - KEYCLOAK_ISSUER=http://keycloak:4100/realms/tsudev-local
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}

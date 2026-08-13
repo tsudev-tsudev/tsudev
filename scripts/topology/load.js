@@ -49,7 +49,7 @@ function internalUrl(topo, id, env = 'dev') {
 /**
  * URL tầng PUBLIC — cái trình duyệt gõ. Hai hình trạng:
  *   mode=ports  → http://localhost:3000        (hiện trạng)
- *   mode=proxy  → http://forum.tsudev.localhost:8080  (giai đoạn 3)
+ *   mode=proxy  → http://<sub>.tsudev.localhost:8080
  */
 function publicUrl(topo, id, env = 'dev') {
   const n = node(topo, id);

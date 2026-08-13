@@ -46,7 +46,19 @@ const proxyServer = () => ({
   timeout: 60 * 1000,
 });
 
-const servers = [server('main'), server('forum')];
+// Service backend phải chạy thì blog/docs/trust mới có nội dung THẬT. Không có
+// chúng, getServerSideProps nuốt lỗi và trả mảng rỗng — trang vẫn 200 nên test
+// vẫn xanh mà chẳng chứng minh được gì.
+const backend = (id) => ({
+  command: `node ${node(topo, id).workspace}/src/index.js`,
+  url: `${internalUrl(topo, id)}/health`,
+  cwd: ROOT,
+  env: { ...process.env, BIND_HOST: '127.0.0.1', AUTH_DEV_BYPASS: 'true' },
+  reuseExistingServer: true,
+  timeout: 60 * 1000,
+});
+
+const servers = [backend('content'), backend('trust'), server('main')];
 if (useProxy) servers.push(proxyServer());
 
 module.exports = defineConfig({
@@ -63,10 +75,9 @@ module.exports = defineConfig({
   webServer: reuseExisting ? undefined : servers,
   projects: [
     {
-      // Lưới an toàn cho việc tái cấu trúc cổng/tên miền: chỉ cần hai frontend,
-      // chạy được trong CI mà không phải dựng cả compose.
-      name: 'session',
-      testMatch: /cross-origin-session\.spec\.js/,
+      // Lưới an toàn: chạy được trong CI mà không phải dựng cả compose.
+      name: 'app',
+      testMatch: /smoke\.spec\.js/,
     },
     {
       // Cần MinIO + storage-service + Keycloak ⇒ chỉ chạy khi có full stack

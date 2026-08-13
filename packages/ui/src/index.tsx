@@ -14,13 +14,10 @@ import { Badge } from './components/Badge';
 import { SectionHeading } from './components/SectionHeading';
 import { Avatar } from './components/Avatar';
 import { Stat } from './components/Stat';
-import { ThreadRow } from './components/ThreadRow';
-import { siteUrl, MAIN_URL, FORUM_URL } from './lib/siteUrls';
+import { MAIN_URL } from './lib/siteUrls';
 
 export {
-  siteUrl,
   MAIN_URL,
-  FORUM_URL,
   SiteHeader,
   SiteFooter,
   Button,
@@ -37,7 +34,6 @@ export {
   SectionHeading,
   Avatar,
   Stat,
-  ThreadRow,
 };
 
 export default Layout;

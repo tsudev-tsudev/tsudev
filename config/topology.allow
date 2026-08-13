@@ -10,7 +10,6 @@
 # ── Miễn trừ VĨNH VIỄN ──────────────────────────────────────────────────────
 # HEALTHCHECK chạy BÊN TRONG container — `localhost` ở đó đúng nghĩa đen, không
 # có gì để thay bằng biến.
-services/user-service/Dockerfile
 services/content-service/Dockerfile
 services/storage-service/Dockerfile
 services/trust-service/Dockerfile
@@ -25,7 +24,6 @@ services/trust-service/Dockerfile
 # docker/backend-service.Dockerfile KHÔNG copy config/ vào image, nên bốn service
 # không thể require topology. Giá trị dự phòng buộc phải là literal — đã cập nhật
 # theo hình trạng mới (auth.tsudev.localhost:8080). Quy tắc B vẫn kiểm số cổng.
-services/user-service/src/authMiddleware.js
 services/content-service/src/authMiddleware.js
 services/storage-service/src/authMiddleware.js
 services/trust-service/src/authMiddleware.js
@@ -56,7 +54,6 @@ scripts/e2e-sso-upload.js             # còn ánh xạ localhost↔hostname Dock
 # filesystem của repo để đọc config/topology.json. Nhưng sau giai đoạn 4 mỗi app
 # chỉ còn MỘT file giữ literal (trước là sáu), và quy tắc B vẫn kiểm số cổng.
 apps/frontend-main/lib/services.js
-apps/frontend-forum/lib/services.js
 
 # ── Gỡ ở GIAI ĐOẠN 5 hoặc sau ───────────────────────────────────────────────
 scripts/test-presign.js               # script gỡ rối thủ công

@@ -24,23 +24,6 @@
       "publicEnv": "NEXT_PUBLIC_MAIN_URL"
     },
     {
-      "id": "forum",
-      "label": "frontend-forum",
-      "workspace": "apps/frontend-forum",
-      "port": 3001,
-      "sub": "forum",
-      "public": true,
-      "publicEnv": "NEXT_PUBLIC_FORUM_URL"
-    },
-    {
-      "id": "user",
-      "label": "user-service",
-      "workspace": "services/user-service",
-      "port": 4000,
-      "public": false,
-      "internalEnv": "USER_SERVICE_URL"
-    },
-    {
       "id": "content",
       "label": "content-service",
       "workspace": "services/content-service",
