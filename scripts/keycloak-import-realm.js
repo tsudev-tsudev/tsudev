@@ -5,7 +5,9 @@ const fs = require('fs');
   try {
     const admin = process.env.KEYCLOAK_ADMIN || 'admin';
     const pass = process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin';
-    const kcBase = process.env.KEYCLOAK_BASE || 'http://localhost:8080';
+    const kcBase =
+      process.env.KEYCLOAK_BASE ||
+      require('./topology/load').publicUrl(require('./topology/load').loadTopology(), 'auth');
     const realmFile =
       process.env.KEYCLOAK_REALM_FILE || './apps/sso-auth/keycloak/realm-export.json';
 

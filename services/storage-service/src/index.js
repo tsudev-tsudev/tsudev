@@ -27,6 +27,9 @@ const { prisma } = require('@tsudev/db')
 
 const app = express()
 const port = process.env.PORT || process.env.PORT_STORAGE_SERVICE || 4002
+// Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
+// lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
+const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
 // Basic request logging for troubleshooting
 app.use((req, res, next) => {
@@ -34,7 +37,30 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use(cors())
+// Trước giai đoạn 4 đây là `cors()` mở cho MỌI origin — service duy nhất trình
+// duyệt gọi thẳng, và cũng là service ký được URL ghi vào object storage.
+// Danh sách lấy từ CORS_ALLOWED_ORIGINS (sinh bởi config/topology.json).
+// Rỗng = không cấp header CORS cho ai: đúng cho production, nơi trình duyệt đi
+// qua BFF của Next chứ không gọi thẳng. Lời gọi server↔server không có Origin
+// nên không bị ảnh hưởng.
+const ALLOWED_ORIGINS = String(process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, cb) {
+      if (!origin) return cb(null, true)
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true)
+      // Trả false (không phải Error) để không biến thành 500: không có header
+      // CORS thì trình duyệt tự chặn, còn log vẫn nêu rõ ai bị từ chối.
+      console.warn(`[storage] CORS từ chối origin: ${origin}`)
+      return cb(null, false)
+    },
+  })
+)
 app.use(express.json())
 
 // Log JSON request bodies for troubleshooting small requests (safe-size only)
@@ -132,6 +158,20 @@ async function ensureBucket() {
 }
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'storage-service' }))
+
+// Ba service backend nằm trên URL Render CÔNG KHAI — không giấu sau mạng nội bộ
+// được, vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render. Cổng
+// chặn này là lớp bù: chỉ ai biết INTERNAL_API_TOKEN mới gọi được /api.
+//
+// TỰ NGUYỆN: biến không đặt thì middleware là no-op, nên local dev và CI không
+// đổi hành vi. Đặt nó ở Render (và cùng giá trị cho biến của frontend) là bật.
+// /health đứng ngoài để health check của Render vẫn chạy.
+const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN || ''
+app.use('/api', (req, res, next) => {
+  if (!INTERNAL_TOKEN) return next()
+  if (req.get('x-internal-token') === INTERNAL_TOKEN) return next()
+  return res.status(401).json({ error: 'Thiếu hoặc sai x-internal-token' })
+})
 
 app.get(
   '/api/files',
@@ -284,7 +324,7 @@ if (typeof process !== 'undefined' && typeof process.on === 'function') {
 
 async function startServer() {
   await ensureBucket()
-  app.listen(port, () => {
+  app.listen(port, bindHost, () => {
     console.log(`storage-service listening on ${port}`)
     try {
       // Enumerate registered routes for quick verification

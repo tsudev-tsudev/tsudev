@@ -1,5 +1,5 @@
 'use strict'
-// Seed dữ liệu khởi tạo cho môi trường dev: user, blog, docs, forum.
+// Seed dữ liệu khởi tạo cho môi trường dev: user, blog, docs, chương trình dấu.
 const path = require('path')
 require('dotenv').config({ path: path.join(__dirname, '../../../.env') })
 const { prisma } = require('../src/index')
@@ -14,7 +14,6 @@ async function main() {
       email: 'dev.nguyentrangtinhsu@gmail.com',
       displayName: 'Nguyễn Trang Tình Sử',
       role: 'ADMIN',
-      reputation: 1337,
       credits: 500,
       bio: 'Founder của tsudev — Decoding the Future, One Commit at a Time.',
     },
@@ -27,11 +26,10 @@ async function main() {
       email: 'alice@tsudev.vn',
       displayName: 'Alice',
       role: 'MEMBER',
-      reputation: 42,
       credits: 20,
     },
   })
-  const bob = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { username: 'bob' },
     update: {},
     create: {
@@ -39,7 +37,6 @@ async function main() {
       email: 'bob@tsudev.vn',
       displayName: 'Bob',
       role: 'VIP',
-      reputation: 128,
       credits: 75,
     },
   })
@@ -98,72 +95,6 @@ async function main() {
   ]
   for (const d of docs) {
     await prisma.doc.upsert({ where: { slug: d.slug }, update: {}, create: d })
-  }
-
-  // --- Forum: categories, boards, threads, posts ---
-  const cat = await prisma.category.upsert({
-    where: { slug: 'cong-dong' },
-    update: {},
-    create: {
-      slug: 'cong-dong',
-      name: 'Cộng đồng',
-      description: 'Thảo luận chung của cộng đồng tsudev',
-      position: 1,
-    },
-  })
-  const board = await prisma.board.upsert({
-    where: { slug: 'thao-luan-chung' },
-    update: {},
-    create: {
-      slug: 'thao-luan-chung',
-      name: 'Thảo luận chung',
-      description: 'Mọi chủ đề về công nghệ',
-      position: 1,
-      categoryId: cat.id,
-    },
-  })
-  const catDev = await prisma.category.upsert({
-    where: { slug: 'phat-trien' },
-    update: {},
-    create: {
-      slug: 'phat-trien',
-      name: 'Phát triển',
-      description: 'Lập trình, kiến trúc, DevOps',
-      position: 2,
-    },
-  })
-  await prisma.board.upsert({
-    where: { slug: 'backend' },
-    update: {},
-    create: {
-      slug: 'backend',
-      name: 'Backend & Hạ tầng',
-      description: 'Node, Go, database, DevOps',
-      position: 1,
-      categoryId: catDev.id,
-    },
-  })
-
-  const existing = await prisma.thread.findFirst({
-    where: { boardId: board.id, slug: 'chao-moi-nguoi' },
-  })
-  if (!existing) {
-    const thread = await prisma.thread.create({
-      data: {
-        boardId: board.id,
-        authorId: bob.id,
-        title: 'Chào mọi người, mình là thành viên mới!',
-        slug: 'chao-moi-nguoi',
-        lastPostAt: new Date(),
-        posts: {
-          create: [
-            { authorId: bob.id, contentMd: 'Xin chào cả nhà, rất vui được tham gia tsudev 👋' },
-            { authorId: admin.id, contentMd: 'Chào mừng bạn đến với cộng đồng! 🎉' },
-          ],
-        },
-      },
-    })
-    await prisma.thread.update({ where: { id: thread.id }, data: { lastPostAt: new Date() } })
   }
 
   // --- Trust Seal: chương trình dấu ---
@@ -256,12 +187,86 @@ async function main() {
     })
   }
 
+  // --- Dự án & bản quyền ---
+  // Ba trạng thái bản quyền đều có mặt để trang /projects và /admin/projects
+  // hiện được cả ba nhánh hiển thị ngay từ lần chạy đầu.
+  const projects = [
+    {
+      slug: 'tsudev-platform',
+      name: 'tsudev Platform',
+      summary: 'Nền tảng web monorepo: blog, tài liệu, con dấu tín nhiệm, SSO và object storage.',
+      descriptionMd:
+        '## Tổng quan\n\nMonorepo npm workspaces gồm một ứng dụng Next.js và ba service Express dùng chung một database qua Prisma.\n\n- Một cổng vào duy nhất ở dev, phân biệt bằng subdomain\n- Nguồn sự thật về cổng/tên miền nằm trong `config/topology.json`\n- Trình duyệt không bao giờ gọi thẳng cổng service\n',
+      kind: 'APP',
+      status: 'BETA',
+      version: '0.1.0',
+      license: 'MIT',
+      repoUrl: 'https://github.com/b4djl1h/tsudev',
+      copyrightStatus: 'PENDING',
+      copyrightOwner: 'Nguyễn Trang Tình Sử',
+      trustProgramSlug: 'copyright-verified',
+      featured: true,
+      sortOrder: 1,
+    },
+    {
+      slug: 'tsudev-trust-seal',
+      name: 'Con dấu tín nhiệm tsudev',
+      summary:
+        'Dịch vụ cấp và xác thực huy hiệu tín nhiệm cho website: ký Ed25519, xác minh tên miền, giám sát định kỳ.',
+      descriptionMd:
+        '## Con dấu tín nhiệm\n\nCấp huy hiệu cho website dùng mã nguồn tsudev, và chứng nhận cho website do đội ngũ tsudev thực hiện.\n\nMỗi chứng chỉ mang một chữ ký Ed25519 xác minh được độc lập qua JWKS công khai — không cần tin vào máy chủ tsudev để kiểm tra tính toàn vẹn.\n',
+      kind: 'SERVICE',
+      status: 'BETA',
+      version: '0.1.0',
+      license: 'MIT',
+      homepageUrl: '/trust',
+      copyrightStatus: 'REGISTERED',
+      copyrightNo: 'TSD-2026-0001',
+      copyrightAt: new Date('2026-03-14'),
+      copyrightOwner: 'Nguyễn Trang Tình Sử',
+      trustProgramSlug: 'ownership-attested',
+      featured: true,
+      sortOrder: 2,
+    },
+    {
+      slug: 'tsudev-ui',
+      name: '@tsudev/ui',
+      summary: 'Hệ thống thiết kế chỉ-chế-độ-tối: token màu, component dùng chung, Storybook.',
+      descriptionMd:
+        '## Design system\n\nThứ bậc thị giác dựng bằng độ sáng nền (`--surface` < `--panel` < `--panel-2`) chứ không bằng viền hay đổ bóng.\n',
+      kind: 'LIBRARY',
+      status: 'STABLE',
+      version: '0.1.0',
+      license: 'MIT',
+      copyrightStatus: 'NONE',
+      sortOrder: 3,
+    },
+    {
+      slug: 'topology-check',
+      name: 'topology:check',
+      summary:
+        'Cổng chặn giữ cổng và tên miền trong mã nguồn luôn khớp một nguồn sự thật duy nhất.',
+      descriptionMd:
+        '## Vì sao\n\nCổng bị hardcode rải rác là thứ mọc lại sau mỗi lần dọn. `topology:check` chạy trong CI và `pre-push`, bắt ba loại lệch: literal ngoài danh sách miễn trừ, cổng không có trong topology, và compose công bố sai cổng.\n',
+      kind: 'TOOL',
+      status: 'STABLE',
+      version: '1.0.0',
+      license: 'MIT',
+      copyrightStatus: 'NONE',
+      sortOrder: 4,
+    },
+  ]
+  for (const p of projects) {
+    await prisma.project.upsert({ where: { slug: p.slug }, update: { ...p }, create: { ...p } })
+  }
+
   console.log('Seed hoàn tất:', {
     admin: admin.username,
     users: 3,
     posts: posts.length,
     docs: docs.length,
     trustPrograms: programs.length,
+    projects: projects.length,
   })
 }
 

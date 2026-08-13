@@ -1,24 +1,18 @@
 import React, { useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Logo } from './Logo';
-import { siteUrl } from '../lib/siteUrls';
-
-// `app` quyết định origin, `path` là đường dẫn trong app đó. Header này render
-// ở cả hai frontend nên href phải tuyệt đối, xem lib/siteUrls.
+// tsudev là MỘT site nên href tương đối. Trước đây có hai origin (trang chính và
+// diễn đàn) nên mọi link điều hướng buộc phải là URL tuyệt đối.
 const NAV = [
-  { key: 'home', app: 'main', path: '/', label: 'Trang chủ' },
-  { key: 'forum', app: 'forum', path: '/', label: 'Diễn đàn' },
-  { key: 'blog', app: 'main', path: '/blog', label: 'Blog' },
-  { key: 'docs', app: 'main', path: '/docs', label: 'Tài liệu' },
-  { key: 'market', app: 'main', path: '/market', label: 'Chợ' },
-  { key: 'messages', app: 'main', path: '/messages', label: 'Tin nhắn' },
-  { key: 'trust', app: 'main', path: '/trust', label: 'Con dấu' },
-  { key: 'members', app: 'main', path: '/members', label: 'Thành viên' },
+  { key: 'home', path: '/', label: 'Trang chủ' },
+  { key: 'projects', path: '/projects', label: 'Dự án' },
+  { key: 'blog', path: '/blog', label: 'Blog' },
+  { key: 'docs', path: '/docs', label: 'Tài liệu' },
+  { key: 'trust', path: '/trust', label: 'Con dấu' },
 ];
 
-// Trang bên main truyền `active` theo đường dẫn ('/blog'), trang bên forum
-// truyền theo key ('forum') vì path của nó là '/' và sẽ đụng với Trang chủ.
-const isActive = (n, active) => active === n.key || (n.app === 'main' && active === n.path);
+// Trang truyền `active` theo đường dẫn ('/blog') hoặc theo khoá ('home').
+const isActive = (n, active) => active === n.key || active === n.path;
 
 export const SiteHeader = ({ active = '/' }) => {
   const { data: session } = useSession();
@@ -34,14 +28,14 @@ export const SiteHeader = ({ active = '/' }) => {
       </a>
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
-          <a href={siteUrl('main', '/')} className="shrink-0" aria-label="tsudev trang chủ">
+          <a href="/" className="shrink-0" aria-label="tsudev trang chủ">
             <Logo />
           </a>
           <nav className="hidden md:flex items-center gap-1" role="navigation" aria-label="Chính">
             {NAV.map((n) => (
               <a
                 key={n.key}
-                href={siteUrl(n.app, n.path)}
+                href={n.path}
                 className={`px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
                   isActive(n, active)
                     ? 'text-brandink bg-panel2'
@@ -113,7 +107,7 @@ export const SiteHeader = ({ active = '/' }) => {
           {NAV.map((n) => (
             <a
               key={n.key}
-              href={siteUrl(n.app, n.path)}
+              href={n.path}
               className="block px-2 py-2.5 rounded-md text-sm text-inksoft hover:bg-panel2"
             >
               {n.label}

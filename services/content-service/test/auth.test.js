@@ -1,5 +1,7 @@
 // Enable development bypass + role enforcement for tests
 process.env.AUTH_DEV_BYPASS = 'true'
+// Không phụ thuộc thứ tự file test: cổng chặn internal-token phải tắt ở đây.
+delete process.env.INTERNAL_API_TOKEN
 process.env.REQUIRE_ROLE_ENFORCEMENT = 'true'
 process.env.CONTENT_READ_ROLE = 'content:read'
 const request = require('supertest')

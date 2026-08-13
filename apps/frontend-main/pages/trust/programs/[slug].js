@@ -2,8 +2,10 @@ import React from 'react';
 import Head from 'next/head';
 import { Layout, Button, Badge } from '@tsudev/ui';
 import { trust } from '../../../lib/trust';
+import { api } from '../../../lib/api';
+import { KIND_LABEL, COPYRIGHT } from '../../../lib/projectLabels';
 
-export default function ProgramDetail({ program }) {
+export default function ProgramDetail({ program, projects }) {
   return (
     <Layout active="/trust" bare>
       <Head>
@@ -87,6 +89,35 @@ export default function ProgramDetail({ program }) {
           </Button>
         </div>
 
+        {projects.length > 0 && (
+          <section className="mt-12 border-t border-hairline pt-8">
+            <h2 className="font-semibold text-ink mb-1">Dự án tsudev thuộc chương trình này</h2>
+            <p className="text-sm text-muted mb-4">
+              Website sử dụng các dự án dưới đây là ứng viên tự nhiên của chương trình.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {projects.map((p) => (
+                <a
+                  key={p.id}
+                  href={`/projects/${p.slug}`}
+                  className="p-4 rounded-xl transition-colors hover:bg-panel group"
+                >
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                    <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>
+                    <Badge tone={(COPYRIGHT[p.copyrightStatus] || COPYRIGHT.NONE).tone}>
+                      {(COPYRIGHT[p.copyrightStatus] || COPYRIGHT.NONE).label}
+                    </Badge>
+                  </div>
+                  <div className="font-semibold text-ink group-hover:text-brandink transition-colors">
+                    {p.name}
+                  </div>
+                  <p className="mt-1 text-sm text-muted">{p.summary}</p>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
         <p className="mt-12 text-xs text-muted leading-relaxed border-t border-hairline pt-5">
           Con dấu thuộc chương trình này chỉ khẳng định các tiêu chí liệt kê ở trên, tại thời điểm
           đánh giá. Mỗi chứng chỉ ghi rõ cơ sở đánh giá (tự khai / đã thẩm định bằng chứng / đã kiểm
@@ -98,7 +129,12 @@ export default function ProgramDetail({ program }) {
 }
 
 export async function getServerSideProps({ params }) {
-  const program = await trust.program(String(params.slug || ''));
+  const slug = String(params.slug || '');
+  const program = await trust.program(slug);
   if (!program) return { notFound: true };
-  return { props: { program } };
+  // Lọc phía server chứ không thêm tham số truy vấn cho /api/projects: số dự án
+  // nhỏ, và mỗi tham số lọc mới là một mặt tiếp xúc phải kiểm chứng.
+  const all = await api.projects(100);
+  const projects = all.filter((p) => p.trustProgramSlug === slug);
+  return { props: { program, projects } };
 }

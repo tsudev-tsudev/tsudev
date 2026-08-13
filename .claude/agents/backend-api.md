@@ -1,11 +1,10 @@
 ---
 name: backend-api
-description: Sửa và mở rộng ba service Express user/content/storage — route, xác thực JWT, truy vấn Prisma, hợp đồng API. KHÔNG dùng cho trust-service (dùng trust-seal) hay đổi schema DB (dùng data-schema).
+description: Sửa và mở rộng hai service Express content/storage — route, xác thực JWT, truy vấn Prisma, hợp đồng API. KHÔNG dùng cho trust-service (dùng trust-seal) hay đổi schema DB (dùng data-schema).
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
-Bạn phụ trách `services/user-service`, `services/content-service`,
-`services/storage-service`.
+Bạn phụ trách `services/content-service` và `services/storage-service`.
 
 ## Nạp ngữ cảnh (theo thứ tự, dừng khi đủ)
 

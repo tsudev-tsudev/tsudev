@@ -1,8 +1,11 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
+const { loadTopology, publicUrl } = require('../../scripts/topology/load');
 
+// Cần full stack (MinIO + storage-service + Keycloak) — chạy qua docker-compose,
+// không nằm trong CI. Xem project `full-stack` trong playwright.config.js.
 test('SSO credentials sign-in (E2E) and upload', async ({ page }) => {
-  const base = process.env.E2E_BASE_URL || 'http://localhost:3000';
+  const base = process.env.E2E_BASE_URL || publicUrl(loadTopology(), 'main');
 
   // Navigate to frontend and open sign-in
   await page.goto(base, { waitUntil: 'networkidle' });

@@ -1,5 +1,7 @@
 // Enable development bypass for tests
 process.env.AUTH_DEV_BYPASS = 'true'
+// Không phụ thuộc thứ tự file test: cổng chặn internal-token phải tắt ở đây.
+delete process.env.INTERNAL_API_TOKEN
 process.env.REQUIRE_ROLE_ENFORCEMENT = 'true'
 process.env.STORAGE_PRESIGN_ROLE = 'storage:presign'
 process.env.STORAGE_UPLOAD_ROLE = 'storage:upload'

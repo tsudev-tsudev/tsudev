@@ -5,9 +5,9 @@
     {
       "clientId": "tsudev-frontend",
       "name": "tsudev-frontend",
-      "rootUrl": "http://frontend-main:3000",
-      "redirectUris": ["http://frontend-main:3000/*", "http://frontend-forum:3001/*"],
-      "webOrigins": ["http://frontend-main:3000", "http://frontend-forum:3001"],
+      "rootUrl": "http://tsudev.localhost:8080",
+      "redirectUris": ["http://tsudev.localhost:8080/*", "http://frontend-main:3000/*"],
+      "webOrigins": ["http://tsudev.localhost:8080", "http://frontend-main:3000"],
       "publicClient": true,
       "directAccessGrantsEnabled": true,
       "standardFlowEnabled": true,

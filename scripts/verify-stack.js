@@ -2,6 +2,17 @@ const { promisify } = require('util');
 const exec = promisify(require('child_process').exec);
 const fs = require('fs').promises;
 const path = require('path');
+const { loadTopology, internalUrl, publicUrl } = require('./topology/load');
+
+// Cổng lấy từ config/topology.json, không hardcode — đổi cổng ở một chỗ là
+// script này đi theo. Xem docs/refactor-network-topology.md.
+const topo = loadTopology();
+const URL_OF = {
+  storage: internalUrl(topo, 'storage'),
+  content: internalUrl(topo, 'content'),
+  main: publicUrl(topo, 'main'),
+  auth: publicUrl(topo, 'auth'),
+};
 
 const outDir = path.join(__dirname, '..', 'verify-output');
 
@@ -61,20 +72,18 @@ async function main() {
 
   // logs
   await run(
-    `${compose} logs --tail=200 keycloak minio postgres user-service content-service storage-service frontend-main frontend-forum`,
+    `${compose} logs --tail=200 keycloak minio postgres content-service storage-service frontend-main`,
     'compose-logs.txt'
   );
 
   // health endpoints
   const endpoints = [
-    { name: 'storage', url: 'http://localhost:4002/health' },
-    { name: 'user', url: 'http://localhost:4000/health' },
-    { name: 'content', url: 'http://localhost:4001/health' },
-    { name: 'frontend-main', url: 'http://localhost:3000/' },
-    { name: 'frontend-forum', url: 'http://localhost:3001/' },
+    { name: 'storage', url: `${URL_OF.storage}/health` },
+    { name: 'content', url: `${URL_OF.content}/health` },
+    { name: 'frontend-main', url: `${URL_OF.main}/` },
     {
       name: 'keycloak-oidc',
-      url: 'http://localhost:8080/realms/tsudev-local/.well-known/openid-configuration',
+      url: `${URL_OF.auth}/realms/${topo.dev.realm}/.well-known/openid-configuration`,
     },
   ];
 
@@ -90,7 +99,7 @@ async function main() {
 
   // presign
   await run(
-    `curl -sS -X POST http://localhost:4002/api/presign -H "Content-Type: application/json" -d '{"fileName":"verify.txt","contentType":"text/plain"}'`,
+    `curl -sS -X POST ${URL_OF.storage}/api/presign -H "Content-Type: application/json" -d '{"fileName":"verify.txt","contentType":"text/plain"}'`,
     'presign-response.json'
   );
 
@@ -120,7 +129,7 @@ async function main() {
   }
 
   // list files
-  await run(`curl -sS http://localhost:4002/api/files`, 'storage-files.json');
+  await run(`curl -sS ${URL_OF.storage}/api/files`, 'storage-files.json');
 
   // list outputs
   try {

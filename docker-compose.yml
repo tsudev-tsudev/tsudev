@@ -6,8 +6,11 @@ services:
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
       - KEYCLOAK_IMPORT=/opt/keycloak/data/import/realm-export.json
+      # 4100 chứ không phải 8080: dev-proxy chiếm 8080 để chạy được mà không cần
+      # quyền root. Xem config/topology.json.
+      - KC_HTTP_PORT=4100
     ports:
-      - '8080:8080'
+      - '4100:4100'
     volumes:
       - ./apps/sso-auth/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
 
@@ -20,7 +23,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - '5432:5432'
+      # Cổng HOST là 5433 để trùng DATABASE_URL trong .env — trước đây map 5432
+      # nên `npm run db:migrate` chạy từ host lại migrate cluster user-space chứ
+      # không phải Postgres của compose, và không có gì báo. Cổng trong container
+      # vẫn 5432 (mặc định của image), service khác nối qua `postgres:5432`.
+      # Hệ quả có chủ ý: chạy đồng thời cluster user-space và compose sẽ đụng cổng
+      # và compose báo lỗi ngay — thà vậy còn hơn âm thầm tách làm hai database.
+      - '5433:5432'
 
   redis:
     image: redis:7-alpine
@@ -38,14 +47,6 @@ services:
       - '9000:9000'
     volumes:
       - minio_data:/data
-
-  user-service:
-    build: ./services/user-service
-    ports:
-      - '4000:4000'
-    depends_on:
-      - postgres
-      - redis
 
   content-service:
     build: ./services/content-service
@@ -74,32 +75,14 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      - user-service
       - content-service
     environment:
       - NEXTAUTH_URL=http://frontend-main:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - E2E_BYPASS_KEYCLOAK=1
-      - KEYCLOAK_ISSUER=http://keycloak:8080/realms/tsudev-local
+      - KEYCLOAK_ISSUER=http://keycloak:4100/realms/tsudev-local
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - NEXT_PUBLIC_STORAGE_URL=http://storage-service:4002
-
-  frontend-forum:
-    build:
-      context: .
-      dockerfile: apps/frontend-forum/Dockerfile
-    ports:
-      - '3001:3001'
-    depends_on:
-      - user-service
-    environment:
-      - NEXTAUTH_URL=http://frontend-forum:3001
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - KEYCLOAK_ISSUER=http://keycloak:8080/realms/tsudev-local
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - NEXT_PUBLIC_STORAGE_URL=http://storage-service:4002
 
   storage-service:
     build: ./services/storage-service
@@ -140,7 +123,7 @@ services:
       [
         'bash',
         '-lc',
-        "for i in $(seq 1 120); do if ( (echo > /dev/tcp/frontend-main/3000) >/dev/null 2>&1 ) && ( (echo > /dev/tcp/storage-service/4002) >/dev/null 2>&1 ) && ( (echo > /dev/tcp/keycloak/8080) >/dev/null 2>&1 ); then echo 'all services up'; break; fi; echo 'waiting for services...'; sleep 1; done; node /work/scripts/e2e-sso-upload.js",
+        "for i in $(seq 1 120); do if ( (echo > /dev/tcp/frontend-main/3000) >/dev/null 2>&1 ) && ( (echo > /dev/tcp/storage-service/4002) >/dev/null 2>&1 ) && ( (echo > /dev/tcp/keycloak/4100) >/dev/null 2>&1 ); then echo 'all services up'; break; fi; echo 'waiting for services...'; sleep 1; done; node /work/scripts/e2e-sso-upload.js",
       ]
 
 volumes:

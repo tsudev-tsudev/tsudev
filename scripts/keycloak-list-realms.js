@@ -4,7 +4,9 @@ const fetch = globalThis.fetch || require('node-fetch');
   try {
     const admin = process.env.KEYCLOAK_ADMIN || 'admin';
     const pass = process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin';
-    const kcBase = process.env.KEYCLOAK_BASE || 'http://localhost:8080';
+    const kcBase =
+      process.env.KEYCLOAK_BASE ||
+      require('./topology/load').publicUrl(require('./topology/load').loadTopology(), 'auth');
 
     const tokenResp = await fetch(`${kcBase}/realms/master/protocol/openid-connect/token`, {
       method: 'POST',

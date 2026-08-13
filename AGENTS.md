@@ -13,9 +13,9 @@ song](#chạy-song-song) bên dưới.
 
 | Agent           | Sở hữu đường dẫn                                                              | Thế mạnh                                     |
 | --------------- | ----------------------------------------------------------------------------- | -------------------------------------------- |
-| `backend-api`   | `services/{user,content,storage}-service/`                                    | route Express, truy vấn Prisma, hợp đồng API |
+| `backend-api`   | `services/{content,storage}-service/`                                         | route Express, truy vấn Prisma, hợp đồng API |
 | `trust-seal`    | `services/trust-service/`, `apps/frontend-main/pages/{trust,admin/trust}`     | ký Ed25519, vòng khoá, quy tắc giám sát      |
-| `frontend-web`  | `apps/frontend-main/`, `apps/frontend-forum/` (trừ phần của trust-seal)       | trang Next, route proxy, NextAuth            |
+| `frontend-web`  | `apps/frontend-main/` (trừ phần của trust-seal)                               | trang Next, route proxy, NextAuth            |
 | `design-system` | `packages/ui/`, `packages/brand/`                                             | token, component dùng chung, a11y, Storybook |
 | `data-schema`   | `packages/db/`                                                                | schema Prisma, migration, seed               |
 | `infra-deploy`  | `docker/`, `render.yaml`, `.github/`, `.husky/`, `scripts/`, `wrangler.jsonc` | build, phát hành, CI, biến môi trường        |
@@ -131,7 +131,7 @@ git worktree list                        # kiểm còn sót không
 ```
 
 Đáng dùng khi hai chuỗi việc **dài và độc lập thật sự** (ví dụ `design-system`
-làm lại token, `infra-deploy` dựng đường deploy cho forum). Việc ngắn thì chi phí
+làm lại token, `infra-deploy` đổi đường deploy). Việc ngắn thì chi phí
 dựng worktree lớn hơn lợi ích — làm tuần tự.
 
 ## Kỷ luật token (áp dụng cho mọi agent)

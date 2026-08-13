@@ -12,8 +12,21 @@ yarn-error.log*
 verify-output/
 *:Zone.Identifier
 .env.local
+# Bản sao lưu .env do script sinh ra (.env.bak-<timestamp>). Chúng chứa NGUYÊN
+# VĂN mọi secret của .env, kể cả TRUST_SIGNING_KEY — trước đây không khớp mẫu
+# nào ở trên nên `git add -A` sẽ nuốt gọn.
+.env.bak*
+.env.*.bak
 .pgdata/
 
 # Trạng thái runtime của Claude Code — riêng .claude/agents/ thì PHẢI commit
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
+
+# Playwright
+e2e/playwright-report/
+e2e/test-results/
+
+# Bản xuất dữ liệu trước migration DROP — có thể chứa dữ liệu production.
+# KHÔNG commit. Xem scripts/export-legacy-data.js
+backup/

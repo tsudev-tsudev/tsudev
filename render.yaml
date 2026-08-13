@@ -1,21 +1,5 @@
 services:
   - type: web
-    name: tsudev-user
-    runtime: docker
-    plan: free
-    dockerfilePath: ./docker/backend-service.Dockerfile
-    dockerContext: .
-    dockerCommand: node services/user-service/src/index.js
-    healthCheckPath: /health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false
-      - key: REDIS_URL
-        sync: false
-
-  - type: web
     name: tsudev-content
     runtime: docker
     plan: free
@@ -26,6 +10,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: KEYCLOAK_ISSUER
+        sync: false
+      - key: INTERNAL_API_TOKEN
+        sync: false
       - key: DATABASE_URL
         sync: false
 
@@ -40,6 +28,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: KEYCLOAK_ISSUER
+        sync: false
+      - key: INTERNAL_API_TOKEN
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: S3_ENDPOINT
@@ -64,14 +56,19 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: KEYCLOAK_ISSUER
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: TRUST_SIGNING_KEY
         sync: false
       - key: TRUST_SIGNING_KEY_ID
         sync: false
+      # ĐƯỢC KÝ VÀO CHỨNG CHỈ. Chữ ký vẫn xác minh được nếu đổi (khoá theo kid),
+      # nhưng URL trong chứng chỉ ĐÃ CẤP thì cố định vĩnh viễn — đổi sau là link
+      # rot. Đặt đúng domain thật TRƯỚC lần cấp đầu tiên. Xem docs/trust-seal.md.
       - key: TRUST_ISSUER
-        value: https://tsudev.dev-nguyentrangtinhsu.workers.dev
+        value: https://tsudev.vn
 
   - type: web
     name: tsudev-sso

@@ -31,10 +31,10 @@ const SECTIONS = [
     heading: 'Mô tả dịch vụ',
     body: (
       <>
-        <p>tsudev là hệ sinh thái công nghệ dành cho lập trình viên, bao gồm:</p>
+        <p>tsudev là website dự án cá nhân về công nghệ, bao gồm:</p>
         <ul>
           <li>
-            <strong>Diễn đàn</strong> — thảo luận kỹ thuật, hỏi đáp và chia sẻ kiến thức.
+            <strong>Dự án mã nguồn</strong> — ứng dụng, thư viện và công cụ do tsudev phát triển.
           </li>
           <li>
             <strong>Blog và Tài liệu</strong> — bài viết, hướng dẫn và kho tri thức chuẩn hóa.
@@ -296,7 +296,7 @@ export default function TermsPage() {
       active="/terms"
       eyebrow="Pháp lý"
       title="Điều khoản sử dụng dịch vụ tsudev"
-      lead="Các quy định ràng buộc giữa bạn và tsudev khi sử dụng diễn đàn, blog, tài liệu, chợ, tin nhắn và hệ thống Con dấu tín nhiệm."
+      lead="Các quy định ràng buộc giữa bạn và tsudev khi sử dụng blog, tài liệu, dự án mã nguồn và hệ thống Con dấu tín nhiệm."
       effective={DOC_DATES.effective}
       updated={DOC_DATES.updated}
       sections={SECTIONS}

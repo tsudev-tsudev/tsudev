@@ -60,26 +60,29 @@ console.log('Polling watchers enabled:', {
   WATCHPACK_POLLING: process.env.WATCHPACK_POLLING,
 });
 
+const { loadTopology, port: portOf, publicUrl } = require('./topology/load');
+const TOPO = loadTopology();
+
+// DEV_PROXY=0 là đường lui: bỏ qua proxy, quay về gõ thẳng cổng của từng app
+// như trước giai đoạn 3, phòng khi dev-proxy hỏng giữa chừng.
+const USE_PROXY = TOPO.dev.mode === 'proxy' && process.env.DEV_PROXY !== '0';
+
 const processes = [
-  { name: 'user-service', type: 'service', cwd: path.join(ROOT, 'services/user-service') },
   { name: 'content-service', type: 'service', cwd: path.join(ROOT, 'services/content-service') },
   { name: 'storage-service', type: 'service', cwd: path.join(ROOT, 'services/storage-service') },
   { name: 'trust-service', type: 'service', cwd: path.join(ROOT, 'services/trust-service') },
   {
     name: 'frontend-main',
     type: 'next',
-    port: 3000,
-    urlKey: 'NEXT_PUBLIC_MAIN_URL',
+    port: portOf(TOPO, 'main'),
+    url: USE_PROXY ? publicUrl(TOPO, 'main') : `http://localhost:${portOf(TOPO, 'main')}`,
     cwd: path.join(ROOT, 'apps/frontend-main'),
   },
-  {
-    name: 'frontend-forum',
-    type: 'next',
-    port: 3001,
-    urlKey: 'NEXT_PUBLIC_FORUM_URL',
-    cwd: path.join(ROOT, 'apps/frontend-forum'),
-  },
 ];
+
+// Proxy phải lên TRƯỚC hai app Next: nó là thứ người dùng gõ vào trình duyệt,
+// và bật sẵn thì lần tải đầu không rơi vào ECONNREFUSED.
+if (USE_PROXY) processes.unshift({ name: 'dev-proxy', type: 'proxy', cwd: ROOT });
 
 const children = [];
 
@@ -89,8 +92,9 @@ function spawnProc(def) {
   // so next-auth builds callback URLs against the right host.
   const childEnv = Object.assign({}, process.env);
   if (def.type === 'next' && def.port) {
-    const appUrl = (process.env[def.urlKey] || `http://localhost:${def.port}`).replace(/\/+$/, '');
-    childEnv.NEXTAUTH_URL = appUrl;
+    // NEXTAUTH_URL phải là URL CÔNG KHAI (qua proxy), không phải cổng nội bộ —
+    // next-auth dựng callback từ đây, sai là đăng nhập nhảy về sai origin.
+    childEnv.NEXTAUTH_URL = String(def.url).replace(/\/+$/, '');
     childEnv.PORT = String(def.port);
   }
   const spawnOpts = {
@@ -113,10 +117,16 @@ function spawnProc(def) {
       // fallback to npm script if resolution fails
       child = spawn('npm', ['run', 'dev'], spawnOpts);
     }
+  } else if (def.type === 'proxy') {
+    child = spawn(process.execPath, [path.join(ROOT, 'scripts/dev-proxy.js')], spawnOpts);
   } else if (def.type === 'next') {
     try {
       const nextBin = require.resolve('next/dist/bin/next', { paths: [cwd] });
-      child = spawn(process.execPath, [nextBin, 'dev', '-p', String(def.port)], spawnOpts);
+      // Sau proxy thì Next chỉ cần nghe loopback — không việc gì phải phơi ra
+      // mọi giao diện mạng của máy.
+      const args = [nextBin, 'dev', '-p', String(def.port)];
+      if (USE_PROXY) args.push('-H', '127.0.0.1');
+      child = spawn(process.execPath, args, spawnOpts);
     } catch (err) {
       child = spawn('npm', ['run', 'dev'], spawnOpts);
     }

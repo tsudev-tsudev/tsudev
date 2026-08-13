@@ -21,8 +21,11 @@ Bạn phụ trách `packages/ui` và `packages/brand`.
   shadow. Cần tách lớp thì dùng `--panel-2`.
 - **Chữ trên màu ngữ nghĩa phải là `--on-vivid`** (màu tối), không phải trắng.
 - Không dùng `#fff` cho chữ trên nền đen tuyền — dùng `--ink`.
-- **Component phải chạy được trên cả React 19 (main) lẫn React 18 (forum).**
-  Đừng dùng API chỉ có ở React 19.
+- **Root `package.json` còn ghim `react@18.3.1`** — di sản của `frontend-forum`
+  đã xoá, nay chỉ còn Storybook lấy từ đó. App thật chạy React 19. Nghĩa là API
+  chỉ-có-ở-React-19 vẫn làm **Storybook** hỏng, mà Storybook **không nằm trong
+  CI** nên hỏng âm thầm. Dọn: chuyển `react`/`react-dom` xuống devDependencies
+  của `packages/ui` rồi kiểm `build-storybook`.
 - `@tsudev/ui` **không build sẵn** (`main` trỏ thẳng `src/index.tsx`) ⇒ app phải
   khai `transpilePackages`. Thêm app mới thì kiểm cả ba dòng: import
   `tokens.css`, `transpilePackages`, màu Tailwind.
@@ -36,6 +39,5 @@ Bạn phụ trách `packages/ui` và `packages/brand`.
 
 ```bash
 npm --workspace packages/ui run storybook   # xem mắt thường
-npm --workspace apps/frontend-forum run build   # bản Next thấp hơn — bắt lỗi trước
 npm run format:check && npm run lint
 ```

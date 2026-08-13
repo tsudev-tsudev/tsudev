@@ -1,0 +1,384 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import Head from 'next/head';
+import { useSession, signIn } from 'next-auth/react';
+import { Layout, Card, Button, Input, Badge, SectionHeading } from '@tsudev/ui';
+import {
+  KIND_LABEL,
+  STATUS_LABEL,
+  COPYRIGHT,
+  KINDS,
+  STATUSES,
+  COPYRIGHT_STATUSES,
+} from '../../lib/projectLabels';
+
+const EMPTY = {
+  slug: '',
+  name: '',
+  summary: '',
+  descriptionMd: '',
+  kind: 'TOOL',
+  status: 'WIP',
+  version: '',
+  releasedAt: '',
+  repoUrl: '',
+  homepageUrl: '',
+  downloadUrl: '',
+  license: '',
+  copyrightStatus: 'NONE',
+  copyrightNo: '',
+  copyrightAt: '',
+  copyrightOwner: '',
+  trustProgramSlug: '',
+  featured: false,
+  published: true,
+  sortOrder: 0,
+};
+
+const dateInput = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+
+function Select({ id, label, value, onChange, options, labels }) {
+  return (
+    <div className="flex flex-col">
+      <label htmlFor={id} className="text-sm font-medium text-inksoft mb-1">
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={onChange}
+        className="rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {labels ? labels[o]?.label || labels[o] || o : o}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export default function AdminProjects() {
+  const { data: session, status } = useSession();
+  const [projects, setProjects] = useState([]);
+  const [form, setForm] = useState(EMPTY);
+  const [editingSlug, setEditingSlug] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const res = await fetch('/api/content/admin/projects');
+    if (!res.ok) {
+      setMsg({ tone: 'error', text: 'Không tải được danh sách dự án.' });
+      return;
+    }
+    setProjects(await res.json());
+  }, []);
+
+  useEffect(() => {
+    if (session) load();
+  }, [session, load]);
+
+  const set = (k) => (e) => {
+    const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setForm((f) => ({ ...f, [k]: v }));
+  };
+
+  const startEdit = (p) => {
+    setEditingSlug(p.slug);
+    setForm({
+      ...EMPTY,
+      ...p,
+      version: p.version || '',
+      releasedAt: dateInput(p.releasedAt),
+      copyrightAt: dateInput(p.copyrightAt),
+      repoUrl: p.repoUrl || '',
+      homepageUrl: p.homepageUrl || '',
+      downloadUrl: p.downloadUrl || '',
+      license: p.license || '',
+      copyrightNo: p.copyrightNo || '',
+      copyrightOwner: p.copyrightOwner || '',
+      trustProgramSlug: p.trustProgramSlug || '',
+      descriptionMd: p.descriptionMd || '',
+    });
+    setMsg(null);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const reset = () => {
+    setEditingSlug(null);
+    setForm(EMPTY);
+    setMsg(null);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    const url = editingSlug
+      ? `/api/content/admin/projects/${editingSlug}`
+      : '/api/content/admin/projects';
+    const res = await fetch(url, {
+      method: editingSlug ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      setMsg({ tone: 'error', text: data.error || 'Lưu không thành công.' });
+      return;
+    }
+    setMsg({ tone: 'ok', text: editingSlug ? 'Đã cập nhật.' : 'Đã tạo dự án.' });
+    reset();
+    load();
+  };
+
+  const remove = async (slug) => {
+    if (typeof window !== 'undefined' && !window.confirm(`Xoá dự án "${slug}"?`)) return;
+    const res = await fetch(`/api/content/admin/projects/${slug}`, { method: 'DELETE' });
+    if (!res.ok) {
+      setMsg({ tone: 'error', text: 'Xoá không thành công.' });
+      return;
+    }
+    if (editingSlug === slug) reset();
+    load();
+  };
+
+  if (status === 'loading')
+    return (
+      <Layout>
+        <Card className="p-8 text-center text-muted">Đang tải…</Card>
+      </Layout>
+    );
+
+  if (!session)
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold text-ink mb-2">Quản lý dự án</h1>
+          <p className="text-muted mb-4">Cần đăng nhập bằng tài khoản quản trị.</p>
+          <Button onClick={() => signIn()}>Đăng nhập</Button>
+        </div>
+      </Layout>
+    );
+
+  return (
+    <Layout active="/admin" bare>
+      <Head>
+        <title>Quản lý dự án — tsudev</title>
+      </Head>
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        <SectionHeading
+          eyebrow="Quản trị"
+          title="Dự án & bản quyền"
+          action={
+            <Badge tone="brand" mono>
+              {projects.length} dự án
+            </Badge>
+          }
+        />
+        <nav className="-mt-2 mb-6 text-sm text-muted">
+          <a href="/admin" className="hover:text-brandink">
+            Bảng điều khiển
+          </a>{' '}
+          <span className="mx-1.5">/</span> <span className="text-inksoft">Dự án</span>
+        </nav>
+
+        {msg && (
+          <Card
+            className={`p-4 mb-6 text-sm ${
+              msg.tone === 'error' ? 'text-[color:var(--error)]' : 'text-[color:var(--success)]'
+            }`}
+          >
+            {msg.text}
+          </Card>
+        )}
+
+        <Card className="p-6 mb-8">
+          <h2 className="font-semibold text-ink mb-4">
+            {editingSlug ? `Sửa: ${editingSlug}` : 'Thêm dự án mới'}
+          </h2>
+          <form onSubmit={submit} className="grid md:grid-cols-2 gap-4">
+            <Input id="slug" label="Slug" value={form.slug} onChange={set('slug')} required />
+            <Input id="name" label="Tên" value={form.name} onChange={set('name')} required />
+            <Input
+              id="summary"
+              label="Tóm tắt"
+              value={form.summary}
+              onChange={set('summary')}
+              required
+              className="md:col-span-2"
+            />
+
+            <div className="flex flex-col md:col-span-2">
+              <label htmlFor="descriptionMd" className="text-sm font-medium text-inksoft mb-1">
+                Mô tả (Markdown)
+              </label>
+              <textarea
+                id="descriptionMd"
+                rows={6}
+                value={form.descriptionMd}
+                onChange={set('descriptionMd')}
+                className="rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm text-ink font-mono outline-none focus:border-brand"
+              />
+            </div>
+
+            <Select
+              id="kind"
+              label="Loại"
+              value={form.kind}
+              onChange={set('kind')}
+              options={KINDS}
+              labels={KIND_LABEL}
+            />
+            <Select
+              id="status"
+              label="Trạng thái"
+              value={form.status}
+              onChange={set('status')}
+              options={STATUSES}
+              labels={STATUS_LABEL}
+            />
+
+            <Input
+              id="version"
+              label="Phiên bản"
+              value={form.version}
+              onChange={set('version')}
+              placeholder="1.0.0"
+            />
+            <Input
+              id="releasedAt"
+              label="Ngày phát hành"
+              type="date"
+              value={form.releasedAt}
+              onChange={set('releasedAt')}
+            />
+            <Input
+              id="license"
+              label="Giấy phép (SPDX)"
+              value={form.license}
+              onChange={set('license')}
+              placeholder="MIT"
+            />
+            <Input id="repoUrl" label="Mã nguồn" value={form.repoUrl} onChange={set('repoUrl')} />
+            <Input
+              id="homepageUrl"
+              label="Trang giới thiệu"
+              value={form.homepageUrl}
+              onChange={set('homepageUrl')}
+            />
+            <Input
+              id="downloadUrl"
+              label="Tải về"
+              value={form.downloadUrl}
+              onChange={set('downloadUrl')}
+            />
+
+            <Select
+              id="copyrightStatus"
+              label="Bản quyền"
+              value={form.copyrightStatus}
+              onChange={set('copyrightStatus')}
+              options={COPYRIGHT_STATUSES}
+              labels={COPYRIGHT}
+            />
+            <Input
+              id="copyrightNo"
+              label="Số giấy chứng nhận"
+              value={form.copyrightNo}
+              onChange={set('copyrightNo')}
+              required={form.copyrightStatus === 'REGISTERED'}
+            />
+            <Input
+              id="copyrightAt"
+              label="Ngày cấp bản quyền"
+              type="date"
+              value={form.copyrightAt}
+              onChange={set('copyrightAt')}
+            />
+            <Input
+              id="copyrightOwner"
+              label="Chủ sở hữu"
+              value={form.copyrightOwner}
+              onChange={set('copyrightOwner')}
+            />
+            <Input
+              id="trustProgramSlug"
+              label="Chương trình dấu liên quan"
+              value={form.trustProgramSlug}
+              onChange={set('trustProgramSlug')}
+              placeholder="copyright-verified"
+            />
+            <Input
+              id="sortOrder"
+              label="Thứ tự"
+              type="number"
+              value={form.sortOrder}
+              onChange={set('sortOrder')}
+            />
+
+            <div className="flex items-center gap-6 md:col-span-2">
+              <label className="flex items-center gap-2 text-sm text-inksoft">
+                <input type="checkbox" checked={form.featured} onChange={set('featured')} />
+                Nổi bật
+              </label>
+              <label className="flex items-center gap-2 text-sm text-inksoft">
+                <input type="checkbox" checked={form.published} onChange={set('published')} />
+                Công bố
+              </label>
+            </div>
+
+            <div className="flex gap-3 md:col-span-2">
+              <Button type="submit" disabled={busy}>
+                {busy ? 'Đang lưu…' : editingSlug ? 'Cập nhật' : 'Tạo dự án'}
+              </Button>
+              {editingSlug && (
+                <Button type="button" variant="ghost" onClick={reset}>
+                  Huỷ
+                </Button>
+              )}
+            </div>
+          </form>
+        </Card>
+
+        <div className="space-y-3">
+          {projects.length === 0 && <Card className="p-6 text-muted">Chưa có dự án nào.</Card>}
+          {projects.map((p) => {
+            const cr = COPYRIGHT[p.copyrightStatus] || COPYRIGHT.NONE;
+            return (
+              <Card key={p.id} className="p-5 flex flex-wrap items-start gap-4">
+                <div className="flex-1 min-w-[16rem]">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                    <span className="font-semibold text-ink">{p.name}</span>
+                    <span className="font-mono text-xs text-muted">{p.slug}</span>
+                    {!p.published && <Badge tone="warning">Chưa công bố</Badge>}
+                    {p.featured && <Badge tone="brand">Nổi bật</Badge>}
+                  </div>
+                  <p className="text-sm text-muted">{p.summary}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>
+                    <Badge tone="outline">{STATUS_LABEL[p.status] || p.status}</Badge>
+                    <Badge tone={cr.tone}>{cr.label}</Badge>
+                    {p.copyrightNo && (
+                      <span className="font-mono text-xs text-muted">{p.copyrightNo}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => startEdit(p)}>
+                    Sửa
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={() => remove(p.slug)}>
+                    Xoá
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    </Layout>
+  );
+}

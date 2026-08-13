@@ -30,8 +30,7 @@ const SECTIONS = [
     body: (
       <ul>
         <li>
-          <strong>Tìm trước khi hỏi.</strong> Nhiều câu hỏi đã có lời giải trong diễn đàn hoặc kho
-          tài liệu.
+          <strong>Tìm trước khi hỏi.</strong> Nhiều câu hỏi đã có lời giải trong kho tài liệu.
         </li>
         <li>
           <strong>Đặt tiêu đề cụ thể.</strong> “Next.js 13 báo lỗi hydration khi dùng
@@ -186,7 +185,7 @@ export default function RulesPage() {
       active="/rules"
       eyebrow="Cộng đồng"
       title="Nội quy cộng đồng tsudev"
-      lead="Chuẩn mực ứng xử khi thảo luận trên diễn đàn và các không gian cộng đồng của tsudev, cùng cách chúng tôi xử lý vi phạm."
+      lead="Chuẩn mực khi sử dụng nội dung, mã nguồn và con dấu tín nhiệm của tsudev, cùng cách chúng tôi xử lý vi phạm."
       effective={DOC_DATES.effective}
       updated={DOC_DATES.updated}
       sections={SECTIONS}

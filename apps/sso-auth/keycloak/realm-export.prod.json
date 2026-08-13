@@ -5,9 +5,9 @@
     {
       "clientId": "tsudev-frontend",
       "name": "tsudev-frontend",
-      "rootUrl": "https://tsudev.dev-nguyentrangtinhsu.workers.dev",
-      "redirectUris": ["https://tsudev.dev-nguyentrangtinhsu.workers.dev/*"],
-      "webOrigins": ["https://tsudev.dev-nguyentrangtinhsu.workers.dev"],
+      "rootUrl": "https://tsudev.vn",
+      "redirectUris": ["https://tsudev.vn/*"],
+      "webOrigins": ["https://tsudev.vn"],
       "publicClient": true,
       "directAccessGrantsEnabled": false,
       "standardFlowEnabled": true,

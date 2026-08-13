@@ -5,7 +5,10 @@
 // người đọc sẽ tưởng con dấu giả. Nên hàm verify phân biệt rõ ba trường hợp:
 // tìm thấy / không tồn tại / không kiểm tra được.
 
-const TRUST = process.env.TRUST_SERVICE_URL || 'http://localhost:4003';
+// Không gửi x-internal-token: trust-service cố ý đứng ngoài cổng chặn đó vì
+// nhiều endpoint của nó phải công khai cho bên thứ ba (huy hiệu SVG, trang
+// xác minh, JWKS). Xem docs/trust-seal.md.
+import { TRUST } from './services';
 
 async function getJSON(path, fallback) {
   try {
@@ -21,6 +24,7 @@ export const trust = {
   programs: () => getJSON('/api/trust/programs', []),
   program: (slug) => getJSON(`/api/trust/programs/${encodeURIComponent(slug)}`, null),
   directory: (params = '') => getJSON(`/api/trust/directory${params}`, []),
+  profile: (orgId) => getJSON(`/api/trust/profile/${encodeURIComponent(orgId)}`, null),
 
   /** @returns {{state:'found'|'missing'|'unavailable', certificate?:object}} */
   async verify(serial) {

@@ -3,7 +3,7 @@
 // browser never talks to the service directly (no CORS, no token exposure).
 import { getToken } from 'next-auth/jwt';
 
-const CONTENT = process.env.CONTENT_SERVICE_URL || 'http://localhost:4001';
+import { CONTENT, internalHeaders } from './services';
 
 export function makeAuthedProxy(base) {
   return async function handler(req, res) {
@@ -22,6 +22,7 @@ export function makeAuthedProxy(base) {
         method: req.method,
         headers: {
           'Content-Type': 'application/json',
+          ...internalHeaders(),
           'x-dev-user': username,
           'x-dev-roles': token.role || 'member',
         },

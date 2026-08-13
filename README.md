@@ -2,9 +2,10 @@
 
 [![CI](https://github.com/b4djl1h/tsudev/actions/workflows/ci.yml/badge.svg)](https://github.com/b4djl1h/tsudev/actions/workflows/ci.yml)
 
-Hệ sinh thái công nghệ đa nền tảng cho developer: trang chủ portfolio, blog, kho
-tài liệu, **diễn đàn** (uy tín/xếp hạng, kiểm duyệt, tin nhắn riêng, chợ có ký
-quỹ), **SSO** và **con dấu tín nhiệm** cho website bên thứ ba.
+Website dự án cá nhân của tsudev: **dự án & bản quyền** (ứng dụng, công cụ, thư
+viện — kèm giấy phép và trạng thái đăng ký quyền tác giả), blog, kho tài liệu,
+**SSO**, và **con dấu tín nhiệm** cấp cho website dùng mã nguồn tsudev hoặc do
+đội ngũ tsudev thực hiện.
 
 Monorepo npm workspaces. Đặc tả gốc: [`documents-tsudev.md`](documents-tsudev.md).
 
@@ -13,12 +14,14 @@ Monorepo npm workspaces. Đặc tả gốc: [`documents-tsudev.md`](documents-ts
 ```bash
 npm install
 cp .env.example .env
-npm run dev:full     # dựng Postgres user-space (:5433) + migrate + seed + chạy 6 tiến trình
+npm run dev:full     # dựng Postgres user-space (:5433) + migrate + seed + chạy stack
 ```
 
 Các lần sau chỉ cần `npm run dev:local` (DB đã có sẵn).
 
-- Trang chính: http://localhost:3000 · Diễn đàn: http://localhost:3001
+- Mở http://tsudev.localhost:8080 (một cổng vào duy nhất qua
+  `scripts/dev-proxy.js`; `*.localhost` tự trỏ loopback, không phải sửa
+  `/etc/hosts`). Proxy hỏng: `DEV_PROXY=0 npm run dev:local`.
 - Đăng nhập dev: **bất kỳ username** + mật khẩu `devpass`
   (`.env` đã đặt `E2E_BYPASS_KEYCLOAK=1`, không cần Keycloak).
   `tsudev` = ADMIN (xem `/admin`), `alice` = MEMBER, `bob` = VIP.
@@ -30,19 +33,17 @@ Keycloak/MinIO thật.
 
 ## Cấu trúc
 
-| Thư mục                    | Nội dung                                              | Cổng |
-| -------------------------- | ----------------------------------------------------- | ---- |
-| `apps/frontend-main`       | Next.js 15 — trang chủ, blog, docs, chợ, trust, admin | 3000 |
-| `apps/frontend-forum`      | Next.js 13 — diễn đàn                                 | 3001 |
-| `apps/sso-auth`            | cấu hình realm Keycloak (không phải app Node)         | —    |
-| `services/user-service`    | hồ sơ thành viên, uy tín, xếp hạng                    | 4000 |
-| `services/content-service` | blog, docs, forum, kiểm duyệt, tin nhắn, chợ          | 4001 |
-| `services/storage-service` | presign S3/R2, upload                                 | 4002 |
-| `services/trust-service`   | con dấu tín nhiệm                                     | 4003 |
-| `packages/db`              | schema Prisma, migration, seed                        | —    |
-| `packages/ui`              | design system + Storybook                             | 6006 |
-| `packages/brand`           | ảnh nguồn logo/favicon/avatar                         | —    |
-| `infrastructure/`          | tài liệu hạ tầng & giám sát                           | —    |
+| Thư mục                    | Nội dung                                                   | Cổng |
+| -------------------------- | ---------------------------------------------------------- | ---- |
+| `apps/frontend-main`       | Next.js 15 — app duy nhất: dự án, blog, docs, trust, admin | 3000 |
+| `apps/sso-auth`            | cấu hình realm Keycloak (không phải app Node)              | —    |
+| `services/content-service` | blog, docs, dự án & bản quyền                              | 4001 |
+| `services/storage-service` | presign S3/R2, upload                                      | 4002 |
+| `services/trust-service`   | con dấu tín nhiệm                                          | 4003 |
+| `packages/db`              | schema Prisma, migration, seed                             | —    |
+| `packages/ui`              | design system + Storybook                                  | 6006 |
+| `packages/brand`           | ảnh nguồn logo/favicon/avatar                              | —    |
+| `infrastructure/`          | tài liệu hạ tầng & giám sát                                | —    |
 
 Mỗi thư mục có `README.md` riêng.
 
@@ -50,8 +51,8 @@ Mỗi thư mục có `README.md` riêng.
 
 ```bash
 npm run dev:local        # chạy toàn bộ stack
-npm run dev:services     # chỉ 4 service
-npm run dev:frontends    # chỉ 2 app Next
+npm run dev:services     # chỉ 3 service
+npm run dev:frontends    # chỉ app Next
 npm run db:migrate       # prisma migrate deploy
 npm run db:generate      # BẮT BUỘC sau khi đổi schema.prisma
 npm run db:seed
@@ -79,17 +80,17 @@ Không có lệnh `test` ở gốc — test chạy theo từng service.
 
 ## Trạng thái
 
-| Phase | Nội dung                                                           | Trạng thái                               |
-| ----- | ------------------------------------------------------------------ | ---------------------------------------- |
-| 0     | Postgres + Prisma + migration/seed, `@tsudev/db`, `@tsudev/types`  | ✅                                       |
-| 1     | Backend dùng dữ liệu thật (users/blog/docs/files) + RBAC           | ✅                                       |
-| 2     | Design system + trang chủ SSR                                      | ✅                                       |
-| 3     | Forum engine: chuyên mục, chủ đề, bài, reply, vote                 | ✅                                       |
-| 4     | Uy tín, xếp hạng, bảng xếp hạng, hồ sơ thành viên                  | ✅                                       |
-| 5     | Kiểm duyệt (report/ban/audit), tin nhắn riêng, chợ ký quỹ          | ✅                                       |
-| 6     | Hạ tầng & giám sát: alerting Telegram/email, CI, Docker            | ✅ cần credential để kích hoạt thật      |
-| 7     | Con dấu tín nhiệm: cấp, ký, xác thực, phân phối huy hiệu           | ✅                                       |
-| 8     | Production: Cloudflare Workers (main) + Render (service, Keycloak) | 🚧 `frontend-forum` chưa có đường deploy |
+| Phase | Nội dung                                                           | Trạng thái                             |
+| ----- | ------------------------------------------------------------------ | -------------------------------------- |
+| 0     | Postgres + Prisma + migration/seed, `@tsudev/db`, `@tsudev/types`  | ✅                                     |
+| 1     | Backend dùng dữ liệu thật (users/blog/docs/files) + RBAC           | ✅                                     |
+| 2     | Design system + trang chủ SSR                                      | ✅                                     |
+| 3     | Hạ tầng & giám sát: alerting Telegram/email, CI, Docker            | ✅ cần credential để kích hoạt thật    |
+| 4     | Con dấu tín nhiệm: cấp, ký, xác thực, phân phối huy hiệu           | ✅                                     |
+| 5     | Một cổng vào + nguồn sự thật cổng/tên miền (`topology:check`)      | ✅                                     |
+| 6     | Chuyển thành website dự án cá nhân: gỡ diễn đàn/chợ/tin nhắn       | ✅                                     |
+| 7     | Dự án & bản quyền + hồ sơ uy tín tổ chức                           | ✅                                     |
+| 8     | Production: Cloudflare Workers (main) + Render (service, Keycloak) | 🚧 chưa deploy migration DROP lên Neon |
 
 ## Đóng góp
 

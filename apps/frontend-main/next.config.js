@@ -8,11 +8,16 @@ const nextConfig = {
   async rewrites() {
     return [{ source: '/.well-known/tsudev-trust-jwks.json', destination: '/api/trust/jwks' }];
   },
-  // next-auth hoisted ở root node_modules dùng chung với react 18 của
-  // frontend-forum — nếu để Next externalize nó, require() runtime của nó sẽ
-  // lấy nhầm bản react 18 thay vì react 19 local của app này (2 bản React
-  // khác nhau cùng lúc -> useState trả null). Ép transpile để nó đi qua
-  // webpack alias react/react-dom bên dưới.
+  // next-auth hoisted ở root node_modules, nơi vẫn còn react 18 — nếu để Next
+  // externalize nó, require() runtime sẽ lấy nhầm bản 18 thay vì react 19 local
+  // của app này (2 bản React cùng lúc -> useState trả null). Ép transpile để nó
+  // đi qua webpack alias bên dưới.
+  //
+  // Ghim react 18 ở root package.json vốn tồn tại VÌ frontend-forum. App đó đã
+  // bị gỡ, nên về lý thuyết ghim này bỏ được — nhưng Storybook của packages/ui
+  // khai react là peerDependency và đang lấy từ root, mà Storybook không nằm
+  // trong CI. Gỡ mù là hỏng âm thầm. Việc dọn: chuyển react/react-dom xuống
+  // devDependencies của packages/ui rồi kiểm `build-storybook`.
   transpilePackages: ['@tsudev/ui', 'next-auth'],
   webpack(config) {
     config.resolve = config.resolve || {};

@@ -39,7 +39,7 @@ Write-Output "Listing compose services..."
 try { docker compose ps --all --format 'table {{.Name}}\t{{.Service}}\t{{.State}}\t{{.Ports}}' 2>&1 | Tee-Object -FilePath "$OutDir/compose-ps.txt" } catch { "" | Out-File -FilePath "$OutDir/compose-ps.txt" }
 
 Write-Output "Collecting recent logs (tail 200)..."
-try { docker compose logs --tail=200 keycloak minio postgres user-service content-service storage-service frontend-main frontend-forum 2>&1 | Tee-Object -FilePath "$OutDir/compose-logs.txt" } catch { "" | Out-File -FilePath "$OutDir/compose-logs.txt" }
+try { docker compose logs --tail=200 keycloak minio postgres user-service content-service storage-service frontend-main 2>&1 | Tee-Object -FilePath "$OutDir/compose-logs.txt" } catch { "" | Out-File -FilePath "$OutDir/compose-logs.txt" }
 
 Write-Output "Checking health endpoints..."
 $endpoints = @(
@@ -47,7 +47,6 @@ $endpoints = @(
   @{name='user'; url='http://localhost:4000/health'},
   @{name='content'; url='http://localhost:4001/health'},
   @{name='frontend-main'; url='http://localhost:3000/'},
-  @{name='frontend-forum'; url='http://localhost:3001/'}
 )
 foreach ($ep in $endpoints) {
   Write-Output "-> $($ep.name): $($ep.url)"

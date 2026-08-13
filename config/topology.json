@@ -1,0 +1,88 @@
+{
+  "$doc": "Nguồn sự thật DUY NHẤT về cổng và tên miền. Đổi cổng ở đây, chạy `npm run topology:gen`, đừng sửa .env bằng tay. Kế hoạch: docs/refactor-network-topology.md",
+  "dev": {
+    "$doc": "mode=ports: mỗi thành phần một cổng (hiện trạng). mode=proxy: một cổng vào, phân biệt bằng subdomain (giai đoạn 3).",
+    "mode": "proxy",
+    "host": "localhost",
+    "domain": "tsudev.localhost",
+    "proxyPort": 8080,
+    "realm": "tsudev-local"
+  },
+  "prod": {
+    "domain": "tsudev.vn",
+    "scheme": "https",
+    "realm": "tsudev"
+  },
+  "nodes": [
+    {
+      "id": "main",
+      "label": "frontend-main",
+      "workspace": "apps/frontend-main",
+      "port": 3000,
+      "sub": "@",
+      "public": true,
+      "publicEnv": "NEXT_PUBLIC_MAIN_URL"
+    },
+    {
+      "id": "content",
+      "label": "content-service",
+      "workspace": "services/content-service",
+      "port": 4001,
+      "public": false,
+      "internalEnv": "CONTENT_SERVICE_URL"
+    },
+    {
+      "id": "storage",
+      "label": "storage-service",
+      "workspace": "services/storage-service",
+      "port": 4002,
+      "public": false,
+      "internalEnv": "STORAGE_SERVICE_URL",
+      "note": "Trình duyệt hiện vẫn gọi thẳng cổng này — giai đoạn 4 bọc lại bằng BFF."
+    },
+    {
+      "id": "trust",
+      "label": "trust-service",
+      "workspace": "services/trust-service",
+      "port": 4003,
+      "public": false,
+      "internalEnv": "TRUST_SERVICE_URL"
+    },
+    {
+      "id": "auth",
+      "label": "Keycloak",
+      "port": 4100,
+      "sub": "auth",
+      "public": true,
+      "note": "Đổi từ 8080 ở giai đoạn 3 để nhường cổng cho dev-proxy — 8080 chạy được mà không cần quyền root."
+    },
+    {
+      "id": "cdn",
+      "label": "MinIO / R2",
+      "port": 9000,
+      "sub": "cdn",
+      "public": true
+    },
+    {
+      "id": "db",
+      "label": "PostgreSQL",
+      "port": 5433,
+      "public": false
+    },
+    {
+      "id": "cache",
+      "label": "Redis",
+      "port": 6379,
+      "public": false
+    }
+  ],
+  "overrides": {
+    "$doc": "Cổng lệch có chủ ý ở môi trường khác. Mỗi mục PHẢI có lý do, nếu không thì đó là drift chứ không phải override.",
+    "ci": {
+      "db": {
+        "port": 5432,
+        "why": "service container của GitHub Actions, không phải cluster user-space"
+      }
+    }
+  }
+}
