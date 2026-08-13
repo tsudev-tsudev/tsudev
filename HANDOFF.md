@@ -62,10 +62,13 @@ rồi; dừng lại và tìm hiểu vì sao, đừng chạy tiếp.
 
 ### 1.3 Sau khi merge
 
-- Deploy `frontend-main` lên Cloudflare Workers và ba service lên Render.
-  `render.yaml` đã bỏ `tsudev-user` — **xoá service `tsudev-user` trên
-  dashboard Render bằng tay**, blueprint không tự dọn service đã gỡ khỏi file.
-- Kiểm `/projects`, `/trust/org/<id>` trên production.
+- ✅ **`tsudev-user` đã xoá khỏi Render** (2026-08-13, thủ công trên dashboard).
+  Blueprint không tự dọn service đã gỡ khỏi `render.yaml` — lần sau gỡ service
+  khỏi file thì nhớ xoá trên dashboard, nếu không nó vẫn chạy và vẫn tính tài
+  nguyên.
+- Deploy `frontend-main` lên Cloudflare Workers và ba service còn lại lên Render.
+- Kiểm `/projects`, `/trust/org/<id>` trên production — **sau** khi đã chạy
+  migration ở §1.2. Trước đó `/projects` sẽ rỗng vì bảng `Project` chưa tồn tại.
 
 ---
 
