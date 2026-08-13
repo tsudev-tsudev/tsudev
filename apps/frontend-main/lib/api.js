@@ -1,6 +1,6 @@
 // Server-side data helpers for frontend-main.
 // In dev these hit the local microservices; override via env in other envs.
-import { CONTENT, USER, internalHeaders } from './services';
+import { CONTENT, internalHeaders } from './services';
 
 async function getJSON(url, fallback) {
   try {
@@ -19,12 +19,8 @@ export const api = {
   post: (slug) => getJSON(`${CONTENT}/api/posts/${slug}`, null),
   docs: () => getJSON(`${CONTENT}/api/docs`, []),
   doc: (slug) => getJSON(`${CONTENT}/api/docs/${slug}`, null),
-  categories: () => getJSON(`${CONTENT}/api/forum/categories`, []),
-  board: (slug) => getJSON(`${CONTENT}/api/forum/boards/${slug}`, null),
-  members: (limit = 5) => getJSON(`${USER}/api/users?limit=${limit}`, []),
-  member: (username) => getJSON(`${USER}/api/users/${username}`, null),
-  listings: (status = 'ACTIVE') => getJSON(`${CONTENT}/api/market/listings?status=${status}`, []),
-  listing: (id) => getJSON(`${CONTENT}/api/market/listings/${id}`, null),
+  projects: (limit = 50) => getJSON(`${CONTENT}/api/projects?limit=${limit}`, []),
+  project: (slug) => getJSON(`${CONTENT}/api/projects/${slug}`, null),
 };
 
 export default api;

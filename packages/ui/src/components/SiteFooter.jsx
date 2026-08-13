@@ -1,32 +1,33 @@
 import React from 'react';
 import { Logo } from './Logo';
-import { siteUrl } from '../lib/siteUrls';
 
-// Footer dùng chung cho cả hai frontend nên link phải tuyệt đối, xem lib/siteUrls.
 // Riêng đăng nhập giữ đường dẫn tương đối: phiên next-auth thuộc về chính app
 // đang mở, đẩy sang origin khác sẽ đăng nhập nhầm chỗ.
-const eco = (label, path) => [label, siteUrl('main', path)];
+// tsudev là MỘT site nên href tương đối.
+const eco = (label, path) => [label, path];
 
 const COLS = [
   {
-    title: 'Hệ sinh thái',
-    links: [
-      eco('Blog', '/blog'),
-      eco('Tài liệu', '/docs'),
-      ['Diễn đàn', siteUrl('forum', '/')],
-      eco('Kho lưu trữ', '/docs'),
-    ],
+    title: 'Nội dung',
+    links: [eco('Dự án', '/projects'), eco('Blog', '/blog'), eco('Tài liệu', '/docs')],
   },
   {
-    title: 'Cộng đồng',
+    title: 'Tín nhiệm',
     links: [
-      eco('Thành viên', '/members'),
-      eco('Bảng xếp hạng', '/members'),
-      eco('Nội quy', '/rules'),
+      eco('Con dấu tín nhiệm', '/trust'),
+      eco('Tra cứu chứng chỉ', '/trust/verify'),
+      eco('Danh bạ đã cấp dấu', '/trust/directory'),
       ['Đăng nhập', '/api/auth/signin'],
     ],
   },
-  { title: 'Pháp lý', links: [eco('Quyền riêng tư', '/privacy'), eco('Điều khoản', '/terms')] },
+  {
+    title: 'Pháp lý',
+    links: [
+      eco('Quyền riêng tư', '/privacy'),
+      eco('Điều khoản', '/terms'),
+      eco('Nội quy', '/rules'),
+    ],
+  },
 ];
 
 // Footer không có nền riêng — nó nằm thẳng trên nền trang. Ranh giới với phần

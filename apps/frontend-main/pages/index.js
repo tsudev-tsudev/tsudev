@@ -1,7 +1,9 @@
 import React from 'react';
 import Head from 'next/head';
-import { Layout, Button, Card, Badge, SectionHeading, Avatar, Stat, siteUrl } from '@tsudev/ui';
+import { Layout, Button, Card, Badge, SectionHeading, Avatar, Stat } from '@tsudev/ui';
 import { api } from '../lib/api';
+import { trust } from '../lib/trust';
+import { KIND_LABEL, STATUS_LABEL, COPYRIGHT } from '../lib/projectLabels';
 
 const ECOSYSTEM = [
   {
@@ -19,16 +21,16 @@ const ECOSYSTEM = [
     tone: 'teal',
   },
   {
-    title: 'Diễn đàn',
-    desc: 'Thảo luận chuyên sâu, hỏi đáp và chia sẻ.',
-    href: siteUrl('forum', '/'),
-    icon: 'M4 5h16v10H8l-4 4z',
+    title: 'Con dấu tín nhiệm',
+    desc: 'Chứng nhận website dùng mã nguồn hoặc do tsudev thực hiện.',
+    href: '/trust',
+    icon: 'M12 3l7 4v6c0 4-3 6-7 8-4-2-7-4-7-8V7z M9 12l2 2 4-4',
     tone: 'brand',
   },
   {
-    title: 'Kho lưu trữ',
-    desc: 'Mã nguồn, tài liệu và media qua object storage.',
-    href: '/docs',
+    title: 'Dự án',
+    desc: 'Ứng dụng, công cụ và thư viện do tsudev phát triển, kèm bản quyền.',
+    href: '/projects',
     icon: 'M4 7l8-3 8 3v10l-8 3-8-3z M12 4v16',
     tone: 'teal',
   },
@@ -42,14 +44,14 @@ function timeAgo(date) {
   return `${Math.floor(s / 86400)} ngày trước`;
 }
 
-export default function Home({ posts, members, boardActivity, totals }) {
+export default function Home({ posts, certified, projects, totals }) {
   return (
     <Layout active="/" bare>
       <Head>
         <title>tsudev — Hệ sinh thái công nghệ cho Developer</title>
         <meta
           name="description"
-          content="tsudev: blog, tài liệu, diễn đàn và kho mã nguồn. Decoding the Future, One Commit at a Time."
+          content="tsudev: blog, tài liệu, dự án mã nguồn và con dấu tín nhiệm. Decoding the Future, One Commit at a Time."
         />
       </Head>
 
@@ -79,21 +81,22 @@ export default function Home({ posts, members, boardActivity, totals }) {
               <span className="text-brandink">từng dòng code</span>.
             </h1>
             <p className="mt-6 text-lg text-inksoft max-w-xl">
-              Hệ sinh thái công nghệ đa nền tảng cho developer — chuẩn hoá tri thức qua kho tư liệu,
-              diễn đàn thảo luận chuyên sâu và giải pháp mã nguồn ứng dụng cao.
+              Dự án cá nhân của tsudev — tri thức kỹ thuật được chuẩn hoá, mã nguồn dùng được, và
+              con dấu tín nhiệm cho những website mang dấu ấn tsudev.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button as="a" href={siteUrl('forum', '/')} size="lg">
-                Vào diễn đàn
+              <Button as="a" href="/trust" size="lg">
+                Con dấu tín nhiệm
               </Button>
               <Button as="a" href="/blog" variant="secondary" size="lg">
                 Đọc blog
               </Button>
             </div>
-            <div className="mt-12 flex gap-10">
-              <Stat value={totals.members} label="Thành viên" />
+            <div className="mt-12 flex flex-wrap gap-10">
+              <Stat value={totals.projects} label="Dự án" />
               <Stat value={totals.posts} label="Bài viết" />
-              <Stat value={totals.threads} label="Chủ đề" />
+              <Stat value={totals.docs} label="Tài liệu" />
+              <Stat value={totals.certified} label="Website đã cấp dấu" />
             </div>
           </div>
 
@@ -108,9 +111,6 @@ export default function Home({ posts, members, boardActivity, totals }) {
               </div>
               <pre className="p-5 font-mono text-[13px] leading-relaxed text-inksoft overflow-x-auto">
                 <span className="text-teal">$</span> tsudev status --all{'\n'}
-                <span className="text-[var(--success)]">✔</span> user-service{' '}
-                <span className="text-muted">:4000 healthy</span>
-                {'\n'}
                 <span className="text-[var(--success)]">✔</span> content-service{' '}
                 <span className="text-muted">:4001 healthy</span>
                 {'\n'}
@@ -164,6 +164,47 @@ export default function Home({ posts, members, boardActivity, totals }) {
           </div>
         </section>
 
+        {/* ---------- PROJECTS ---------- */}
+        <section className="py-6">
+          <SectionHeading
+            eyebrow="Sản phẩm"
+            title="Dự án của tsudev"
+            action={
+              <Button as="a" href="/projects" variant="ghost" size="sm">
+                Xem tất cả →
+              </Button>
+            }
+          />
+          <div className="grid md:grid-cols-3 gap-4">
+            {projects.length === 0 && (
+              <p className="p-6 text-muted md:col-span-3">Chưa có dự án nào.</p>
+            )}
+            {projects.slice(0, 3).map((p) => {
+              const cr = COPYRIGHT[p.copyrightStatus] || COPYRIGHT.NONE;
+              return (
+                <a
+                  key={p.id}
+                  href={`/projects/${p.slug}`}
+                  className="p-5 flex flex-col group rounded-xl transition-colors hover:bg-panel"
+                >
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>
+                    <Badge tone="outline">{STATUS_LABEL[p.status] || p.status}</Badge>
+                  </div>
+                  <h3 className="font-semibold text-ink text-lg leading-snug group-hover:text-brandink transition-colors text-balance">
+                    {p.name}
+                  </h3>
+                  <p className="mt-2 text-sm text-muted flex-1">{p.summary}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <Badge tone={cr.tone}>{cr.label}</Badge>
+                    {p.license && <span className="font-mono">{p.license}</span>}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+
         {/* ---------- FEATURED POSTS ---------- */}
         <section className="py-6">
           <SectionHeading
@@ -207,63 +248,45 @@ export default function Home({ posts, members, boardActivity, totals }) {
           </div>
         </section>
 
-        {/* ---------- COMMUNITY ---------- */}
-        <section className="py-16 grid lg:grid-cols-[1.5fr_1fr] gap-6">
-          <div>
-            <SectionHeading
-              eyebrow="Cộng đồng"
-              title="Hoạt động diễn đàn"
-              action={
-                <Button as="a" href={siteUrl('forum', '/')} variant="ghost" size="sm">
-                  Tới diễn đàn →
-                </Button>
-              }
-            />
-            <div className="space-y-2.5">
-              {boardActivity.length === 0 && <p className="p-6 text-muted">Chưa có hoạt động.</p>}
-              {boardActivity.map((t) => (
-                <a
-                  key={t.id}
-                  href={siteUrl('forum', `/thread/${t.id}`)}
-                  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-panel transition-colors group"
-                >
-                  <Avatar name={t.author?.displayName || '?'} size={38} />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-ink truncate group-hover:text-brandink transition-colors">
-                      {t.title}
-                    </div>
-                    <div className="text-xs text-muted mt-0.5">
-                      bởi {t.author?.displayName || 'khách'} · {timeAgo(t.lastPostAt)}
-                    </div>
-                  </div>
-                  <span className="font-mono text-xs text-muted shrink-0">{t.replies} trả lời</span>
-                </a>
-              ))}
-            </div>
-          </div>
-          <div>
-            <SectionHeading eyebrow="Xếp hạng" title="Thành viên tích cực" />
-            <div className="p-2">
-              {members.map((m, i) => (
-                <a
-                  key={m.id}
-                  href={`/members/${m.username}`}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-panel transition"
-                >
-                  <span className="font-mono text-sm text-muted w-5 tabular-nums">{i + 1}</span>
-                  <Avatar name={m.displayName || m.username} size={36} />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-ink truncate">
-                      {m.displayName || m.username}
-                    </div>
-                    <div className="text-xs text-muted">{m.rank?.label}</div>
-                  </div>
-                  <span className="font-mono text-sm font-semibold text-brandink tabular-nums">
-                    {m.reputation}
+        {/* ---------- TRUST ---------- */}
+        <section className="py-16">
+          <SectionHeading
+            eyebrow="Tín nhiệm"
+            title="Website mang dấu tsudev"
+            action={
+              <Button as="a" href="/trust/directory" variant="ghost" size="sm">
+                Xem danh bạ →
+              </Button>
+            }
+          />
+          {certified.length === 0 && (
+            <Card className="p-8 text-center">
+              <p className="text-muted">Chưa có chứng chỉ nào được cấp.</p>
+              <Button as="a" href="/trust/apply" size="sm" className="mt-4">
+                Đăng ký cấp dấu
+              </Button>
+            </Card>
+          )}
+          <div className="grid md:grid-cols-3 gap-4">
+            {certified.slice(0, 6).map((c) => (
+              <Card
+                key={c.serial}
+                as="a"
+                href={`/trust/verify/${c.serial}`}
+                hover
+                className="p-5 block group"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-ink truncate group-hover:text-brandink transition-colors">
+                    {c.orgName || c.hostname}
                   </span>
-                </a>
-              ))}
-            </div>
+                  <Badge tone="teal" mono>
+                    {c.programCode || 'SEAL'}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted mt-1 font-mono truncate">{c.hostname}</div>
+              </Card>
+            ))}
           </div>
         </section>
 
@@ -272,15 +295,15 @@ export default function Home({ posts, members, boardActivity, totals }) {
           <div className="p-10 md:p-14 text-center">
             <div>
               <h2 className="text-2xl md:text-3xl font-bold text-ink text-balance">
-                Tham gia cộng đồng tsudev
+                Website của bạn dùng mã nguồn tsudev?
               </h2>
               <p className="mt-3 text-inksoft max-w-lg mx-auto">
-                Một tài khoản SSO cho toàn hệ sinh thái — thảo luận, đóng góp và xây dựng uy tín của
-                bạn.
+                Đăng ký cấp con dấu tín nhiệm — chứng chỉ ký số, xác minh quyền sở hữu tên miền và
+                giám sát định kỳ.
               </p>
               <div className="mt-7 flex justify-center gap-3">
-                <Button as="a" href="/api/auth/signin" size="lg">
-                  Đăng nhập / Đăng ký
+                <Button as="a" href="/trust/apply" size="lg">
+                  Đăng ký cấp dấu
                 </Button>
                 <Button as="a" href="/docs" variant="secondary" size="lg">
                   Tài liệu
@@ -295,29 +318,19 @@ export default function Home({ posts, members, boardActivity, totals }) {
 }
 
 export async function getServerSideProps() {
-  const [posts, members, categories] = await Promise.all([
+  const [posts, docs, certified, projects] = await Promise.all([
     api.posts(6),
-    api.members(5),
-    api.categories(),
+    api.docs(),
+    trust.directory(),
+    api.projects(100),
   ]);
 
-  let boardActivity = [];
-  const firstBoard = categories.flatMap((c) => c.boards || []).find((b) => b.threadCount > 0);
-  if (firstBoard) {
-    const board = await api.board(firstBoard.slug);
-    boardActivity = (board?.threads || []).slice(0, 5);
-  }
-
   const totals = {
-    members: members.length ? `${members.length}+` : '0',
     posts: String(posts.length),
-    threads: String(
-      categories.reduce(
-        (n, c) => n + (c.boards || []).reduce((m, b) => m + (b.threadCount || 0), 0),
-        0
-      )
-    ),
+    docs: String(docs.length),
+    certified: String(certified.length),
+    projects: String(projects.length),
   };
 
-  return { props: { posts, members, boardActivity, totals } };
+  return { props: { posts, certified, projects, totals } };
 }
