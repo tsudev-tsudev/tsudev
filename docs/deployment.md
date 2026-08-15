@@ -122,6 +122,27 @@ Chạy ở local đúng hình prod:
 npm run dev:merged     # một tiến trình, cổng 4000
 ```
 
+## Ba service cũ ở tài khoản Render KHÁC — chưa dọn
+
+`tsudev-content`, `tsudev-storage`, `tsudev-trust` (Oregon) **vẫn đang chạy** và
+**không nằm trong tài khoản Render hiện tại** — API key của tài khoản mới không
+thấy chúng. Chúng thuộc tài khoản Render cũ, phải đăng nhập tài khoản đó để xoá.
+
+Vì sao đáng dọn dù không tiêu giờ chạy của tài khoản mới:
+
+- Chúng nối vào **đúng DB Neon đang chạy production**.
+- `tsudev-trust` cũ dùng **khoá ký khác** (`tsu-2026-08-13e2a3`; bản mới là
+  `tsu-2026-08-efdb94`). Chứng chỉ cấp qua bản cũ ký bằng khoá không có trong
+  vòng khoá của bản mới ⇒ `tsudev.com/trust` **không xác minh nổi**, và không có
+  gì báo lỗi.
+- Chúng chạy **mã cũ** trên dữ liệu production.
+
+Tính tới 16/08/2026 chưa có thiệt hại: 0 chứng chỉ, 0 đơn, 0 tổ chức.
+
+Nếu mất quyền vào tài khoản cũ, đường thay thế là **xoay mật khẩu Neon** — đổi
+mật khẩu role rồi cập nhật đồng bộ `DATABASE_URL` của `tsudev-backend` và
+`KC_DB_PASSWORD` của `tsudev-sso`. Có gián đoạn ngắn.
+
 ## Keycloak trên Render — những vết đã trả giá
 
 Free tier giới hạn **512MB RAM**. Bốn lần sửa liên tiếp (commit #3–#7) đều xoay

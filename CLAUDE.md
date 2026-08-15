@@ -8,11 +8,6 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-⚠️ **Đang có việc bàn giao dở: đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt
-tay.** Mã nguồn đã merge vào `main` và CI xanh, nhưng **migration DROP chưa chạy
-trên production** — mã mới đang (hoặc sắp) chạy trên DB chưa migrate. Xong việc
-trong đó thì xoá file, và xoá cả đoạn cảnh báo này.
-
 ## Bản đồ
 
 **Nguồn sự thật về cổng/tên miền là `config/topology.json`**, không phải bảng
