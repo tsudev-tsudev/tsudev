@@ -132,8 +132,13 @@ nguồn là hiện trạng; TSD là đích đến.
   đọc `docs/deployment.md` trước khi đụng `docker/keycloak.Dockerfile`.
 - **Docker build context phải là gốc repo** — service phụ thuộc package nội bộ
   không có trên npm registry.
-- **`S3_ENDPOINT` (nội bộ) và `S3_PUBLIC_ENDPOINT` (CDN) là hai biến khác nhau.**
-  Gộp lại thì URL presign trỏ vào host nội bộ.
+- **`S3_ENDPOINT` và `S3_PUBLIC_ENDPOINT` khác nhau Ở DEV, TRÙNG NHAU ở
+  production.** `S3_PUBLIC_ENDPOINT` chỉ phục vụ một việc: làm endpoint **ký URL
+  presign**. Ở dev phải tách vì `S3_ENDPOINT` trỏ `minio:9000` trong mạng docker,
+  trình duyệt không với tới. Ở production dùng R2 thì endpoint S3 API của R2 vốn
+  đã công khai, nên cả hai cùng một giá trị. **Đừng đặt thành `cdn.tsudev.com`**
+  — tên miền tuỳ chỉnh R2 không cài đặt giao thức chữ ký S3 (URL presign bị từ
+  chối) và còn làm bucket thành công khai.
 - **Ba `authMiddleware.js` gần trùng nhau.** Đổi hành vi xác thực phải sửa cả
   ba.
 - **`User.credits` KHÔNG phải di sản của chợ ký quỹ** — trust-service thu phí

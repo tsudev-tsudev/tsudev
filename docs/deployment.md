@@ -135,16 +135,28 @@ Nguồn sự thật là **`config/topology.json`**. Nó khai cả hình trạng 
 miền production; `npm run topology:check` (chạy trong CI và `.husky/pre-push`)
 chặn cổng hardcode mọc lại. Đổi cổng ⇒ sửa file đó rồi `npm run topology:gen`.
 
-| Tên miền          | Trỏ về        | Nền tảng           |
-| ----------------- | ------------- | ------------------ |
-| `tsudev.com`      | frontend-main | Cloudflare Workers |
-| `auth.tsudev.com` | Keycloak      | Render             |
-| `cdn.tsudev.com`  | R2 public     | Cloudflare R2      |
+| Tên miền          | Trỏ về        | Nền tảng                         |
+| ----------------- | ------------- | -------------------------------- |
+| `tsudev.com`      | frontend-main | Cloudflare Workers               |
+| `auth.tsudev.com` | Keycloak      | Render                           |
+| _(không có)_      | R2 object     | Cloudflare R2 — xem ghi chú dưới |
 
 Ba service backend **không** có tên miền công khai và cũng **không giấu được
 sau mạng nội bộ Render**: `frontend-main` chạy trên Cloudflare Workers, ngoài
 mạng đó, nên SSR/BFF của nó buộc phải gọi qua Internet công cộng. Lớp bù là
 `INTERNAL_API_TOKEN` (§dưới).
+
+**Không dựng `cdn.tsudev.com`.** Kế hoạch cũ định trỏ nó vào bucket R2, nhưng
+`S3_PUBLIC_ENDPOINT` chỉ phục vụ một việc: làm endpoint **ký URL presign**. Tên
+miền tuỳ chỉnh của R2 phục vụ object qua CDN chứ không cài đặt giao thức chữ ký
+S3, nên URL presign ký cho host đó bị từ chối — và gắn tên miền tuỳ chỉnh còn
+làm bucket thành **công khai**, đọc được mọi file riêng tư nếu biết khoá. Endpoint
+S3 API của R2 vốn đã công khai với trình duyệt, nên `S3_ENDPOINT` và
+`S3_PUBLIC_ENDPOINT` **trùng nhau ở production** — khác với dev, nơi
+`S3_ENDPOINT` trỏ vào `minio:9000` trong mạng docker.
+
+Muốn có hostname CDN thật cho tài nguyên công khai thì đó là một quyết định
+riêng: phải tách bucket công khai khỏi bucket riêng tư trước.
 
 ## Cổng chặn `INTERNAL_API_TOKEN`
 
