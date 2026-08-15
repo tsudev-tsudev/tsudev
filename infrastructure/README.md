@@ -5,10 +5,10 @@ Hạ tầng, giám sát và quy trình triển khai cho hệ sinh thái tsudev.
 ## Kiến trúc triển khai (mục tiêu)
 
 ```
-Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
+Cloudflare (DNS *.tsudev.com · CDN · WAF · Zero Trust)
         │
-        ├─ tsudev.vn         → frontend-main   (Next.js, SSR)
-        └─ auth.tsudev.vn    → Keycloak (OIDC IdP)
+        ├─ tsudev.com         → frontend-main   (Next.js, SSR)
+        └─ auth.tsudev.com    → Keycloak (OIDC IdP)
                 │  (API qua BFF/proxy)
                 └─ services: user · content · storage
                         │
@@ -19,7 +19,7 @@ Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
 
 ## 1. Cloudflare (CDN, WAF, Zero Trust)
 
-- **DNS + TLS**: tạo zone `tsudev.vn`, bản ghi cho `@`, `auth`, `cdn`; bật Universal SSL (wildcard `*.tsudev.vn`).
+- **DNS + TLS**: tạo zone `tsudev.com`, bản ghi cho `@`, `auth`, `cdn`; bật Universal SSL (wildcard `*.tsudev.com`).
 - **CDN cache**: Cache Rules cho asset tĩnh (PDF, ZIP, ảnh, SVG) — TTL dài ở edge để giảm ~90% egress. Kiểm chứng bằng header `cf-cache-status: HIT` (tiêu chí nghiệm thu §6.2).
 - **R2**: dùng làm object storage tương thích S3. Đặt `S3_ENDPOINT` (nội bộ) và `S3_PUBLIC_ENDPOINT` (public qua CDN) để presigned URL trỏ về host công khai.
 - **WAF**: bật managed ruleset + rate-limiting cho `/api/*` chống lạm dụng.
@@ -37,7 +37,7 @@ Cloudflare (DNS *.tsudev.vn · CDN · WAF · Zero Trust)
 Hợp đồng cổng/tên miền (cả dev lẫn production) khai ở **`config/topology.json`**,
 có cổng chặn hồi quy `npm run topology:check`. Ở local, mọi thứ trình duyệt chạm
 tới đi qua **một cổng vào duy nhất** (`scripts/dev-proxy.js`) và phân biệt bằng
-subdomain `*.tsudev.localhost` — cùng hình trạng với `*.tsudev.vn`, nên đường
+subdomain `*.tsudev.localhost` — cùng hình trạng với `*.tsudev.com`, nên đường
 chia sẻ phiên đăng nhập kiểm chứng được ngay ở máy dev.
 Chi tiết và lộ trình: [../docs/refactor-network-topology.md](../docs/refactor-network-topology.md).
 

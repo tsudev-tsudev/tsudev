@@ -23,7 +23,7 @@ async function main() {
     update: {},
     create: {
       username: 'alice',
-      email: 'alice@tsudev.vn',
+      email: 'alice@tsudev.com',
       displayName: 'Alice',
       role: 'MEMBER',
       credits: 20,
@@ -34,7 +34,7 @@ async function main() {
     update: {},
     create: {
       username: 'bob',
-      email: 'bob@tsudev.vn',
+      email: 'bob@tsudev.com',
       displayName: 'Bob',
       role: 'VIP',
       credits: 75,

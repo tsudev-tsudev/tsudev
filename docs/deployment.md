@@ -67,11 +67,11 @@ Nguồn sự thật là **`config/topology.json`**. Nó khai cả hình trạng 
 miền production; `npm run topology:check` (chạy trong CI và `.husky/pre-push`)
 chặn cổng hardcode mọc lại. Đổi cổng ⇒ sửa file đó rồi `npm run topology:gen`.
 
-| Tên miền         | Trỏ về        | Nền tảng           |
-| ---------------- | ------------- | ------------------ |
-| `tsudev.vn`      | frontend-main | Cloudflare Workers |
-| `auth.tsudev.vn` | Keycloak      | Render             |
-| `cdn.tsudev.vn`  | R2 public     | Cloudflare R2      |
+| Tên miền          | Trỏ về        | Nền tảng           |
+| ----------------- | ------------- | ------------------ |
+| `tsudev.com`      | frontend-main | Cloudflare Workers |
+| `auth.tsudev.com` | Keycloak      | Render             |
+| `cdn.tsudev.com`  | R2 public     | Cloudflare R2      |
 
 Ba service backend **không** có tên miền công khai và cũng **không giấu được
 sau mạng nội bộ Render**: `frontend-main` chạy trên Cloudflare Workers, ngoài

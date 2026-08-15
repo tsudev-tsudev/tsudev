@@ -82,16 +82,16 @@ function managedEnv(topo, env = 'dev') {
   });
   out.KEYCLOAK_ISSUER = `${publicUrl(topo, 'auth', env)}/realms/${topo.dev.realm}`;
   // Cả lý do tồn tại của dev-proxy: cookie phiên đặt trên .tsudev.localhost thì
-  // main và forum dùng chung, y như .tsudev.vn trên production. Ở chế độ ports
-  // thì để trống — localhost:3000 và localhost:3001 vốn đã chung kho cookie nên
-  // đặt domain vào chỉ tổ sai.
+  // app và các subdomain (auth, cdn) dùng chung, y như .tsudev.com trên
+  // production. Ở chế độ ports thì để trống — mọi thứ đã ở trên localhost nên
+  // vốn chung kho cookie, đặt domain vào chỉ tổ sai.
   out.NEXTAUTH_COOKIE_DOMAIN = topo.dev.mode === 'proxy' ? `.${topo.dev.domain}` : '';
 
   // Origin được phép gọi CHÉO tới service. Sau giai đoạn 4 trình duyệt đi qua BFF
   // nên danh sách này gần như không dùng tới — giữ lại như lưới chắn, và để
   // trống ở production là khoá hẳn (BFF không bị ảnh hưởng, nó gọi server↔server).
   out.CORS_ALLOWED_ORIGINS = topo.nodes
-    .filter((n) => n.public && ['main', 'forum'].includes(n.id))
+    .filter((n) => n.public && n.id === 'main')
     .map((n) => publicUrl(topo, n.id, env))
     .join(',');
 

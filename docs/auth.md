@@ -10,15 +10,15 @@ Cấu hình ở `apps/*/pages/api/auth/[...nextauth].js` (mỗi app một bản)
 - Provider chính: Keycloak OIDC (`KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`,
   `KEYCLOAK_CLIENT_SECRET`).
 - `session.strategy = 'jwt'`, cookie `secure` chỉ khi `NODE_ENV=production`.
-- `NEXTAUTH_COOKIE_DOMAIN` chia sẻ phiên giữa các subdomain: `.tsudev.vn` ở
+- `NEXTAUTH_COOKIE_DOMAIN` chia sẻ phiên giữa các subdomain: `.tsudev.com` ở
   production, `.tsudev.localhost` ở local. Giá trị do `config/topology.json`
   sinh ra, đừng đặt tay.
-  Từ giai đoạn 3, local đi qua `dev-proxy` nên hai app nằm trên hai subdomain
-  thật (`tsudev.localhost`) — nghĩa là **đường chia sẻ
-  phiên kiểm chứng được ngay ở local**, đúng như trên production. Trước đó thì
-  không: hai app hồi đó nằm trên cùng host `localhost` khác cổng, mà cookie thì
-  không phân biệt cổng — nên bug về phạm vi cookie chỉ lộ ra lần đầu khi lên
-  production.
+  Từ giai đoạn 3, local đi qua `dev-proxy` nên app và Keycloak nằm trên hai
+  subdomain thật của `tsudev.localhost` — nghĩa là **đường chia sẻ phiên kiểm
+  chứng được ngay ở local**, đúng như `tsudev.com` / `auth.tsudev.com` trên
+  production. Trước đó thì không: mọi thứ nằm trên cùng host `localhost` khác
+  cổng, mà cookie thì không phân biệt cổng — nên bug về phạm vi cookie chỉ lộ ra
+  lần đầu khi lên production.
   Đã đo trên Chromium và Firefox: cookie host-only **không** sang được
   subdomain, cookie có `Domain=.tsudev.localhost` thì sang được.
 - `NEXTAUTH_URL` phải khớp origin của **chính app đang chạy**, xem

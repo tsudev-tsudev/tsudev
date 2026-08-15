@@ -10,9 +10,12 @@ export const OPERATOR = {
   taxCode: '[Mã số thuế / số ĐKKD]',
   address: '[Địa chỉ trụ sở]',
   owner: 'Nguyễn Trang Tình Sử',
-  email: '[email@tsudev.vn]',
-  privacyEmail: '[privacy@tsudev.vn]',
-  abuseEmail: '[abuse@tsudev.vn]',
+  // Ba địa chỉ này chỉ nhận được thư khi Cloudflare Email Routing của zone
+  // tsudev.com đã bật và có route chuyển tiếp. Công bố địa chỉ chưa định tuyến
+  // còn tệ hơn để trống: người dùng gửi khiếu nại và thư dội ngược trong im lặng.
+  email: 'contact@tsudev.com',
+  privacyEmail: 'privacy@tsudev.com',
+  abuseEmail: 'abuse@tsudev.com',
   phone: '[Số điện thoại liên hệ]',
 };
 

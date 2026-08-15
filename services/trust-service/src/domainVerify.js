@@ -76,7 +76,7 @@ async function safeGet(url) {
     const res = await fetch(url, {
       signal: ctrl.signal,
       redirect: 'follow',
-      headers: { 'User-Agent': 'tsudev-trust-verifier/1.0 (+https://tsudev.vn/trust)' },
+      headers: { 'User-Agent': 'tsudev-trust-verifier/1.0 (+https://tsudev.com/trust)' },
     })
     const reader = res.body && res.body.getReader ? res.body.getReader() : null
     if (!reader) return { status: res.status, body: (await res.text()).slice(0, MAX_BODY_BYTES) }

@@ -64,7 +64,7 @@ services:
       # khởi động nếu thiếu. Sinh bằng: node services/trust-service/scripts/genkey.js
       TRUST_SIGNING_KEY: ${TRUST_SIGNING_KEY}
       TRUST_SIGNING_KEY_ID: ${TRUST_SIGNING_KEY_ID}
-      TRUST_ISSUER: ${TRUST_ISSUER:-https://tsudev.vn}
+      TRUST_ISSUER: ${TRUST_ISSUER:-https://tsudev.com}
     depends_on:
       - postgres
 

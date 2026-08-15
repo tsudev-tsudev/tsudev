@@ -57,7 +57,7 @@ function renderBadge({
   const pal = PALETTE[variant] || PALETTE.default
   const accent = st.accent || pal.accent
   const topLine = st.note || esc(programName || pal.label)
-  const bottom = serial ? esc(serial) : 'tsudev.vn/trust'
+  const bottom = serial ? esc(serial) : 'tsudev.com/trust'
   const W = 188
   const H = 62
 

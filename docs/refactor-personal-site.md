@@ -7,6 +7,12 @@ nhân hoàn chỉnh**, không phải một diễn đàn bị cắt bớt.
 Tài liệu này là **kế hoạch**. Hiện trạng vẫn là `CLAUDE.md` và
 [refactor-network-topology.md](refactor-network-topology.md).
 
+> **Ghi chú lịch sử (16/08/2026).** Tên miền production đã đổi từ `tsudev.vn`
+> (dự kiến, chưa từng đăng ký) sang **`tsudev.com`** — tên miền thật, đăng ký
+> tại Spaceship. Chuỗi tên miền trong tài liệu này đã được cập nhật theo. Mọi
+> nhắc tới **diễn đàn / `forum.*`** là bối cảnh của thời điểm viết: app đó đã bị
+> xoá ở PR #9, tsudev nay chỉ còn một app trên một origin.
+
 ---
 
 ## 1. Bốn quyết định đã chốt
@@ -85,9 +91,9 @@ không "nên" bị bỏ, nó đã rỗng nghĩa. Trang `/admin/moderation` gỡ 
 ### 3.1 Hình trạng sau tái cấu trúc
 
 ```
-tsudev.vn                 frontend-main   (app DUY NHẤT)
-auth.tsudev.vn            Keycloak
-cdn.tsudev.vn             R2 / MinIO
+tsudev.com                 frontend-main   (app DUY NHẤT)
+auth.tsudev.com            Keycloak
+cdn.tsudev.com             R2 / MinIO
   └── nội bộ: content-service · storage-service · trust-service
 ```
 
@@ -404,11 +410,11 @@ trước (cổng ghi trong đó đúng tại thời điểm đó — sửa là l
 
 ## 5. Cửa một chiều
 
-| Việc                      | Vì sao không quay lại được                | Chặn bằng                               |
-| ------------------------- | ----------------------------------------- | --------------------------------------- |
-| DROP 12 bảng              | dữ liệu mất hẳn                           | GĐ 0 export JSON + xác nhận DB Neon     |
-| Xoá `apps/frontend-forum` | git giữ lại được, nhưng dựng lại tốn công | commit riêng, dễ revert                 |
-| `TRUST_ISSUER`            | URL đã ký vào chứng chỉ (đã hạ mức 🟠)    | đã đặt `https://tsudev.vn` từ đợt trước |
+| Việc                      | Vì sao không quay lại được                | Chặn bằng                                |
+| ------------------------- | ----------------------------------------- | ---------------------------------------- |
+| DROP 12 bảng              | dữ liệu mất hẳn                           | GĐ 0 export JSON + xác nhận DB Neon      |
+| Xoá `apps/frontend-forum` | git giữ lại được, nhưng dựng lại tốn công | commit riêng, dễ revert                  |
+| `TRUST_ISSUER`            | URL đã ký vào chứng chỉ (đã hạ mức 🟠)    | đã đặt `https://tsudev.com` từ đợt trước |
 
 Migration đã áp dụng **bất biến** — mọi thay đổi là migration mới.
 

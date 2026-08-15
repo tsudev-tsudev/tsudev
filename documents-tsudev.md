@@ -50,21 +50,24 @@ Hệ thống được thiết kế theo kiến trúc **Microservices** hoặc **
 
 ### **2.1. Phân hệ Website (Sub-sites Topology)**
 
-- **Main Site (Portfolio & Product Showcase):** tsudev.vn
-- **Blog/Articles:** blog.tsudev.vn
-- **Forum (Diễn đàn):** forum.tsudev.vn
-- **Data & Document Hub (Kho lưu trữ):** docs.tsudev.vn / archive.tsudev.vn
-- **Identity Provider (SSO):** auth.tsudev.vn
+Từ đợt tái cấu trúc ở PR #9, tsudev là **một app duy nhất trên một origin**:
+blog, tài liệu, dự án & bản quyền, con dấu tín nhiệm và trang quản trị đều là
+nhánh đường dẫn của cùng một site, không còn tách thành sub-site riêng. Chỉ hai
+thành phần cần origin riêng, vì chúng là hệ khác chứ không phải trang khác.
+
+- **Main Site (dự án & bản quyền, blog, tài liệu, con dấu, quản trị):** tsudev.com
+- **Identity Provider (SSO):** auth.tsudev.com
+- **CDN / Object Storage công khai:** cdn.tsudev.com
 
 ### **2.2. Kiến trúc Single Sign-On (SSO)**
 
-Để đảm bảo trải nghiệm liền mạch (chỉ cần login một lần để comment trên diễn đàn và tải tài liệu ở kho lưu trữ):
+Để đảm bảo trải nghiệm liền mạch (chỉ cần login một lần cho cả trang quản trị và việc tải tài liệu riêng tư):
 
 - **Giao thức:** Sử dụng **OAuth 2.0** và **OpenID Connect (OIDC)**.
-- **Authentication Service (Identity Provider):** Triển khai một Auth Server độc lập (khuyến nghị dùng Keycloak hoặc xây dựng custom Auth API bằng JWT/Session cookies với domain level \*.tsudev.vn).
-- **Luồng hoạt động:** 1\. Người dùng truy cập bất kỳ site nào yêu cầu quyền (VD: tải file tại docs.tsudev.vn).  
-  2\. Hệ thống redirect về auth.tsudev.vn để xác thực.  
-  3\. Sau khi xác thực, hệ thống cấp Access Token và Refresh Token, lưu tại HttpOnly Cookie áp dụng cho toàn bộ wildcard domain \*.tsudev.vn.
+- **Authentication Service (Identity Provider):** Triển khai một Auth Server độc lập (khuyến nghị dùng Keycloak hoặc xây dựng custom Auth API bằng JWT/Session cookies với domain level \*.tsudev.com).
+- **Luồng hoạt động:** 1\. Người dùng truy cập một đường dẫn yêu cầu quyền (VD: tải tài liệu riêng tư, hoặc vào /admin).  
+  2\. Hệ thống redirect về auth.tsudev.com để xác thực.  
+  3\. Sau khi xác thực, hệ thống cấp Access Token và Refresh Token, lưu tại HttpOnly Cookie áp dụng cho toàn bộ wildcard domain \*.tsudev.com.
 
 ### **2.3. Giải pháp Lưu trữ đối tượng (Object Storage) & CDN**
 
@@ -140,7 +143,7 @@ tsudev/
 
 **6\. TIÊU CHUẨN NGHIỆM THU (ACCEPTANCE CRITERIA)**
 
-1. **SSO:** Dev team phải demo được việc đăng nhập tại auth.tsudev.vn, sau đó tự động có phiên làm việc hợp lệ tại diễn đàn và có quyền tải file private tại kho lưu trữ.
+1. **SSO:** Dev team phải demo được việc đăng nhập tại auth.tsudev.com, sau đó tự động có phiên làm việc hợp lệ trên tsudev.com và có quyền tải file private từ kho lưu trữ.
 2. **Object Storage:** Khách truy cập tải một file tài liệu 100MB, header của trình duyệt phải hiển thị file được serve qua đường truyền của CDN (ví dụ cf-cache-status: HIT) chứ không tải trực tiếp từ băng thông của server backend.
 3. **Alerting:** Tạo ra một lỗi "chủ động" trên backend (ví dụ: chia cho 0 hoặc gọi một API không tồn tại), hệ thống phải tự động đẩy thông báo báo lỗi chi tiết đến Telegram @nguyentrangtinhsu và email nguyentrangtinhsu@gmail.com trong vòng 30 giây.
 4. **Code Quality:** Không chứa hardcode credentials. Repo phải chạy được trên môi trường cục bộ bằng một lệnh khởi tạo duy nhất (`docker-compose up`, hoặc `npm run dev:full` — đường chạy không cần Docker).
@@ -220,7 +223,7 @@ Mục tiêu của phần này: xác định đầy đủ site, luồng người 
   - Storage & upload logs
 
 7.7 UX Patterns & Flows (critical)
-- Auth flow: redirect to auth.tsudev.vn and return with HttpOnly cookie (wildcard domain) — avoid exposing tokens to JS where possible.
+- Auth flow: redirect to auth.tsudev.com and return with HttpOnly cookie (wildcard domain) — avoid exposing tokens to JS where possible.
 - Upload flow: client requests presigned URL from `storage-service`, uploads directly to S3/R2, then signals backend for post-processing and crawl/index.
 - Content editing: Markdown editor with preview + image uploader + autosave draft.
 - Empty/Loading/Error states: provide clear feedback (skeletons while loading, contextual empty-state illustration + action).

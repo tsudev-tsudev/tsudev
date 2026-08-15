@@ -1,11 +1,17 @@
 # Kế hoạch tái cấu trúc cổng & tên miền
 
 Mục tiêu: gỡ mười cổng `localhost` rải rác thành **một hợp đồng mạng duy nhất**,
-để hình trạng lúc dev trùng khớp hình trạng production (`tsudev.vn` +
+để hình trạng lúc dev trùng khớp hình trạng production (`tsudev.com` +
 subdomain), và mọi giá trị cổng/hostname chỉ tồn tại ở **một** file.
 
 Tài liệu này là **kế hoạch**, chưa phải hiện trạng. Hiện trạng vẫn là bảng cổng
 trong `CLAUDE.md`.
+
+> **Ghi chú lịch sử (16/08/2026).** Tên miền production đã đổi từ `tsudev.vn`
+> (dự kiến, chưa từng đăng ký) sang **`tsudev.com`** — tên miền thật, đăng ký
+> tại Spaceship. Chuỗi tên miền trong tài liệu này đã được cập nhật theo. Mọi
+> nhắc tới **diễn đàn / `forum.*`** là bối cảnh của thời điểm viết: app đó đã bị
+> xoá ở PR #9, tsudev nay chỉ còn một app trên một origin.
 
 ---
 
@@ -47,7 +53,7 @@ Mười một dòng, bảy nguồn khai báo, không nguồn nào là nguồn s�
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --- |
 | 1   | ✅ _(đã khai vào `render.yaml`)_ **Production không có `KEYCLOAK_ISSUER`.** Bốn service rơi về mặc định `http://localhost:8080/...` ⇒ `createRemoteJWKSet` trỏ vào hư vô ⇒ mọi JWT thật bị 401.                                                                                                                             | `render.yaml` không khai biến này cho service nào; `services/*/src/authMiddleware.js:4`                                      | 🔴  |
 | 2   | **Production không có `REQUIRE_ROLE_ENFORCEMENT`** ⇒ `requireRole()` là no-op trên production, đúng như cảnh báo trong `CLAUDE.md` nhưng chưa ai đặt biến.                                                                                                                                                                  | `render.yaml`; `services/*/src/authMiddleware.js:75-79`                                                                      | 🔴  |
-| 3   | 🟠 _(hạ mức — xem §5.1)_ **`TRUST_ISSUER` có ba giá trị khác nhau** và nó **được ký vào chứng chỉ**: `.env` = `http://localhost:3000`, `render.yaml` = `...workers.dev`, mặc định trong mã = `https://tsudev.vn`. Không có cơ chế "issuer đã nghỉ hưu" (khác với khoá ký).                                                  | `.env`; `render.yaml`; `services/trust-service/src/certificates.js:7`                                                        | 🔴  |
+| 3   | 🟠 _(hạ mức — xem §5.1)_ **`TRUST_ISSUER` có ba giá trị khác nhau** và nó **được ký vào chứng chỉ**: `.env` = `http://localhost:3000`, `render.yaml` = `...workers.dev`, mặc định trong mã = `https://tsudev.com`. Không có cơ chế "issuer đã nghỉ hưu" (khác với khoá ký).                                                 | `.env`; `render.yaml`; `services/trust-service/src/certificates.js:7`                                                        | 🔴  |
 | 4   | **Realm dev chỉ cho phép redirect về hostname Docker** (`http://frontend-main:3000`) ⇒ đăng nhập Keycloak thật từ `localhost:3000` không bao giờ chạy; đó là lý do tồn tại `E2E_BYPASS_KEYCLOAK`. Realm prod **không có** redirect URI nào cho forum.                                                                       | `apps/sso-auth/keycloak/realm-export.json:8-10`, `realm-export.prod.json:8-10`                                               | 🟠  |
 | 5   | **`storage-service` là service duy nhất trình duyệt gọi thẳng, và nó bật `cors()` mở toàn bộ.** Không có route BFF `/api/storage/*` ở app nào.                                                                                                                                                                              | `services/storage-service/src/index.js:37`; `apps/*/pages/api/` không có `storage`                                           | 🟠  |
 | 6   | ✅ _(đã xử lý)_ **Một biến môi trường chết**: `NEXT_PUBLIC_STORAGE_URL` và `STORAGE_SERVICE_URL` được khai ở `.env.example`, `.env.production.example`, `docker-compose.yml` nhưng **không dòng mã nào đọc**.                                                                                                               | `grep` toàn repo: 0 lượt đọc                                                                                                 | 🟡  |
@@ -66,7 +72,7 @@ chuỗi việc.
 `packages/ui/src/lib/siteUrls.js` tồn tại **chỉ để** bắc cầu hai origin. Nhưng
 hai app hồi đó nằm trên cùng host `localhost` khác cổng nên **dùng chung kho
 cookie** (cookie không phân biệt cổng), còn hai subdomain thật thì **không** — chúng cần
-`NEXTAUTH_COOKIE_DOMAIN=.tsudev.vn`. Nghĩa là:
+`NEXTAUTH_COOKIE_DOMAIN=.tsudev.com`. Nghĩa là:
 
 > Lớp chia sẻ phiên đăng nhập giữa hai app **không thể kiểm chứng ở dev** với
 > hình trạng hiện tại. Nó chỉ lộ đúng/sai lần đầu trên production.
@@ -197,7 +203,7 @@ biến. Tách rõ:
 
 | Tầng         | Ai đọc                      | Ví dụ dev                         | Ví dụ prod                  | Đổi được không          |
 | ------------ | --------------------------- | --------------------------------- | --------------------------- | ----------------------- |
-| **PUBLIC**   | trình duyệt                 | `http://tsudev.localhost:8080`    | `https://tsudev.vn`         | có, nhưng cần đổi realm |
+| **PUBLIC**   | trình duyệt                 | `http://tsudev.localhost:8080`    | `https://tsudev.com`        | có, nhưng cần đổi realm |
 | **INTERNAL** | SSR / BFF / service↔service | `http://127.0.0.1:4001`           | `https://tsudev-content...` | tự do                   |
 | **IDENTITY** | ký vào token/chứng chỉ      | `TRUST_ISSUER`, `KEYCLOAK_ISSUER` | —                           | **cửa một chiều** (§5)  |
 
@@ -231,7 +237,7 @@ frontend-main  frontend-     Keycloak      MinIO        4 service —
 **Vì sao `*.localhost` chứ không sửa `/etc/hosts`:** `localhost` không nằm trong
 Public Suffix List, nên trình duyệt coi `tsudev.localhost` là một registrable
 domain — cookie `.tsudev.localhost` chia sẻ được giữa các subdomain, **đúng
-hành vi của `.tsudev.vn` trên production**. Và không máy nào phải sửa file hệ
+hành vi của `.tsudev.com` trên production**. Và không máy nào phải sửa file hệ
 thống.
 
 Đã kiểm chứng trên máy này:
@@ -277,10 +283,10 @@ _bỏ được việc gõ cổng_, không nhờ đánh số lại.
 
 | Tên miền            | Trỏ về            | Nền tảng           | Trạng thái           |
 | ------------------- | ----------------- | ------------------ | -------------------- |
-| `tsudev.vn`         | frontend-main     | Cloudflare Workers | ✅ đã chạy (URL tạm) |
-| `forum.tsudev.vn`   | frontend-forum    | **chưa có đường**  | ❌ giai đoạn 5       |
-| `auth.tsudev.vn`    | Keycloak          | Render             | 🟠 cần custom domain |
-| `cdn.tsudev.vn`     | R2 public bucket  | Cloudflare R2      | 📋 kế hoạch          |
+| `tsudev.com`        | frontend-main     | Cloudflare Workers | ✅ đã chạy (URL tạm) |
+| `forum.tsudev.com`  | frontend-forum    | **chưa có đường**  | ❌ giai đoạn 5       |
+| `auth.tsudev.com`   | Keycloak          | Render             | 🟠 cần custom domain |
+| `cdn.tsudev.com`    | R2 public bucket  | Cloudflare R2      | 📋 kế hoạch          |
 | _(không công khai)_ | 4 service backend | Render             | ⚠️ hiện đang public  |
 
 **Về việc "giấu" 4 service:** không thể chuyển sang Render private service —
@@ -289,7 +295,7 @@ nên SSR/BFF của nó bắt buộc gọi qua Internet công cộng. Phương á
 
 1. Giữ URL Render, **thêm cổng chặn `INTERNAL_API_TOKEN`** — middleware từ chối
    request không mang header đúng. Rẻ, làm được ngay. → giai đoạn 5.
-2. _(Tuỳ chọn, sau)_ Gộp về một `api.tsudev.vn` bằng một Worker router định
+2. _(Tuỳ chọn, sau)_ Gộp về một `api.tsudev.com` bằng một Worker router định
    tuyến theo tiền tố đường dẫn. Đẹp hơn, nhưng thêm một tầng phải bảo trì —
    **không** nằm trong phạm vi kế hoạch này.
 
@@ -303,7 +309,7 @@ Một file mô tả toàn bộ hình trạng mạng, cho cả ba môi trường:
 
 ```jsonc
 {
-  "domains": { "dev": "tsudev.localhost", "prod": "tsudev.vn" },
+  "domains": { "dev": "tsudev.localhost", "prod": "tsudev.com" },
   "devProxy": { "port": 8080 },
   "nodes": [
     { "id": "main", "port": 3000, "sub": "@", "public": true, "workspace": "apps/frontend-main" },
@@ -536,8 +542,8 @@ quy tắc "trình duyệt không gọi thẳng cổng service".
 
 **Đọc §5 "Cửa một chiều" TRƯỚC KHI chạm vào `TRUST_ISSUER`.**
 
-- Cloudflare DNS: `@`, `forum`, `auth`, `cdn` cho zone `tsudev.vn`.
-- Render: custom domain `auth.tsudev.vn` cho `tsudev-sso`; cập nhật
+- Cloudflare DNS: `@`, `forum`, `auth`, `cdn` cho zone `tsudev.com`.
+- Render: custom domain `auth.tsudev.com` cho `tsudev-sso`; cập nhật
   `KEYCLOAK_ISSUER` của cả bốn service theo đó.
 - `realm-export.prod.json`: thêm redirect URI cho **forum** (hiện chưa có dòng
   nào) và cho domain thật.
@@ -548,7 +554,7 @@ quy tắc "trình duyệt không gọi thẳng cổng service".
   Render bằng Docker. **Quyết định này nên tách thành một kế hoạch riêng** — nó
   không phải việc về cổng/tên miền.
 
-**Nghiệm thu:** đăng nhập ở `tsudev.vn` → sang `forum.tsudev.vn` còn phiên;
+**Nghiệm thu:** đăng nhập ở `tsudev.com` → sang `forum.tsudev.com` còn phiên;
 `cf-cache-status: HIT` trên asset tĩnh; gọi trực tiếp URL Render không có token
 ⇒ 401.
 
@@ -591,12 +597,12 @@ một URL tạm, gần như chắc chắn không phải đích cuối.
 **Bắt buộc, theo thứ tự:**
 
 1. Đếm chứng chỉ đã cấp trên database production.
-2. **Bằng 0** ⇒ đổi `TRUST_ISSUER` sang `https://tsudev.vn` **ngay**, trước khi
+2. **Bằng 0** ⇒ đổi `TRUST_ISSUER` sang `https://tsudev.com` **ngay**, trước khi
    cấp cái đầu tiên. Đây là cửa sổ rẻ nhất và nó đang mở.
 3. **Lớn hơn 0** ⇒ chứng chỉ cũ vẫn xác minh được, nhưng link trong chúng trỏ
    domain cũ. Giữ domain cũ redirect sang domain mới, hoặc chấp nhận link rot.
 
-**Đã làm:** `render.yaml` đặt `TRUST_ISSUER=https://tsudev.vn` (thay URL
+**Đã làm:** `render.yaml` đặt `TRUST_ISSUER=https://tsudev.com` (thay URL
 `*.workers.dev` tạm). DB local có **0** chứng chỉ. ⚠️ **Chưa kiểm được DB
 production (Neon)** — người có quyền truy cập phải chạy
 `SELECT count(*) FROM "TrustCertificate"` trên đó trước khi phát hành lần tới.
@@ -650,8 +656,8 @@ Phần mã của giai đoạn 5 đã xong. Phần dưới đây cần dashboard/
 
 | Việc                                                         | Ai làm được          |
 | ------------------------------------------------------------ | -------------------- |
-| DNS Cloudflare: `@`, `forum`, `auth`, `cdn` cho `tsudev.vn`  | chủ tài khoản CF     |
-| Custom domain `auth.tsudev.vn` cho service `tsudev-sso`      | chủ tài khoản Render |
+| DNS Cloudflare: `@`, `forum`, `auth`, `cdn` cho `tsudev.com` | chủ tài khoản CF     |
+| Custom domain `auth.tsudev.com` cho service `tsudev-sso`     | chủ tài khoản Render |
 | Đặt giá trị `INTERNAL_API_TOKEN` (3 service + frontend-main) | chủ tài khoản Render |
 | Đặt `KEYCLOAK_ISSUER` thật cho 4 service                     | chủ tài khoản Render |
 | Import `realm-export.prod.json` đã cập nhật vào Keycloak     | quản trị Keycloak    |
@@ -667,7 +673,7 @@ mới) mới chỉ được kiểm bằng parse YAML, chưa chạy thật.
 
 - **Không** đánh số lại 3000/3001/400x. Sau proxy chúng vô hình; đánh số lại chỉ
   đổi lấy một đợt sửa lan rộng không có lợi ích tương ứng.
-- **Không** dựng gateway `api.tsudev.vn` ở vòng này. BFF hiện tại đã đủ và đúng
+- **Không** dựng gateway `api.tsudev.com` ở vòng này. BFF hiện tại đã đủ và đúng
   hướng; thêm tầng nữa là thêm thứ phải bảo trì.
 - **Không** nâng `frontend-forum` lên Next 15 trong kế hoạch này. Đó là việc về
   phiên bản framework, chỉ **giao thoa** với đường deploy chứ không thuộc phạm vi

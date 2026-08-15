@@ -9,7 +9,7 @@
     "realm": "tsudev-local"
   },
   "prod": {
-    "domain": "tsudev.vn",
+    "domain": "tsudev.com",
     "scheme": "https",
     "realm": "tsudev"
   },

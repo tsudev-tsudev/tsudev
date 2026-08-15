@@ -4,7 +4,7 @@
 const { prisma } = require('@tsudev/db')
 const signing = require('./signing')
 
-const ISSUER = process.env.TRUST_ISSUER || 'https://tsudev.vn'
+const ISSUER = process.env.TRUST_ISSUER || 'https://tsudev.com'
 const PAYLOAD_VERSION = 1
 
 /** Mã chương trình 2 ký tự, lấy chữ cái đầu của hai từ trong slug: copyright-verified -> CV. */
