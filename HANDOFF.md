@@ -24,6 +24,30 @@ xác minh nổi — thứ duy nhất trong phiếu đó không sinh lại đư�
 
 ---
 
+## 0. ĐANG CÓ AGENT KHÁC LÀM SONG SONG — đọc trước khi gõ phím
+
+Một agent khác đang **tái cấu trúc JavaScript sang TypeScript và Rust**. Việc đó
+**chưa commit**, nằm trong cây làm việc, trên nhánh `feat/typescript-migration`.
+
+**Không chạm vào các file sau** — chúng thuộc đợt đó:
+
+```
+tsconfig.json  tsconfig.base.json  packages/utils/tsconfig.json
+package.json (script "typecheck")  .gitignore (*.tsbuildinfo)
+.github/workflows/ci.yml (bước "Kiểm kiểu (TypeScript)")
+```
+
+Tình trạng lúc bàn giao: `npm run typecheck` chạy sạch, nhưng solution file mới
+nối đúng `packages/utils`. Cái bẫy của kiểu cấu hình này: thêm workspace mà quên
+thêm một dòng vào `references` thì workspace ấy **không được kiểm kiểu và không
+có gì báo lỗi**.
+
+⚠️ **Chỉ có MỘT cây làm việc.** Quyền sở hữu đường dẫn trong `AGENTS.md` tránh
+được việc hai agent sửa cùng một file, **không** tránh được xung đột git khi
+dùng chung cây. Trước khi commit: xem `git status` và `git branch` — đầu phiên
+16/08 đã có một commit tài liệu rơi nhầm sang `feat/typescript-migration` vì
+không kiểm nhánh trước. Đừng dùng `git add -A`; stage đúng file của mình.
+
 ## 1. Việc còn dở — tất cả nằm NGOÀI repo
 
 ### 1.1 Xoá 3 service ở tài khoản Render **CŨ** — 🔴 làm trước
@@ -83,13 +107,6 @@ free hoặc Better Stack free — nằm ngoài, không tốn gì.
 Nam`). Hợp lệ về hình thức, nhưng Nghị định 147/2024 hướng tới đầu mối xác
   định được. Thêm huyện/xã hay không là đánh đổi giữa tuân thủ và quyền riêng
   tư — **quyết định của chủ dự án**, đừng tự thêm.
-- **Cây làm việc đang có thay đổi CHƯA COMMIT của chủ dự án** — không phải rác,
-  đừng dọn: thiết lập TypeScript project references (`tsconfig.json` gốc dạng
-  solution file, `tsconfig.base.json`, `packages/utils/tsconfig.json`, script
-  `typecheck`, và `*.tsbuildinfo` trong `.gitignore`). `npm run typecheck` chạy
-  sạch nhưng **mới nối đúng `packages/utils`** — thêm workspace nào thì phải
-  thêm một dòng vào `references` của solution file, thiếu là workspace đó không
-  được kiểm kiểu và **không có gì báo lỗi**. Hỏi chủ dự án trước khi commit hộ.
 - **Nợ có đăng ký, chưa trả** (đã ghi trong `CLAUDE.md`, nhắc để không quên):
   `REQUIRE_ROLE_ENFORCEMENT` vẫn không bật được (realm khai `roles: {}`);
   root `package.json` còn ghim `react@18.3.1` cho Storybook, mà Storybook không
