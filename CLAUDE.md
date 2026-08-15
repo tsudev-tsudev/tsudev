@@ -153,7 +153,15 @@ nguồn là hiện trạng; TSD là đích đến.
   buộc công khai) trả 401, **không có gì báo lỗi**. Thêm route có tiền tố chưa
   nằm trong bảng ⇒ route đó **404 ở production** dù chạy service riêng vẫn sống.
   Sửa route thì sửa bảng trong `services/backend-bundle/src/index.js`.
-- **`.env.local` THẮNG `.env.production` trong Next.** `NEXT_PUBLIC_*` được nội
+- **`.env.local` THẮNG `.env.production` trong Next — đã từng thành lỗ hổng.**
+  `apps/*/.env.local` là bản sao nguyên văn `.env` gốc, và lệnh deploy chạy trên
+  máy dev. Ngày 16/08/2026 bản production đã mang theo `E2E_BYPASS_KEYCLOAK=1`:
+  **ai cũng đăng nhập được vào tài khoản ADMIN bằng `devpass`**, site vẫn chạy
+  bình thường, không có gì báo lỗi. Vì thế deploy đi qua
+  `scripts/deploy-frontend.js` — nó **dời `.env.local` ra khỏi đường lúc dựng**.
+  Đừng gọi thẳng `opennextjs-cloudflare deploy`. Nghiệm thu mỗi lần:
+  `curl -s https://tsudev.com/api/auth/providers` phải CHỈ có `keycloak`.
+- **(cũ, vẫn đúng)** `NEXT_PUBLIC_*` được nội
   suy lúc build; `apps/*/.env.local` sinh tự động mỗi lần chạy dev và trỏ về
   `tsudev.localhost`; lệnh deploy chạy trên máy dev. Vì vậy `deploy`/`preview`/
   `upload` truyền biến thẳng vào shell qua `scripts/topology/prod-url.js` —

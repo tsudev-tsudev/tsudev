@@ -30,3 +30,6 @@ e2e/test-results/
 # Bản xuất dữ liệu trước migration DROP — có thể chứa dữ liệu production.
 # KHÔNG commit. Xem scripts/export-legacy-data.js
 backup/
+
+# File .env.local được dời tạm khi deploy (scripts/deploy-frontend.js).
+.env.local.deploy-stash

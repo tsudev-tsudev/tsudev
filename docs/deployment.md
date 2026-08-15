@@ -23,27 +23,39 @@ Worker tên `tsudev`. `wrangler.jsonc` có **service binding tự trỏ về ch�
 (`WORKER_SELF_REFERENCE`) mà OpenNext cần cho tầng cache — tên binding phải khớp
 đúng tên worker, đổi tên worker mà quên sửa binding thì cache hỏng lặng lẽ.
 
-### Bẫy: `.env.local` thắng `.env.production`
+### Bẫy: `.env.local` thắng `.env.production` — đã từng thành lỗ hổng thật
 
 `NEXT_PUBLIC_*` được Next **nội suy lúc build**, không đọc lúc chạy — nên không
 đặt được từ dashboard Cloudflare. Giá trị production nằm ở
 `apps/frontend-main/.env.production` (sinh từ `config/topology.json`).
 
-Nhưng **file đó một mình không đủ**: Next xếp `.env.local` cao hơn
-`.env.production`, mà `apps/*/.env.local` được sinh tự động mỗi lần chạy dev và
-trỏ về `tsudev.localhost`. Lệnh deploy chạy **trên máy dev** ⇒ chỉ dựa vào
-`.env.production` là bản deploy thật mang URL dev (`tsudev.localhost`) trong
-thẻ canonical, ảnh OG và `sitemap.xml`. Không có gì báo lỗi.
+Nhưng Next xếp **`.env.local` CAO HƠN `.env.production`**, mà
+`apps/frontend-main/.env.local` là **bản sao nguyên văn `.env` gốc** (do
+`scripts/write-env-local.js` sinh), và lệnh deploy chạy **trên máy dev**.
 
-Vì vậy `deploy`/`preview`/`upload` truyền biến thẳng vào shell — biến đã có
-trong môi trường thì Next **không** ghi đè:
+Ngày 16/08/2026 điều này đã thành lỗ hổng thật trên production: bản dựng mang
+theo `E2E_BYPASS_KEYCLOAK=1`, nên NextAuth bật provider `e2e-dev` và **bất kỳ ai
+cũng đăng nhập được vào tài khoản ADMIN bằng mật khẩu `devpass`**. Cùng đường đó
+còn kéo theo `NEXTAUTH_SECRET=change-me-secret`, `KEYCLOAK_CLIENT_SECRET=dev-secret`
+và khoá ký dev. Site vẫn chạy bình thường; không có gì báo lỗi.
 
-```json
-"deploy": "NEXT_PUBLIC_MAIN_URL=$(node ../../scripts/topology/prod-url.js main) opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+Vì thế `deploy`/`preview`/`upload` **không gọi thẳng `opennextjs-cloudflare`**
+nữa mà đi qua `scripts/deploy-frontend.js`. Script đó **dời `.env.local` ra khỏi
+đường trong suốt lúc dựng** rồi trả lại (kể cả khi bị Ctrl-C; lần chạy sau còn
+tự dọn tàn dư). Chặn từng biến một là trò đuổi bắt — mỗi biến dev mới thêm vào
+`.env` lại là một lỗ mới.
+
+```bash
+npm --workspace apps/frontend-main run deploy
 ```
 
-Kiểm sau khi build: `grep -o '<link rel="canonical"[^>]*>' .next/server/pages/terms.html`
-phải ra `https://tsudev.com/terms`.
+**Nghiệm thu sau mỗi lần deploy** — một lệnh, đáng chạy mọi lần:
+
+```bash
+curl -s https://tsudev.com/api/auth/providers   # phải CHỈ có "keycloak"
+```
+
+Thấy `e2e-dev` trong đó là bản dựng đã nhiễm giá trị dev — dừng và tìm nguồn.
 
 ## Backend — Render
 
