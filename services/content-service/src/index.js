@@ -67,7 +67,29 @@ app.use('/api', (req, res, next) => {
   return res.status(401).json({ error: 'Thiếu hoặc sai x-internal-token' })
 })
 
-app.use('/api', auth)
+// XÁC THỰC TUỲ CHỌN, không phải chặn cứng. Gắn req.user nếu người gọi có mang
+// danh tính; KHÔNG từ chối nếu không có.
+//
+// Trước đây đây là `app.use('/api', auth)` — chặn cứng — và nó làm production
+// trống trơn: blog, tài liệu và dự án là nội dung CÔNG KHAI, nhưng BFF của Next
+// gọi SSR chỉ kèm x-internal-token chứ không có Bearer JWT (không có phiên người
+// dùng nào khi khách vãng lai mở trang). Ở local không lộ ra vì AUTH_DEV_BYPASS
+// bật; ở production nó trả 401, `lib/api.js` nuốt lỗi thành [] nên TRIỆU CHỨNG
+// LÀ TRANG TRỐNG, KHÔNG PHẢI TRANG LỖI.
+//
+// An toàn vì đường ghi không dựa vào lớp này: mọi route ghi nằm dưới /api/admin
+// và tự gọi requireAdmin(), vốn đọc vai trò TỪ DB và trả 401 khi thiếu req.user
+// — fail closed. Đây cũng là hình mà storage-service (auth theo từng route) và
+// trust-service (auth theo nhánh) vốn đã dùng; content-service là cái lệch.
+//
+// Token SAI vẫn bị từ chối: chỉ bỏ qua khi người gọi không đưa gì cả.
+const optionalAuth = (req, res, next) => {
+  const bearer = /^Bearer /i.test(req.get('authorization') || '')
+  const devBypass = process.env.AUTH_DEV_BYPASS === 'true'
+  if (!bearer && !devBypass) return next()
+  return auth(req, res, next)
+}
+app.use('/api', optionalAuth)
 
 // ---------------- Blog ----------------
 app.get(
