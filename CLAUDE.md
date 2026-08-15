@@ -8,6 +8,11 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
+⚠️ **Còn việc dở NGOÀI repo: đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay.**
+`tsudev.com` đã lên sóng, nhưng ba service ở **tài khoản Render cũ** vẫn chạy và
+vẫn nối vào DB Neon production — một trong số đó ký bằng khoá khác. Xong việc
+trong đó thì xoá file và xoá cả đoạn này.
+
 ## Bản đồ
 
 **Nguồn sự thật về cổng/tên miền là `config/topology.json`**, không phải bảng
@@ -148,6 +153,13 @@ nguồn là hiện trạng; TSD là đích đến.
   buộc công khai) trả 401, **không có gì báo lỗi**. Thêm route có tiền tố chưa
   nằm trong bảng ⇒ route đó **404 ở production** dù chạy service riêng vẫn sống.
   Sửa route thì sửa bảng trong `services/backend-bundle/src/index.js`.
+- **`/api` của content-service dùng XÁC THỰC TUỲ CHỌN, không phải chặn cứng.**
+  Blog/tài liệu/dự án là nội dung công khai và BFF gọi SSR không mang Bearer
+  token. Chặn cứng từng làm production **trống trơn** — `lib/api.js` nuốt 401
+  thành `[]` nên triệu chứng là trang trống, không phải trang lỗi, và local
+  không lộ ra vì `.env` bật `AUTH_DEV_BYPASS`. Đường ghi an toàn vì nằm dưới
+  `/api/admin` và tự gọi `requireAdmin()` (đọc vai trò từ DB, fail closed).
+  Thêm route ghi mới thì phải theo khuôn đó, đừng dựa vào middleware.
 - **`.env.local` THẮNG `.env.production` trong Next — đã từng thành lỗ hổng.**
   `apps/*/.env.local` là bản sao nguyên văn `.env` gốc, và lệnh deploy chạy trên
   máy dev. Ngày 16/08/2026 bản production đã mang theo `E2E_BYPASS_KEYCLOAK=1`:

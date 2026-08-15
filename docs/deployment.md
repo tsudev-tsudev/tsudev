@@ -162,6 +162,26 @@ quanh chỗ này; đừng lặp lại:
 
 Realm production: `apps/sso-auth/keycloak/realm-export.prod.json` (khác bản dev).
 
+⚠️ **`--import-realm` chỉ import khi realm CHƯA tồn tại.** Sửa file realm trong
+repo rồi deploy lại **không** đổi được realm đang chạy — Keycloak bỏ qua trong im
+lặng. Muốn đổi cấu hình realm đã chạy thì phải sửa qua Admin console/API, hoặc
+xoá realm rồi cho import lại (mất toàn bộ user của realm đó).
+
+Lấy client secret bằng API thay vì mò console:
+
+```bash
+KC=https://auth.tsudev.com
+TOK=$(curl -s -X POST "$KC/realms/master/protocol/openid-connect/token" \
+  -d client_id=admin-cli -d username=tsudev-admin \
+  --data-urlencode "password=$KEYCLOAK_ADMIN_PASSWORD" -d grant_type=password \
+  | node -pe "JSON.parse(require('fs').readFileSync(0)).access_token")
+curl -s -H "Authorization: Bearer $TOK" \
+  "$KC/admin/realms/tsudev/clients?clientId=tsudev-frontend"
+```
+
+Service ngủ dậy mất tới ~2 phút. Lệnh đăng nhập trả `invalid_grant` ngay sau khi
+Render vừa khởi động **không có nghĩa là sai mật khẩu** — đợi rồi thử lại.
+
 ## Hợp đồng cổng & tên miền
 
 Nguồn sự thật là **`config/topology.json`**. Nó khai cả hình trạng dev lẫn tên

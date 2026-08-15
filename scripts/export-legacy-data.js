@@ -9,6 +9,15 @@
 //
 // Ghi ra backup/legacy-<ngày>/<Model>.json + manifest.json. Thoát khác 0 nếu có
 // bảng nào không đọc được — thà dừng còn hơn xuất thiếu rồi tưởng là đã xong.
+//
+// ⚠️ SCRIPT NÀY NAY LUÔN BÁO "đã qua migration DROP" — ĐỪNG TIN NÓ.
+// Cửa vào bên dưới kiểm `prisma[model]`, mà Prisma client đã được sinh từ schema
+// ĐÃ XOÁ các model đó, nên điều kiện luôn đúng bất kể DB thật ra sao. Giữ file
+// lại làm hiện vật lịch sử. Muốn biết DB thật có bảng cũ hay không thì hỏi thẳng
+// catalog, đừng hỏi Prisma client:
+//
+//   SELECT relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+//   WHERE n.nspname='public' AND c.relkind='r';
 
 const fs = require('fs');
 const path = require('path');
