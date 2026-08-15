@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
 import { Layout, Card, Button, SectionHeading, Badge } from '@tsudev/ui';
 
@@ -48,9 +48,7 @@ export default function AdminHome() {
 
   return (
     <Layout active="/admin" bare>
-      <Head>
-        <title>Quản trị — tsudev</title>
-      </Head>
+      <Seo title="Quản trị" path="/admin" noindex />
       <div className="max-w-5xl mx-auto px-4 py-10">
         <SectionHeading
           eyebrow="Bảng điều khiển"

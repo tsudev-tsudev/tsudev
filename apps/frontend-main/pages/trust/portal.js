@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { useRouter } from 'next/router';
 import { useSession, signIn } from 'next-auth/react';
 import { Layout, Button, Badge, SectionHeading } from '@tsudev/ui';
@@ -56,9 +56,7 @@ export default function TrustPortal() {
   if (status !== 'loading' && !session) {
     return (
       <Layout active="/trust" bare>
-        <Head>
-          <title>Hồ sơ con dấu — tsudev</title>
-        </Head>
+        <Seo title="Hồ sơ con dấu" path="/trust/portal" noindex />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <h1 className="text-2xl font-bold text-ink mb-2">Hồ sơ con dấu của bạn</h1>
           <p className="text-inksoft mb-6">
@@ -76,9 +74,7 @@ export default function TrustPortal() {
 
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>Hồ sơ con dấu — tsudev</title>
-      </Head>
+      <Seo title="Hồ sơ con dấu" path="/trust/portal" noindex />
       <div className="max-w-4xl mx-auto px-4 py-12">
         <SectionHeading
           eyebrow="Cổng khách hàng"

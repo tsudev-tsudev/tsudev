@@ -23,6 +23,28 @@ Worker tên `tsudev`. `wrangler.jsonc` có **service binding tự trỏ về ch�
 (`WORKER_SELF_REFERENCE`) mà OpenNext cần cho tầng cache — tên binding phải khớp
 đúng tên worker, đổi tên worker mà quên sửa binding thì cache hỏng lặng lẽ.
 
+### Bẫy: `.env.local` thắng `.env.production`
+
+`NEXT_PUBLIC_*` được Next **nội suy lúc build**, không đọc lúc chạy — nên không
+đặt được từ dashboard Cloudflare. Giá trị production nằm ở
+`apps/frontend-main/.env.production` (sinh từ `config/topology.json`).
+
+Nhưng **file đó một mình không đủ**: Next xếp `.env.local` cao hơn
+`.env.production`, mà `apps/*/.env.local` được sinh tự động mỗi lần chạy dev và
+trỏ về `tsudev.localhost`. Lệnh deploy chạy **trên máy dev** ⇒ chỉ dựa vào
+`.env.production` là bản deploy thật mang URL dev (`tsudev.localhost`) trong
+thẻ canonical, ảnh OG và `sitemap.xml`. Không có gì báo lỗi.
+
+Vì vậy `deploy`/`preview`/`upload` truyền biến thẳng vào shell — biến đã có
+trong môi trường thì Next **không** ghi đè:
+
+```json
+"deploy": "NEXT_PUBLIC_MAIN_URL=$(node ../../scripts/topology/prod-url.js main) opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+```
+
+Kiểm sau khi build: `grep -o '<link rel="canonical"[^>]*>' .next/server/pages/terms.html`
+phải ra `https://tsudev.com/terms`.
+
 ## Backend — Render
 
 Blueprint `render.yaml` khai báo 4 web service, tất cả `plan: free`,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { useRouter } from 'next/router';
 import { useSession, signIn } from 'next-auth/react';
 import { Layout, Button, Badge, SectionHeading } from '@tsudev/ui';
@@ -141,9 +141,7 @@ export default function TrustApply({ programs, preselect }) {
   if (status !== 'loading' && !session) {
     return (
       <Layout active="/trust" bare>
-        <Head>
-          <title>Đăng ký cấp dấu — tsudev</title>
-        </Head>
+        <Seo title="Đăng ký cấp dấu" path="/trust/apply" noindex />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <h1 className="text-2xl font-bold text-ink mb-2">Đăng ký cấp con dấu</h1>
           <p className="text-inksoft mb-6">Bạn cần đăng nhập bằng tài khoản tsudev để nộp hồ sơ.</p>
@@ -157,9 +155,7 @@ export default function TrustApply({ programs, preselect }) {
 
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>Đăng ký cấp dấu — tsudev</title>
-      </Head>
+      <Seo title="Đăng ký cấp dấu" path="/trust/apply" noindex />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <SectionHeading
           eyebrow="Đăng ký"

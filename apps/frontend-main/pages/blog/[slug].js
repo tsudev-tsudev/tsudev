@@ -1,10 +1,10 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { Layout, Card, Badge, Avatar } from '@tsudev/ui';
 import { api } from '../../lib/api';
 import { renderMarkdown } from '../../lib/md';
 
-export default function BlogPost({ post }) {
+export default function BlogPost({ post, slug }) {
   if (!post)
     return (
       <Layout>
@@ -13,10 +13,13 @@ export default function BlogPost({ post }) {
     );
   return (
     <Layout active="/blog" bare>
-      <Head>
-        <title>{post.title} — Blog tsudev</title>
-        <meta name="description" content={post.excerpt || ''} />
-      </Head>
+      <Seo
+        title={post.title}
+        path={`/blog/${slug}`}
+        description={post.excerpt || undefined}
+        type="article"
+        publishedAt={post.createdAt}
+      />
       <article className="max-w-3xl mx-auto px-4 py-10">
         <nav className="text-sm text-muted mb-4">
           <a href="/blog" className="hover:text-brandink">
@@ -50,5 +53,5 @@ export default function BlogPost({ post }) {
 
 export async function getServerSideProps({ params }) {
   const post = await api.post(params.slug);
-  return { props: { post } };
+  return { props: { post, slug: params.slug } };
 }

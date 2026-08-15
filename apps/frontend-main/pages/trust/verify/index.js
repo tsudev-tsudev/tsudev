@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Head from 'next/head';
+import Seo from '../../../components/Seo';
 import { useRouter } from 'next/router';
 import { Layout, Button } from '@tsudev/ui';
 
@@ -13,9 +13,11 @@ export default function VerifySearch() {
   };
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>Tra cứu con dấu — tsudev</title>
-      </Head>
+      <Seo
+        title="Tra cứu con dấu"
+        path="/trust/verify"
+        description="Tra cứu và xác minh chứng chỉ con dấu tín nhiệm tsudev theo số serial."
+      />
       <div className="max-w-2xl mx-auto px-4 py-16">
         <div className="font-mono text-xs uppercase tracking-wider text-teal font-semibold mb-3">
           Xác thực

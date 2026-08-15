@@ -11,11 +11,18 @@
 
 const fs = require('fs');
 const path = require('path');
-const { ROOT, loadTopology, managedEnv } = require('./load');
+const { ROOT, loadTopology, managedEnv, managedProdEnv } = require('./load');
 
 const BEGIN = '# >>> topology: sinh tự động, đừng sửa tay >>>';
 const END = '# <<< topology <<<';
-const TARGETS = ['.env', '.env.example'];
+// Hai nhóm biến khác hẳn nhau: .env* mang URL DEV, còn .env.production mang URL
+// PRODUCTION mà Next nướng vào bundle lúc build. Dùng chung một bộ là đưa
+// localhost lên production.
+const TARGETS = [
+  { file: '.env', vars: managedEnv },
+  { file: '.env.example', vars: managedEnv },
+  { file: 'apps/frontend-main/.env.production', vars: managedProdEnv },
+];
 
 function syncFile(file, vars, { check }) {
   const abs = path.join(ROOT, file);
@@ -70,11 +77,10 @@ const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function main() {
   const check = process.argv.includes('--check');
   const topo = loadTopology();
-  const vars = managedEnv(topo);
 
   let drifted = false;
-  TARGETS.forEach((file) => {
-    const r = syncFile(file, vars, { check });
+  TARGETS.forEach(({ file, vars }) => {
+    const r = syncFile(file, vars(topo), { check });
     if (r.skipped) return console.log(`- ${file} (không có, bỏ qua)`);
     if (!r.drifted) return console.log(`✓ ${file} khớp topology`);
     drifted = true;

@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { Layout, Card, Badge, SectionHeading, Avatar } from '@tsudev/ui';
 import { api } from '../../lib/api';
 
@@ -13,9 +13,7 @@ function timeAgo(d) {
 export default function BlogIndex({ posts }) {
   return (
     <Layout active="/blog" bare>
-      <Head>
-        <title>Blog — tsudev</title>
-      </Head>
+      <Seo title="Blog" path="/blog" description="Bài viết và hướng dẫn kỹ thuật trên tsudev." />
       <div className="max-w-5xl mx-auto px-4 py-10">
         <SectionHeading eyebrow="Blog" title="Bài viết & hướng dẫn" />
         <div className="grid md:grid-cols-2 gap-4">

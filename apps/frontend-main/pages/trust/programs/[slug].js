@@ -1,17 +1,14 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../../components/Seo';
 import { Layout, Button, Badge } from '@tsudev/ui';
 import { trust } from '../../../lib/trust';
 import { api } from '../../../lib/api';
 import { KIND_LABEL, COPYRIGHT } from '../../../lib/projectLabels';
 
-export default function ProgramDetail({ program, projects }) {
+export default function ProgramDetail({ program, projects, slug }) {
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>{`${program.name} — Con dấu tín nhiệm tsudev`}</title>
-        <meta name="description" content={program.summary} />
-      </Head>
+      <Seo title={program.name} path={`/trust/programs/${slug}`} description={program.summary} />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <nav className="text-sm text-muted mb-5">
           <a href="/trust" className="hover:text-brandink">
@@ -136,5 +133,5 @@ export async function getServerSideProps({ params }) {
   // nhỏ, và mỗi tham số lọc mới là một mặt tiếp xúc phải kiểm chứng.
   const all = await api.projects(100);
   const projects = all.filter((p) => p.trustProgramSlug === slug);
-  return { props: { program, projects } };
+  return { props: { program, projects, slug } };
 }

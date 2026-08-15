@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from './Seo';
 import { Layout, Badge } from '@tsudev/ui';
 
 // Khung chung cho các trang văn bản dài (Điều khoản, Quyền riêng tư, Nội quy).
@@ -7,10 +7,7 @@ import { Layout, Badge } from '@tsudev/ui';
 // dẫn chiếu tới từng mục nên đây là yêu cầu bắt buộc, không phải trang trí.
 export const LegalDoc = ({ eyebrow, title, lead, updated, effective, sections, note, active }) => (
   <Layout active={active} bare>
-    <Head>
-      <title>{`${title} — tsudev`}</title>
-      <meta name="description" content={lead} />
-    </Head>
+    <Seo title={title} path={active} description={lead} />
 
     <div className="max-w-6xl mx-auto px-4 py-12">
       <header className="max-w-3xl">

@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../components/Seo';
 import { Layout, Button, Card, Badge, SectionHeading, Avatar, Stat } from '@tsudev/ui';
 import { api } from '../lib/api';
 import { trust } from '../lib/trust';
@@ -47,13 +47,10 @@ function timeAgo(date) {
 export default function Home({ posts, certified, projects, totals }) {
   return (
     <Layout active="/" bare>
-      <Head>
-        <title>tsudev — Hệ sinh thái công nghệ cho Developer</title>
-        <meta
-          name="description"
-          content="tsudev: blog, tài liệu, dự án mã nguồn và con dấu tín nhiệm. Decoding the Future, One Commit at a Time."
-        />
-      </Head>
+      <Seo
+        path="/"
+        description="Dự án & bản quyền, blog kỹ thuật, tài liệu và con dấu tín nhiệm — website dự án cá nhân của tsudev."
+      />
 
       {/* ---------- HERO ---------- */}
       <section className="relative overflow-hidden border-b border-hairline">

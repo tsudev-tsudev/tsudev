@@ -1,7 +1,7 @@
 {
-  "name": "tsudev — Hệ sinh thái công nghệ cho developer",
+  "name": "tsudev — Dự án, bản quyền và con dấu tín nhiệm",
   "short_name": "tsudev",
-  "description": "Decoding the Future, One Commit at a Time.",
+  "description": "Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, con dấu tín nhiệm.",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#000000",

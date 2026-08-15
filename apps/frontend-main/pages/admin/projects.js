@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
 import { Layout, Card, Button, Input, Badge, SectionHeading } from '@tsudev/ui';
 import {
@@ -165,9 +165,7 @@ export default function AdminProjects() {
 
   return (
     <Layout active="/admin" bare>
-      <Head>
-        <title>Quản lý dự án — tsudev</title>
-      </Head>
+      <Seo title="Quản lý dự án" path="/admin/projects" noindex />
       <div className="max-w-5xl mx-auto px-4 py-10">
         <SectionHeading
           eyebrow="Quản trị"

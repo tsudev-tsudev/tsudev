@@ -107,6 +107,17 @@ function managedEnv(topo, env = 'dev') {
   return out;
 }
 
+/**
+ * Biến BUILD-TIME của bản dựng production. Next nội suy NEXT_PUBLIC_* vào bundle
+ * lúc `next build`, nên không đặt được từ dashboard Cloudflare lúc chạy: giá trị
+ * phải nằm sẵn trong apps/frontend-main/.env.production được commit. Quên nó thì
+ * sitemap, thẻ canonical và ảnh OG của production phát ra
+ * http://tsudev.localhost:8080 — sai mà không có gì báo lỗi.
+ */
+function managedProdEnv(topo) {
+  return { NEXT_PUBLIC_MAIN_URL: prodUrl(topo, 'main') };
+}
+
 /** Mọi cổng hợp lệ ở mọi môi trường — check.js dùng để bắt số lạ. */
 function knownPorts(topo) {
   const set = new Set(topo.nodes.map((n) => n.port));
@@ -128,6 +139,7 @@ module.exports = {
   publicUrl,
   prodUrl,
   managedEnv,
+  managedProdEnv,
   knownPorts,
 };
 

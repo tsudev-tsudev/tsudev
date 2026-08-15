@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { Layout, Button, SectionHeading, Badge } from '@tsudev/ui';
 import { trust } from '../../lib/trust';
 
@@ -29,13 +29,11 @@ const STEPS = [
 export default function TrustLanding({ programs, stats }) {
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>Con dấu tín nhiệm — tsudev</title>
-        <meta
-          name="description"
-          content="tsudev cấp con dấu tín nhiệm cho website: xác minh bản quyền, chứng nhận sở hữu, chứng chỉ bảo mật và tuân thủ bảo vệ dữ liệu."
-        />
-      </Head>
+      <Seo
+        title="Con dấu tín nhiệm"
+        path="/trust"
+        description="tsudev cấp con dấu tín nhiệm cho website: xác minh bản quyền, chứng nhận sở hữu, chứng chỉ bảo mật và tuân thủ bảo vệ dữ liệu."
+      />
 
       <section className="relative overflow-hidden border-b border-hairline">
         <div className="absolute inset-0 tsu-grid opacity-70" aria-hidden="true" />

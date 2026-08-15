@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { Layout, Card, Badge, Button } from '@tsudev/ui';
 import { api } from '../../lib/api';
 import { renderMarkdown } from '../../lib/md';
@@ -16,7 +16,7 @@ function Row({ label, children }) {
   );
 }
 
-export default function ProjectDetail({ project }) {
+export default function ProjectDetail({ project, slug }) {
   if (!project)
     return (
       <Layout active="/projects">
@@ -28,10 +28,11 @@ export default function ProjectDetail({ project }) {
 
   return (
     <Layout active="/projects" bare>
-      <Head>
-        <title>{project.name} — Dự án tsudev</title>
-        <meta name="description" content={project.summary || ''} />
-      </Head>
+      <Seo
+        title={project.name}
+        path={`/projects/${slug}`}
+        description={project.summary || undefined}
+      />
       <div className="max-w-4xl mx-auto px-4 py-10">
         <nav className="text-sm text-muted mb-4">
           <a href="/projects" className="hover:text-brandink">
@@ -137,5 +138,5 @@ export default function ProjectDetail({ project }) {
 
 export async function getServerSideProps({ params }) {
   const project = await api.project(params.slug);
-  return { props: { project } };
+  return { props: { project, slug: params.slug } };
 }

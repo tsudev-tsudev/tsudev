@@ -1,14 +1,12 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { Layout, Card, SectionHeading } from '@tsudev/ui';
 import { api } from '../../lib/api';
 
 export default function DocsIndex({ groups }) {
   return (
     <Layout active="/docs" bare>
-      <Head>
-        <title>Tài liệu — tsudev</title>
-      </Head>
+      <Seo title="Tài liệu" path="/docs" description="Kho tri thức và hướng dẫn của tsudev." />
       <div className="max-w-4xl mx-auto px-4 py-10">
         <SectionHeading eyebrow="Tài liệu" title="Kho tri thức & hướng dẫn" />
         {groups.length === 0 && <Card className="p-6 text-muted">Chưa có tài liệu.</Card>}

@@ -346,7 +346,7 @@ function buildIco(entries) {
 async function main() {
   for (const pub of APPS) ensureDir(pub);
 
-  console.log('\n[1/4] Logo — xoá nền');
+  console.log('\n[1/5] Logo — xoá nền');
   const logoTransparent = await removeBackground(path.join(SRC, 'logo.jpeg'));
   let logoTrimmed = await sharp(logoTransparent).trim().png().toBuffer();
 
@@ -389,7 +389,7 @@ async function main() {
     );
   }
 
-  console.log('\n[2/4] Avatar mặc định — quả cầu lưới, 6 tông × 2 mức chi tiết');
+  console.log('\n[2/5] Avatar mặc định — quả cầu lưới, 6 tông × 2 mức chi tiết');
   for (const d of [DETAIL.lg, DETAIL.sm]) {
     for (const v of AVATAR_VARIANTS) {
       const svg = networkGlobeSvg({ hue: BASE_HUE + v.hue, size: d.size, detail: d });
@@ -400,7 +400,7 @@ async function main() {
     }
   }
 
-  console.log('\n[3/4] Favicon — xoá nền trắng, sinh mọi cỡ từ bản 512');
+  console.log('\n[3/5] Favicon — xoá nền trắng, sinh mọi cỡ từ bản 512');
   // Bộ favicon gốc bị nung sẵn nền trắng (0% pixel trong suốt). Tách nền trên
   // bản 512 rồi thu nhỏ xuống các cỡ còn lại: hạ cỡ từ ảnh ĐÃ có alpha cho biên
   // mượt, tốt hơn nhiều so với tách nền trực tiếp trên ảnh 16px.
@@ -424,11 +424,11 @@ async function main() {
   for (const size of [16, 32, 48]) icoEntries.push({ size, data: await iconAt(size) });
   emit('favicon.ico', buildIco(icoEntries));
 
-  console.log('\n[4/4] Web app manifest');
+  console.log('\n[4/5] Web app manifest');
   const manifest = {
-    name: 'tsudev — Hệ sinh thái công nghệ cho developer',
+    name: 'tsudev — Dự án, bản quyền và con dấu tín nhiệm',
     short_name: 'tsudev',
-    description: 'Decoding the Future, One Commit at a Time.',
+    description: 'Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, con dấu tín nhiệm.',
     start_url: '/',
     display: 'standalone',
     // Khớp với giao diện tối duy nhất của site (xem packages/ui/src/tokens.css).
@@ -441,6 +441,52 @@ async function main() {
     ],
   };
   emit('site.webmanifest', Buffer.from(JSON.stringify(manifest, null, 2) + '\n'));
+
+  // Ảnh xem trước khi chia sẻ link (Facebook, X, Zalo, Telegram, Slack...).
+  // 1200×630 là tỉ lệ các nền tảng đó cắt theo; logo gốc là ảnh DỌC nên nếu
+  // đưa thẳng vào thẻ og:image thì bị cắt cụt hai đầu. Vì vậy dựng riêng.
+  console.log('\n[5/5] Ảnh Open Graph 1200×630');
+  const OG_W = 1200;
+  const OG_H = 630;
+  // Nền dùng --surface/--panel của packages/ui/src/tokens.css: ảnh xem trước
+  // phải trông như cùng một site, không phải một tấm bìa rời.
+  const ogBackdrop = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_W}" height="${OG_H}">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#121212"/><stop offset="100%" stop-color="#000000"/>
+        </linearGradient>
+      </defs>
+      <rect width="${OG_W}" height="${OG_H}" fill="url(#bg)"/>
+      <rect x="0" y="${OG_H - 6}" width="${OG_W}" height="6" fill="#2bd0b8"/>
+      <text x="${OG_W / 2}" y="${OG_H - 96}" text-anchor="middle"
+            font-family="DejaVu Sans, Verdana, sans-serif" font-size="30" fill="#8a8a8a">
+        Dự án &amp; bản quyền · Blog · Tài liệu · Con dấu tín nhiệm
+      </text>
+      <text x="${OG_W / 2}" y="${OG_H - 50}" text-anchor="middle"
+            font-family="DejaVu Sans, Verdana, sans-serif" font-size="24" fill="#2bd0b8">
+        tsudev.com
+      </text>
+    </svg>`
+  );
+  const ogLogo = await sharp(logoTrimmed)
+    .resize({ height: 340, fit: 'inside', withoutEnlargement: false })
+    .png(pngOpts)
+    .toBuffer();
+  const ogLogoMeta = await sharp(ogLogo).metadata();
+  emit(
+    'og-image.png',
+    await sharp(ogBackdrop)
+      .composite([
+        {
+          input: ogLogo,
+          left: Math.round((OG_W - ogLogoMeta.width) / 2),
+          top: 70,
+        },
+      ])
+      .png(pngOpts)
+      .toBuffer()
+  );
 
   console.log('\nXong. Đầu ra:');
   for (const pub of APPS) console.log('  ' + path.relative(ROOT, pub));

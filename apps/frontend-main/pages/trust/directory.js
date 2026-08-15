@@ -1,18 +1,16 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { Layout, Badge, SectionHeading } from '@tsudev/ui';
 import { trust, fmtDate } from '../../lib/trust';
 
 export default function TrustDirectory({ certificates, programs, activeProgram }) {
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>Thư mục website được cấp dấu — tsudev</title>
-        <meta
-          name="description"
-          content="Danh sách công khai các website đang được tsudev cấp con dấu tín nhiệm."
-        />
-      </Head>
+      <Seo
+        title="Thư mục website được cấp dấu"
+        path="/trust/directory"
+        description="Danh sách công khai các website đang được tsudev cấp con dấu tín nhiệm."
+      />
       <div className="max-w-5xl mx-auto px-4 py-12">
         <SectionHeading eyebrow="Minh bạch" title="Website đang được cấp dấu" />
         <p className="text-muted -mt-3 mb-8 text-sm max-w-2xl">

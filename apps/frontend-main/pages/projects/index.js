@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { Layout, Card, Badge, SectionHeading } from '@tsudev/ui';
 import { api } from '../../lib/api';
 import { KIND_LABEL, STATUS_LABEL, COPYRIGHT } from '../../lib/projectLabels';
@@ -22,13 +22,11 @@ export default function ProjectsIndex({ projects }) {
 
   return (
     <Layout active="/projects" bare>
-      <Head>
-        <title>Dự án — tsudev</title>
-        <meta
-          name="description"
-          content="Dự án, công cụ và phần mềm do tsudev phát triển, kèm giấy phép và trạng thái đăng ký bản quyền."
-        />
-      </Head>
+      <Seo
+        title="Dự án"
+        path="/projects"
+        description="Dự án, công cụ và phần mềm do tsudev phát triển, kèm giấy phép và trạng thái đăng ký bản quyền."
+      />
       <div className="max-w-5xl mx-auto px-4 py-10">
         <SectionHeading
           eyebrow="Dự án"

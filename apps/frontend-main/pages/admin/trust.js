@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import Head from 'next/head';
+import Seo from '../../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
 import { Layout, Button, Badge, SectionHeading, Stat } from '@tsudev/ui';
 import { STATUS_META, fmtDate } from '../../lib/trust';
@@ -89,9 +89,7 @@ export default function AdminTrust() {
   if (status !== 'loading' && !session) {
     return (
       <Layout active="/admin" bare>
-        <Head>
-          <title>Quản trị con dấu — tsudev</title>
-        </Head>
+        <Seo title="Quản trị con dấu" path="/admin/trust" noindex />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
           <p className="text-inksoft mb-6">Bạn cần đăng nhập bằng tài khoản có quyền kiểm duyệt.</p>
           <Button onClick={() => signIn()} size="lg">
@@ -104,9 +102,7 @@ export default function AdminTrust() {
 
   return (
     <Layout active="/admin" bare>
-      <Head>
-        <title>Quản trị con dấu — tsudev</title>
-      </Head>
+      <Seo title="Quản trị con dấu" path="/admin/trust" noindex />
       <div className="max-w-6xl mx-auto px-4 py-10">
         <SectionHeading
           eyebrow="Nội bộ"

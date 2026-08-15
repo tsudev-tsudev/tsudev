@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../../components/Seo';
 import { Layout, Card, Badge, SectionHeading, Stat } from '@tsudev/ui';
 import { trust, STATUS_META, fmtDate } from '../../../lib/trust';
 
@@ -19,7 +19,7 @@ function Row({ label, children }) {
   );
 }
 
-export default function OrgProfile({ profile }) {
+export default function OrgProfile({ profile, id }) {
   if (!profile)
     return (
       <Layout active="/trust">
@@ -31,13 +31,11 @@ export default function OrgProfile({ profile }) {
 
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>{profile.name} — Hồ sơ tín nhiệm tsudev</title>
-        <meta
-          name="description"
-          content={`Hồ sơ tín nhiệm của ${profile.name}: chứng chỉ đang hiệu lực, tên miền đã xác minh và lịch sử giám sát.`}
-        />
-      </Head>
+      <Seo
+        title={profile.name}
+        path={`/trust/org/${id}`}
+        description={`Hồ sơ tín nhiệm của ${profile.name}: chứng chỉ đang hiệu lực, tên miền đã xác minh và lịch sử giám sát.`}
+      />
       <div className="max-w-4xl mx-auto px-4 py-10">
         <nav className="text-sm text-muted mb-4">
           <a href="/trust" className="hover:text-brandink">
@@ -183,5 +181,5 @@ export default function OrgProfile({ profile }) {
 
 export async function getServerSideProps({ params }) {
   const profile = await trust.profile(params.id);
-  return { props: { profile } };
+  return { props: { profile, id: params.id } };
 }

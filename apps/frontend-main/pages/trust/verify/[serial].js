@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import Seo from '../../../components/Seo';
 import { Layout, Badge, Button } from '@tsudev/ui';
 import { trust, STATUS_META, BASIS_META, fmtDate } from '../../../lib/trust';
 
@@ -24,9 +24,7 @@ export default function VerifyCertificate({ state, cert, serial }) {
     const unavailable = state === 'unavailable';
     return (
       <Layout active="/trust" bare>
-        <Head>
-          <title>{`Tra cứu ${serial} — Con dấu tín nhiệm tsudev`}</title>
-        </Head>
+        <Seo title={`Tra cứu ${serial}`} path={`/trust/verify/${serial}`} noindex />
         <div className="max-w-3xl mx-auto px-4 py-16">
           <div className="font-mono text-xs uppercase tracking-wider text-teal font-semibold mb-3">
             Xác thực con dấu
@@ -68,13 +66,11 @@ export default function VerifyCertificate({ state, cert, serial }) {
 
   return (
     <Layout active="/trust" bare>
-      <Head>
-        <title>{`${cert.serial} — ${meta.label} — Con dấu tín nhiệm tsudev`}</title>
-        <meta
-          name="description"
-          content={`Chứng chỉ ${cert.serial} cấp cho ${cert.hostname}: ${meta.label}. Chương trình ${cert.program?.name}.`}
-        />
-      </Head>
+      <Seo
+        title={`${cert.serial} — ${meta.label}`}
+        path={`/trust/verify/${serial}`}
+        description={`Chứng chỉ ${cert.serial} cấp cho ${cert.hostname}: ${meta.label}. Chương trình ${cert.program?.name}.`}
+      />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
         <div className="font-mono text-xs uppercase tracking-wider text-teal font-semibold mb-3">
