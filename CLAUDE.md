@@ -2,7 +2,7 @@
 
 Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, SSO, object storage,
 con dấu tín nhiệm. Monorepo npm workspaces.
-Repo: private, `github.com/b4djl1h/tsudev`.
+Repo: private, `github.com/tsudev-tsudev/tsudev`.
 
 > File này là NGỮ CẢNH TĨNH được nạp + cache ở đầu MỌI phiên. Đọc kỹ một lần,
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
@@ -32,6 +32,11 @@ biệt bằng subdomain, đúng hình trạng production.
 | `services/storage-service`| *(chỉ SSR/BFF)*                    | 4002        | presign S3/R2, upload            |
 | `services/trust-service`  | *(chỉ SSR/BFF)*                    | 4003        | con dấu tín nhiệm                |
 | PostgreSQL                | —                                  | 5433        | cluster user-space, **không** phải 5432 |
+
+⚠️ **Production KHÔNG chạy ba tiến trình như bảng trên.** Ba service backend gộp
+thành MỘT tiến trình `services/backend-bundle` (cổng 4000, `npm run dev:merged`).
+Render free chỉ cho 750 giờ instance/tháng cho cả tài khoản; ba tiến trình chạy
+liên tục cần 2160 giờ nên không giữ ấm được cái nào. Dev vẫn ba cổng cho dễ lặp.
 
 `packages/`: `@tsudev/db` (Prisma) · `@tsudev/ui` (design system) ·
 `@tsudev/types` · `@tsudev/utils` · `brand/` (ảnh nguồn) · `observability/`
@@ -137,6 +142,18 @@ nguồn là hiện trạng; TSD là đích đến.
 - **`main` không có branch protection** (GitHub Free + repo private). Lớp chắn
   duy nhất là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
   `ALLOW_MAIN_FORCE=1 git push`.
+- **`backend-bundle` điều phối theo BẢNG TIỀN TỐ đường dẫn**, không mount chồng
+  ba app. Mount thẳng thì `/api/trust/*` đi vào app content trước và dính cổng
+  chặn `INTERNAL_API_TOKEN` của nó ⇒ huy hiệu SVG, trang xác minh và JWKS (bắt
+  buộc công khai) trả 401, **không có gì báo lỗi**. Thêm route có tiền tố chưa
+  nằm trong bảng ⇒ route đó **404 ở production** dù chạy service riêng vẫn sống.
+  Sửa route thì sửa bảng trong `services/backend-bundle/src/index.js`.
+- **`.env.local` THẮNG `.env.production` trong Next.** `NEXT_PUBLIC_*` được nội
+  suy lúc build; `apps/*/.env.local` sinh tự động mỗi lần chạy dev và trỏ về
+  `tsudev.localhost`; lệnh deploy chạy trên máy dev. Vì vậy `deploy`/`preview`/
+  `upload` truyền biến thẳng vào shell qua `scripts/topology/prod-url.js` —
+  biến shell thì Next không ghi đè. Bỏ đoạn đó là canonical, ảnh OG và
+  `sitemap.xml` của production mang URL dev, **không có gì báo lỗi**.
 - `.prettierignore` cố ý bỏ qua `documents-tsudev.md` và `CLAUDE.md` — prettier
   đánh số lại danh sách và escape ký tự trong hai file này. Đừng gỡ ra.
 
