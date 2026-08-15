@@ -50,47 +50,74 @@ trả đúng; `/api/trust/directory` trả 200 dù `INTERNAL_API_TOKEN` đang b�
 `/api/posts` trả 401 khi thiếu token. Bất biến quan trọng nhất đứng vững trên
 dữ liệu thật.
 
-### 1.2 Dựng lại hạ tầng — **làm SAU §1.1**
+### 1.2 Dựng lại hạ tầng — ✅ **PHẦN LỚN XONG 16/08/2026**
 
-Không còn là "đẩy theo blueprint như thường lệ". Ba thứ đã đổi cùng lúc:
+**`https://tsudev.com` đã sống.** Cloudflare Workers phục vụ frontend qua hai
+tên miền tuỳ chỉnh (`tsudev.com`, `www.tsudev.com`, wrangler tự tạo bản ghi
+DNS); `tsudev-backend` và `tsudev-sso` chạy trên Render tại **singapore**;
+DNSSEC hoạt động; Email Routing hoạt động.
 
-- Repo chuyển sang `tsudev-tsudev/tsudev`; **Render vẫn đang nối với repo cũ**
-  `b4djl1h/tsudev`, nên push vào repo mới KHÔNG kích hoạt deploy nào. Điều này
-  vô tình là lớp bảo vệ: không có gì tự chạy trước khi bạn xong §1.1.
-- Ba service backend đã gộp thành một (`services/backend-bundle`).
-- **Region là bất biến trên Render** — bốn service cũ nằm ở Oregon; muốn sang
-  Singapore phải XOÁ và DỰNG LẠI, không có nút đổi.
+Một lỗi CHẶN PHÁT HÀNH phát hiện lúc nghiệm thu, đã vá (xem commit
+`fix(content)!: xác thực TUỲ CHỌN cho /api`): `content-service` chặn cứng cả
+`/api` bằng JWT, nhưng BFF của Next gọi SSR không mang Bearer token — khách vãng
+lai không có phiên nào. Ở local không lộ vì `.env` bật `AUTH_DEV_BYPASS`; ở
+production nó 401 và `lib/api.js` nuốt thành `[]`, nên **triệu chứng là trang
+trống chứ không phải trang lỗi**.
 
-Vì cả ba lý do, đây là dựng mới chứ không phải deploy lại.
+---
 
-```
-1. Render → New → Blueprint → chọn repo tsudev-tsudev/tsudev
-   Blueprint tạo 2 service: tsudev-backend, tsudev-sso (đều region singapore).
-   Render sẽ hỏi mọi biến `sync: false` — chuẩn bị sẵn giá trị cũ.
-2. Đối chiếu URL Render cấp cho tsudev-backend với 3 biến *_SERVICE_URL
-   trong apps/frontend-main/wrangler.jsonc. Khác thì sửa file rồi mới deploy.
-3. Keycloak: gắn custom domain auth.tsudev.com cho tsudev-sso.
-4. wrangler secret put NEXTAUTH_SECRET / KEYCLOAK_CLIENT_SECRET / INTERNAL_API_TOKEN
-5. npm --workspace apps/frontend-main run deploy
-   (routes custom_domain trong wrangler.jsonc tự tạo bản ghi DNS cho
-    tsudev.com và www.tsudev.com — không phải thêm tay)
-6. Xoá 4 service Oregon cũ. Làm SAU CÙNG: xoá trước là mất đường lùi.
-```
+## Còn đúng ba việc, tất cả trên dashboard
 
-**Vì sao phải sau §1.1:** mã mới đọc bảng `Project`. Chạy trước khi migrate thì
-`/projects` rỗng và `/projects/<slug>` trả 404. Trang chủ vẫn sống — `lib/api.js`
-nuốt lỗi thành `[]` — nên **triệu chứng là trang trống, không phải trang lỗi**.
-Đừng đi tìm bug ở chỗ khác.
+### a) Keycloak: gắn `auth.tsudev.com` — 🔴 chặn đăng nhập
 
-**Ngân sách giờ chạy:** free tier cho 750 giờ instance/tháng cho CẢ tài khoản.
-Giữ ấm `tsudev-backend` tiêu 720 giờ ⇒ `tsudev-sso` buộc phải được ngủ. Đừng
-đặt ping giữ ấm cho cả hai, vỡ ngân sách là Render dừng hết.
+Issuer hiện là `https://tsudev-sso.onrender.com/realms/tsudev`, trong khi
+`KEYCLOAK_ISSUER` ở Worker và Render đều khai `https://auth.tsudev.com/...`.
+Xác thực token so khớp **chuỗi issuer**, nên còn lệch là còn hỏng.
 
-**Nghiệm thu trên production, sau cả hai bước:**
+> Render → `tsudev-sso` → Settings → Custom Domains → thêm `auth.tsudev.com`.
+> Cloudflare sẽ cần một bản ghi CNAME; Render chỉ dẫn ngay tại đó.
 
-- `/projects` hiện 4 dự án, `/projects/tsudev-trust-seal` hiện số giấy chứng nhận
-- `/trust/directory` hiện chứng chỉ, bấm tên tổ chức ra `/trust/org/<id>`
-- `/blog`, `/docs` còn nguyên
+### b) Keycloak: client phải là confidential — 🔴 chặn đăng nhập
+
+Realm đã import **bản cũ** với `publicClient: true`, và `--import-realm` **không
+import lại** khi realm đã tồn tại — sửa file trong repo rồi deploy lại cũng vô
+ích. Phải sửa trên console:
+
+> Clients → `tsudev-frontend` → Settings → Client authentication = **On** → Save
+> → tab Credentials → copy Client secret, rồi:
+>
+> ```
+> cd apps/frontend-main && npx wrangler secret put KEYCLOAK_CLIENT_SECRET
+> ```
+>
+> Nhân tiện thêm `https://www.tsudev.com/*` vào Valid redirect URIs và
+> `https://www.tsudev.com` vào Web origins.
+
+`next-auth` truyền `clientSecret` khi đổi mã lấy token; public client thì
+Keycloak từ chối. Local không bao giờ lộ ra vì nó dùng `E2E_BYPASS_KEYCLOAK`.
+
+### c) Xoá 4 service Oregon cũ — 🟠 tốn ngân sách giờ chạy
+
+Free tier cho **750 giờ instance/tháng cho cả tài khoản**. Bốn service cũ vẫn
+đếm giờ. Làm sau cùng, sau khi chắc chắn bản mới ổn.
+
+---
+
+**Nghiệm thu trên production — đã chạy 16/08/2026, tất cả đạt:**
+
+| Kiểm                                                   | Kết quả                                      |
+| ------------------------------------------------------ | -------------------------------------------- |
+| `/`, `/projects`, `/blog`, `/docs`, `/trust`, `/terms` | 200, 0,2–0,7s                                |
+| `/projects`                                            | hiện đủ 4 dự án                              |
+| `/projects/tsudev-trust-seal`                          | 200, hiện thông tin bản quyền                |
+| `/blog/welcome-to-tsudev`, `/docs/getting-started`     | 200                                          |
+| `/trust/directory`                                     | "Chưa có" — **đúng**, DB mới nên 0 chứng chỉ |
+| `/sitemap.xml`                                         | 200, 23 URL, tất cả `https://tsudev.com/...` |
+| `/robots.txt`, `/feed.xml`                             | 200, đúng content-type                       |
+| canonical + `og:image`                                 | tuyệt đối, trỏ `https://tsudev.com`          |
+| `http://` → `https://`                                 | 301                                          |
+| `www.tsudev.com`                                       | 200                                          |
+| Huy hiệu SVG + JWKS (bên thứ ba gọi)                   | 200, không dính cổng chặn                    |
 
 ---
 
