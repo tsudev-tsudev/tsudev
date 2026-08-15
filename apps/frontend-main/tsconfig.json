@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "allowJs": true,
+    "isolatedModules": true,
+    // App này KHÔNG nằm trong `tsc -b` của repo: Next tự biên dịch, nên vai trò
+    // duy nhất của TypeScript ở đây là kiểm kiểu. Ba cờ dưới tắt phần phát sinh
+    // mã mà tsconfig.base bật cho các project composite.
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "incremental": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", ".next", ".open-next", "dist"]
+}
