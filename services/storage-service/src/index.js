@@ -322,8 +322,15 @@ if (typeof process !== 'undefined' && typeof process.on === 'function') {
   console.warn('[storage] process.on is not available; skipping global error handlers')
 }
 
-async function startServer() {
+/** Chuẩn bị trước khi phục vụ. Chạy ở CẢ hai chế độ: tiến trình riêng và nhúng
+ *  trong services/backend-bundle. Bỏ qua ở chế độ gộp là bucket không được tạo
+ *  và mọi lần upload đầu tiên hỏng. */
+async function init() {
   await ensureBucket()
+}
+
+async function startServer() {
+  await init()
   app.listen(port, bindHost, () => {
     console.log(`storage-service listening on ${port}`)
     try {
@@ -355,11 +362,14 @@ async function startServer() {
   })
 }
 
-// Only start the server when not running tests; export the app for unit tests
-if (process.env.NODE_ENV !== 'test') {
+// Only start the server when not running tests; export the app for unit tests.
+// EMBEDDED=1 do services/backend-bundle đặt trước khi require file này: ở chế
+// độ gộp chỉ tiến trình cha mở cổng, và chính nó gọi init(). Mở cổng riêng ở
+// đây là tranh cổng với cha.
+if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) {
   startServer().catch((err) => {
     console.error('[storage] failed to start', err && (err.stack || err))
   })
 }
 
-module.exports = { app, startServer }
+module.exports = { app, startServer, init }

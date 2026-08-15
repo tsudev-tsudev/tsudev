@@ -13,6 +13,7 @@
     "dev:local": "node scripts/run-dev.js",
     "bootstrap": "npm ci",
     "dev:services": "concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\"",
+    "dev:merged": "node services/backend-bundle/src/index.js",
     "dev:frontends": "npm run env:local && concurrently \"npm --workspace apps/frontend-main run dev\"",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx . --ignore-path .eslintignore",
     "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx . --fix --ignore-path .eslintignore",

@@ -42,6 +42,36 @@ Bốn service backend dùng **chung một image**
 Đổi cấu trúc package/workspace là đổi cả Dockerfile này. Đọc phần chú thích ở
 đầu file trước khi sửa.
 
+## Chế độ gộp — `services/backend-bundle`
+
+**Production chạy ba service backend trong MỘT tiến trình.** Đây là hình trạng
+thật, không phải tối ưu tuỳ chọn:
+
+- Render free cấp **750 giờ instance/tháng cho cả tài khoản**. Ba service chạy
+  liên tục cần 2160 giờ ⇒ không giữ ấm được cái nào ⇒ khách đầu tiên sau 15 phút
+  vắng phải chờ ~50s cold start. Một tiến trình cần 720 giờ — vừa đủ để ping giữ
+  ấm.
+- Một pool kết nối Prisma thay vì ba, đáng kể với giới hạn kết nối của Neon free.
+
+Nó **không phải API gateway**: không định tuyến lại, không đổi đường dẫn, không
+thêm lớp xác thực. Mỗi app con giữ nguyên middleware, cổng chặn và quy tắc auth
+của chính nó.
+
+Điều phối bằng **bảng tiền tố đường dẫn** trong `services/backend-bundle/src/index.js`.
+Vì sao không mount thẳng ba app chồng lên nhau: request `/api/trust/*` sẽ đi vào
+app content trước và dính cổng chặn `INTERNAL_API_TOKEN` của nó — huy hiệu SVG,
+trang xác minh và JWKS (bắt buộc công khai cho bên thứ ba) trả 401, **không có
+gì báo lỗi**. `services/backend-bundle/test/routing.test.js` canh đúng chỗ này.
+
+⚠️ **Thêm route mới với tiền tố chưa có trong bảng ⇒ route đó 404 ở production**
+dù chạy service riêng vẫn thấy nó sống. Sửa route thì sửa bảng.
+
+Chạy ở local đúng hình prod:
+
+```bash
+npm run dev:merged     # một tiến trình, cổng 4000
+```
+
 ## Keycloak trên Render — những vết đã trả giá
 
 Free tier giới hạn **512MB RAM**. Bốn lần sửa liên tiếp (commit #3–#7) đều xoay

@@ -1081,6 +1081,14 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: err && err.message ? err.message : 'internal error' })
 })
 
+/** Chuẩn bị trước khi phục vụ. Chạy ở CẢ hai chế độ: tiến trình riêng và nhúng
+ *  trong services/backend-bundle. Bộ giám sát định kỳ phải sống ở cả hai —
+ *  quên gọi init() ở chế độ gộp thì chứng chỉ hết hạn không ai kiểm lại, và
+ *  không có gì báo lỗi. */
+async function init() {
+  startScheduler()
+}
+
 async function startServer() {
   app.listen(port, bindHost, () =>
     console.log(
@@ -1089,9 +1097,12 @@ async function startServer() {
       })`
     )
   )
-  startScheduler()
+  await init()
 }
 
-if (process.env.NODE_ENV !== 'test') startServer().catch(() => {})
+// EMBEDDED=1 do services/backend-bundle đặt trước khi require file này: ở chế
+// độ gộp chỉ tiến trình cha mở cổng, và chính nó gọi init(). Mở cổng riêng ở
+// đây là tranh cổng với cha.
+if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) startServer().catch(() => {})
 
-module.exports = { app, startServer }
+module.exports = { app, startServer, init }

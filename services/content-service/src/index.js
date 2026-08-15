@@ -367,10 +367,19 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: err && err.message ? err.message : 'internal error' })
 })
 
+/** Chuẩn bị trước khi phục vụ. Chạy ở CẢ hai chế độ: tiến trình riêng và nhúng
+ *  trong services/backend-bundle. content-service không có gì phải dựng sẵn —
+ *  giữ hàm rỗng để ba service có cùng một hợp đồng khởi tạo. */
+async function init() {}
+
 async function startServer() {
+  await init()
   app.listen(port, bindHost, () => console.log(`content-service listening on ${bindHost}:${port}`))
 }
 
-if (process.env.NODE_ENV !== 'test') startServer().catch(() => {})
+// EMBEDDED=1 do services/backend-bundle đặt trước khi require file này: ở chế
+// độ gộp chỉ tiến trình cha mở cổng, và chính nó gọi init(). Mở cổng riêng ở
+// đây là tranh cổng với cha.
+if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) startServer().catch(() => {})
 
-module.exports = { app, startServer }
+module.exports = { app, startServer, init }
