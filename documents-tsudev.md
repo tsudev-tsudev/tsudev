@@ -24,7 +24,7 @@
 
 **Chủ sở hữu dự án:** Nguyễn Trang Tình Sử
 
-**Repo:** https://github.com/b4djl1h/tsudev (private)
+**Repo:** https://github.com/tsudev-tsudev/tsudev (private)
 
 **Tài liệu tham chiếu thiết kế nội bộ:** `documents-tsudev.html`
 
@@ -89,9 +89,9 @@ _(Tech stack đề xuất đảm bảo sự tương thích tối đa với quy t
 - **Infrastructure & DevOps:**
   - **Containerization:** Toàn bộ service phải được đóng gói bằng **Docker** (có sẵn `docker-compose.yml` và Dockerfile ở thư mục gốc repo).
   - **CI/CD:** Tích hợp **GitHub Actions** cho quy trình tự động kiểm tra code (Linting), quét bảo mật (Secret scanning), build image và deploy.
-    - **HTTPS** https://github.com/b4djl1h/tsudev.git
-    - **SSH** git@github.com:b4djl1h/tsudev.git
-    - **GitHub CLI** gh repo clone b4djl1h/tsudev
+    - **HTTPS** https://github.com/tsudev-tsudev/tsudev.git
+    - **SSH** git@github.com:tsudev-tsudev/tsudev.git
+    - **GitHub CLI** gh repo clone tsudev-tsudev/tsudev
   - **Security:** Quản lý truy cập nội bộ (Admin dashboard, Database port) thông qua Cloudflare Zero Trust (Tunnels).
 
 ## ---
@@ -112,7 +112,7 @@ _(Tech stack đề xuất đảm bảo sự tương thích tối đa với quy t
   - Phát hiện lỗi logic nghiêm trọng thông qua Sentry.
 - **Kênh nhận cảnh báo (Routing):**
   - **Telegram:** Cấu hình Webhook từ Sentry và New Relic gửi trực tiếp payload báo lỗi (bao gồm stack trace và link chi tiết) về bot Telegram, forward tới tài khoản: **@nguyentrangtinhsu**.
-  - **Email:** Gửi báo cáo tổng hợp và cảnh báo rớt mạng khẩn cấp về hộp thư: **nguyentrangtinhsu@gmail.com**.
+  - **Email:** Gửi báo cáo tổng hợp và cảnh báo rớt mạng khẩn cấp về hộp thư: **devnguyentrangtinhsu@gmail.com**.
 
 ## ---
 
@@ -145,7 +145,7 @@ tsudev/
 
 1. **SSO:** Dev team phải demo được việc đăng nhập tại auth.tsudev.com, sau đó tự động có phiên làm việc hợp lệ trên tsudev.com và có quyền tải file private từ kho lưu trữ.
 2. **Object Storage:** Khách truy cập tải một file tài liệu 100MB, header của trình duyệt phải hiển thị file được serve qua đường truyền của CDN (ví dụ cf-cache-status: HIT) chứ không tải trực tiếp từ băng thông của server backend.
-3. **Alerting:** Tạo ra một lỗi "chủ động" trên backend (ví dụ: chia cho 0 hoặc gọi một API không tồn tại), hệ thống phải tự động đẩy thông báo báo lỗi chi tiết đến Telegram @nguyentrangtinhsu và email nguyentrangtinhsu@gmail.com trong vòng 30 giây.
+3. **Alerting:** Tạo ra một lỗi "chủ động" trên backend (ví dụ: chia cho 0 hoặc gọi một API không tồn tại), hệ thống phải tự động đẩy thông báo báo lỗi chi tiết đến Telegram @nguyentrangtinhsu và email devnguyentrangtinhsu@gmail.com trong vòng 30 giây.
 4. **Code Quality:** Không chứa hardcode credentials. Repo phải chạy được trên môi trường cục bộ bằng một lệnh khởi tạo duy nhất (`docker-compose up`, hoặc `npm run dev:full` — đường chạy không cần Docker).
 
 ---

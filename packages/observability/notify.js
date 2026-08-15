@@ -54,7 +54,7 @@ async function _sendTelegram(text) {
 
 async function _sendEmail(payload) {
   const hook = process.env.ALERT_EMAIL_WEBHOOK;
-  const to = process.env.ALERT_EMAIL_TO || 'nguyentrangtinhsu@gmail.com';
+  const to = process.env.ALERT_EMAIL_TO || 'devnguyentrangtinhsu@gmail.com';
   if (!hook) {
     console.log(`[alert] EMAIL not configured — would email ${to}`);
     return { skipped: 'email' };

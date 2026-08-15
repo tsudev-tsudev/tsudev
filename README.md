@@ -1,6 +1,6 @@
 # tsudev — Developer Ecosystem
 
-[![CI](https://github.com/b4djl1h/tsudev/actions/workflows/ci.yml/badge.svg)](https://github.com/b4djl1h/tsudev/actions/workflows/ci.yml)
+[![CI](https://github.com/tsudev-tsudev/tsudev/actions/workflows/ci.yml/badge.svg)](https://github.com/tsudev-tsudev/tsudev/actions/workflows/ci.yml)
 
 Website dự án cá nhân của tsudev: **dự án & bản quyền** (ứng dụng, công cụ, thư
 viện — kèm giấy phép và trạng thái đăng ký quyền tác giả), blog, kho tài liệu,

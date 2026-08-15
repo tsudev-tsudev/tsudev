@@ -11,7 +11,7 @@ async function main() {
     update: {},
     create: {
       username: 'tsudev',
-      email: 'dev.nguyentrangtinhsu@gmail.com',
+      email: 'devnguyentrangtinhsu@gmail.com',
       displayName: 'Nguyễn Trang Tình Sử',
       role: 'ADMIN',
       credits: 500,
@@ -201,7 +201,7 @@ async function main() {
       status: 'BETA',
       version: '0.1.0',
       license: 'MIT',
-      repoUrl: 'https://github.com/b4djl1h/tsudev',
+      repoUrl: 'https://github.com/tsudev-tsudev/tsudev',
       copyrightStatus: 'PENDING',
       copyrightOwner: 'Nguyễn Trang Tình Sử',
       trustProgramSlug: 'copyright-verified',

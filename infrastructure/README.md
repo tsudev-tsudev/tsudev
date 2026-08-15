@@ -56,7 +56,7 @@ Không hardcode credential (tiêu chí §6.4).
 - **Sentry**: đặt `SENTRY_DSN` → `packages/observability/initSentry` tự bật cho cả server & browser.
   Cấu hình chi tiết: [../packages/observability/README.md](../packages/observability/README.md).
 - **New Relic**: `newrelic.js` + `NEW_RELIC_LICENSE_KEY`.
-- **Alerting**: `packages/observability/notify.js` gửi cảnh báo tới **Telegram** (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` → @nguyentrangtinhsu) và **email** (`ALERT_EMAIL_WEBHOOK` / `ALERT_EMAIL_TO=nguyentrangtinhsu@gmail.com`). Khi chưa cấu hình, hàm log "would send" (an toàn cho dev).
+- **Alerting**: `packages/observability/notify.js` gửi cảnh báo tới **Telegram** (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` → @nguyentrangtinhsu) và **email** (`ALERT_EMAIL_WEBHOOK` / `ALERT_EMAIL_TO=devnguyentrangtinhsu@gmail.com`). Khi chưa cấu hình, hàm log "would send" (an toàn cho dev).
   - Kích hoạt bởi: error rate > 1%, downtime, exception (gọi từ error handler của service).
   - Kiểm thử nhanh: `GET /debug/boom` trên content-service → 500 → dispatch cảnh báo (tiêu chí §6.3).
 
