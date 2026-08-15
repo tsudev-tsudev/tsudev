@@ -33,3 +33,6 @@ backup/
 
 # File .env.local được dời tạm khi deploy (scripts/deploy-frontend.js).
 .env.local.deploy-stash
+
+# tsc -b ghi cache biên dịch tăng dần cạnh mỗi tsconfig.
+*.tsbuildinfo

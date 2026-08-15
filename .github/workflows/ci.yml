@@ -20,6 +20,15 @@ jobs:
         run: npm run topology:check
       - run: npm run format:check
       - run: npm run lint --silent
+      # Cổng kiểm kiểu. Trước đây repo có typescript trong devDependencies
+      # và 3 file .ts/.tsx chạy thật, nhưng KHÔNG có tsconfig nào và không
+      # có bước tsc — esbuild chỉ xoá kiểu chứ không kiểm. Bước này đóng lỗ đó.
+      # Kiểm kiểu đọc kiểu Prisma qua packages/db/src/index.d.ts, mà client của
+      # Prisma là mã SINH RA — chưa generate thì tsc không tìm thấy @prisma/client.
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Kiểm kiểu (TypeScript)
+        run: npm run typecheck
 
   test:
     name: Migrate & test services
@@ -124,6 +133,8 @@ jobs:
       - run: npm ci
       - name: Generate Prisma client
         run: npm run db:generate
+      - name: Build TypeScript workspaces
+        run: npm run build:ts
       - name: Build Next.js apps
         run: |
           npm --workspace apps/frontend-main run build

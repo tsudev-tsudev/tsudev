@@ -10,7 +10,7 @@
   "scripts": {
     "env:local": "node scripts/write-env-local.js",
     "dev": "npm run env:local && concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\" \"npm --workspace apps/frontend-main run dev\"",
-    "dev:local": "node scripts/run-dev.js",
+    "dev:local": "npm run build:ts && node scripts/run-dev.js",
     "bootstrap": "npm ci",
     "dev:services": "concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\"",
     "dev:merged": "node services/backend-bundle/src/index.js",
@@ -29,10 +29,14 @@
     "db:generate": "npm --workspace packages/db run generate",
     "db:seed": "npm --workspace packages/db run seed",
     "db:reset": "npm --workspace packages/db exec -- prisma migrate reset --force",
-    "dev:full": "npm run db:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run dev:local"
+    "dev:full": "npm run db:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run dev:local",
+    "typecheck": "npm run build:ts && npm --workspace apps/frontend-main run typecheck",
+    "build:ts": "tsc -b",
+    "build:services": "tsc -b tsconfig.services.json"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "@types/jest": "^30.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "concurrently": "^8.2.0",
@@ -47,6 +51,7 @@
     "lint-staged": "^14.0.0",
     "playwright": "^1.59.1",
     "prettier": "^2.8.8",
+    "ts-jest": "^29.4.12",
     "typescript": "^5.5.0"
   },
   "lint-staged": {

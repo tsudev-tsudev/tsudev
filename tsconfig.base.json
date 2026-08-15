@@ -1,0 +1,40 @@
+{
+  // Cấu hình gốc dùng chung. KHÔNG build gì trực tiếp từ file này — mỗi
+  // workspace có tsconfig.json riêng `extends` về đây rồi khai `module` và
+  // `outDir` của mình. Solution file ở `tsconfig.json` gốc giữ danh sách
+  // references; `npm run typecheck` chạy `tsc -b` trên đó.
+  //
+  // `module` CỐ Ý không đặt ở đây: services cần `commonjs` (giữ nguyên ngữ
+  // nghĩa require() và bảng tiền tố của backend-bundle), app Next cần
+  // `esnext`. Đặt ở gốc là ép sai một trong hai.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    "strict": true,
+
+    // Lý do có mặt, không phải trang trí: `ROLE_RANK[userRole]` trong
+    // packages/types trả `number | undefined` chứ không phải `number`. Chính
+    // nhóm lỗi này (tra bảng bằng khoá không kiểm) sinh ra fail-open trong
+    // hasAtLeastRole. Tắt cờ này là mất cổng chắn đó.
+    "noUncheckedIndexedAccess": true,
+
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Kiểu của dependency bên ngoài không phải việc của repo này; bật lên là
+    // CI đỏ vì lỗi trong node_modules mà ta không sửa được.
+    "skipLibCheck": true,
+
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    // Bắt buộc cho `tsc -b`: mỗi project phát sinh .d.ts để project sau dùng,
+    // nhờ đó biên dịch tăng dần thay vì làm lại từ đầu.
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  }
+}
