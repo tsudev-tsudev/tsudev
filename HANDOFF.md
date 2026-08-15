@@ -68,40 +68,61 @@ trống chứ không phải trang lỗi**.
 
 ## Còn đúng ba việc, tất cả trên dashboard
 
-### a) Keycloak: gắn `auth.tsudev.com` — 🔴 chặn đăng nhập
+### ✅ a) `auth.tsudev.com` — xong
 
-Issuer hiện là `https://tsudev-sso.onrender.com/realms/tsudev`, trong khi
-`KEYCLOAK_ISSUER` ở Worker và Render đều khai `https://auth.tsudev.com/...`.
-Xác thực token so khớp **chuỗi issuer**, nên còn lệch là còn hỏng.
+Đã gắn vào service `tsudev-sso` (verified). Issuer nay là
+`https://auth.tsudev.com/realms/tsudev`, khớp `KEYCLOAK_ISSUER` ở Worker và
+Render.
 
-> Render → `tsudev-sso` → Settings → Custom Domains → thêm `auth.tsudev.com`.
-> Cloudflare sẽ cần một bản ghi CNAME; Render chỉ dẫn ngay tại đó.
+### ✅ b) Đăng nhập — xong, đã kiểm đầu-cuối
 
-### b) Keycloak: client phải là confidential — 🔴 chặn đăng nhập
+Client `tsudev-frontend` vốn **đã là confidential** (realm import bản mới, có cả
+`https://www.tsudev.com/*`). Chỉ cần lấy secret qua Admin API và đặt vào Worker.
+Ba secret của Worker: `INTERNAL_API_TOKEN`, `NEXTAUTH_SECRET`,
+`KEYCLOAK_CLIENT_SECRET`.
 
-Realm đã import **bản cũ** với `publicClient: true`, và `--import-realm` **không
-import lại** khi realm đã tồn tại — sửa file trong repo rồi deploy lại cũng vô
-ích. Phải sửa trên console:
+Luồng đã chạy thật: NextAuth → `auth.tsudev.com/.../auth` kèm PKCE → Keycloak
+trả trang đăng nhập 200.
 
-> Clients → `tsudev-frontend` → Settings → Client authentication = **On** → Save
-> → tab Credentials → copy Client secret, rồi:
->
-> ```
-> cd apps/frontend-main && npx wrangler secret put KEYCLOAK_CLIENT_SECRET
-> ```
->
-> Nhân tiện thêm `https://www.tsudev.com/*` vào Valid redirect URIs và
-> `https://www.tsudev.com` vào Web origins.
+### ✅ c1) Hai service trùng lặp — đã xoá
 
-`next-auth` truyền `clientSecret` khi đổi mã lấy token; public client thì
-Keycloak từ chối. Local không bao giờ lộ ra vì nó dùng `E2E_BYPASS_KEYCLOAK`.
+Blueprint bị chạy **hai lần** (cách nhau 21 giây), Render tạo thêm một cặp có
+hậu tố: `tsudev-backend-rqkz` và `tsudev-sso-rqkz`, cả hai `update_failed`,
+không tên miền, nhưng vẫn đếm vào ngân sách giờ chạy. Đã xoá qua API.
 
-### c) Xoá 4 service Oregon cũ — 🟠 tốn ngân sách giờ chạy
+Tài khoản Render (`dev.nguyentrangtinhsu@gmail.com`, một workspace) nay còn
+đúng hai service, đúng như `render.yaml` khai:
 
-Free tier cho **750 giờ instance/tháng cho cả tài khoản**. Bốn service cũ vẫn
-đếm giờ. Làm sau cùng, sau khi chắc chắn bản mới ổn.
+| Service          | Trạng thái | Tên miền                            |
+| ---------------- | ---------- | ----------------------------------- |
+| `tsudev-backend` | live       | — (Worker gọi qua `*.onrender.com`) |
+| `tsudev-sso`     | live       | `auth.tsudev.com`                   |
 
----
+### 🟠 c2) Ba service Oregon cũ — **nằm ở TÀI KHOẢN RENDER KHÁC**
+
+`tsudev-content`, `tsudev-storage`, `tsudev-trust` vẫn đang chạy và **KHÔNG có
+trong tài khoản hiện tại** — API key của tài khoản mới không thấy chúng. Chúng
+thuộc tài khoản Render cũ.
+
+Vì sao vẫn đáng dọn, dù không tiêu giờ chạy của tài khoản mới:
+
+- **Chúng nối vào ĐÚNG DB Neon đang chạy production** — `tsudev-trust` cũ trả về
+  đúng 4 chương trình dấu vừa seed.
+- **`tsudev-trust` cũ dùng khoá ký KHÁC** (`tsu-2026-08-13e2a3`, bản mới là
+  `tsu-2026-08-efdb94`). Chứng chỉ nào cấp qua bản cũ sẽ ký bằng khoá không nằm
+  trong vòng khoá của bản mới ⇒ `tsudev.com/trust` **không xác minh nổi**, và
+  không có gì báo lỗi.
+- Chúng chạy **mã cũ** trên dữ liệu production.
+
+Đã kiểm: chưa có thiệt hại (0 chứng chỉ, 0 đơn, 0 tổ chức).
+
+Hai đường xử lý:
+
+1. **Đăng nhập tài khoản Render cũ và xoá ba service** — sạch, không rủi ro.
+2. **Xoay mật khẩu Neon** — cắt đường vào DB của chúng mà không cần tài khoản
+   cũ. Phải làm đồng bộ: đổi mật khẩu role, cập nhật `DATABASE_URL` của
+   `tsudev-backend` và `KC_DB_PASSWORD` của `tsudev-sso`, rồi deploy lại. Có
+   gián đoạn ngắn và có rủi ro thật.
 
 **Nghiệm thu trên production — đã chạy 16/08/2026, tất cả đạt:**
 
