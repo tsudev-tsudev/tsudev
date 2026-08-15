@@ -10,8 +10,8 @@ const SECTIONS = [
       <>
         <p>
           Điều khoản sử dụng này là thỏa thuận giữa bạn và <strong>{OPERATOR.legalName}</strong> (mã
-          số {OPERATOR.taxCode}), địa chỉ {OPERATOR.address}, đơn vị vận hành hệ sinh thái tsudev —
-          sau đây gọi là “chúng tôi”.
+          số {OPERATOR.taxCode}), địa chỉ {OPERATOR.address}, bên vận hành website tsudev — sau đây
+          gọi là “chúng tôi”.
         </p>
         <p>
           Bằng việc truy cập hoặc sử dụng bất kỳ dịch vụ nào của tsudev, bạn xác nhận đã đọc, hiểu

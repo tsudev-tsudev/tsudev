@@ -1,13 +1,22 @@
 // Thông tin định danh của bên vận hành, dùng chung cho /terms, /privacy, /rules.
 //
-// CẦN ĐIỀN TRƯỚC KHI ĐƯA LÊN PRODUCTION: Nghị định 147/2024/NĐ-CP buộc trang
-// thông tin điện tử phải công bố tên tổ chức/cá nhân quản lý, đầu mối liên hệ
-// và số điện thoại; Luật Bảo vệ dữ liệu cá nhân 2025 buộc công bố đầu mối tiếp
-// nhận yêu cầu của chủ thể dữ liệu. Để nguyên chuỗi "[…]" là thiếu tuân thủ.
+// Nghị định 147/2024/NĐ-CP buộc trang thông tin điện tử phải công bố tên tổ
+// chức/cá nhân quản lý, đầu mối liên hệ và số điện thoại; Luật Bảo vệ dữ liệu
+// cá nhân 2025 buộc công bố đầu mối tiếp nhận yêu cầu của chủ thể dữ liệu.
+//
+// MỌI GIÁ TRỊ Ở ĐÂY ĐỀU HIỂN THỊ CÔNG KHAI trên /terms, /privacy, /rules. Đừng
+// để chuỗi giữ chỗ dạng "[…]" lọt vào — nó render nguyên văn ra trang pháp lý,
+// vừa sai vừa trông như hỏng. Đã từng xảy ra với "[số ĐKKD]".
+//
+// tsudev do một CÁ NHÂN vận hành, không phải pháp nhân: `legalName` trùng
+// `owner`, và `taxCode` là mã số thuế cá nhân, không có số ĐKKD. Các trang pháp
+// lý đã xử lý trường hợp này (không lặp "do X đại diện" khi X chính là bên vận
+// hành). Nếu sau này đăng ký hộ kinh doanh/doanh nghiệp thì cập nhật ở đây, các
+// trang tự đổi theo.
 export const OPERATOR = {
   name: 'tsudev',
   legalName: 'Nguyễn Trang Tình Sử',
-  taxCode: '8536310833 / [số ĐKKD]',
+  taxCode: '8536310833',
   address: 'An Giang, Việt Nam',
   owner: 'Nguyễn Trang Tình Sử',
   // Ba địa chỉ này chỉ nhận được thư khi Cloudflare Email Routing của zone

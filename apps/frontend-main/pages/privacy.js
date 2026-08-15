@@ -15,8 +15,9 @@ const SECTIONS = [
         </p>
         <p>
           Bên Kiểm soát dữ liệu cá nhân là <strong>{OPERATOR.legalName}</strong> (mã số{' '}
-          {OPERATOR.taxCode}), địa chỉ {OPERATOR.address}, do {OPERATOR.owner} đại diện. Mọi yêu cầu
-          liên quan đến dữ liệu cá nhân xin gửi tới <strong>{OPERATOR.privacyEmail}</strong>.
+          {OPERATOR.taxCode}), địa chỉ {OPERATOR.address}
+          {OPERATOR.owner !== OPERATOR.legalName ? `, do ${OPERATOR.owner} đại diện` : ''}. Mọi yêu
+          cầu liên quan đến dữ liệu cá nhân xin gửi tới <strong>{OPERATOR.privacyEmail}</strong>.
         </p>
         <p>
           Chính sách được xây dựng trên cơ sở Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15 (hiệu lực
