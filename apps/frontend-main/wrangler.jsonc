@@ -8,6 +8,14 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Tên miền tuỳ chỉnh. `custom_domain: true` khiến wrangler tự tạo luôn bản ghi
+  // DNS trong zone tsudev.com (zone phải nằm cùng tài khoản Cloudflare) — không
+  // phải thêm tay. Cả hai host đều phục vụ; thẻ canonical do components/Seo.jsx
+  // phát ra luôn trỏ về apex nên không có chuyện trùng lặp nội dung.
+  "routes": [
+    { "pattern": "tsudev.com", "custom_domain": true },
+    { "pattern": "www.tsudev.com", "custom_domain": true }
+  ],
   "services": [
     {
       // Self-reference service binding, the service name must match the worker name
@@ -20,5 +28,26 @@
     // Enable image optimization
     // see https://opennext.js.org/cloudflare/howtos/image
     "binding": "IMAGES"
+  },
+  // Biến LÚC CHẠY của Worker (khác NEXT_PUBLIC_*, thứ được nội suy lúc build —
+  // xem apps/frontend-main/.env.production). Chỉ để giá trị KHÔNG bí mật ở đây;
+  // secret đặt bằng `wrangler secret put`, đừng commit.
+  //
+  // Ba biến *_SERVICE_URL cùng trỏ một chỗ vì ba service backend đã gộp thành
+  // một tiến trình trên Render (services/backend-bundle). Giữ ba biến thay vì
+  // gộp thành một: tách lại sau này không phải sửa mã.
+  //
+  // ⚠️ Đối chiếu URL này với URL Render thật sự cấp cho service `tsudev-backend`
+  // sau khi tạo — Render đổi tên nếu tên đã bị chiếm. Sai URL thì SSR nuốt lỗi
+  // thành danh sách rỗng (lib/api.js) nên triệu chứng là TRANG TRỐNG, không
+  // phải trang lỗi.
+  "vars": {
+    "CONTENT_SERVICE_URL": "https://tsudev-backend.onrender.com",
+    "STORAGE_SERVICE_URL": "https://tsudev-backend.onrender.com",
+    "TRUST_SERVICE_URL": "https://tsudev-backend.onrender.com",
+    "KEYCLOAK_ISSUER": "https://auth.tsudev.com/realms/tsudev",
+    "KEYCLOAK_CLIENT_ID": "tsudev-frontend",
+    "NEXTAUTH_URL": "https://tsudev.com",
+    "NEXTAUTH_COOKIE_DOMAIN": ".tsudev.com"
   }
 }

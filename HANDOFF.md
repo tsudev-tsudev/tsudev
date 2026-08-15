@@ -45,21 +45,41 @@ phải đường lùi cho dữ liệu thật. `backup/` đã gitignore, đừng 
 Nếu bước 1 in _"DB này đã qua migration DROP"_ thì DB đó đã bị áp rồi. Dừng lại
 và tìm hiểu vì sao, đừng chạy tiếp.
 
-### 1.2 Deploy — **làm SAU §1.1**
+### 1.2 Dựng lại hạ tầng — **làm SAU §1.1**
 
-```bash
-npm --workspace apps/frontend-main run deploy   # Cloudflare Workers
+Không còn là "đẩy theo blueprint như thường lệ". Ba thứ đã đổi cùng lúc:
+
+- Repo chuyển sang `tsudev-tsudev/tsudev`; **Render vẫn đang nối với repo cũ**
+  `b4djl1h/tsudev`, nên push vào repo mới KHÔNG kích hoạt deploy nào. Điều này
+  vô tình là lớp bảo vệ: không có gì tự chạy trước khi bạn xong §1.1.
+- Ba service backend đã gộp thành một (`services/backend-bundle`).
+- **Region là bất biến trên Render** — bốn service cũ nằm ở Oregon; muốn sang
+  Singapore phải XOÁ và DỰNG LẠI, không có nút đổi.
+
+Vì cả ba lý do, đây là dựng mới chứ không phải deploy lại.
+
+```
+1. Render → New → Blueprint → chọn repo tsudev-tsudev/tsudev
+   Blueprint tạo 2 service: tsudev-backend, tsudev-sso (đều region singapore).
+   Render sẽ hỏi mọi biến `sync: false` — chuẩn bị sẵn giá trị cũ.
+2. Đối chiếu URL Render cấp cho tsudev-backend với 3 biến *_SERVICE_URL
+   trong apps/frontend-main/wrangler.jsonc. Khác thì sửa file rồi mới deploy.
+3. Keycloak: gắn custom domain auth.tsudev.com cho tsudev-sso.
+4. wrangler secret put NEXTAUTH_SECRET / KEYCLOAK_CLIENT_SECRET / INTERNAL_API_TOKEN
+5. npm --workspace apps/frontend-main run deploy
+   (routes custom_domain trong wrangler.jsonc tự tạo bản ghi DNS cho
+    tsudev.com và www.tsudev.com — không phải thêm tay)
+6. Xoá 4 service Oregon cũ. Làm SAU CÙNG: xoá trước là mất đường lùi.
 ```
 
-Ba service backend trên Render: đẩy theo blueprint như thường lệ.
-
-**Vì sao phải sau:** mã mới đọc bảng `Project`. Deploy trước khi migrate thì
+**Vì sao phải sau §1.1:** mã mới đọc bảng `Project`. Chạy trước khi migrate thì
 `/projects` rỗng và `/projects/<slug>` trả 404. Trang chủ vẫn sống — `lib/api.js`
 nuốt lỗi thành `[]` — nên **triệu chứng là trang trống, không phải trang lỗi**.
 Đừng đi tìm bug ở chỗ khác.
 
-Nếu Render đã tự deploy theo merge (blueprint không khai `autoDeploy`, mặc định
-của Render là bật) thì bạn đang ở đúng tình huống đó rồi; chạy §1.1 là hết.
+**Ngân sách giờ chạy:** free tier cho 750 giờ instance/tháng cho CẢ tài khoản.
+Giữ ấm `tsudev-backend` tiêu 720 giờ ⇒ `tsudev-sso` buộc phải được ngủ. Đừng
+đặt ping giữ ấm cho cả hai, vỡ ngân sách là Render dừng hết.
 
 **Nghiệm thu trên production, sau cả hai bước:**
 

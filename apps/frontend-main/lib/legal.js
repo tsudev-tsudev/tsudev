@@ -6,9 +6,9 @@
 // nhận yêu cầu của chủ thể dữ liệu. Để nguyên chuỗi "[…]" là thiếu tuân thủ.
 export const OPERATOR = {
   name: 'tsudev',
-  legalName: '[Tên pháp nhân hoặc cá nhân đăng ký vận hành]',
-  taxCode: '[Mã số thuế / số ĐKKD]',
-  address: '[Địa chỉ trụ sở]',
+  legalName: 'Nguyễn Trang Tình Sử',
+  taxCode: '8536310833 / [số ĐKKD]',
+  address: 'An Giang, Việt Nam',
   owner: 'Nguyễn Trang Tình Sử',
   // Ba địa chỉ này chỉ nhận được thư khi Cloudflare Email Routing của zone
   // tsudev.com đã bật và có route chuyển tiếp. Công bố địa chỉ chưa định tuyến
@@ -16,7 +16,7 @@ export const OPERATOR = {
   email: 'contact@tsudev.com',
   privacyEmail: 'privacy@tsudev.com',
   abuseEmail: 'abuse@tsudev.com',
-  phone: '[Số điện thoại liên hệ]',
+  phone: '0329577500',
 };
 
 // Ngày ban hành/hiệu lực của chính các văn bản này trên tsudev — không phải

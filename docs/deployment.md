@@ -2,12 +2,12 @@
 
 Hai nhà cung cấp, hai đường deploy khác nhau. Biết mình đang đổi cái nào.
 
-| Thành phần        | Nền tảng           | Định nghĩa ở đâu                                    |
-| ----------------- | ------------------ | --------------------------------------------------- |
-| `frontend-main`   | Cloudflare Workers | `apps/frontend-main/wrangler.jsonc`                 |
-| 3 service backend | Render (Docker)    | `render.yaml` + `docker/backend-service.Dockerfile` |
-| Keycloak (SSO)    | Render (Docker)    | `render.yaml` + `docker/keycloak.Dockerfile`        |
-| PostgreSQL        | ngoài (Neon)       | `DATABASE_URL`, `KC_DB_*` (secret Render)           |
+| Thành phần       | Nền tảng           | Định nghĩa ở đâu                                    |
+| ---------------- | ------------------ | --------------------------------------------------- |
+| `frontend-main`  | Cloudflare Workers | `apps/frontend-main/wrangler.jsonc`                 |
+| `backend-bundle` | Render (Docker)    | `render.yaml` + `docker/backend-service.Dockerfile` |
+| Keycloak (SSO)   | Render (Docker)    | `render.yaml` + `docker/keycloak.Dockerfile`        |
+| PostgreSQL       | ngoài (Neon)       | `DATABASE_URL`, `KC_DB_*` (secret Render)           |
 
 ## Frontend — Cloudflare Workers
 
@@ -47,12 +47,28 @@ phải ra `https://tsudev.com/terms`.
 
 ## Backend — Render
 
-Blueprint `render.yaml` khai báo 4 web service, tất cả `plan: free`,
-`healthCheckPath: /health` (Keycloak dùng `/health/ready`).
+Blueprint `render.yaml` khai báo **2** web service, cả hai `plan: free`,
+`region: singapore`: `tsudev-backend` (ba service gộp) và `tsudev-sso`
+(Keycloak, `healthCheckPath: /health/ready`).
 
-Bốn service backend dùng **chung một image**
-(`docker/backend-service.Dockerfile`); Render chọn service bằng cách override
-`dockerCommand`. Vì vậy:
+### Ngân sách giờ chạy — quyết định thiết kế, không phải chi tiết vặt
+
+Gói free cấp **750 giờ instance/tháng cho CẢ TÀI KHOẢN**, không phải cho mỗi
+service. Một service chạy liên tục tiêu 720 giờ. Nên chỉ giữ ấm được **đúng
+một** service, và đó phải là `tsudev-backend` — nó nằm trên mọi đường đọc của
+site. `tsudev-sso` buộc phải được ngủ; cái giá là cold start ở lần đăng nhập
+đầu tiên, và đó là đánh đổi có chủ ý. Thêm service thứ ba chạy liên tục là vỡ
+ngân sách và Render dừng hết.
+
+### Region là bất biến
+
+Đổi `region` trong `render.yaml` **không** di chuyển service đang chạy — phải
+xoá và dựng lại. Trước đây file này không khai region nên cả bốn service nằm ở
+Oregon (mặc định của Render), cách Việt Nam ~180ms mỗi lượt gọi SSR; singapore
+còn ~40ms.
+
+Hai service dùng **chung một image** (`docker/backend-service.Dockerfile`);
+Render chọn service bằng cách override `dockerCommand`. Vì vậy:
 
 - **Build context phải là gốc repo.** Các service phụ thuộc package nội bộ
   `@tsudev/db`, `@tsudev/types` — không có trên npm registry, `npm install` cô
@@ -150,13 +166,18 @@ Mẫu: `.env.production.example` ở gốc. Secret đặt trong dashboard Render
 
 Bắt buộc theo service:
 
-| Service       | Biến bắt buộc                                                                                      |
-| ------------- | -------------------------------------------------------------------------------------------------- |
-| cả bốn        | `KEYCLOAK_ISSUER` — thiếu là rơi về mặc định local, JWKS trỏ vào hư vô, **mọi token thật bị 401**  |
-| user, content | `DATABASE_URL`                                                                                     |
-| storage       | `DATABASE_URL`, `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` |
-| trust         | `DATABASE_URL`, `TRUST_SIGNING_KEY`, `TRUST_SIGNING_KEY_ID`, `TRUST_ISSUER`                        |
-| Keycloak      | `KEYCLOAK_ADMIN_PASSWORD`, `KC_DB_URL`, `KC_DB_USERNAME`, `KC_DB_PASSWORD`                         |
+| Nơi chạy                   | Biến bắt buộc                                                                                                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tsudev-backend` (Render)  | `KEYCLOAK_ISSUER`, `DATABASE_URL`, `INTERNAL_API_TOKEN`, `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `TRUST_SIGNING_KEY`, `TRUST_SIGNING_KEY_ID` |
+| `tsudev-sso` (Render)      | `KEYCLOAK_ADMIN_PASSWORD`, `KC_DB_URL`, `KC_DB_USERNAME`, `KC_DB_PASSWORD`                                                                                                               |
+| Worker — `vars`            | `*_SERVICE_URL` ×3, `KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`, `NEXTAUTH_URL`, `NEXTAUTH_COOKIE_DOMAIN` — khai trong `wrangler.jsonc`                                                      |
+| Worker — `wrangler secret` | `NEXTAUTH_SECRET`, `KEYCLOAK_CLIENT_SECRET`, `INTERNAL_API_TOKEN` — **không** commit                                                                                                     |
+
+`KEYCLOAK_ISSUER` thiếu ở bất kỳ đâu là rơi về mặc định local, JWKS trỏ vào hư
+vô, **mọi token thật bị 401**.
+
+⚠️ **Production tuyệt đối không đặt `E2E_BYPASS_KEYCLOAK` hay `AUTH_DEV_BYPASS`.**
+Chúng cho phép đăng nhập bằng bất kỳ username nào.
 
 Hai biến "một lần rồi thôi":
 
