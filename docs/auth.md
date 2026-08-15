@@ -9,6 +9,15 @@ Cấu hình ở `apps/*/pages/api/auth/[...nextauth].js` (mỗi app một bản)
 
 - Provider chính: Keycloak OIDC (`KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`,
   `KEYCLOAK_CLIENT_SECRET`).
+- **`tsudev-frontend` là confidential client** (`publicClient: false` trong
+  `realm-export.prod.json`), không phải public client. Lý do: `next-auth` truyền
+  `clientSecret` khi đổi mã lấy token; khai public client thì Keycloak từ chối
+  và **đăng nhập hỏng ở production dù local vẫn chạy** (local dùng
+  `E2E_BYPASS_KEYCLOAK`, không đi qua Keycloak thật). Luồng này chạy phía server
+  nên confidential cũng là lựa chọn đúng về bảo mật.
+  Secret **không nằm trong git** — Keycloak sinh ra lúc import realm; lấy ở
+  Clients → tsudev-frontend → Credentials rồi đặt vào Worker bằng
+  `wrangler secret put KEYCLOAK_CLIENT_SECRET`.
 - `session.strategy = 'jwt'`, cookie `secure` chỉ khi `NODE_ENV=production`.
 - `NEXTAUTH_COOKIE_DOMAIN` chia sẻ phiên giữa các subdomain: `.tsudev.com` ở
   production, `.tsudev.localhost` ở local. Giá trị do `config/topology.json`

@@ -17,33 +17,38 @@ khỏi Render. Bảy giai đoạn GĐ 0–7 hoàn tất.
 
 ## 1. Hai việc còn lại
 
-### 1.1 Migration DROP lên Neon — **cửa một chiều, làm TRƯỚC**
+### 1.1 Migration lên Neon — ✅ **XONG 16/08/2026**
 
-Hai migration đang nằm trong repo, mới chỉ áp dụng lên DB local:
+Hoá ra không phải cửa một chiều: chủ dự án đã chuyển Neon sang tài khoản mới và
+**database đích trống hoàn toàn** (0 bảng, 0 enum). Không có dữ liệu để mất, nên
+bước export mất ý nghĩa và toàn bộ rủi ro DROP biến mất.
 
-| Migration                                    | Việc                                   |
-| -------------------------------------------- | -------------------------------------- |
-| `20260812224401_drop_forum_market_messaging` | DROP 14 bảng, 6 enum, 2 cột của `User` |
-| `20260812225340_add_project_copyright`       | thêm bảng `Project` + 3 enum           |
+Đã làm:
 
-**Trình tự bắt buộc, không đảo:**
+- Soi DB bằng SQL thô trước khi đụng vào. **`scripts/export-legacy-data.js`
+  KHÔNG dùng được nữa**: nó kiểm tra `prisma[model]`, mà Prisma client đã sinh
+  từ schema ĐÃ xoá các bảng đó — nên nó luôn in _"DB này đã qua migration DROP"_
+  bất kể DB thật ra sao. Đừng tin nó; hỏi thẳng `pg_class`.
+- `prisma migrate deploy`: cả 6 migration áp dụng sạch. Kết quả 13 bảng +
+  10 enum, có `Project`, không còn bảng diễn đàn/chợ/tin nhắn.
+- Seed: 3 bài viết, 2 tài liệu, 4 chương trình dấu, 4 dự án, 1 admin.
+- **Đã xoá `alice`/`bob`** — fixture dev, không gì tham chiếu tới (bài viết dùng
+  `authorId` của admin). Để lại là hai tài khoản giả đăng nhập được ở production.
+- Tạo database `keycloak` riêng trên cùng project Neon, tách khỏi `neondb` để
+  Keycloak không đổ ~90 bảng của nó vào chung schema với Prisma.
 
-```bash
-# 1. XUẤT DỮ LIỆU PRODUCTION. Không có bước này thì không có đường lùi.
-DATABASE_URL='<chuỗi kết nối Neon>' node scripts/export-legacy-data.js
+**Hai câu hỏi treo bấy lâu đã có đáp án:**
 
-# 2. Mở backup/legacy-<ngày>/manifest.json. Số bản ghi có hợp lý không?
-#    `failures` phải rỗng. Nếu không, DỪNG.
+| Câu hỏi                    | Đáp án                                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------- |
+| Đã cấp chứng chỉ nào chưa? | **0** — nên `TRUST_ISSUER=https://tsudev.com` an toàn tuyệt đối, không có link rot |
+| Neon ở region nào?         | **ap-southeast-1 (Singapore)** — khớp với Render Singapore                         |
 
-# 3. Chỉ khi đó mới deploy migration.
-DATABASE_URL='<Neon>' npm run db:migrate
-```
-
-`backup/legacy-2026-08-12/` hiện có **chỉ là 10 bản ghi máy local** — **KHÔNG**
-phải đường lùi cho dữ liệu thật. `backup/` đã gitignore, đừng commit.
-
-Nếu bước 1 in _"DB này đã qua migration DROP"_ thì DB đó đã bị áp rồi. Dừng lại
-và tìm hiểu vì sao, đừng chạy tiếp.
+**Đã tiền kiểm chứng** `services/backend-bundle` chạy thẳng trên DB Neon thật
+với `NODE_ENV=production`: 4 dự án, 3 bài, 2 tài liệu, 4 chương trình dấu đều
+trả đúng; `/api/trust/directory` trả 200 dù `INTERNAL_API_TOKEN` đang bật, còn
+`/api/posts` trả 401 khi thiếu token. Bất biến quan trọng nhất đứng vững trên
+dữ liệu thật.
 
 ### 1.2 Dựng lại hạ tầng — **làm SAU §1.1**
 

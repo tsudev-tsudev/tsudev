@@ -6,9 +6,9 @@
       "clientId": "tsudev-frontend",
       "name": "tsudev-frontend",
       "rootUrl": "https://tsudev.com",
-      "redirectUris": ["https://tsudev.com/*"],
-      "webOrigins": ["https://tsudev.com"],
-      "publicClient": true,
+      "redirectUris": ["https://tsudev.com/*", "https://www.tsudev.com/*"],
+      "webOrigins": ["https://tsudev.com", "https://www.tsudev.com"],
+      "publicClient": false,
       "directAccessGrantsEnabled": false,
       "standardFlowEnabled": true,
       "protocol": "openid-connect"
