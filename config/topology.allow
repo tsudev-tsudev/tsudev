@@ -24,13 +24,13 @@ services/trust-service/Dockerfile
 # docker/backend-service.Dockerfile KHÔNG copy config/ vào image, nên bốn service
 # không thể require topology. Giá trị dự phòng buộc phải là literal — đã cập nhật
 # theo hình trạng mới (auth.tsudev.localhost:8080). Quy tắc B vẫn kiểm số cổng.
-services/content-service/src/authMiddleware.js
-services/storage-service/src/authMiddleware.js
-services/trust-service/src/authMiddleware.js
+services/content-service/src/authMiddleware.ts
+services/storage-service/src/authMiddleware.ts
+services/trust-service/src/authMiddleware.ts
 
 # Next chỉ inline được process.env.NEXT_PUBLIC_* khi viết NGUYÊN VĂN, và file này
 # chạy cả trong trình duyệt — không import JSON topology vào bundle được.
-packages/ui/src/lib/siteUrls.js
+packages/ui/src/lib/siteUrls.ts
 
 # Cấu hình của Keycloak, không phải mã: redirectUris/webOrigins phải là URL thật
 # và phải giữ CẢ hostname Docker (compose) lẫn hostname qua proxy. Giai đoạn 5
@@ -53,7 +53,7 @@ scripts/e2e-sso-upload.js             # còn ánh xạ localhost↔hostname Dock
 # Cùng lý do với packages/ui: hai app build cho Cloudflare Workers, không có
 # filesystem của repo để đọc config/topology.json. Nhưng sau giai đoạn 4 mỗi app
 # chỉ còn MỘT file giữ literal (trước là sáu), và quy tắc B vẫn kiểm số cổng.
-apps/frontend-main/lib/services.js
+apps/frontend-main/lib/services.ts
 
 # ── Gỡ ở GIAI ĐOẠN 5 hoặc sau ───────────────────────────────────────────────
 scripts/test-presign.js               # script gỡ rối thủ công

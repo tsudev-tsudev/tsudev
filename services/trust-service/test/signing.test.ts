@@ -18,7 +18,7 @@ function genKey() {
   }
 }
 
-function loadSigning(env) {
+function loadSigning(env: Record<string, string | undefined>) {
   jest.resetModules()
   for (const k of ['TRUST_SIGNING_KEY', 'TRUST_SIGNING_KEY_ID', 'TRUST_SIGNING_KEYS_RETIRED'])
     delete process.env[k]
@@ -73,7 +73,7 @@ describe('vòng khoá ký', () => {
       TRUST_SIGNING_KEY_ID: 'key-b',
       TRUST_SIGNING_KEYS_RETIRED: `key-a:${KEY_A.pubB64}`,
     })
-    const kids = s.jwks().keys.map((k) => k.kid)
+    const kids = s.jwks().keys.map((k: { kid?: string }) => k.kid)
     expect(kids[0]).toBe('key-b')
     expect(kids).toContain('key-a')
     // Không được rò khoá riêng ra JWKS.
@@ -127,3 +127,8 @@ describe('vòng khoá ký', () => {
     }
   })
 })
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và các biến top-level (`request`, `app`) của những tệp test
+// khác nhau sẽ đụng tên nhau. Không đổi gì lúc chạy.
+export {}

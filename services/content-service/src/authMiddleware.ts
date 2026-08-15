@@ -1,5 +1,7 @@
-const { createRemoteJWKSet, jwtVerify } = require('jose')
-const { URL } = require('url')
+import { createRemoteJWKSet, jwtVerify } from 'jose'
+import type { JWTVerifyOptions } from 'jose'
+import { URL } from 'url'
+import type { NextFunction, Request, RequestHandler, Response } from 'express'
 
 const ISSUER =
   process.env.KEYCLOAK_ISSUER || 'http://auth.tsudev.localhost:8080/realms/tsudev-local'
@@ -8,13 +10,18 @@ const AUDIENCE = process.env.KEYCLOAK_CLIENT_ID || undefined
 const jwksUri = `${ISSUER}/protocol/openid-connect/certs`
 const JWKS = createRemoteJWKSet(new URL(jwksUri))
 
-async function authenticateJWT(req, res, next) {
+// Header có thể tới dưới dạng mảng khi client gửi trùng tên. Gộp về một chuỗi
+// ngay tại cửa vào thay vì để `string | string[]` lan xuống dưới.
+const firstHeader = (v: string | string[] | undefined): string | undefined =>
+  Array.isArray(v) ? v[0] : v
+
+async function authenticateJWT(req: Request, res: Response, next: NextFunction) {
   // Development bypass (local testing): set AUTH_DEV_BYPASS=true and provide
   // `x-dev-user` and optional `x-dev-roles` headers to simulate an authenticated user.
   if (process.env.AUTH_DEV_BYPASS === 'true') {
     try {
-      const devUser = req.get('x-dev-user') || req.headers['x-dev-user']
-      const devRolesHeader = req.get('x-dev-roles') || req.headers['x-dev-roles']
+      const devUser = req.get('x-dev-user') || firstHeader(req.headers['x-dev-user'])
+      const devRolesHeader = req.get('x-dev-roles') || firstHeader(req.headers['x-dev-roles'])
       const user = devUser || process.env.DEV_DEFAULT_USER || 'dev'
       const roles = (devRolesHeader || process.env.DEV_DEFAULT_ROLES || 'admin')
         .split(',')
@@ -27,40 +34,35 @@ async function authenticateJWT(req, res, next) {
     }
   }
   try {
-    const authHeader = req.get('authorization') || req.headers.authorization
+    const authHeader = req.get('authorization') || firstHeader(req.headers.authorization)
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Missing or invalid Authorization header' })
     }
     const token = authHeader.slice(7)
-    const verifyOpts = { issuer: ISSUER }
+    // Khai kiểu ngay lúc dựng: gán `verifyOpts.audience` vào một object literal
+    // chưa khai trường đó là lỗi biên dịch, và nó là trường quyết định token của
+    // client khác có được nhận hay không.
+    const verifyOpts: JWTVerifyOptions = { issuer: ISSUER }
     if (AUDIENCE) verifyOpts.audience = AUDIENCE
 
     const { payload } = await jwtVerify(token, JWKS, verifyOpts)
-    req.user = payload
+
+    req.user = payload as AuthenticatedUser
     return next()
   } catch (err) {
-    console.error('[content] auth middleware error', err && (err.stack || err.message || err))
+    console.error('[content] auth middleware error', err instanceof Error ? err.stack : err)
     return res.status(401).json({ error: 'Invalid token' })
   }
 }
 
-function hasRole(payload, role, clientId) {
+function hasRole(payload: AuthenticatedUser | undefined, role: string, clientId?: string): boolean {
   if (!payload) return false
   try {
-    const realmRoles =
-      payload.realm_access && Array.isArray(payload.realm_access.roles)
-        ? payload.realm_access.roles
-        : []
+    const realmRoles = Array.isArray(payload.realm_access?.roles) ? payload.realm_access.roles : []
     if (realmRoles.includes(role)) return true
 
-    if (
-      clientId &&
-      payload.resource_access &&
-      payload.resource_access[clientId] &&
-      Array.isArray(payload.resource_access[clientId].roles)
-    ) {
-      if (payload.resource_access[clientId].roles.includes(role)) return true
-    }
+    const clientRoles = clientId ? payload.resource_access?.[clientId]?.roles : undefined
+    if (Array.isArray(clientRoles) && clientRoles.includes(role)) return true
 
     if (payload.scope && typeof payload.scope === 'string') {
       const scopes = payload.scope.split(/\s+/)
@@ -72,7 +74,7 @@ function hasRole(payload, role, clientId) {
   return false
 }
 
-function requireRole(role) {
+function requireRole(role: string): RequestHandler {
   if (process.env.REQUIRE_ROLE_ENFORCEMENT !== 'true') return (req, res, next) => next()
   return (req, res, next) => {
     try {
@@ -87,5 +89,7 @@ function requireRole(role) {
   }
 }
 
-module.exports = authenticateJWT
-module.exports.requireRole = requireRole
+// `export =` chứ không phải `export default`: nơi gọi dùng
+// `auth = require('./authMiddleware')` rồi vừa gọi `auth(req, res, next)` vừa đọc
+// `auth.requireRole`. Object.assign giữ đúng hình dạng vừa-hàm-vừa-có-thuộc-tính đó.
+export = Object.assign(authenticateJWT, { requireRole })

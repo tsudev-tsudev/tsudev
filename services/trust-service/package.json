@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon -L --watch src --ext js,json --exec node src/index.js",
-    "test": "NODE_ENV=test jest --runInBand"
+    "start": "node dist/index.js",
+    "dev": "nodemon -L --watch src --ext ts,json --exec 'tsc -b ../.. && node dist/index.js'",
+    "test": "NODE_ENV=test jest --runInBand",
+    "pretest": "tsc -b ../.."
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -21,6 +22,9 @@
     "supertest": "^6.3.3"
   },
   "jest": {
-    "testEnvironment": "node"
-  }
+    "testEnvironment": "node",
+    "preset": "ts-jest"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts"
 }

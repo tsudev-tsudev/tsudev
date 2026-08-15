@@ -12,9 +12,27 @@ try {
 } catch (e) {
   // ignore
 }
-const express = require('express')
+import express from 'express'
+import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
+
+/** Thông điệp lỗi từ một giá trị `catch` (luôn là `unknown`). */
+const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
+
+/** Hình dạng nội bộ của một lớp router Express — chỉ phần thực sự được đọc. */
+type RouterLayer = {
+  name?: string
+  route?: { path?: string; methods?: Record<string, boolean> }
+  handle?: { stack?: RouterLayer[] }
+}
+const errStack = (e: unknown): string => (e instanceof Error ? e.stack || e.message : String(e))
+
+/**
+ * Tham số truy vấn do người gọi điều khiển hình dạng: `?k=1` cho chuỗi,
+ * `?k=1&k=2` cho mảng, `?k[a]=1` cho object. Chỉ chuỗi mới được đi tiếp.
+ */
+const qStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
 // body parsing: use built-in express.json/raw instead of external body-parser
-const cors = require('cors')
+import cors from 'cors'
 const {
   S3Client,
   CreateBucketCommand,
@@ -22,8 +40,8 @@ const {
   HeadBucketCommand,
   PutBucketCorsCommand,
 } = require('@aws-sdk/client-s3')
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
-const { prisma } = require('@tsudev/db')
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { prisma } from '@tsudev/db'
 
 const app = express()
 const port = process.env.PORT || process.env.PORT_STORAGE_SERVICE || 4002
@@ -77,7 +95,12 @@ app.use((req, res, next) => {
 })
 
 // Helper to wrap async route handlers and forward errors to express
-const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
+// Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
+// được error handler của Express — request treo cho tới khi client bỏ cuộc.
+const asyncHandler =
+  (fn: (req: Request, res: Response, next: NextFunction) => unknown): RequestHandler =>
+  (req, res, next) =>
+    Promise.resolve(fn(req, res, next)).catch(next)
 
 const S3_ENDPOINT = process.env.S3_ENDPOINT || process.env.S3_URL || 'http://minio:9000'
 const S3_PUBLIC_ENDPOINT = process.env.S3_PUBLIC_ENDPOINT || null
@@ -105,23 +128,29 @@ const s3Signer = S3_PUBLIC_ENDPOINT
 
 // In test mode, avoid external network/S3 dependency by stubbing presign and upload operations.
 const isTest = process.env.NODE_ENV === 'test'
-async function generatePresign(cmd) {
+async function generatePresign(cmd: Parameters<typeof getSignedUrl>[1]) {
   if (isTest) return `http://localhost/fake-presign/${Date.now()}`
   return await getSignedUrl(s3Signer, cmd, { expiresIn: 900 })
 }
 
 // Auth middleware (Keycloak JWKS verifier)
-let auth
-try {
-  auth = require('./authMiddleware')
-} catch (e) {
-  // If middleware is missing, fall back to a permissive no-op (useful for quick local dev)
-  auth = (req, res, next) => next()
-}
+// `auth` vừa là middleware gọi được, vừa mang `.requireRole`. Khai kiểu từ chính
+// module đó (`typeof import`) nên hai bên không thể lệch nhau mà không ai biết.
+type AuthMiddleware = typeof import('./authMiddleware')
 
-// helper to get role-enforcement middleware from the auth module (fallback to noop)
-const requireRole = (role) =>
-  auth && auth.requireRole ? auth.requireRole(role) : (req, res, next) => next()
+const passthrough: RequestHandler = (_req, _res, next) => next()
+
+const hasRequireRole = (a: unknown): a is AuthMiddleware =>
+  typeof a === 'function' && typeof (a as AuthMiddleware).requireRole === 'function'
+
+let auth: AuthMiddleware | RequestHandler = passthrough
+try {
+  auth = require('./authMiddleware') as AuthMiddleware
+} catch (e) {
+  auth = passthrough
+}
+const requireRole = (role: string): RequestHandler =>
+  hasRequireRole(auth) ? auth.requireRole(role) : passthrough
 
 async function ensureBucket() {
   try {
@@ -131,7 +160,7 @@ async function ensureBucket() {
       await s3.send(new CreateBucketCommand({ Bucket: S3_BUCKET }))
       console.log('Created bucket', S3_BUCKET)
     } catch (createErr) {
-      console.warn('Create bucket failed (may already exist):', createErr.message || createErr)
+      console.warn('Create bucket failed (may already exist):', errMsg(createErr))
     }
   }
   // Attempt to set a permissive CORS policy so browser PUTs to presigned URLs work
@@ -150,10 +179,7 @@ async function ensureBucket() {
     await s3.send(new PutBucketCorsCommand({ Bucket: S3_BUCKET, CORSConfiguration: cors }))
     console.log('Applied CORS policy to bucket', S3_BUCKET)
   } catch (corsErr) {
-    console.warn(
-      'Failed to apply CORS policy:',
-      corsErr && corsErr.message ? corsErr.message : corsErr
-    )
+    console.warn('Failed to apply CORS policy:', errMsg(corsErr))
   }
 }
 
@@ -240,8 +266,17 @@ app.post(
   requireRole(process.env.STORAGE_UPLOAD_ROLE || 'storage:upload'),
   express.raw({ type: '*/*', limit: '100mb' }),
   asyncHandler(async (req, res) => {
-    const keyQuery = (req.query && req.query.key) || null
-    const fileName = req.headers['x-filename'] || keyQuery || `upload-${Date.now()}`
+    // `fileName` trở thành KHOÁ OBJECT trên S3, và nó nhận từ hai nguồn do người
+    // gọi điều khiển: header `x-filename` (có thể là mảng khi gửi trùng tên) và
+    // query `?key=` (có thể là mảng hoặc object). Quy về đúng một chuỗi ở đây.
+    //
+    // Lưu ý phạm vi: đây mới chỉ là chuẩn hoá KIỂU. Việc làm sạch nội dung khoá
+    // (chặn '../', ký tự điều khiển, khoá rỗng) vẫn chưa có và thuộc pha siết
+    // bảo mật — ghi ra để nó không bị tưởng là đã xong.
+    const headerName = req.headers['x-filename']
+    const fromHeader = Array.isArray(headerName) ? headerName[0] : headerName
+    const keyQuery = qStr(req.query?.key)
+    const fileName = fromHeader || keyQuery || `upload-${Date.now()}`
     const contentType = req.headers['content-type'] || 'application/octet-stream'
     if (!req.body || req.body.length === 0) {
       return res.status(400).json({ error: 'Empty body' })
@@ -261,10 +296,7 @@ app.post(
         // Degrade gracefully when object storage (MinIO/R2) is unavailable in local dev:
         // still catalog the upload so the UI + /api/files reflect it.
         storageWarning = 'object-storage-unavailable'
-        console.warn(
-          '[storage] S3 put failed, cataloging metadata only:',
-          e && e.message ? e.message : e
-        )
+        console.warn('[storage] S3 put failed, cataloging metadata only:', errMsg(e))
       }
     }
     const size = req.body.length
@@ -274,7 +306,7 @@ app.post(
         update: { size, contentType, fileName },
         create: { key: fileName, fileName, contentType, size },
       })
-      .catch((e) => console.warn('[storage] catalog write failed:', e && e.message))
+      .catch((e: unknown) => console.warn('[storage] catalog write failed:', errMsg(e)))
     res.json({ key: fileName, size, storageWarning })
   })
 )
@@ -283,14 +315,14 @@ app.post(
 // Express chỉ nhận diện đây là middleware xử lý lỗi khi hàm khai đủ 4 tham số;
 // bỏ `next` cho hết lint thì toàn bộ xử lý lỗi im lặng ngừng hoạt động.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err, req, res, next) => {
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   try {
     console.error('[storage] Express error:', err && (err.stack || err.message || err))
     try {
       require('../../../packages/observability/notify').alert({
         service: 'storage-service',
         level: 'error',
-        message: err && err.message,
+        message: errMsg(err),
         error: err,
         context: `${req.method} ${req.url}`,
       })
@@ -302,21 +334,22 @@ app.use((err, req, res, next) => {
   }
   try {
     if (res && !res.headersSent)
-      return res.status(500).json({ error: err && err.message ? err.message : 'internal error' })
+      return res.status(500).json({ error: errMsg(err) || 'internal error' })
   } catch (e) {
     console.error('[storage] Error sending error response', e)
   }
   next(err)
-})
+}
+app.use(errorHandler)
 
 // Register process-level handlers only if available to avoid crashes in
 // unusual runtime environments where `process.on` may be absent or replaced.
 if (typeof process !== 'undefined' && typeof process.on === 'function') {
   process.on('uncaughtException', (err) => {
-    console.error('[storage] uncaughtException', err && (err.stack || err.message || err))
+    console.error('[storage] uncaughtException', errStack(err))
   })
   process.on('unhandledRejection', (reason) => {
-    console.error('[storage] unhandledRejection', reason && (reason.stack || reason))
+    console.error('[storage] unhandledRejection', errStack(reason))
   })
 } else {
   console.warn('[storage] process.on is not available; skipping global error handlers')
@@ -331,20 +364,25 @@ async function init() {
 
 async function startServer() {
   await init()
-  app.listen(port, bindHost, () => {
+  app.listen(Number(port), bindHost, () => {
     console.log(`storage-service listening on ${port}`)
     try {
       // Enumerate registered routes for quick verification
-      const routes = []
+      const routes: string[] = []
       if (app && app._router && app._router.stack) {
-        app._router.stack.forEach((layer) => {
+        // `_router` là nội bộ của Express, không có trong kiểu công khai. Mô tả
+        // đúng phần hình dạng được đọc tới thay vì `any` — nếu Express đổi cấu
+        // trúc, chỗ hỏng hiện ra ở đây chứ không im lặng trả danh sách rỗng.
+        const stack =
+          (app as unknown as { _router?: { stack: RouterLayer[] } })._router?.stack ?? []
+        stack.forEach((layer: RouterLayer) => {
           if (layer.route && layer.route.path) {
             const methods = Object.keys(layer.route.methods || {})
               .map((m) => m.toUpperCase())
               .join(',')
             routes.push(`${methods} ${layer.route.path}`)
           } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
-            layer.handle.stack.forEach((rl) => {
+            layer.handle.stack.forEach((rl: RouterLayer) => {
               if (rl.route && rl.route.path) {
                 const methods = Object.keys(rl.route.methods || {})
                   .map((m) => m.toUpperCase())
@@ -372,4 +410,4 @@ if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) {
   })
 }
 
-module.exports = { app, startServer, init }
+export { app, startServer, init }

@@ -21,7 +21,9 @@ services:
     region: singapore
     dockerfilePath: ./docker/backend-service.Dockerfile
     dockerContext: .
-    dockerCommand: node services/backend-bundle/src/index.js
+    # dist/, không phải src/ — backend chạy bản đã biên dịch từ TypeScript.
+    # Bước dựng nằm trong docker/backend-service.Dockerfile (npm run build:ts).
+    dockerCommand: node services/backend-bundle/dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

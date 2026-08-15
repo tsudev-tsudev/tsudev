@@ -13,11 +13,16 @@
 // thấy cờ này, và sẽ tranh cổng với tiến trình cha.
 process.env.EMBEDDED = '1'
 
-const express = require('express')
+import express from 'express'
+import type { RequestHandler } from 'express'
 
-const content = require('../../content-service/src/index.js')
-const storage = require('../../storage-service/src/index.js')
-const trust = require('../../trust-service/src/index.js')
+// Require theo TÊN PACKAGE, không phải đường dẫn tương đối vào src/. Ba service
+// đã khai là dependency workspace nên npm dựng sẵn symlink; tên package đi qua
+// trường "main" của chúng, nên khi mã nguồn chuyển từ src/*.js sang dist/*.js
+// thì ba dòng này không phải sửa lại lần nữa.
+import * as content from 'content-service'
+import * as storage from 'storage-service'
+import * as trust from 'trust-service'
 
 // BẢNG SỞ HỮU ĐƯỜNG DẪN — cũng là tài liệu sống về ranh giới ba service.
 // Thêm route mới vào service nào mà tiền tố chưa có ở đây thì route đó KHÔNG
@@ -52,10 +57,13 @@ const SERVICES = [
 //
 // So khớp theo ranh giới đoạn đường dẫn, không phải startsWith trần: '/api/post'
 // không được nuốt '/api/postsomething'.
-const owns = (prefix, pathname) => pathname === prefix || pathname.startsWith(prefix + '/')
+const owns = (prefix: string, pathname: string): boolean =>
+  pathname === prefix || pathname.startsWith(prefix + '/')
 
-const dispatch = (prefixes, app) => (req, res, next) =>
-  prefixes.some((p) => owns(p, req.path)) ? app(req, res, next) : next()
+const dispatch =
+  (prefixes: string[], app: express.Express): RequestHandler =>
+  (req, res, next) =>
+    prefixes.some((p) => owns(p, req.path)) ? app(req, res, next) : next()
 
 const root = express()
 
@@ -71,7 +79,7 @@ root.get('/health', (req, res) =>
 
 SERVICES.forEach((s) => root.use(dispatch(s.prefixes, s.mod.app)))
 
-const port = process.env.PORT || 4000
+const port = Number(process.env.PORT) || 4000
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
 async function startServer() {
@@ -94,4 +102,4 @@ if (process.env.NODE_ENV !== 'test') {
   })
 }
 
-module.exports = { app: root, startServer, SERVICES }
+export { root as app, startServer, SERVICES }

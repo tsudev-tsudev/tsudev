@@ -19,6 +19,15 @@ const PALETTE = {
   default: { accent: '#4c8bff', label: 'TÍN NHIỆM' },
 }
 
+type StateStyle = {
+  fg: string
+  sub: string
+  mark: string
+  /** Chỉ các trạng thái bất thường mới có; ACTIVE mượn accent của palette. */
+  accent?: string
+  note?: string
+}
+
 const STATE = {
   ACTIVE: { fg: '#ededed', sub: '#8a8a8a', mark: '✓' },
   SUSPENDED: { fg: '#e0a53a', sub: '#e0a53a', mark: '!', accent: '#e0a53a', note: 'TẠM ĐÌNH CHỈ' },
@@ -34,11 +43,19 @@ const STATE = {
   },
 }
 
-const esc = (s) =>
-  String(s == null ? '' : s).replace(
-    /[<>&"']/g,
-    (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c])
-  )
+const ESCAPES: Record<string, string> = {
+  '<': '&lt;',
+  '>': '&gt;',
+  '&': '&amp;',
+  '"': '&quot;',
+  "'": '&#39;',
+}
+
+// Huy hiệu là SVG nhúng được trên site của bên thứ ba, nên đây là ranh giới
+// thoát ký tự thật sự — `?? c` giữ nguyên ký tự nếu bảng thiếu, thay vì chèn
+// "undefined" vào giữa văn bản SVG.
+const esc = (s: unknown): string =>
+  String(s == null ? '' : s).replace(/[<>&"']/g, (c) => ESCAPES[c] ?? c)
 
 /**
  * @param {object} o
@@ -47,14 +64,28 @@ const esc = (s) =>
  * @param {string} [o.programName]
  * @param {string} [o.serial]
  */
+type BadgeState = keyof typeof STATE
+type BadgeVariant = keyof typeof PALETTE
+
+type RenderBadgeOptions = {
+  /** khoá trong STATE */
+  state?: string
+  /** badgeVariant của chương trình */
+  variant?: string
+  programName?: string
+  serial?: string
+}
+
 function renderBadge({
   state = 'ACTIVE',
   variant = 'default',
   programName = '',
   serial = '',
-} = {}) {
-  const st = STATE[state] || STATE.UNKNOWN
-  const pal = PALETTE[variant] || PALETTE.default
+}: RenderBadgeOptions = {}) {
+  // `state`/`variant` tới từ DB nên vẫn là string tự do; thu hẹp tại đây và rơi
+  // về nhánh mặc định thay vì tin vào giá trị lưu trong bảng.
+  const st: StateStyle = STATE[state as BadgeState] || STATE.UNKNOWN
+  const pal = PALETTE[variant as BadgeVariant] || PALETTE.default
   const accent = st.accent || pal.accent
   const topLine = st.note || esc(programName || pal.label)
   const bottom = serial ? esc(serial) : 'tsudev.com/trust'
@@ -83,4 +114,4 @@ function renderBadge({
 </svg>`
 }
 
-module.exports = { renderBadge, PALETTE, STATE }
+export { renderBadge, PALETTE, STATE }

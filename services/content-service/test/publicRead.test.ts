@@ -18,7 +18,7 @@ process.env.REQUIRE_ROLE_ENFORCEMENT = 'false'
 const request = require('supertest')
 const { app } = require('../src/index')
 
-const withToken = (path) => request(app).get(path).set('x-internal-token', 'test-token')
+const withToken = (path: string) => request(app).get(path).set('x-internal-token', 'test-token')
 
 afterAll(() => {
   delete process.env.INTERNAL_API_TOKEN
@@ -56,3 +56,8 @@ describe('content-service — đường ghi vẫn đóng', () => {
     expect(res.status).toBe(401)
   })
 })
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và các biến top-level (`request`, `app`) của những tệp test
+// khác nhau sẽ đụng tên nhau. Không đổi gì lúc chạy.
+export {}

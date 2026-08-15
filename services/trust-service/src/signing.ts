@@ -26,7 +26,21 @@
  * xác minh được, kể cả bởi bên thứ ba không gọi API tsudev.
  */
 
-const crypto = require('crypto')
+import crypto from 'crypto'
+
+/**
+ * Kết quả xác minh — union phân biệt được theo `valid`.
+ *
+ * Đây không phải trang trí: nó khiến việc đọc `payload` mà chưa kiểm `valid`
+ * trở thành LỖI BIÊN DỊCH. Trước đây hàm trả một object phẳng, nên một nhánh
+ * quên kiểm `valid` vẫn chạy và coi payload của chữ ký hỏng là hợp lệ — không
+ * có gì báo lỗi. Hình dạng này cũng chính là hợp đồng cho bản Rust/WASM.
+ */
+export type VerifyResult =
+  | { valid: true; payload: unknown; keyId: string }
+  | { valid: false; reason: string }
+
+type LoadedKey = { key: crypto.KeyObject; kid: string; dev: boolean }
 
 // Khoá dev cố định, sinh từ seed công khai bên dưới. Cố định (thay vì sinh ngẫu
 // nhiên mỗi lần chạy) để chứng chỉ cấp trước khi restart vẫn xác minh được.
@@ -45,20 +59,20 @@ function devPrivateKey() {
 }
 
 /** Chấp nhận PEM thô hoặc PEM đã base64 hoá — .env nào cũng chở được một dòng. */
-function decodePem(raw) {
+function decodePem(raw: string | undefined | null): string | null {
   const s = String(raw || '').trim()
   if (!s) return null
   return /BEGIN/.test(s) ? s : Buffer.from(s, 'base64').toString('utf8')
 }
 
-function assertEd25519(key, label) {
+function assertEd25519(key: crypto.KeyObject, label: string): crypto.KeyObject {
   if (key.asymmetricKeyType !== 'ed25519') {
     throw new Error(`${label} phải là khoá Ed25519, nhận được: ${key.asymmetricKeyType}`)
   }
   return key
 }
 
-function loadPrivateKey() {
+function loadPrivateKey(): LoadedKey {
   const pem = decodePem(process.env.TRUST_SIGNING_KEY)
   if (pem) {
     const key = assertEd25519(crypto.createPrivateKey(pem), 'TRUST_SIGNING_KEY')
@@ -80,8 +94,8 @@ function loadPrivateKey() {
  * hậu quả của việc bỏ qua nó chỉ là vài chứng chỉ cũ báo "không có khoá", còn
  * hậu quả của việc ném lỗi là toàn bộ hệ thống cấp dấu ngừng chạy.
  */
-function loadRetiredKeys() {
-  const ring = new Map()
+function loadRetiredKeys(): Map<string, crypto.KeyObject> {
+  const ring = new Map<string, crypto.KeyObject>()
   const raw = String(process.env.TRUST_SIGNING_KEYS_RETIRED || '').trim()
   for (const entry of raw
     .split(/[,\n]/)
@@ -97,8 +111,11 @@ function loadRetiredKeys() {
     const kid = entry.slice(0, sep).trim()
     try {
       const pem = decodePem(entry.slice(sep + 1))
+      // Bản cũ để `null` chảy thẳng vào createPublicKey và dựa vào việc nó ném
+      // lỗi. Vẫn rơi vào đúng nhánh catch bên dưới, nhưng nói rõ lý do hơn.
+      if (!pem) throw new Error('phần PEM rỗng')
       // Nhận cả khoá riêng lẫn khoá công khai; khoá đã nghỉ chỉ cần phần công khai.
-      let pub
+      let pub: crypto.KeyObject
       try {
         pub = crypto.createPublicKey(pem)
       } catch (e) {
@@ -106,7 +123,11 @@ function loadRetiredKeys() {
       }
       ring.set(kid, assertEd25519(pub, `khoá đã nghỉ ${kid}`))
     } catch (e) {
-      console.warn(`[trust] TRUST_SIGNING_KEYS_RETIRED: bỏ qua khoá ${kid} — ${e.message}`)
+      console.warn(
+        `[trust] TRUST_SIGNING_KEYS_RETIRED: bỏ qua khoá ${kid} — ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      )
     }
   }
   return ring
@@ -126,10 +147,10 @@ if (!verifyRing.has(DEV_KID) && process.env.NODE_ENV !== 'production') {
   verifyRing.set(DEV_KID, crypto.createPublicKey(devPrivateKey()))
 }
 
-const b64url = (buf) => Buffer.from(buf).toString('base64url')
+const b64url = (buf: Buffer | string): string => Buffer.from(buf).toString('base64url')
 
 /** Ký payload thành JWS compact (EdDSA). */
-function sign(payload) {
+function sign(payload: unknown): string {
   const header = { alg: 'EdDSA', typ: 'JWT', kid }
   const signingInput = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`
   const sig = crypto.sign(null, Buffer.from(signingInput), privateKey)
@@ -140,29 +161,51 @@ function sign(payload) {
  * Xác minh JWS. Trả { valid, payload, reason } — không ném lỗi, để trang xác
  * thực hiển thị được lý do hỏng thay vì trả 500.
  */
-function verify(jws, keyForKid) {
+function verify(jws: string | null | undefined, keyForKid?: crypto.KeyObject): VerifyResult {
   try {
+    // Kiểm CÓ MẶT (`=== undefined`), không kiểm truthy.
+    //
+    // Khác biệt này quan trọng: một JWS tấn công kiểu đổi thuật toán thường có
+    // phần chữ ký RỖNG ("header.payload."). Loại nó ở đây vì "sai định dạng" sẽ
+    // che mất lý do thật, và lý do thật — thuật toán không được chấp nhận — mới
+    // là thứ trang xác minh cần nói ra. Kiểm alg phải được chạy TRƯỚC.
     const parts = String(jws || '').split('.')
-    if (parts.length !== 3) return { valid: false, reason: 'Chữ ký sai định dạng' }
-    const header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8'))
+    const headerB64 = parts[0]
+    const payloadB64 = parts[1]
+    const sigB64 = parts[2]
+    if (
+      parts.length !== 3 ||
+      headerB64 === undefined ||
+      payloadB64 === undefined ||
+      sigB64 === undefined
+    ) {
+      return { valid: false, reason: 'Chữ ký sai định dạng' }
+    }
+    const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8')) as {
+      alg?: string
+      kid?: string
+    }
     if (header.alg !== 'EdDSA')
       return { valid: false, reason: `Thuật toán không được chấp nhận: ${header.alg}` }
-    const pub = keyForKid || verifyRing.get(header.kid)
+    const pub = keyForKid || (header.kid ? verifyRing.get(header.kid) : undefined)
     if (!pub) return { valid: false, reason: `Không có khoá công khai cho kid=${header.kid}` }
     const ok = crypto.verify(
       null,
-      Buffer.from(`${parts[0]}.${parts[1]}`),
+      Buffer.from(`${headerB64}.${payloadB64}`),
       pub,
-      Buffer.from(parts[2], 'base64url')
+      Buffer.from(sigB64, 'base64url')
     )
     if (!ok) return { valid: false, reason: 'Chữ ký không khớp' }
     return {
       valid: true,
-      payload: JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')),
-      keyId: header.kid,
+      payload: JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')),
+      keyId: header.kid ?? '',
     }
   } catch (e) {
-    return { valid: false, reason: e && e.message ? e.message : 'Không đọc được chữ ký' }
+    return {
+      valid: false,
+      reason: e instanceof Error && e.message ? e.message : 'Không đọc được chữ ký',
+    }
   }
 }
 
@@ -170,8 +213,8 @@ function verify(jws, keyForKid) {
  * JWKS công khai — chỉ chứa khoá công khai, an toàn để phát tán. Khoá đang ký
  * đứng đầu để client nào chỉ lấy phần tử thứ nhất vẫn dùng đúng.
  */
-function jwks() {
-  const toJwk = (pub, keyId) => {
+function jwks(): { keys: Array<Record<string, unknown>> } {
+  const toJwk = (pub: crypto.KeyObject, keyId: string) => {
     const jwk = pub.export({ format: 'jwk' })
     return { kty: jwk.kty, crv: jwk.crv, x: jwk.x, use: 'sig', alg: 'EdDSA', kid: keyId }
   }
@@ -180,11 +223,6 @@ function jwks() {
   return { keys }
 }
 
-module.exports = {
-  sign,
-  verify,
-  jwks,
-  kid,
-  usingDevKey,
-  verifyKeyIds: () => [...verifyRing.keys()],
-}
+const verifyKeyIds = (): string[] => [...verifyRing.keys()]
+
+export { sign, verify, jwks, kid, usingDevKey, verifyKeyIds }

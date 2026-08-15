@@ -12,10 +12,30 @@ try {
 } catch (e) {
   // ignore
 }
-const express = require('express')
-const { prisma } = require('@tsudev/db')
-const { hasAtLeastRole } = require('@tsudev/types')
-let notify = { alert: async () => {} }
+import express from 'express'
+import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
+import { prisma } from '@tsudev/db'
+import type { Prisma, Project, User } from '@prisma/client'
+import { hasAtLeastRole } from '@tsudev/types'
+
+type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
+
+/**
+ * Đọc một tham số truy vấn dạng CHUỖI.
+ *
+ * Express khai `req.query.x` là `string | ParsedQs | (string|ParsedQs)[] |
+ * undefined` — và nó nói đúng: người gọi điều khiển hình dạng này. `?limit=1`
+ * cho chuỗi, `?limit=1&limit=2` cho mảng, `?limit[a]=1` cho object. Bản cũ đưa
+ * thẳng giá trị đó vào parseInt, nơi mảng bị ép về chuỗi và object thành NaN —
+ * im lặng cả hai trường hợp. Ở đây chỉ chuỗi mới được đi tiếp.
+ */
+const qStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
+const qInt = (v: unknown, dflt: number): number => {
+  const n = parseInt(qStr(v) ?? '', 10)
+  return Number.isFinite(n) && n > 0 ? n : dflt
+}
+
+let notify: Notifier = { alert: async () => {} }
 try {
   notify = require('../../../packages/observability/notify')
 } catch (e) {
@@ -28,20 +48,37 @@ const port = process.env.PORT || process.env.PORT_CONTENT_SERVICE || 4001
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
-let auth
+// `auth` vừa là middleware gọi được, vừa mang `.requireRole`. Khai kiểu từ chính
+// module đó (`typeof import`) nên hai bên không thể lệch nhau mà không ai biết.
+type AuthMiddleware = typeof import('./authMiddleware')
+
+const passthrough: RequestHandler = (_req, _res, next) => next()
+
+const hasRequireRole = (a: unknown): a is AuthMiddleware =>
+  typeof a === 'function' && typeof (a as AuthMiddleware).requireRole === 'function'
+
+let auth: AuthMiddleware | RequestHandler = passthrough
 try {
-  auth = require('./authMiddleware')
+  auth = require('./authMiddleware') as AuthMiddleware
 } catch (e) {
-  auth = (req, res, next) => next()
+  auth = passthrough
 }
-const requireRole = (role) =>
-  auth && auth.requireRole ? auth.requireRole(role) : (req, res, next) => next()
-const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
+const requireRole = (role: string): RequestHandler =>
+  hasRequireRole(auth) ? auth.requireRole(role) : passthrough
+
+// Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
+// được error handler của Express — request treo cho tới khi client bỏ cuộc.
+const asyncHandler =
+  (fn: (req: Request, res: Response, next: NextFunction) => unknown): RequestHandler =>
+  (req, res, next) =>
+    Promise.resolve(fn(req, res, next)).catch(next)
 
 // Thẻ tác giả gắn vào bài blog. Không còn `reputation`/`rank`: điểm uy tín
 // thành viên là cơ chế của diễn đàn, đã bỏ; uy tín nay là hồ sơ tổ chức gắn
 // con dấu (docs/refactor-personal-site.md §3.3).
-const authorCard = (u) =>
+const authorCard = (
+  u: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'> | null | undefined
+) =>
   u
     ? {
         id: u.id,
@@ -83,7 +120,7 @@ app.use('/api', (req, res, next) => {
 // trust-service (auth theo nhánh) vốn đã dùng; content-service là cái lệch.
 //
 // Token SAI vẫn bị từ chối: chỉ bỏ qua khi người gọi không đưa gì cả.
-const optionalAuth = (req, res, next) => {
+const optionalAuth: RequestHandler = (req, res, next) => {
   const bearer = /^Bearer /i.test(req.get('authorization') || '')
   const devBypass = process.env.AUTH_DEV_BYPASS === 'true'
   if (!bearer && !devBypass) return next()
@@ -96,7 +133,7 @@ app.get(
   '/api/posts',
   requireRole(process.env.CONTENT_READ_ROLE || 'content:read'),
   asyncHandler(async (req, res) => {
-    const take = Math.min(parseInt(req.query.limit) || 20, 50)
+    const take = Math.min(qInt(req.query.limit, 20), 50)
     const posts = await prisma.post.findMany({
       where: { published: true },
       orderBy: { createdAt: 'desc' },
@@ -161,14 +198,14 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /// Danh tính người gọi, lấy từ payload đã xác thực. Không tự tạo tài khoản như
 /// currentUser() cũ của diễn đàn: đường ghi phải khớp một User có thật.
-async function actingUser(req) {
-  const p = req.user || {}
-  const username = p.preferred_username || p.username || p.sub
+async function actingUser(req: Request): Promise<User | null> {
+  const p = req.user
+  const username = p?.preferred_username || p?.sub
   if (!username) return null
   return prisma.user.findUnique({ where: { username } })
 }
 
-async function requireAdmin(req, res) {
+async function requireAdmin(req: Request, res: Response): Promise<User | null> {
   const user = await actingUser(req)
   if (!user) {
     res.status(401).json({ error: 'Bạn cần đăng nhập' })
@@ -181,7 +218,7 @@ async function requireAdmin(req, res) {
   return user
 }
 
-const projectCard = (p) => ({
+const projectCard = (p: Project) => ({
   id: p.id,
   slug: p.slug,
   name: p.name,
@@ -201,82 +238,116 @@ const projectCard = (p) => ({
 })
 
 /// Nhận và làm sạch phần thân request. Trả { data } hoặc { error }.
-function readProjectBody(body, { partial }) {
-  const b = body || {}
-  const data = {}
-  const set = (key, value) => {
-    if (value !== undefined) data[key] = value
+type ProjectWritable = Partial<Prisma.ProjectUncheckedCreateInput>
+/**
+ * Discriminant tường minh (`ok`) chứ không phải "có trường error hay không".
+ * Nhờ nó mà sau `if (!parsed.ok) return`, TypeScript BIẾT `parsed.data` có mặt —
+ * không còn chỗ nào đọc data của một request đã bị từ chối.
+ */
+type ReadBodyResult = { ok: true; data: ProjectWritable } | { ok: false; error: string }
+
+function readProjectBody(body: unknown, { partial }: { partial: boolean }): ReadBodyResult {
+  const b = (body ?? {}) as Record<string, unknown>
+  const data: ProjectWritable = {}
+  // Các vòng lặp bên dưới gán theo khoá động. Giữ MỘT tham chiếu lỏng kiểu ở đây
+  // thay vì rắc cast khắp nơi — hình dạng trả về cho nơi gọi vẫn là ProjectWritable.
+  const loose = data as Record<string, unknown>
+  const set = (key: string, value: unknown) => {
+    if (value !== undefined) loose[key] = value
   }
 
   if (!partial || b.slug !== undefined) {
     const slug = (b.slug || '').toString().trim().toLowerCase()
     if (!SLUG_RE.test(slug))
-      return { error: 'slug phải là chữ thường, số và dấu gạch nối (ví dụ: tsudev-cli)' }
+      return { ok: false, error: 'slug phải là chữ thường, số và dấu gạch nối (ví dụ: tsudev-cli)' }
     data.slug = slug
   }
   if (!partial || b.name !== undefined) {
     const name = (b.name || '').toString().trim()
-    if (!name) return { error: 'Thiếu name' }
+    if (!name) return { ok: false, error: 'Thiếu name' }
     data.name = name
   }
   if (!partial || b.summary !== undefined) {
     const summary = (b.summary || '').toString().trim()
-    if (!summary) return { error: 'Thiếu summary' }
+    if (!summary) return { ok: false, error: 'Thiếu summary' }
     data.summary = summary
   }
 
+  // Ba trường enum: Set.has() nhận `unknown` nên bản cũ vẫn "kiểm" đúng lúc chạy,
+  // nhưng giá trị đi ra vẫn là `any`. Thu hẹp về string trước khi tra Set thì
+  // vừa giữ nguyên hành vi, vừa không để `any` chảy vào tầng Prisma.
   if (b.kind !== undefined) {
-    if (!PROJECT_KINDS.has(b.kind)) return { error: `kind không hợp lệ: ${b.kind}` }
-    data.kind = b.kind
+    const kind = String(b.kind)
+    if (!PROJECT_KINDS.has(kind)) return { ok: false, error: `kind không hợp lệ: ${kind}` }
+    data.kind = kind as Prisma.ProjectUncheckedCreateInput['kind']
   }
   if (b.status !== undefined) {
-    if (!PROJECT_STATUSES.has(b.status)) return { error: `status không hợp lệ: ${b.status}` }
-    data.status = b.status
+    const status = String(b.status)
+    if (!PROJECT_STATUSES.has(status)) return { ok: false, error: `status không hợp lệ: ${status}` }
+    data.status = status as Prisma.ProjectUncheckedCreateInput['status']
   }
   if (b.copyrightStatus !== undefined) {
-    if (!COPYRIGHT_STATUSES.has(b.copyrightStatus))
-      return { error: `copyrightStatus không hợp lệ: ${b.copyrightStatus}` }
-    data.copyrightStatus = b.copyrightStatus
+    const cs = String(b.copyrightStatus)
+    if (!COPYRIGHT_STATUSES.has(cs))
+      return { ok: false, error: `copyrightStatus không hợp lệ: ${cs}` }
+    data.copyrightStatus = cs as Prisma.ProjectUncheckedCreateInput['copyrightStatus']
   }
 
   // REGISTERED mà không có số giấy chứng nhận là một khẳng định pháp lý không có
   // gì chống lưng — chặn ngay ở đây, đừng để nó hiện lên trang công khai.
   const nextCopyright = data.copyrightStatus
-  const nextNo = b.copyrightNo === undefined ? undefined : (b.copyrightNo || '').toString().trim()
+  const nextNo = b.copyrightNo === undefined ? undefined : String(b.copyrightNo || '').trim()
   if (nextCopyright === 'REGISTERED' && !partial && !nextNo)
-    return { error: 'copyrightStatus=REGISTERED thì bắt buộc có copyrightNo' }
-  ;['descriptionMd', 'version', 'repoUrl', 'homepageUrl', 'downloadUrl', 'license'].forEach((k) => {
-    if (b[k] !== undefined) data[k] = b[k] === null ? null : b[k].toString()
-  })
-  ;['copyrightNo', 'copyrightOwner', 'trustProgramSlug'].forEach((k) => {
-    if (b[k] !== undefined) data[k] = b[k] === null || b[k] === '' ? null : b[k].toString()
-  })
-  ;['releasedAt', 'copyrightAt'].forEach((k) => {
-    if (b[k] === undefined) return
-    if (b[k] === null || b[k] === '') return set(k, null)
-    const d = new Date(b[k])
-    if (Number.isNaN(d.getTime())) return
-    data[k] = d
-  })
-  ;['featured', 'published'].forEach((k) => {
-    if (b[k] !== undefined) data[k] = Boolean(b[k])
-  })
-  if (b.sortOrder !== undefined) data.sortOrder = parseInt(b.sortOrder, 10) || 0
+    return { ok: false, error: 'copyrightStatus=REGISTERED thì bắt buộc có copyrightNo' }
+  for (const k of [
+    'descriptionMd',
+    'version',
+    'repoUrl',
+    'homepageUrl',
+    'downloadUrl',
+    'license',
+  ]) {
+    if (b[k] !== undefined) loose[k] = b[k] === null ? null : String(b[k])
+  }
+  for (const k of ['copyrightNo', 'copyrightOwner', 'trustProgramSlug']) {
+    if (b[k] !== undefined) loose[k] = b[k] === null || b[k] === '' ? null : String(b[k])
+  }
+  for (const k of ['releasedAt', 'copyrightAt']) {
+    const v = b[k]
+    if (v === undefined) continue
+    if (v === null || v === '') {
+      set(k, null)
+      continue
+    }
+    // `new Date(x)` nhận cả number lẫn string; mọi thứ khác cho Invalid Date và
+    // bị bỏ qua ở dòng dưới, đúng như bản cũ.
+    const d = new Date(v as string | number)
+    if (Number.isNaN(d.getTime())) continue
+    loose[k] = d
+  }
+  for (const k of ['featured', 'published']) {
+    if (b[k] !== undefined) loose[k] = Boolean(b[k])
+  }
+  if (b.sortOrder !== undefined) data.sortOrder = parseInt(String(b.sortOrder), 10) || 0
 
-  return { data }
+  return { ok: true, data }
 }
 
 app.get(
   '/api/projects',
   asyncHandler(async (req, res) => {
-    const where = { published: true }
-    if (req.query.kind && PROJECT_KINDS.has(req.query.kind)) where.kind = req.query.kind
-    if (req.query.status && PROJECT_STATUSES.has(req.query.status)) where.status = req.query.status
-    if (req.query.copyright && COPYRIGHT_STATUSES.has(req.query.copyright))
-      where.copyrightStatus = req.query.copyright
+    const where: Prisma.ProjectWhereInput = { published: true }
+    const kind = qStr(req.query.kind)
+    const status = qStr(req.query.status)
+    const copyright = qStr(req.query.copyright)
+    if (kind && PROJECT_KINDS.has(kind)) where.kind = kind as Prisma.ProjectWhereInput['kind']
+    if (status && PROJECT_STATUSES.has(status))
+      where.status = status as Prisma.ProjectWhereInput['status']
+    if (copyright && COPYRIGHT_STATUSES.has(copyright))
+      where.copyrightStatus = copyright as Prisma.ProjectWhereInput['copyrightStatus']
     if (req.query.featured === '1') where.featured = true
 
-    const take = Math.min(parseInt(req.query.limit) || 50, 100)
+    const take = Math.min(qInt(req.query.limit, 50), 100)
     const projects = await prisma.project.findMany({
       where,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -312,8 +383,11 @@ app.post(
   '/api/admin/projects',
   asyncHandler(async (req, res) => {
     if (!(await requireAdmin(req, res))) return
-    const { data, error } = readProjectBody(req.body, { partial: false })
-    if (error) return res.status(400).json({ error })
+    const parsed = readProjectBody(req.body, { partial: false })
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+    // `partial: false` ⇒ readProjectBody đã chặn thiếu slug/name/summary bằng
+    // `return { error }` ở trên. Đây là chỗ DUY NHẤT khẳng định điều đó.
+    const data = parsed.data as Prisma.ProjectUncheckedCreateInput
 
     const clash = await prisma.project.findUnique({ where: { slug: data.slug } })
     if (clash) return res.status(409).json({ error: `slug "${data.slug}" đã tồn tại` })
@@ -330,8 +404,9 @@ app.patch(
     const current = await prisma.project.findUnique({ where: { slug: req.params.slug } })
     if (!current) return res.status(404).json({ error: 'Không tìm thấy dự án' })
 
-    const { data, error } = readProjectBody(req.body, { partial: true })
-    if (error) return res.status(400).json({ error })
+    const parsed = readProjectBody(req.body, { partial: true })
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+    const data = parsed.data
 
     // Kiểm chéo với giá trị SAU khi ghép, không phải với phần thân request:
     // PATCH chỉ gửi copyrightStatus vẫn phải thoả ràng buộc "REGISTERED cần số".
@@ -376,18 +451,19 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_BOOM === '
 // Express chỉ nhận diện đây là middleware xử lý lỗi khi hàm khai đủ 4 tham số;
 // bỏ `next` cho hết lint thì toàn bộ xử lý lỗi im lặng ngừng hoạt động.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err, req, res, next) => {
-  console.error('[content] error', err && (err.stack || err.message || err))
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  const message = err instanceof Error ? err.message : String(err)
+  console.error('[content] error', err instanceof Error ? err.stack || message : err)
   notify.alert({
     service: 'content-service',
     level: 'error',
-    message: err && err.message,
+    message,
     error: err,
     context: `${req.method} ${req.url}`,
   })
-  if (res && !res.headersSent)
-    res.status(500).json({ error: err && err.message ? err.message : 'internal error' })
-})
+  if (res && !res.headersSent) res.status(500).json({ error: message || 'internal error' })
+}
+app.use(errorHandler)
 
 /** Chuẩn bị trước khi phục vụ. Chạy ở CẢ hai chế độ: tiến trình riêng và nhúng
  *  trong services/backend-bundle. content-service không có gì phải dựng sẵn —
@@ -396,7 +472,9 @@ async function init() {}
 
 async function startServer() {
   await init()
-  app.listen(port, bindHost, () => console.log(`content-service listening on ${bindHost}:${port}`))
+  app.listen(Number(port), bindHost, () =>
+    console.log(`content-service listening on ${bindHost}:${port}`)
+  )
 }
 
 // EMBEDDED=1 do services/backend-bundle đặt trước khi require file này: ở chế
@@ -404,4 +482,4 @@ async function startServer() {
 // đây là tranh cổng với cha.
 if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) startServer().catch(() => {})
 
-module.exports = { app, startServer, init }
+export { app, startServer, init }

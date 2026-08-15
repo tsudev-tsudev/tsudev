@@ -21,10 +21,16 @@
  *    nhật ký kiểm toán: nó bất biến và đã ghi sẵn ai là người ra tay.
  */
 
-const { prisma } = require('@tsudev/db')
-const { verifyDomain } = require('./domainVerify')
+import { prisma } from '@tsudev/db'
+import type { TrustCertificate } from '@prisma/client'
+import { verifyDomain } from './domainVerify'
 
-let notify = { alert: async () => {} }
+/** Cảnh báo ra ngoài. Không bắt buộc — thiếu module thì thay bằng no-op. */
+type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
+
+const errText = (e: unknown): string => (e instanceof Error ? e.stack || e.message : String(e))
+
+let notify: Notifier = { alert: async () => {} }
 try {
   notify = require('../../../packages/observability/notify')
 } catch (e) {
@@ -34,8 +40,8 @@ try {
 /** Diễn viên hệ thống trong nhật ký kiểm toán. actorId là chuỗi tự do, không phải khoá ngoại. */
 const SYSTEM_ACTOR = { id: 'system', displayName: 'Hệ thống giám sát', username: 'system' }
 
-const num = (v, dflt) => {
-  const n = parseInt(v, 10)
+const num = (v: string | undefined, dflt: number): number => {
+  const n = parseInt(String(v ?? ''), 10)
   return Number.isFinite(n) && n > 0 ? n : dflt
 }
 
@@ -51,7 +57,12 @@ const config = () => ({
  * Chứng chỉ cần kiểm lại: đang ACTIVE hoặc SUSPENDED (để còn khôi phục được),
  * chưa hết hạn, và lần kiểm gần nhất đã cũ. Chưa từng kiểm thì ưu tiên trước.
  */
-async function selectDue(now, { batch, staleAfterMin }) {
+type RecheckConfig = ReturnType<typeof config>
+
+async function selectDue(
+  now: Date,
+  { batch, staleAfterMin }: Pick<RecheckConfig, 'batch' | 'staleAfterMin'>
+) {
   const cutoff = new Date(now.getTime() - staleAfterMin * 60000)
   return prisma.trustCertificate.findMany({
     where: {
@@ -66,7 +77,7 @@ async function selectDue(now, { batch, staleAfterMin }) {
 }
 
 /** Đếm số lần trượt liên tiếp tính từ lần kiểm mới nhất, tối đa `limit` bản ghi. */
-async function consecutiveFailures(certificateId, limit) {
+async function consecutiveFailures(certificateId: string, limit: number): Promise<number> {
   const checks = await prisma.trustCheck.findMany({
     where: { certificateId },
     orderBy: { ranAt: 'desc' },
@@ -85,7 +96,7 @@ async function consecutiveFailures(certificateId, limit) {
  * Lần đình chỉ hiện hành có phải do hệ thống không. Đọc hành động đình chỉ/khôi
  * phục gần nhất trong nhật ký — nếu người làm thì máy không được lật lại.
  */
-async function suspendedBySystem(certificateId) {
+async function suspendedBySystem(certificateId: string): Promise<boolean> {
   const last = await prisma.trustAuditLog.findFirst({
     where: {
       targetType: 'TrustCertificate',
@@ -98,7 +109,11 @@ async function suspendedBySystem(certificateId) {
   return !!last && last.action === 'CERTIFICATE_SUSPEND' && last.actorId === SYSTEM_ACTOR.id
 }
 
-function audit(action, cert, note) {
+function audit(
+  action: string,
+  cert: Pick<TrustCertificate, 'id' | 'serial'>,
+  note?: string | null
+) {
   return prisma.trustAuditLog.create({
     data: {
       actorId: SYSTEM_ACTOR.id,
@@ -112,8 +127,27 @@ function audit(action, cert, note) {
   })
 }
 
+/** Một chứng chỉ kèm quan hệ, đúng hình dạng selectDue() trả về. */
+type DueCertificate = Awaited<ReturnType<typeof selectDue>>[number]
+
+/**
+ * Một dòng trong báo cáo vòng giám sát.
+ *
+ * `passed` có BA giá trị, không phải hai: true/false là kết quả kiểm, còn null
+ * nghĩa là chưa kiểm được (bản thân lần kiểm vỡ). Gộp null vào false sẽ khiến
+ * lỗi hạ tầng của chính tsudev bị tính là chủ site vi phạm.
+ */
+type RecheckRow = {
+  serial: string
+  hostname: string | null
+  passed: boolean | null
+  detail: string | null
+  action: string
+  streak?: number
+}
+
 /** Kiểm một chứng chỉ và áp dụng hệ quả. Trả bản ghi kết quả để gộp báo cáo. */
-async function recheckOne(cert, cfg) {
+async function recheckOne(cert: DueCertificate, cfg: RecheckConfig): Promise<RecheckRow> {
   const domain = cert.domain
   const result = await verifyDomain(domain.hostname, domain.method, domain.token)
   const now = new Date()
@@ -144,7 +178,7 @@ async function recheckOne(cert, cfg) {
     }),
   ])
 
-  const row = {
+  const row: RecheckRow = {
     serial: cert.serial,
     hostname: domain.hostname,
     passed: result.ok,
@@ -189,26 +223,28 @@ async function recheckOne(cert, cfg) {
  * Một vòng giám sát. Lỗi của một chứng chỉ không được làm hỏng cả vòng — một
  * domain chết không thể chặn việc kiểm những domain còn lại.
  */
-async function runRecheckCycle(opts = {}) {
-  const cfg = { ...config(), ...opts }
+type RunOpts = Partial<RecheckConfig> & { now?: Date; certificates?: DueCertificate[] }
+
+async function runRecheckCycle(opts: RunOpts = {}) {
+  const cfg: RecheckConfig = { ...config(), ...opts }
   const now = opts.now || new Date()
   const certs = opts.certificates || (await selectDue(now, cfg))
-  const results = []
+  const results: RecheckRow[] = []
   for (const cert of certs) {
     try {
       results.push(await recheckOne(cert, cfg))
     } catch (e) {
-      console.error(`[trust] recheck ${cert.serial} lỗi:`, e && (e.stack || e.message))
+      console.error(`[trust] recheck ${cert.serial} lỗi:`, errText(e))
       results.push({
         serial: cert.serial,
-        hostname: cert.domain && cert.domain.hostname,
+        hostname: cert.domain ? cert.domain.hostname : null,
         passed: null,
-        detail: e && e.message,
+        detail: e instanceof Error ? e.message : String(e),
         action: 'error',
       })
     }
   }
-  const tally = (a) => results.filter((r) => r.action === a).length
+  const tally = (a: string) => results.filter((r) => r.action === a).length
   return {
     checked: results.length,
     passed: results.filter((r) => r.passed === true).length,
@@ -220,7 +256,7 @@ async function runRecheckCycle(opts = {}) {
   }
 }
 
-let timer = null
+let timer: NodeJS.Timeout | null = null
 
 /**
  * Bộ hẹn giờ trong tiến trình. Đủ cho một service chạy một bản; nếu sau này
@@ -244,7 +280,7 @@ function startScheduler() {
           `[trust] giám sát: kiểm ${s.checked}, đạt ${s.passed}, trượt ${s.failed}, đình chỉ ${s.suspended}, khôi phục ${s.resumed}`
         )
     } catch (e) {
-      console.error('[trust] vòng giám sát lỗi:', e && (e.stack || e.message))
+      console.error('[trust] vòng giám sát lỗi:', errText(e))
     }
   }
   // Trễ một phút trước vòng đầu: lúc mới khởi động, DB và mạng chưa chắc sẵn sàng.
@@ -265,7 +301,7 @@ function stopScheduler() {
   }
 }
 
-module.exports = {
+export {
   runRecheckCycle,
   startScheduler,
   stopScheduler,

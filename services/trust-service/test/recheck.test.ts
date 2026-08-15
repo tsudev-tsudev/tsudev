@@ -10,7 +10,17 @@
 
 // jest.mock được kéo lên đầu file, nên mọi biến factory chạm tới phải mang tiền
 // tố `mock` — đó là quy ước Jest dùng để biết biến đã sẵn sàng.
-const mockState = {
+// Mảng rỗng không có chú thích kiểu sẽ được suy ra là `never[]`, và mọi
+// `.push()` sau đó là lỗi. Khai kiểu lỏng nhưng tường minh cho bộ giả.
+type AnyRecord = Record<string, unknown>
+const mockState: {
+  checks: AnyRecord[]
+  certUpdates: { id: unknown; data: AnyRecord }[]
+  audits: AnyRecord[]
+  checkHistory: { passed: boolean }[]
+  auditHistory: AnyRecord | null
+  verifyResult: { ok: boolean; detail: string }
+} = {
   checks: [], // TrustCheck đã ghi
   certUpdates: [], // { id, data }
   audits: [], // TrustAuditLog đã ghi
@@ -70,7 +80,8 @@ const cert = (over = {}) => ({
   ...over,
 })
 
-const run = (c, opts = {}) => runRecheckCycle({ certificates: [c], graceFailures: 3, ...opts })
+const run = (c: AnyRecord, opts: Record<string, unknown> = {}) =>
+  runRecheckCycle({ certificates: [c], graceFailures: 3, ...opts })
 
 beforeEach(() => {
   checks.length = 0
@@ -85,7 +96,7 @@ describe('giám sát tên miền', () => {
   test('kiểm đạt: ghi nhận, không đụng vào trạng thái chứng chỉ', async () => {
     const s = await run(cert())
     expect(s).toMatchObject({ checked: 1, passed: 1, failed: 0, suspended: 0, resumed: 0 })
-    expect(checks[0].passed).toBe(true)
+    expect(checks[0]!.passed).toBe(true)
     expect(certUpdates.every((u) => !u.data.status)).toBe(true)
     expect(audits).toHaveLength(0)
   })
@@ -128,7 +139,7 @@ describe('giám sát tên miền', () => {
     const s = await run(cert({ status: 'SUSPENDED' }))
     expect(s.resumed).toBe(1)
     expect(certUpdates.some((u) => u.data.status === 'ACTIVE')).toBe(true)
-    expect(audits[0].action).toBe('CERTIFICATE_RESUME')
+    expect(audits[0]!.action).toBe('CERTIFICATE_RESUME')
   })
 
   test('người đình chỉ thì máy KHÔNG được bật lại dù kiểm đạt', async () => {
@@ -184,3 +195,8 @@ describe('cấu hình giám sát', () => {
     expect(config().enabled).toBe(false)
   })
 })
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và các biến top-level (`request`, `app`) của những tệp test
+// khác nhau sẽ đụng tên nhau. Không đổi gì lúc chạy.
+export {}

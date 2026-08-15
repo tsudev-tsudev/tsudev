@@ -12,18 +12,55 @@ try {
   // ignore
 }
 
-const express = require('express')
-const { prisma } = require('@tsudev/db')
-const { hasAtLeastRole } = require('@tsudev/types')
-const crypto = require('crypto')
+import express from 'express'
+import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
+import type { Prisma, User } from '@prisma/client'
 
-const signing = require('./signing')
-const { renderBadge } = require('./badge')
-const { verifyDomain, instructionsFor, isValidHostname } = require('./domainVerify')
-const { issueCertificate, effectiveStatus, ISSUER } = require('./certificates')
-const { runRecheckCycle, startScheduler, config: recheckConfig } = require('./recheck')
+type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
 
-let notify = { alert: async () => {} }
+const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
+const errStack = (e: unknown): string => (e instanceof Error ? e.stack || e.message : String(e))
+
+/** Tham số truy vấn có thể là mảng hoặc object lồng — chỉ nhận chuỗi. */
+const qStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
+
+/**
+ * Chứng chỉ KÈM quan hệ. `GetPayload` suy ra kiểu từ chính mệnh đề `include`,
+ * nên nếu sau này bỏ một quan hệ khỏi truy vấn thì mọi nơi đọc quan hệ đó thành
+ * lỗi biên dịch — thay vì `undefined` lặng lẽ chảy ra JSON trả về.
+ */
+type CertWithRelations = Prisma.TrustCertificateGetPayload<{
+  include: { domain: true; program: true }
+}> & {
+  /**
+   * CÓ ở các endpoint công khai (verify, directory), KHÔNG CÓ khi chứng chỉ được
+   * nạp lồng dưới một org — ở đó truy vấn chỉ include domain + program, vì tổ
+   * chức đã là ngữ cảnh của chính trang đó.
+   *
+   * Vì thế `certCard` trả `organization: undefined` ở hồ sơ tổ chức. Đó là hành
+   * vi sẵn có (mã cũ đã có sẵn nhánh `c.org ? … : undefined`); khai optional ở
+   * đây chỉ làm nó hiện ra thay vì nằm im.
+   */
+  org?: Prisma.TrustOrganizationGetPayload<object> | null
+}
+
+/** Một mục trong `SealProgram.evidenceSpec` (cột Json, không có kiểu từ Prisma). */
+type EvidenceSpecItem = { kind: string; label?: string; required?: boolean }
+const qInt = (v: unknown, dflt: number): number => {
+  const n = parseInt(qStr(v) ?? '', 10)
+  return Number.isFinite(n) && n > 0 ? n : dflt
+}
+import { prisma } from '@tsudev/db'
+import { hasAtLeastRole } from '@tsudev/types'
+import crypto from 'crypto'
+
+import * as signing from './signing'
+import { renderBadge } from './badge'
+import { instructionsFor, isValidHostname, verifyDomain } from './domainVerify'
+import { ISSUER, effectiveStatus, issueCertificate } from './certificates'
+import { config as recheckConfig, runRecheckCycle, startScheduler } from './recheck'
+
+let notify: Notifier = { alert: async () => {} }
 try {
   notify = require('../../../packages/observability/notify')
 } catch (e) {
@@ -37,11 +74,21 @@ const port = process.env.PORT || process.env.PORT_TRUST_SERVICE || 4003
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
-let auth
+// `auth` vừa là middleware gọi được, vừa mang `.requireRole`. Khai kiểu từ chính
+// module đó (`typeof import`) nên hai bên không thể lệch nhau mà không ai biết.
+type AuthMiddleware = typeof import('./authMiddleware')
+
+const passthrough: RequestHandler = (_req, _res, next) => next()
+
+// Khác content/storage: trust-service KHÔNG dùng requireRole ở đâu cả. Nó gắn
+// auth theo nhánh (xem vòng lặp bên dưới) và tự kiểm vai trò từ DB qua
+// requireReviewer(). Đừng thêm helper requireRole vào đây cho "đồng bộ" — nó sẽ
+// là mã chết, và mã chết ở tầng phân quyền là thứ dễ bị tưởng là đang bảo vệ.
+let auth: AuthMiddleware | RequestHandler = passthrough
 try {
-  auth = require('./authMiddleware')
+  auth = require('./authMiddleware') as AuthMiddleware
 } catch (e) {
-  auth = (req, res, next) => next()
+  auth = passthrough
 }
 
 // Khác content-service (gắn auth cho cả /api): ở đây auth chỉ gắn cho các nhánh
@@ -58,13 +105,18 @@ for (const p of [
   app.use(p, auth)
 }
 
-const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
+// Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
+// được error handler của Express — request treo cho tới khi client bỏ cuộc.
+const asyncHandler =
+  (fn: (req: Request, res: Response, next: NextFunction) => unknown): RequestHandler =>
+  (req, res, next) =>
+    Promise.resolve(fn(req, res, next)).catch(next)
 
 // --- Helpers ---------------------------------------------------------------
 
-async function currentUser(req) {
-  const p = req.user || {}
-  const username = p.preferred_username || p.username || p.sub
+async function currentUser(req: Request): Promise<User | null> {
+  const p = req.user
+  const username = p?.preferred_username || p?.sub
   if (!username) return null
   return prisma.user.upsert({
     where: { username },
@@ -73,7 +125,7 @@ async function currentUser(req) {
   })
 }
 
-async function requireMember(req, res) {
+async function requireMember(req: Request, res: Response): Promise<User | null> {
   const user = await currentUser(req)
   if (!user) {
     res.status(401).json({ error: 'Bạn cần đăng nhập' })
@@ -82,7 +134,7 @@ async function requireMember(req, res) {
   return user
 }
 
-async function requireReviewer(req, res) {
+async function requireReviewer(req: Request, res: Response): Promise<User | null> {
   const user = await requireMember(req, res)
   if (!user) return null
   if (!hasAtLeastRole(user.role, 'MODERATOR')) {
@@ -92,7 +144,15 @@ async function requireReviewer(req, res) {
   return user
 }
 
-function audit(actor, action, targetType, targetId, targetLabel, note) {
+function audit(
+  actor: Pick<User, 'id' | 'displayName' | 'username'>,
+  action: string,
+  targetType: string,
+  targetId: string,
+  targetLabel: string,
+  // Tuỳ chọn: nhiều nơi gọi chỉ ghi hành động, không kèm ghi chú.
+  note?: string | null
+) {
   return prisma.trustAuditLog.create({
     data: {
       actorId: actor.id,
@@ -122,7 +182,7 @@ try {
   /* ISSUER không phải URL tuyệt đối */
 }
 
-const certCard = (c) => ({
+const certCard = (c: CertWithRelations) => ({
   serial: c.serial,
   status: effectiveStatus(c),
   storedStatus: c.status,
@@ -223,7 +283,10 @@ app.get(
       issuedBy: cert.issuedByName,
       signature: {
         valid: sig.valid,
-        reason: sig.reason,
+        // `reason` CHỈ tồn tại ở nhánh thất bại của VerifyResult. Bản cũ đọc
+        // thẳng nên khi chữ ký hợp lệ nó trả undefined — vô hại, nhưng cùng lối
+        // truy cập đó ở nhánh khác lại là đọc payload chưa xác minh.
+        reason: sig.valid ? null : sig.reason,
         keyId: cert.signingKeyId,
         jws: cert.signature,
       },
@@ -238,16 +301,20 @@ app.get(
 app.get(
   '/api/trust/directory',
   asyncHandler(async (req, res) => {
-    const where = { status: 'ACTIVE', expiresAt: { gt: new Date() } }
-    if (req.query.program) {
-      const p = await prisma.sealProgram.findUnique({ where: { slug: String(req.query.program) } })
+    const where: Prisma.TrustCertificateWhereInput = {
+      status: 'ACTIVE',
+      expiresAt: { gt: new Date() },
+    }
+    const programSlug = qStr(req.query.program)
+    if (programSlug) {
+      const p = await prisma.sealProgram.findUnique({ where: { slug: programSlug } })
       if (p) where.programId = p.id
     }
     const certs = await prisma.trustCertificate.findMany({
       where,
       include: { domain: true, org: true, program: true },
       orderBy: { issuedAt: 'desc' },
-      take: Math.min(100, parseInt(req.query.limit) || 50),
+      take: Math.min(100, qInt(req.query.limit, 50)),
     })
     res.json(certs.map(certCard))
   })
@@ -290,7 +357,7 @@ app.get(
 
     // Thâm niên tính từ chứng chỉ ĐẦU TIÊN được cấp, không phải từ ngày tạo hồ
     // sơ: tạo hồ sơ rồi bỏ đó không phải là thâm niên.
-    const firstIssued = certs.length ? certs[certs.length - 1].row.issuedAt : null
+    const firstIssued = certs.length ? certs[certs.length - 1]?.row.issuedAt ?? null : null
 
     const checks = await prisma.trustCheck.findMany({
       where: { certificateId: { in: certs.map((c) => c.row.id) } },
@@ -316,7 +383,7 @@ app.get(
         checksTotal: checks.length,
         checksPassed: passed,
         checkPassRate: checks.length ? Math.round((passed / checks.length) * 100) : null,
-        lastCheckedAt: checks.length ? checks[0].ranAt : null,
+        lastCheckedAt: checks[0]?.ranAt ?? null,
       },
       domains: org.domains.map((d) => ({ hostname: d.hostname, verifiedAt: d.verifiedAt })),
       certificates: active.map((c) => c.card),
@@ -365,9 +432,8 @@ app.get(
         }
         const certHost = cert.domain.hostname.toLowerCase()
         const allowed =
-          refHost === certHost ||
-          (refHost && refHost.endsWith(`.${certHost}`)) ||
-          OWN_HOSTS.has(refHost)
+          !!refHost &&
+          (refHost === certHost || refHost.endsWith(`.${certHost}`) || OWN_HOSTS.has(refHost))
         if (refHost && !allowed) state = 'DOMAIN_MISMATCH'
       }
     }
@@ -648,7 +714,13 @@ app.post(
     if (a.domain.status !== 'VERIFIED')
       return res.status(400).json({ error: 'Tên miền chưa được xác minh sở hữu' })
 
-    const required = (a.program.evidenceSpec || []).filter((e) => e && e.required)
+    // `evidenceSpec` là cột Json, nên Prisma khai nó là JsonValue — có thể là
+    // số, chuỗi, object… Kiểm là mảng TRƯỚC khi coi như mảng, thay vì tin vào
+    // `|| []` (chỉ đỡ được null/undefined, không đỡ được `evidenceSpec: 5`).
+    const spec: EvidenceSpecItem[] = Array.isArray(a.program.evidenceSpec)
+      ? (a.program.evidenceSpec as unknown as EvidenceSpecItem[])
+      : []
+    const required = spec.filter((e) => e && e.required)
     const provided = new Set(a.evidence.map((e) => e.kind))
     const missing = required.filter((e) => !provided.has(e.kind))
     if (missing.length) {
@@ -817,8 +889,10 @@ app.get(
   asyncHandler(async (req, res) => {
     const user = await requireReviewer(req, res)
     if (!user) return
-    const status = String(req.query.status || '')
-    const where = status ? { status } : { status: { in: ['SUBMITTED', 'IN_REVIEW', 'NEEDS_INFO'] } }
+    const status = qStr(req.query.status) || ''
+    const where: Prisma.SealApplicationWhereInput = status
+      ? { status: status as Prisma.SealApplicationWhereInput['status'] }
+      : { status: { in: ['SUBMITTED', 'IN_REVIEW', 'NEEDS_INFO'] } }
     const list = await prisma.sealApplication.findMany({
       where,
       include: { program: true, domain: true, org: true, evidence: true },
@@ -1038,7 +1112,9 @@ app.post(
     const user = await requireReviewer(req, res)
     if (!user) return
     const b = req.body || {}
-    const opts = { batch: Math.min(200, parseInt(b.limit) || 25) }
+    const opts: { batch: number; staleAfterMin?: number } = {
+      batch: Math.min(200, qInt(b.limit, 25)),
+    }
     if (b.all) opts.staleAfterMin = 0
     const summary = await runRecheckCycle(opts)
     await audit(
@@ -1068,18 +1144,18 @@ app.get(
 // Express chỉ nhận diện đây là middleware xử lý lỗi khi hàm khai đủ 4 tham số;
 // bỏ `next` cho hết lint thì toàn bộ xử lý lỗi im lặng ngừng hoạt động.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err, req, res, next) => {
-  console.error('[trust] error', err && (err.stack || err.message || err))
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  console.error('[trust] error', errStack(err))
   notify.alert({
     service: 'trust-service',
     level: 'error',
-    message: err && err.message,
+    message: errMsg(err),
     error: err,
     context: `${req.method} ${req.url}`,
   })
-  if (res && !res.headersSent)
-    res.status(500).json({ error: err && err.message ? err.message : 'internal error' })
-})
+  if (res && !res.headersSent) res.status(500).json({ error: errMsg(err) || 'internal error' })
+}
+app.use(errorHandler)
 
 /** Chuẩn bị trước khi phục vụ. Chạy ở CẢ hai chế độ: tiến trình riêng và nhúng
  *  trong services/backend-bundle. Bộ giám sát định kỳ phải sống ở cả hai —
@@ -1090,7 +1166,7 @@ async function init() {
 }
 
 async function startServer() {
-  app.listen(port, bindHost, () =>
+  app.listen(Number(port), bindHost, () =>
     console.log(
       `trust-service listening on ${bindHost}:${port} (signing key: ${signing.kid}${
         signing.usingDevKey ? ', DEV — không dùng cho production' : ''
@@ -1105,4 +1181,4 @@ async function startServer() {
 // đây là tranh cổng với cha.
 if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) startServer().catch(() => {})
 
-module.exports = { app, startServer, init }
+export { app, startServer, init }

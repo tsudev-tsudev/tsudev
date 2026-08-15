@@ -21,3 +21,8 @@ describe('content-service auth enforcement (dev bypass + role)', () => {
     expect(res.status).toBe(403)
   })
 })
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và các biến top-level (`request`, `app`) của những tệp test
+// khác nhau sẽ đụng tên nhau. Không đổi gì lúc chạy.
+export {}

@@ -75,7 +75,7 @@ describe('backend-bundle — điều phối và health', () => {
 
   test('bảng sở hữu không có tiền tố nào trùng nhau giữa hai service', () => {
     const seen = new Map()
-    SERVICES.forEach((s) =>
+    SERVICES.forEach((s: { name: string; prefixes: string[] }) =>
       s.prefixes.forEach((p) => {
         expect(seen.has(p)).toBe(false)
         seen.set(p, s.name)
@@ -83,3 +83,8 @@ describe('backend-bundle — điều phối và health', () => {
     )
   })
 })
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và các biến top-level (`request`, `app`) của những tệp test
+// khác nhau sẽ đụng tên nhau. Không đổi gì lúc chạy.
+export {}
