@@ -3,7 +3,9 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { Logo } from './Logo';
 // tsudev là MỘT site nên href tương đối. Trước đây có hai origin (trang chính và
 // diễn đàn) nên mọi link điều hướng buộc phải là URL tuyệt đối.
-const NAV = [
+type NavItem = { key: string; path: string; label: string };
+
+const NAV: NavItem[] = [
   { key: 'home', path: '/', label: 'Trang chủ' },
   { key: 'projects', path: '/projects', label: 'Dự án' },
   { key: 'blog', path: '/blog', label: 'Blog' },
@@ -12,9 +14,11 @@ const NAV = [
 ];
 
 // Trang truyền `active` theo đường dẫn ('/blog') hoặc theo khoá ('home').
-const isActive = (n, active) => active === n.key || active === n.path;
+const isActive = (n: NavItem, active: string) => active === n.key || active === n.path;
 
-export const SiteHeader = ({ active = '/' }) => {
+type SiteHeaderProps = { active?: string };
+
+export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
 

@@ -1,5 +1,17 @@
 import React from 'react';
 
+type InputProps = {
+  id?: string;
+  label?: React.ReactNode;
+  type?: string;
+  value?: string | number | readonly string[];
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
+  placeholder?: string;
+  error?: React.ReactNode;
+  className?: string;
+  [key: string]: unknown;
+};
+
 export const Input = ({
   id,
   label,
@@ -10,7 +22,7 @@ export const Input = ({
   error,
   className = '',
   ...props
-}) => {
+}: InputProps) => {
   return (
     <div className={`flex flex-col ${className}`}>
       {label && (

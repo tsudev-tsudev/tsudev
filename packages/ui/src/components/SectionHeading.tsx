@@ -1,6 +1,13 @@
 import React from 'react';
 
-export const SectionHeading = ({ eyebrow, title, action, className = '' }) => (
+type SectionHeadingProps = {
+  eyebrow?: React.ReactNode;
+  title?: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+};
+
+export const SectionHeading = ({ eyebrow, title, action, className = '' }: SectionHeadingProps) => (
   <div className={`flex items-end justify-between gap-4 mb-6 ${className}`}>
     <div>
       {eyebrow && (

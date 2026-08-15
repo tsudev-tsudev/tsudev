@@ -9,7 +9,7 @@ const VARIANT_COUNT = 6;
 // 32–40px bản đầy đủ 3 kinh + 5 vĩ bị rối nét. Bản rút gọn cũng nhẹ hơn ~60%.
 const SMALL_MAX = 48;
 
-function defaultAvatarFor(name, size) {
+function defaultAvatarFor(name: string, size: number): string {
   const s = name || '?';
   // FNV-1a rút gọn — trộn đều hơn phép cộng mã ký tự, tránh dồn cục khi các
   // tên đăng nhập chỉ khác nhau vài ký tự.
@@ -22,7 +22,14 @@ function defaultAvatarFor(name, size) {
   return `/avatars${size <= SMALL_MAX ? '/sm' : ''}/default-${n}.webp`;
 }
 
-export const Avatar = ({ name = '?', src, size = 40, className = '' }) => {
+type AvatarProps = {
+  name?: string;
+  src?: string;
+  size?: number;
+  className?: string;
+};
+
+export const Avatar = ({ name = '?', src, size = 40, className = '' }: AvatarProps) => {
   const url = src || defaultAvatarFor(name, size);
   // Viền mảnh giữ cho đường tròn avatar luôn thấy được: ảnh avatar nền tối nên
   // nếu không có viền sẽ tan vào card tối.

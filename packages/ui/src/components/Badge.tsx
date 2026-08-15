@@ -7,13 +7,22 @@ const TONES = {
   outline: 'bg-transparent text-muted border-hairstrong',
   success: 'text-[var(--success)] border-current bg-transparent',
   warning: 'text-[var(--warning)] border-current bg-transparent',
+} as const;
+
+export type BadgeTone = keyof typeof TONES;
+
+type BadgeProps = {
+  children?: React.ReactNode;
+  tone?: BadgeTone;
+  className?: string;
+  mono?: boolean;
 };
 
-export const Badge = ({ children, tone = 'neutral', className = '', mono = false }) => (
+export const Badge = ({ children, tone = 'neutral', className = '', mono = false }: BadgeProps) => (
   <span
     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
       mono ? 'font-mono' : ''
-    } ${TONES[tone] || TONES.neutral} ${className}`}
+    } ${TONES[tone] ?? TONES.neutral} ${className}`}
   >
     {children}
   </span>

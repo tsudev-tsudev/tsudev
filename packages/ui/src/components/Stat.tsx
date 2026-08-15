@@ -1,6 +1,12 @@
 import React from 'react';
 
-export const Stat = ({ value, label, className = '' }) => (
+type StatProps = {
+  value?: React.ReactNode;
+  label?: React.ReactNode;
+  className?: string;
+};
+
+export const Stat = ({ value, label, className = '' }: StatProps) => (
   <div className={className}>
     <div className="text-2xl md:text-3xl font-bold tracking-tight text-ink font-mono tabular-nums">
       {value}

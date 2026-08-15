@@ -6,11 +6,19 @@ const TONES = {
   error: 'var(--error)',
   success: 'var(--success)',
   info: 'var(--ink)',
+} as const;
+
+export type ToastType = keyof typeof TONES;
+
+type ToastProps = {
+  message?: React.ReactNode;
+  type?: ToastType;
+  onClose?: React.MouseEventHandler<HTMLButtonElement>;
 };
 
-export const Toast = ({ message, type = 'info', onClose }) => {
+export const Toast = ({ message, type = 'info', onClose }: ToastProps) => {
   if (!message) return null;
-  const fg = TONES[type] || TONES.info;
+  const fg = TONES[type] ?? TONES.info;
   const bg = type === 'info' ? 'var(--panel-2)' : `color-mix(in srgb, ${fg} 18%, var(--panel))`;
   // Toast nổi trên nội dung nên giữ một viền mảnh để tách lớp — có chức năng,
   // khác với khung trang trí đã lược bỏ ở các bề mặt tĩnh.

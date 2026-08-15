@@ -4,9 +4,11 @@ import { Logo } from './Logo';
 // Riêng đăng nhập giữ đường dẫn tương đối: phiên next-auth thuộc về chính app
 // đang mở, đẩy sang origin khác sẽ đăng nhập nhầm chỗ.
 // tsudev là MỘT site nên href tương đối.
-const eco = (label, path) => [label, path];
+type FooterLink = [label: string, href: string];
 
-const COLS = [
+const eco = (label: string, path: string): FooterLink => [label, path];
+
+const COLS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Nội dung',
     links: [eco('Dự án', '/projects'), eco('Blog', '/blog'), eco('Tài liệu', '/docs')],

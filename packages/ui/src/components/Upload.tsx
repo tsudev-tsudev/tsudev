@@ -1,26 +1,41 @@
 import React from 'react';
 
-export const Upload = ({ onGetPresign, onUploadComplete, onServerUpload }) => {
-  const inputRef = React.useRef(null);
+type PresignResult = { url?: string; key?: string } | null | undefined;
+
+type UploadProps = {
+  onGetPresign?: (file: File) => Promise<PresignResult> | PresignResult;
+  onUploadComplete?: (result: { key: string }) => void;
+  onServerUpload?: (
+    file: File,
+    key: string | undefined,
+    onProgress: (percent: number) => void
+  ) => Promise<void>;
+};
+
+export const Upload = ({ onGetPresign, onUploadComplete, onServerUpload }: UploadProps) => {
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
 
   const handleUpload = async () => {
-    const el = inputRef.current;
-    if (!el || !el.files || el.files.length === 0) return alert('Choose a file');
-    const f = el.files[0];
+    const f = inputRef.current?.files?.[0];
+    if (!f) {
+      alert('Choose a file');
+      return;
+    }
     setUploading(true);
     setProgress(0);
     try {
       const presign = onGetPresign ? await onGetPresign(f) : null;
       // If presign url present, try direct PUT with progress via XHR
       if (presign && presign.url) {
-        await new Promise((resolve, reject) => {
+        const url = presign.url;
+        await new Promise<void>((resolve, reject) => {
           try {
             const xhr = new XMLHttpRequest();
-            xhr.open('PUT', presign.url);
+            xhr.open('PUT', url);
             xhr.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
-            xhr.upload.onprogress = (ev) => {
+            xhr.upload.onprogress = (ev: ProgressEvent) => {
               if (ev.lengthComputable) {
                 setProgress(Math.round((ev.loaded / ev.total) * 100));
               }
@@ -36,34 +51,33 @@ export const Upload = ({ onGetPresign, onUploadComplete, onServerUpload }) => {
             xhr.onerror = () => reject(new Error('Direct upload network error'));
             xhr.send(f);
           } catch (e) {
-            reject(e);
+            reject(e instanceof Error ? e : new Error(String(e)));
           }
-        }).catch(async (err) => {
+        }).catch(async (err: unknown) => {
           console.warn('Direct PUT failed, falling back to server upload', err);
           if (onServerUpload) {
             // allow caller to perform server-side upload (proxy)
-            await onServerUpload(f, presign && presign.key ? presign.key : undefined, (p) =>
-              setProgress(p)
-            );
+            await onServerUpload(f, presign.key, (p) => setProgress(p));
           } else {
             throw err;
           }
         });
-        onUploadComplete && onUploadComplete({ key: presign?.key || f.name });
+        onUploadComplete && onUploadComplete({ key: presign.key || f.name });
       } else {
         // No presign URL -> try server upload if provided
         if (onServerUpload) {
-          await onServerUpload(f, presign && presign.key ? presign.key : undefined, (p) =>
-            setProgress(p)
-          );
+          await onServerUpload(f, presign?.key, (p) => setProgress(p));
           onUploadComplete && onUploadComplete({ key: presign?.key || f.name });
         } else {
           throw new Error('No presign URL and no server upload handler provided');
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert('Upload failed: ' + (err && err.message ? err.message : err));
+      // `catch` cho ra `unknown`, không phải Error. Bản cũ đọc thẳng err.message
+      // nên khi thứ bị ném ra là chuỗi (hoặc bất cứ gì khác) thì thông báo hiện
+      // ra là "[object Object]" thay vì lý do thật.
+      alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setUploading(false);
     }

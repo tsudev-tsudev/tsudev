@@ -2,7 +2,13 @@ import React from 'react';
 import { SiteHeader } from './SiteHeader';
 import { SiteFooter } from './SiteFooter';
 
-export const Layout = ({ children, active = '/', bare = false }) => (
+type LayoutProps = {
+  children?: React.ReactNode;
+  active?: string;
+  bare?: boolean;
+};
+
+export const Layout = ({ children, active = '/', bare = false }: LayoutProps) => (
   <div className="min-h-screen flex flex-col bg-surface text-ink font-sans">
     <SiteHeader active={active} />
     <main

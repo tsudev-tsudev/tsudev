@@ -8,7 +8,7 @@
 // process.env.NEXT_PUBLIC_* phải viết nguyên literal — Next inline giá trị lúc
 // build, đọc động qua biến trung gian sẽ ra undefined ở phía trình duyệt.
 // Giá trị dự phòng khớp config/topology.json.
-const stripSlash = (u) => String(u || '').replace(/\/+$/, '');
+const stripSlash = (u: unknown): string => String(u || '').replace(/\/+$/, '');
 
 export const MAIN_URL = stripSlash(
   process.env.NEXT_PUBLIC_MAIN_URL || 'http://tsudev.localhost:8080'

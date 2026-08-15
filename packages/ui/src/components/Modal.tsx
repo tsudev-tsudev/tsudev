@@ -1,5 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 
+type ModalProps = {
+  open?: boolean;
+  onClose?: () => void;
+  title?: string;
+  children?: React.ReactNode;
+};
+
 // Hộp thoại. Ba thứ bắt buộc phải có mà bản trước thiếu, và đều chỉ ảnh hưởng
 // người dùng bàn phím hoặc trình đọc màn hình nên rất dễ bị bỏ qua khi thử tay:
 //
@@ -12,22 +19,25 @@ import React, { useEffect, useRef } from 'react';
 // Lớp phủ giữ onClick nhưng đánh aria-hidden: nó là nền trang trí, và đường
 // thoát bằng bàn phím đã có Escape lẫn nút Close — không cần biến nó thành một
 // điểm dừng tab thứ ba.
-export const Modal = ({ open, onClose, title, children }) => {
-  const panelRef = useRef(null);
-  const restoreRef = useRef(null);
+export const Modal = ({ open, onClose, title, children }: ModalProps) => {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  // document.activeElement trả Element, không phải HTMLElement — chỉ HTMLElement
+  // mới có focus(). Thu hẹp ngay tại chỗ gán thay vì đoán ở chỗ dùng.
+  const restoreRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return undefined;
-    restoreRef.current = document.activeElement;
-    if (panelRef.current) panelRef.current.focus();
+    const active = document.activeElement;
+    restoreRef.current = active instanceof HTMLElement ? active : null;
+    panelRef.current?.focus();
 
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) onClose();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      if (restoreRef.current && restoreRef.current.focus) restoreRef.current.focus();
+      restoreRef.current?.focus();
     };
   }, [open, onClose]);
 
