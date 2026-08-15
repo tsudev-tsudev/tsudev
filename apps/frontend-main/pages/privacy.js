@@ -10,8 +10,8 @@ const SECTIONS = [
       <>
         <p>
           Chính sách này mô tả cách tsudev thu thập, sử dụng, lưu trữ, chia sẻ và bảo vệ dữ liệu cá
-          nhân của bạn khi bạn truy cập và sử dụng các dịch vụ tại tsudev, bao gồm trang chính, diễn
-          đàn, blog, kho tài liệu, chợ và hệ thống Con dấu tín nhiệm.
+          nhân của bạn khi bạn truy cập và sử dụng các dịch vụ tại tsudev: trang dự án & bản quyền,
+          blog, kho tài liệu và hệ thống Con dấu tín nhiệm.
         </p>
         <p>
           Bên Kiểm soát dữ liệu cá nhân là <strong>{OPERATOR.legalName}</strong> (mã số{' '}
@@ -48,8 +48,8 @@ const SECTIONS = [
             cá nhân, trong phạm vi bắt buộc theo điểm e khoản 3 Điều 23 Nghị định số 147/2024/NĐ-CP.
           </li>
           <li>
-            <strong>Nội dung bạn tạo ra:</strong> chủ đề, bài viết, bình luận, tài liệu, tin nhắn,
-            tin đăng trên chợ, hồ sơ đăng ký Con dấu tín nhiệm và các tệp bạn tải lên.
+            <strong>Nội dung bạn tạo ra:</strong> hồ sơ đăng ký Con dấu tín nhiệm, tài liệu chứng
+            minh kèm theo và các tệp bạn tải lên.
           </li>
           <li>
             <strong>Dữ liệu kỹ thuật:</strong> địa chỉ IP, loại trình duyệt và thiết bị, hệ điều
@@ -84,8 +84,8 @@ const SECTIONS = [
         </p>
         <ul>
           <li>
-            <strong>Cung cấp dịch vụ:</strong> tạo và quản lý tài khoản, đăng nhập, hiển thị nội
-            dung bạn đăng, gửi và nhận tin nhắn, vận hành chợ và Con dấu tín nhiệm.
+            <strong>Cung cấp dịch vụ:</strong> tạo và quản lý tài khoản, đăng nhập, tiếp nhận và xử
+            lý hồ sơ cấp dấu, phát hành và giám sát chứng chỉ Con dấu tín nhiệm.
           </li>
           <li>
             <strong>Bảo đảm an toàn:</strong> phát hiện và ngăn chặn truy cập trái phép, gian lận,
