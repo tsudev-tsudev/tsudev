@@ -1,8 +1,9 @@
 # Kế hoạch: đưa Con dấu tín nhiệm về chế độ mời, và gỡ tín dụng
 
 > **Trạng thái: KẾ HOẠCH, chưa thực hiện.** Viết cho phiên sau. Đọc hết mục
-> "Ba xung đột" trước khi viết dòng mã đầu tiên — hai trong ba xung đột có thể
-> làm hỏng chứng chỉ ĐÃ CẤP, và không có test nào bắt được.
+> "Quyết định đã có" trước khi viết dòng mã đầu tiên. Chủ dự án đã chốt phạm vi
+> ngày 16/08/2026; phần còn lại chứa một ràng buộc thứ tự có thể làm trang trống
+> ở production mà không test nào bắt được.
 
 ## Mục tiêu (chủ dự án giao)
 
@@ -15,56 +16,92 @@
 
 ---
 
-## Ba xung đột phải quyết TRƯỚC khi viết mã
+## Quyết định đã có, và xung đột còn lại
 
-### ⚠️ Xung đột 1 — trang xác minh KHÔNG THỂ nằm sau mã mời
+### ✅ Quyết định 1 — GÁC TẤT CẢ, kể cả trang xác minh
 
-Đây là ràng buộc cứng, không phải ý kiến thiết kế.
+**Chủ dự án đã quyết (16/08/2026):** mọi trang liên quan tới chứng chỉ/huy hiệu
+chỉ truy cập và nhìn thấy được qua **mã mời do admin cấp**. Không có ngoại lệ
+cho trang xác minh.
 
-Huy hiệu gắn trên website khách hàng trỏ tới `tsudev.com/trust/verify/<serial>`.
-Người bấm vào là **khách vãng lai trên site của bên thứ ba** — họ không có tài
-khoản tsudev và càng không có mã mời. Đặt trang đó sau mã mời nghĩa là:
+#### Cái giá thật: bằng KHÔNG, ở thời điểm này
 
-- Mọi huy hiệu ĐÃ CẤP thành liên kết chết. Huy hiệu mất toàn bộ giá trị với
-  khách hàng đang trả tiền cho nó.
-- Tệ hơn: `TRUST_ISSUER` được **ký vào chứng chỉ**, và URL trong chứng chỉ đã
-  cấp là **cố định vĩnh viễn** (xem `docs/trust-seal.md` và gotcha ở
-  `CLAUDE.md`). Không sửa được bằng cách đổi cấu hình.
-- `trust-service` đọc `Referer`/`Origin` để phát hiện huy hiệu bị gắn sai tên
-  miền. Cơ chế đó chỉ chạy khi trình duyệt bên thứ ba với tới được.
+Đã đếm trực tiếp trên Neon ngày 16/08/2026:
 
-**Đề nghị:** giữ CÔNG KHAI VĨNH VIỄN bốn thứ — `/trust/verify/:serial`, huy hiệu
-SVG (`/api/trust/seal/:file`), JWKS, và trang hồ sơ tổ chức mà huy hiệu trỏ tới.
-Mã mời gác phần **nộp đơn và quản lý**, không gác phần **xác minh**.
+```
+chứng chỉ đã cấp : 0
+tổ chức          : 0
+đơn              : 0
+tên miền         : 0
+chương trình dấu : 4   (dữ liệu tham chiếu từ seed)
+```
 
-Đọc lại yêu cầu của chủ dự án thì đúng tinh thần này: ví dụ được nêu là "có mã
-mời thì mới **nộp đơn yêu cầu cấp huy hiệu**". Kế hoạch dưới đây theo cách hiểu
-đó. **Nếu chủ dự án thật sự muốn giấu cả trang xác minh thì phải quyết định có
-chấp nhận vô hiệu hoá chứng chỉ đã cấp hay không — hỏi trước, đừng tự làm.**
+Không có huy hiệu nào đang chạy trên site của bên thứ ba, nên **không có gì để
+hỏng**. Mối lo "vô hiệu hoá chứng chỉ đã cấp" nêu ở bản kế hoạch trước là đúng
+về nguyên tắc nhưng vô nghĩa về thực tế — quyết định này hôm nay không tốn gì.
 
-### ⚠️ Xung đột 2 — "ẩn khỏi giao diện" và "đạt tiêu chí SEO" kéo ngược nhau
+#### Điểm phải quyết lại TRONG TƯƠNG LAI
 
-Trang xác minh chính là **tài sản SEO** của site: website khách hàng đặt liên
-kết trỏ về `tsudev.com`, tức là backlink thật từ tên miền khác. Gỡ chúng khỏi
-`sitemap.xml` hoặc đặt `noindex` là tự tay bỏ thứ SEO tốt nhất đang có.
+Ghi ở đây để phiên sau không phải phát hiện lại. Ràng buộc kỹ thuật vẫn còn
+nguyên, chỉ là chưa chạm tới:
 
-**Phân biệt hai việc thường bị gộp:**
+- `TRUST_ISSUER` được **ký vào chứng chỉ**. URL xác minh nằm trong chứng chỉ đã
+  cấp là **cố định vĩnh viễn** — không đổi được bằng cấu hình.
+- Khi cấp chứng chỉ đầu tiên cho một khách hàng THẬT, phải trả lời: huy hiệu
+  gắn trên site họ, một khách vãng lai bấm vào thì thấy gì? Nếu vẫn đòi mã mời
+  thì huy hiệu chỉ là hình trang trí — nó không chứng minh được gì cho người
+  đọc, tức là mất lý do tồn tại.
 
-| Việc                     | Ảnh hưởng SEO                                |
-| ------------------------ | -------------------------------------------- |
-| Bỏ khỏi thanh điều hướng | Không ảnh hưởng lập chỉ mục                  |
-| Bỏ khỏi `sitemap.xml`    | Giảm tốc độ khám phá, không xoá khỏi chỉ mục |
-| `noindex`                | Xoá khỏi kết quả tìm kiếm                    |
+Ba hình khả dĩ khi tới lúc đó, **đừng chọn bây giờ**:
 
-**Đề nghị:** ẩn khỏi ĐIỀU HƯỚNG cho khách, giữ `/trust/verify/*` và
-`/trust/directory` trong sitemap và cho lập chỉ mục. Đặt `noindex` cho
-`/trust/apply`, `/trust/portal` (đã không có trong sitemap) và cho trang giới
-thiệu `/trust` nếu nó trở thành chỉ-mời — một trang mà 100% người đọc không
-hành động được thì lập chỉ mục nó chỉ tạo thất vọng.
+| Hình                  | Nghĩa                                                                                                                                                                                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Huy hiệu nội bộ       | Khách hàng không gắn công khai. Gác tất cả là nhất quán.                                                                                                                                                                                                                           |
+| Mở lại trang xác minh | Quay về mô hình thông thường của dịch vụ cấp dấu.                                                                                                                                                                                                                                  |
+| URL-năng-lực          | Giữ xác minh không cần đăng nhập NHƯNG serial phải KHÔNG ĐOÁN ĐƯỢC, không liệt kê, không lập chỉ mục. Bản thân đường link là quyền xem. **Serial hiện tại có dạng `TSU-CR-2026-000123` — tuần tự, đoán được**, nên hình này cần đổi cách sinh serial TRƯỚC khi cấp chứng chỉ thật. |
 
-**Cần chủ dự án quyết:** `/trust/directory` liệt kê tên khách hàng đã được cấp
-dấu. Giữ công khai thì đó là bằng chứng uy tín và nguồn SEO; ẩn đi thì bảo vệ
-danh sách khách hàng. Hai lựa chọn đều hợp lý, nhưng phải chọn.
+#### Một ngoại lệ được đề nghị giữ công khai: JWKS
+
+`/.well-known/tsudev-trust-jwks.json` chỉ chứa **khoá công khai**. Nó không tiết
+lộ khách hàng nào, chứng chỉ nào, hay có bao nhiêu. Gác nó lại không bảo vệ điều
+gì mà chỉ làm hỏng khả năng xác minh chữ ký ngoại tuyến, và `.well-known` theo
+quy ước là vùng công khai.
+
+Nếu chủ dự án vẫn muốn gác cả JWKS thì được — chỉ cần biết rằng nó **không** che
+giấu thông tin nào.
+
+### ✅ Quyết định 2 — SEO nay KHÔNG còn đến từ Con dấu
+
+Hệ quả trực tiếp của Quyết định 1, cần nói thẳng: **gác toàn bộ Con dấu là bỏ
+hẳn nhánh này khỏi bài toán SEO.**
+
+Trước đó, trang xác minh là tài sản SEO tốt nhất về lý thuyết — website khách
+hàng đặt liên kết về `tsudev.com`, tức backlink thật từ tên miền khác. Nhưng
+tài sản đó **chưa từng tồn tại**: 0 chứng chỉ đã cấp nghĩa là 0 backlink. Nên
+đây không phải mất mát, chỉ là gạch một hướng chưa bao giờ có khỏi kế hoạch.
+
+Mục tiêu "đạt tiêu chí SEO và phổ biến tới tất cả người dùng" vì thế phải do ba
+nhánh còn lại gánh: **blog · tài liệu · dự án & bản quyền**. Đó cũng là ba nhánh
+có nội dung thật đang chạy.
+
+Việc cần làm cho SEO nằm ngoài phạm vi tệp này — mở mục riêng khi tới lúc. Tối
+thiểu cần rà: `sitemap.xml` (đã có), `robots.txt` (đã có), thẻ canonical và OG
+(`components/Seo.tsx` đã có), dữ liệu có cấu trúc cho bài viết (**chưa có**), và
+tốc độ tải.
+
+Với Con dấu, việc SEO duy nhất là **rút lui cho sạch**:
+
+| Việc                                 | Vì sao                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Gỡ mọi `/trust/*` khỏi `sitemap.xml` | đang liệt kê 5 nhóm, kể cả `/trust/verify/<serial>` từng chứng chỉ                                                |
+| `noindex` cho mọi trang `/trust/*`   | trang mà 100% khách không vào được mà vẫn nằm trong kết quả tìm kiếm chỉ tạo thất vọng và tín hiệu chất lượng xấu |
+| Gỡ khỏi điều hướng header/footer     | 1 mục ở `SiteHeader`, 3 mục ở `SiteFooter`                                                                        |
+
+⚠️ `noindex` **không** gỡ trang đã được lập chỉ mục ngay lập tức — công cụ tìm
+kiếm phải quay lại đọc mới thấy. Trang bị chặn hẳn (401/404) thì còn chậm hơn vì
+bot không đọc được thẻ. Nếu có trang `/trust/*` nào đã nằm trong chỉ mục, hãy để
+nó trả **200 kèm `noindex`** cho bot một thời gian trước khi khoá cứng, hoặc dùng
+công cụ gỡ URL của Search Console.
 
 ### ⚠️ Xung đột 3 — `credits` KHÔNG phải cột chết
 
@@ -81,42 +118,70 @@ gỡ trọn cụm, nếu không sẽ còn lại đường code tính phí trên 
 
 Bảng dưới là nguồn sự thật cho toàn đợt. `authCoverage.test.ts` của
 trust-service bắt MỌI route phải nằm rõ ràng ở một bên; cập nhật bảng này và
-cập nhật test cùng lúc.
+cập nhật test **cùng lúc**, nếu không test sẽ đỏ đúng lúc và đó là điều tốt.
 
-| Nhóm                                                         | Ai vào được             | Ghi chú                                         |
-| ------------------------------------------------------------ | ----------------------- | ----------------------------------------------- |
-| `GET /api/trust/verify/:serial`                              | **công khai vĩnh viễn** | huy hiệu trỏ tới; xem Xung đột 1                |
-| `GET /api/trust/seal/:file`                                  | **công khai vĩnh viễn** | SVG nhúng trên site bên thứ ba                  |
-| `GET /.well-known/…jwks.json`                                | **công khai vĩnh viễn** | xác minh chữ ký ngoại tuyến                     |
-| `GET /api/trust/profile/:orgId`                              | **công khai vĩnh viễn** | trang hồ sơ huy hiệu trỏ tới                    |
-| `GET /api/trust/directory`                                   | ❓ chủ dự án quyết      | xem Xung đột 2                                  |
-| `GET /api/trust/programs[/:slug]`                            | VIP trở lên             | danh mục chương trình = tài liệu bán hàng       |
-| `/api/trust/orgs`, `domains`, `applications`, `certificates` | VIP trở lên             | nay thêm cổng vai trò, không chỉ "đã đăng nhập" |
-| `/api/trust/admin/*`                                         | ADMIN                   | giữ nguyên                                      |
+### Route của trust-service
 
-Trang tương ứng ở frontend:
+| Route                                                        | Sau đợt này                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------------- |
+| `GET /.well-known/…jwks.json`                                | **công khai** (chỉ chứa khoá công khai — xem Quyết định 1)    |
+| `GET /health`                                                | công khai (Render health check)                               |
+| `GET /api/trust/verify/:serial`                              | VIP trở lên                                                   |
+| `GET /api/trust/seal/:file`                                  | VIP trở lên                                                   |
+| `GET /api/trust/profile/:orgId`                              | VIP trở lên                                                   |
+| `GET /api/trust/directory`                                   | VIP trở lên                                                   |
+| `GET /api/trust/programs[/:slug]`                            | VIP trở lên                                                   |
+| `/api/trust/orgs`, `domains`, `applications`, `certificates` | VIP trở lên (nay thêm cổng VAI TRÒ, không chỉ "đã đăng nhập") |
+| `/api/trust/admin/*`                                         | ADMIN — giữ nguyên                                            |
 
-| Trang                    | Sau đợt này                               |
-| ------------------------ | ----------------------------------------- |
-| `/trust/verify/*`        | công khai, giữ trong sitemap              |
-| `/trust/org/[id]`        | công khai                                 |
-| `/trust/directory`       | ❓ theo quyết định ở Xung đột 2           |
-| `/trust`                 | VIP trở lên; khách thấy trang mời nhập mã |
-| `/trust/programs/[slug]` | VIP trở lên                               |
-| `/trust/apply`           | VIP trở lên                               |
-| `/trust/portal`          | VIP trở lên                               |
-| `/admin/trust`           | ADMIN, giữ nguyên                         |
+Nghĩa là `AUTH_PREFIXES` gần như nuốt trọn `/api/trust`. Cân nhắc **đảo cách
+gắn**: thay vì liệt kê nhánh riêng tư, gắn `requireRole('VIP')` cho cả
+`/api/trust` rồi khai danh sách MIỄN TRỪ ngắn (`/health`, `.well-known`).
 
-**Điều hướng:** gỡ "Con dấu" khỏi `NAV` của `SiteHeader` và ba mục ở
-`SiteFooter` đối với người chưa đạt VIP. `SiteHeader` đã có `useSession()` nên
-lọc theo `session.user.role` — vai trò đã được đưa vào JWT ở
-`callbacks.jwt`/`session`.
+> ⚠️ Nếu đảo, phải giữ được tính chất mà `authCoverage.test.ts` bảo vệ: route
+> mới **buộc phải chọn một bên**, không được có mặc định im lặng. Danh sách miễn
+> trừ phải là hằng được xuất ra và test đối chiếu, đúng như `AUTH_PREFIXES` hiện
+> nay. Đổi sang "mặc định đóng" an toàn hơn "mặc định mở", nhưng chỉ khi danh
+> sách miễn trừ vẫn bị canh.
 
-> ⚠️ Ẩn ở điều hướng **không phải** bảo mật. Nó chỉ là dọn giao diện. Cổng thật
+### Proxy ở frontend
+
+`pages/api/trust/[...path].ts` hiện chia `PUBLIC_PREFIXES` /
+`PRIVATE_PREFIXES`. Sau đợt này `PUBLIC_PREFIXES` **rỗng** — cả năm nhánh
+(`programs`, `verify`, `directory`, `seal`, `profile`) chuyển sang riêng tư.
+
+⚠️ Nhánh công khai hiện chuyển tiếp `Referer`/`Origin` để trust-service phát
+hiện huy hiệu gắn sai tên miền. Khi mọi thứ thành riêng tư, cơ chế đó **không
+còn ý nghĩa** (chỉ người đã đăng nhập mới tải được huy hiệu). Gỡ hay giữ đều
+được, nhưng đừng để lại đoạn mã trông như một lớp phòng thủ đang chạy.
+
+### Trang ở frontend
+
+| Trang                    | Sau đợt này                                        |
+| ------------------------ | -------------------------------------------------- |
+| `/trust/verify/*`        | VIP trở lên                                        |
+| `/trust/org/[id]`        | VIP trở lên                                        |
+| `/trust/directory`       | VIP trở lên                                        |
+| `/trust/programs/[slug]` | VIP trở lên                                        |
+| `/trust/apply`           | VIP trở lên                                        |
+| `/trust/portal`          | VIP trở lên                                        |
+| `/trust`                 | trang mời nhập mã cho khách; nội dung thật cho VIP |
+| `/trust/redeem`          | **mới** — ô nhập mã, cần đăng nhập                 |
+| `/admin/trust`           | ADMIN — giữ nguyên, thêm khối quản lý mã mời       |
+
+Bốn trang hiện **không** kiểm phiên (`directory`, `index`, `org/[id]`,
+`programs/[slug]`, `verify/*`) nên phải thêm cổng ở `getServerSideProps` — chặn
+ở server, không phải ẩn ở client.
+
+### Điều hướng
+
+Gỡ "Con dấu" khỏi `NAV` của `SiteHeader` và ba mục ở `SiteFooter` đối với người
+chưa đạt VIP. `SiteHeader` đã dùng `useSession()`, và `role` đã có trong session
+(`callbacks.session` của NextAuth), nên lọc được ngay.
+
+> ⚠️ Ẩn ở điều hướng **không phải** bảo mật — nó chỉ dọn giao diện. Cổng thật
 > nằm ở `requireRole()` phía service, vốn đọc `User.role` từ DB và fail closed.
-> Đừng dựa vào việc giấu link.
-
----
+> Đừng bao giờ dựa vào việc giấu link.
 
 ## Phần B — mã mời
 
@@ -245,35 +310,91 @@ miễn phí".
 
 ---
 
-## Phần D — SEO
+## Phần D — SEO: rút Con dấu khỏi chỉ mục cho sạch
 
-- Giữ `/trust/verify/*` và `/trust/org/*` trong `sitemap.xml`, cho lập chỉ mục.
-- `/trust`, `/trust/programs/*`: thêm `noindex` NẾU chúng thành chỉ-mời, và gỡ
-  khỏi `sitemap.xml`. `Seo` component đã có prop `noindex`.
-- `/trust/directory`: theo quyết định ở Xung đột 2.
-- Kiểm sau khi làm: `curl -s https://tsudev.com/sitemap.xml` không được liệt kê
-  trang chỉ-mời; `/trust/verify/<serial>` của một chứng chỉ thật vẫn phải trả
-  200 **khi chưa đăng nhập** (dùng cửa sổ ẩn danh hoặc `curl` không cookie).
+Xem Quyết định 2. Với Con dấu, việc SEO duy nhất là rút lui gọn gàng.
+
+1. **Gỡ mọi `/trust/*` khỏi `sitemap.xml`.** Hiện đang liệt kê 5 nhóm, trong đó
+   có `/trust/verify/<serial>` cho **từng chứng chỉ** và `/trust/programs/<slug>`
+   cho từng chương trình. Bỏ luôn hai lời gọi `trust.programs()` và
+   `trust.directory()` trong `sitemap.xml.ts` — chúng sẽ trả `[]` sau khi gác,
+   nhưng để lại là để một lời gọi mạng vô nghĩa ở mỗi lần dựng sitemap.
+2. **`noindex` cho mọi trang `/trust/*`.** `components/Seo.tsx` đã có prop
+   `noindex`.
+3. **Gỡ khỏi điều hướng** (1 mục `SiteHeader`, 3 mục `SiteFooter`).
+
+### ⚠️ `noindex` không gỡ trang khỏi chỉ mục ngay
+
+Công cụ tìm kiếm phải quay lại đọc mới thấy thẻ. Và trang bị chặn cứng (401/404)
+còn **chậm hơn**, vì bot không đọc được thẻ `noindex` trên một trang nó không
+tải được.
+
+Nếu có trang `/trust/*` nào đã nằm trong chỉ mục, thứ tự đúng là:
+
+1. Trả **200 kèm `noindex`** cho bot một thời gian, HOẶC dùng công cụ gỡ URL của
+   Search Console để gỡ ngay.
+2. Rồi mới khoá cứng.
+
+Kiểm hiện trạng trước khi làm: `site:tsudev.com/trust` trên công cụ tìm kiếm.
+Nếu chưa có gì được lập chỉ mục thì bỏ qua toàn bộ mục này và khoá thẳng.
+
+### Nghiệm thu
+
+```bash
+# sitemap không được còn /trust/
+curl -s https://tsudev.com/sitemap.xml | grep -c '/trust/'   # phải là 0
+
+# khách chưa đăng nhập KHÔNG vào được (401 hoặc chuyển hướng, KHÔNG phải 200 kèm nội dung)
+curl -s -o /dev/null -w '%{http_code}\n' https://tsudev.com/trust/directory
+```
 
 ---
 
 ## Thứ tự thực hiện đề nghị
 
-1. **Hỏi chủ dự án hai câu ở Xung đột 1 và 2** trước khi viết mã.
-2. Phần C (gỡ tín dụng) — độc lập, ít rủi ro nhất, làm trước để bề mặt gọn lại.
-   Nhớ thứ tự code-trước-migration-sau.
-3. Phần B (mã mời) — migration thuần tính cộng, route ở auth-service, test.
-4. Phần A (phân loại lại bề mặt) — **cùng lúc** cập nhật `AUTH_PREFIXES`,
-   `PUBLIC_PREFIXES`/`PRIVATE_PREFIXES` của proxy, và `authCoverage.test.ts`.
-5. Phần D (SEO) và điều hướng.
+Phạm vi đã được chốt, không còn câu nào phải hỏi trước khi bắt đầu.
+
+**Ba lần phát hành riêng**, không gộp — hai đợt migration chạy ngược chiều nhau:
+
+| Đợt | Nội dung                                     | Thứ tự trong đợt                         |
+| --- | -------------------------------------------- | ---------------------------------------- |
+| 1   | **Phần C** — gỡ tín dụng                     | code → phát hành → migration (`DROP`)    |
+| 2   | **Phần B** — mã mời                          | migration (thêm bảng) → code → phát hành |
+| 3   | **Phần A + D** — gác bề mặt, SEO, điều hướng | chỉ code, không migration                |
+
+Vì sao Phần C đi đầu: nó độc lập, ít rủi ro nhất, và làm bề mặt gọn lại trước
+khi phân loại — bớt được `feeCredits`/`feeCharged` khỏi 9 chỗ trong
+trust-service và 3 trang frontend mà đợt 3 sẽ phải đọc lại.
+
+Vì sao Phần A đi cuối: nó là đợt duy nhất có thể khoá nhầm chính mình ra ngoài.
+Làm sau cùng thì lúc đó mã mời đã chạy được và có đường vào lại.
+
+⚠️ Trong đợt 3, thứ tự **bên trong** cũng quan trọng: cập nhật `AUTH_PREFIXES`
+của trust-service, `PUBLIC_PREFIXES`/`PRIVATE_PREFIXES` của proxy, và
+`authCoverage.test.ts` **trong cùng một commit**. Lệch nhau một nhịp là hoặc
+route riêng tư lộ ra, hoặc trang công khai chết — cả hai đều im lặng.
 
 ## Cổng kiểm bắt buộc trước khi phát hành
 
-- `authCoverage.test.ts` phải xanh — nó là lưới an toàn duy nhất bắt được một
-  route riêng tư bị bỏ quên ở nhánh công khai.
-- Test mới: khách **chưa đăng nhập** vẫn xem được `/trust/verify/:serial` và
-  huy hiệu SVG. Đây là hồi quy nguy hiểm nhất của cả đợt, và nó im lặng —
-  huy hiệu chỉ đơn giản biến mất trên site khách hàng.
-- Test mới: tài khoản MEMBER **không** vào được `/api/trust/applications`.
-- Test mới: đổi mã hai lần không nâng được lượt; mã hết hạn/đã thu hồi bị từ chối.
-- E2E: luồng khách → nhập mã → nộp đơn.
+- **`authCoverage.test.ts` phải xanh.** Nó là lưới an toàn duy nhất bắt được một
+  route bị bỏ quên ở sai bên ranh giới. Nếu Phần A đảo sang "mặc định đóng" thì
+  test này phải được viết lại để canh danh sách MIỄN TRỪ — đừng xoá nó.
+- Test mới: khách **chưa đăng nhập** nhận 401 ở cả năm nhánh vừa chuyển sang
+  riêng tư (`programs`, `verify`, `directory`, `seal`, `profile`).
+- Test mới: tài khoản **MEMBER** cũng bị 403 — "đã đăng nhập" không còn đủ, phải
+  đạt VIP. Đây là điểm dễ sai nhất: `PRIVATE_PREFIXES` cũ chỉ đòi có phiên.
+- Test mới: `/.well-known/…jwks.json` **vẫn 200 khi chưa đăng nhập** — nó cố ý
+  nằm ngoài (Quyết định 1). Nếu chủ dự án đổi ý và gác luôn JWKS thì đảo test.
+- Test mới cho mã mời: đổi hai lần không cộng thêm lượt · mã hết hạn bị từ chối ·
+  mã đã thu hồi bị từ chối · vượt `maxUses` bị từ chối · mã mời **không bao giờ**
+  nâng quá VIP (thử với dữ liệu cố tình khai ADMIN).
+- Test mới cho việc gỡ tín dụng: nộp đơn thành công khi `SealProgram` không còn
+  `feeCredits` — đường nộp đơn là thứ `CLAUDE.md` cảnh báo sẽ hỏng âm thầm.
+- E2E: khách → đăng nhập → `/trust/redeem` nhập mã → `/trust/apply` nộp đơn.
+- Nghiệm thu SEO ở Phần D.
+
+## Nhắc lại thứ tự nguy hiểm
+
+`credits` là `DROP COLUMN` ⇒ **code đi trước, migration đi sau**. Migration của
+mã mời là thêm bảng ⇒ **migration đi trước, code đi sau**. Hai đợt trong cùng
+một kế hoạch chạy NGƯỢC chiều nhau — đừng gộp chúng vào một lần phát hành.
