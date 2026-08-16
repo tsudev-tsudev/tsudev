@@ -15,6 +15,7 @@
   "references": [
     { "path": "../content-service" },
     { "path": "../storage-service" },
-    { "path": "../trust-service" }
+    { "path": "../trust-service" },
+    { "path": "../auth-service" }
   ]
 }

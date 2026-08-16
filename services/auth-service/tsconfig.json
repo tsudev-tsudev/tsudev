@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // CommonJS có chủ đích, giống ba service kia — xem chú thích ở
+    // services/storage-service/tsconfig.json.
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../../packages/types" }, { "path": "../../packages/auth" }]
+}

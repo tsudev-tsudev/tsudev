@@ -94,6 +94,7 @@ jobs:
           npm --workspace services/content-service test
           npm --workspace services/storage-service test
           npm --workspace services/trust-service test
+          npm --workspace services/auth-service test
           # Chế độ gộp là hình trạng CHẠY THẬT trên production. Bỏ dòng này thì
           # bất biến "endpoint công khai của trust không bị cổng chặn của content
           # nuốt" mất người canh, mà triệu chứng của nó là huy hiệu im lặng biến

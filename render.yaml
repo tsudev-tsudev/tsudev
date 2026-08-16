@@ -49,6 +49,19 @@ services:
         sync: false
       - key: S3_SECRET_KEY
         sync: false
+      # --- nhánh identity (auth-service) ---
+      # Đường gửi thư giao dịch: xác minh email và đặt lại mật khẩu. Resend là
+      # API HTTP chứ không phải SMTP, vì frontend chạy trên Cloudflare Workers
+      # nơi không mở được socket TCP tuỳ ý.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        value: tsudev <no-reply@tsudev.com>
+      # Liên kết trong thư dựng từ biến này. Thiếu ở production ⇒ nhánh identity
+      # từ chối khởi động: một liên kết hỏng chỉ lộ ra ở hộp thư người dùng, nơi
+      # không log nào bắt được.
+      - key: NEXT_PUBLIC_MAIN_URL
+        value: https://tsudev.com
       # Thiếu ở production ⇒ nhánh trust từ chối khởi động, và vì đã gộp nên
       # CẢ tiến trình không lên. Cố ý: thà chết ồn ào còn hơn ký bằng khoá dev.
       - key: TRUST_SIGNING_KEY

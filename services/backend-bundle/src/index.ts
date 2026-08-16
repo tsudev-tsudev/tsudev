@@ -23,6 +23,7 @@ import type { RequestHandler } from 'express'
 import * as content from 'content-service'
 import * as storage from 'storage-service'
 import * as trust from 'trust-service'
+import * as identity from 'auth-service'
 
 // BẢNG SỞ HỮU ĐƯỜNG DẪN — cũng là tài liệu sống về ranh giới ba service.
 // Thêm route mới vào service nào mà tiền tố chưa có ở đây thì route đó KHÔNG
@@ -43,6 +44,14 @@ const SERVICES = [
     name: 'trust',
     mod: trust,
     prefixes: ['/api/trust', '/.well-known'],
+  },
+  {
+    name: 'identity',
+    mod: identity,
+    // '/api/identity', KHÔNG phải '/api/auth': '/api/auth/*' là vùng của
+    // NextAuth ở apps/frontend-main. Hai thứ trùng tên nằm ở hai tầng khác nhau
+    // là cách chắc chắn để một ngày nào đó gọi nhầm tầng.
+    prefixes: ['/api/identity'],
   },
 ]
 

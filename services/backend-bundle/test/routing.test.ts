@@ -54,10 +54,10 @@ describe('backend-bundle — cổng chặn của content và storage vẫn nguy�
 })
 
 describe('backend-bundle — điều phối và health', () => {
-  test('/health trả 200 và kể tên cả ba service', async () => {
+  test('/health trả 200 và kể tên đủ bốn service', async () => {
     const res = await request(app).get('/health')
     expect(res.status).toBe(200)
-    expect(res.body.bundled).toEqual(['content', 'storage', 'trust'])
+    expect(res.body.bundled).toEqual(['content', 'storage', 'trust', 'identity'])
   })
 
   test('đường dẫn không thuộc bảng sở hữu ⇒ 404, không rơi nhầm vào service nào', async () => {

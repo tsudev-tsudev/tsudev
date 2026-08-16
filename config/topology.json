@@ -49,6 +49,15 @@
       "internalEnv": "TRUST_SERVICE_URL"
     },
     {
+      "id": "identity",
+      "label": "auth-service",
+      "workspace": "services/auth-service",
+      "port": 4004,
+      "public": false,
+      "internalEnv": "AUTH_SERVICE_URL",
+      "note": "Sở hữu mật khẩu, TOTP, passkey và token một lần. Tách riêng vì đây là ranh giới bảo mật: nó là service DUY NHẤT đọc User.passwordHash. Ở production nó gộp vào backend-bundle như ba service kia."
+    },
+    {
       "id": "bundle",
       "label": "backend-bundle",
       "workspace": "services/backend-bundle",

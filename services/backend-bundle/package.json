@@ -9,8 +9,9 @@
     "pretest": "tsc -b ../.."
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "auth-service": "*",
     "content-service": "*",
+    "express": "^4.18.2",
     "storage-service": "*",
     "trust-service": "*"
   },
