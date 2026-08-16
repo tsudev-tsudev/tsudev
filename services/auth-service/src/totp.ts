@@ -61,6 +61,18 @@ function hotp(key: Buffer, counter: number): string {
 }
 
 /**
+ * Sinh mã TOTP cho một thời điểm.
+ *
+ * Xuất ra để test dùng được. Bản test trước tự dò cạn từ 000000 cho tới khi
+ * `verifyTotp` chịu — tới một triệu lần HMAC, đủ chậm để vượt quá timeout của
+ * jest VÀ đủ chậm để trôi qua ranh giới cửa sổ 30 giây giữa chừng, khiến kết
+ * quả phụ thuộc vào lúc chạy.
+ */
+export function totpCode(secretB32: string, now = Date.now()): string {
+  return hotp(base32Decode(secretB32), Math.floor(now / 1000 / PERIOD_S))
+}
+
+/**
  * Kiểm mã TOTP.
  *
  * So sánh theo THỜI GIAN HẰNG với từng mã ứng viên. So bằng `===` rò rỉ số ký

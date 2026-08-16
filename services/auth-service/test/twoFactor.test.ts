@@ -15,7 +15,7 @@ const request = require('supertest')
 const { prisma } = require('@tsudev/db')
 const { app } = require('../src/index')
 const { hashPassword } = require('../src/password')
-const { encryptSecret, generateSecret, generateBackupCodes } = require('../src/totp')
+const { encryptSecret, generateSecret, generateBackupCodes, totpCode } = require('../src/totp')
 
 const USER = 'test-2fa-user'
 const PASSWORD = 'mot-mat-khau-du-dai-2026'
@@ -30,14 +30,7 @@ const login = (body: Record<string, unknown>) =>
     .send({ identifier: USER, password: PASSWORD, ...body })
 
 /** Mã TOTP đúng cho thời điểm hiện tại, tính từ chính bí mật đã lưu. */
-const currentCode = () => {
-  const { verifyTotp } = require('../src/totp')
-  for (let i = 0; i < 1_000_000; i++) {
-    const c = String(i).padStart(6, '0')
-    if (verifyTotp(SECRET, c)) return c
-  }
-  throw new Error('không dò được mã')
-}
+const currentCode = () => totpCode(SECRET)
 
 const clean = async () => {
   await prisma.user.deleteMany({ where: { username: USER } })
@@ -130,3 +123,9 @@ describe('mã dự phòng', () => {
     expect(third.status).toBe(200)
   }, 60000)
 })
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và biến top-level của các tệp test khác nhau đụng tên nhau —
+// `login` ở đây và `login` ở tệp kia có chữ ký khác nhau, nên CI đỏ với
+// "Expected 1 arguments, but got 2" ở một tệp mà không ai vừa sửa.
+export {}

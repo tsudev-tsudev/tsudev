@@ -95,3 +95,9 @@ describe('kiểm thông tin đăng nhập', () => {
     expect(after.lastLoginAt).not.toBeNull()
   }, 60000)
 })
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và biến top-level của các tệp test khác nhau đụng tên nhau —
+// `login` ở đây và `login` ở tệp kia có chữ ký khác nhau, nên CI đỏ với
+// "Expected 1 arguments, but got 2" ở một tệp mà không ai vừa sửa.
+export {}
