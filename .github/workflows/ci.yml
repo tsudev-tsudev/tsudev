@@ -30,6 +30,30 @@ jobs:
       - name: Kiểm kiểu (TypeScript)
         run: npm run typecheck
 
+  wasm:
+    name: WASM con dấu — artifact phải khớp mã nguồn
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/trust-crypto
+    steps:
+      - uses: actions/checkout@v4
+      # rust-toolchain.toml ghim phiên bản và target; `rustup show` cài đúng bộ đó.
+      - name: Toolchain Rust (ghim trong rust-toolchain.toml)
+        run: rustup show
+      - name: Test Rust
+        run: cargo test --release
+      - name: Dựng lại .wasm
+        run: cargo build --release --target wasm32-unknown-unknown
+      # Artifact .wasm được COMMIT vào repo vì image Docker dựng từ git và không
+      # có Rust. Bước này là thứ duy nhất chứng minh artifact đó khớp mã nguồn —
+      # thiếu nó thì mã Rust và thứ đang ký chứng chỉ có thể trôi xa nhau mà
+      # không ai biết. Bản dựng đã được kiểm là tái lập và độc lập đường dẫn.
+      - name: Artifact đã commit phải khớp bản vừa dựng
+        run: |
+          cmp target/wasm32-unknown-unknown/release/trust_crypto.wasm pkg/trust_crypto.wasm \
+            || { echo "::error::pkg/trust_crypto.wasm không khớp mã nguồn Rust — chạy 'npm --workspace packages/trust-crypto run build:wasm' rồi commit lại"; exit 1; }
+
   test:
     name: Migrate & test services
     runs-on: ubuntu-latest

@@ -1,0 +1,11 @@
+{
+  "name": "@tsudev/trust-crypto",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build:wasm": "cargo build --release --target wasm32-unknown-unknown && cp target/wasm32-unknown-unknown/release/trust_crypto.wasm pkg/trust_crypto.wasm",
+    "test:rust": "cargo test --release"
+  }
+}

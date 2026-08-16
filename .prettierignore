@@ -6,6 +6,10 @@ build
 coverage
 verify-output
 
+# Thư mục dựng của cargo (packages/trust-crypto). Chứa hàng chục nghìn tệp JSON
+# do trình biên dịch sinh ra — không phải mã của repo.
+target
+
 # Bản xuất dữ liệu trước migration DROP — dữ liệu, không phải mã.
 backup
 e2e/test-results

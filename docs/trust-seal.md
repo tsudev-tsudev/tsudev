@@ -107,5 +107,7 @@ ký thật chứ không phải kiểm một chuỗi bịa.
 npm --workspace services/trust-service test
 ```
 
-`test/signing.test.js` giữ hợp đồng xoay khoá; `test/recheck.test.js` giữ ba luật
+`test/signing.test.ts` giữ hợp đồng xoay khoá; `test/wasmCompat.test.ts` giữ hợp
+đồng tương thích giữa bản ký Rust/WASM và `node:crypto` (chứng chỉ đã cấp phải
+xác minh được sau khi đổi bản cài đặt); `test/recheck.test.ts` giữ ba luật
 giám sát ở trên. Cả hai chạy không cần DB.

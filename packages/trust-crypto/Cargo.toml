@@ -1,0 +1,24 @@
+[package]
+name = "trust-crypto"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Ed25519 cho con dấu tín nhiệm tsudev, biên dịch sang WebAssembly."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Chỉ ba phụ thuộc, có chủ đích. Đây là thành phần mật mã: mỗi crate thêm vào là
+# một mặt tiếp xúc chuỗi cung ứng nữa cho thứ ký ra chứng chỉ.
+ed25519-dalek = { version = "2", default-features = false, features = ["zeroize"] }
+zeroize = { version = "1", default-features = false }
+# base64 hằng thời gian của RustCrypto — dùng để giải mã PEM chứa khoá RIÊNG.
+base64ct = { version = "1", default-features = false, features = ["alloc"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+panic = "abort"
+codegen-units = 1
+strip = true

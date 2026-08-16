@@ -15,7 +15,8 @@
     "source-map-support": "^0.5.21",
     "@tsudev/db": "*",
     "@tsudev/types": "*",
-    "@tsudev/auth": "*"
+    "@tsudev/auth": "*",
+    "@tsudev/trust-crypto": "*"
   },
   "devDependencies": {
     "nodemon": "^2.0.22",

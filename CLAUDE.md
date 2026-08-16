@@ -39,7 +39,8 @@ Render free chỉ cho 750 giờ instance/tháng cho cả tài khoản; ba tiến
 liên tục cần 2160 giờ nên không giữ ấm được cái nào. Dev vẫn ba cổng cho dễ lặp.
 
 `packages/`: `@tsudev/db` (Prisma) · `@tsudev/auth` (xác thực + phân quyền dùng
-chung) · `@tsudev/ui` (design system) ·
+chung) · `@tsudev/trust-crypto` (Ed25519 bằng Rust→WASM) · `@tsudev/ui`
+(design system) ·
 `@tsudev/types` · `@tsudev/utils` · `brand/` (ảnh nguồn) · `observability/`
 (thư mục thuần, không phải workspace).
 
@@ -128,6 +129,13 @@ nguồn là hiện trạng; TSD là đích đến.
 - **`TRUST_ISSUER` được ký vào chứng chỉ**; `TRUST_SIGNING_KEY` thiếu ở
   production ⇒ service từ chối khởi động (cố ý). Xoay khoá phải chuyển khoá cũ
   vào `TRUST_SIGNING_KEYS_RETIRED` trước.
+- **`packages/trust-crypto/pkg/trust_crypto.wasm` là artifact ĐƯỢC COMMIT.**
+  Render dựng image Docker từ git và image không có Rust, nên không thể dựng lúc
+  phát hành. Sửa `src/lib.rs` ⇒ chạy
+  `npm --workspace packages/trust-crypto run build:wasm` rồi **commit lại
+  `.wasm`**; quên là job "WASM con dấu" của CI đỏ vì artifact không khớp nguồn.
+  Cần Rust ở máy dev (`rustup`, target `wasm32-unknown-unknown`) — chỉ để sửa
+  mảnh đó, mọi thứ còn lại không cần.
 - **`REQUIRE_ROLE_ENFORCEMENT` ĐÃ BỊ GỠ. Đừng đặt lại.** Nó từng gác một nhánh
   đọc vai trò từ claim Keycloak — nhánh chưa bao giờ chạy ở production vì cả hai
   realm khai `"roles": {}`. Cờ mặc định tắt nên 4 route trông như được bảo vệ mà

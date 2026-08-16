@@ -1,0 +1,6 @@
+# Ghim phiên bản: artifact .wasm được COMMIT vào repo (image Docker không có
+# Rust), nên CI phải dựng lại được đúng byte để chứng minh artifact khớp nguồn.
+# Đổi dòng này ⇒ .wasm đổi theo ⇒ phải commit lại artifact.
+[toolchain]
+channel = "1.97.1"
+targets = ["wasm32-unknown-unknown"]
