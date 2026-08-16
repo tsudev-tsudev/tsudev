@@ -8,6 +8,19 @@
 > [`docs/design-system.md`](docs/design-system.md). Phiếu này chỉ liệt kê **việc
 > còn dở**, không lặp lại kiến thức đã nằm trong `docs/` hay `CLAUDE.md`.
 
+## 🔴 Đọc §0.5 TRƯỚC TIÊN
+
+**Production hiện KHÔNG đăng nhập được** — tài khoản ADMIN duy nhất chưa có mật
+khẩu. Đó là việc chặn, và nó chặn cả việc nghiệm thu mọi thứ vừa phát hành. Mọi
+mục khác trong §1 đều đợi được.
+
+Thứ tự đề nghị cho phiên mới:
+
+1. §0.5 — đặt mật khẩu production, đăng nhập, mở `/admin/projects`.
+2. §1.5 — rà giao diện bằng mắt ở cả hai chế độ (chưa ai nhìn).
+3. §1.7 — thêm chức năng đổi mật khẩu trong ứng dụng.
+4. Còn lại theo mức độ: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột.
+
 ## Đang chạy
 
 `https://tsudev.com` đã lên sóng.
@@ -148,19 +161,15 @@ thời gian dài và là thứ đợt vừa rồi vá.
 
 ---
 
-## 0.6 Thay đổi CHƯA COMMIT trong cây làm việc
+## 0.6 Trạng thái repo khi bàn giao
 
-Hai tệp đang sửa dở trên `main`, **chưa commit, chưa đẩy**:
+- `main` = `origin/main`, **cây làm việc sạch**, không còn nhánh tạm nào.
+- Bốn PR đã gộp: #1 (đợt lớn) · #2 (`AUTH_SERVICE_URL` cho Worker) · #3 (bàn
+  giao) · #4 (vá `set-password.js`).
+- Cả bốn cổng gốc và 195 test JS + 9 test Rust + 11 E2E đều xanh ở lần chạy cuối.
+- Production đang chạy mã của `main`. Neon đã áp dụng 8 migration.
 
-| Tệp                                             | Nội dung                                                 |
-| ----------------------------------------------- | -------------------------------------------------------- |
-| `services/auth-service/scripts/set-password.js` | in host DB trước khi ghi; nhận mật khẩu qua stdin        |
-| `docs/auth.md`                                  | §5 ghi cách chạy nhắm production + cảnh báo nhắm nhầm DB |
-
-Đã chạy thử ở local và đạt. **Chưa chạy `npm run lint` / test toàn bộ sau lần
-sửa cuối** — chạy trước khi commit.
-
-`main` có branch protection qua `.husky/pre-push`, nên phải đi qua nhánh + PR.
+**KHÔNG có thay đổi nào đang treo ở cây làm việc.** Mọi thứ đã ở trên remote.
 
 ---
 
