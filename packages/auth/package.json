@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "jose": "^5.2.0",
     "@tsudev/db": "*",
+    "@tsudev/identity-token": "*",
     "@tsudev/types": "*"
   },
   "devDependencies": {

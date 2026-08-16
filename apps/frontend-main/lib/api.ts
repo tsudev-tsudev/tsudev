@@ -8,11 +8,20 @@ import type { Doc, Post, Project } from './types';
  * MỘT. Trước đây hàm trả `any`, nên trang gọi `post.tieuDe` (sai chính tả) vẫn
  * biên dịch và chỉ hiện "undefined" trên trang thật.
  */
+/**
+ * KHÔNG gửi danh tính. Blog, tài liệu và dự án là nội dung CÔNG KHAI, và
+ * `optionalAuth` của content-service được thiết kế đúng cho việc đó: không có
+ * Authorization thì nó bỏ qua bước xác thực chứ không từ chối.
+ *
+ * Bản trước cắm cứng `x-dev-user: tsudev` + `x-dev-roles: admin` ở đây. Ở
+ * production nó vô hại vì service bỏ qua header đó; nhưng ở local, nơi
+ * AUTH_DEV_BYPASS bật, MỌI lượt xem trang của khách vãng lai chạy dưới quyền
+ * admin. Một đường đọc ẩn danh không được phép mang theo danh tính cao nhất
+ * trong hệ thống "để cho chắc".
+ */
 async function getJSON<T>(url: string, fallback: T): Promise<T> {
   try {
-    const res = await fetch(url, {
-      headers: { ...internalHeaders(), 'x-dev-user': 'tsudev', 'x-dev-roles': 'admin' },
-    });
+    const res = await fetch(url, { headers: internalHeaders() });
     if (!res.ok) return fallback;
     return await res.json();
   } catch (e) {

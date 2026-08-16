@@ -104,6 +104,8 @@ jobs:
           # dangerouslySetInnerHTML ở ba trang). Test của nó phải chạy trong CI,
           # không phải chỉ tồn tại trong repo.
           npm --workspace apps/frontend-main test
+          # Cổng tương phản của hệ token màu — đọc thẳng packages/ui/src/tokens.css.
+          npm --workspace packages/ui test
 
   e2e-app:
     name: E2E — smoke các trang được giữ
@@ -152,6 +154,10 @@ jobs:
           # kiểu của service.
           npm run build:services
           node services/trust-service/scripts/seed-demo.js
+          # Mật khẩu cho ba tài khoản dev. Bộ E2E đăng nhập bằng đúng luồng của
+          # người dùng thật (Argon2id trong DB) — không còn provider `e2e-dev`
+          # nhận mọi username với `devpass`.
+          npm run db:seed:dev
       # Playwright tự dựng content-service, trust-service, frontend-main và
       # dev-proxy (webServer trong e2e/playwright.config.js).
       - run: npm run e2e:app

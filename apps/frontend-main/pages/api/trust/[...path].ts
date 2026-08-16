@@ -16,12 +16,7 @@ import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { TRUST } from '../../../lib/services';
-import {
-  catchAllSegments,
-  queryStringOf,
-  roleFromToken,
-  usernameFromToken,
-} from '../../../lib/identity';
+import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
 
 const PUBLIC_PREFIXES = new Set(['programs', 'verify', 'directory', 'seal', 'profile']);
 const PRIVATE_PREFIXES = new Set(['orgs', 'domains', 'applications', 'certificates', 'admin']);
@@ -42,9 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (isPrivate) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
-    const username = usernameFromToken(token);
-    headers['x-dev-user'] = username;
-    headers['x-dev-roles'] = roleFromToken(token);
+    Object.assign(headers, await identityHeaders(token));
     headers['Content-Type'] = 'application/json';
   } else {
     // Chuyển tiếp Referer/Origin nguyên vẹn — trust-service dựa vào đó để phát

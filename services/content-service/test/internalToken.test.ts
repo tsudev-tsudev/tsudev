@@ -3,7 +3,6 @@
 // đây là lớp bù cho việc không giấu được chúng sau mạng nội bộ.
 //
 // Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
-process.env.AUTH_DEV_BYPASS = 'true'
 process.env.INTERNAL_API_TOKEN = 'test-token'
 const request = require('supertest')
 const { app } = require('../src/index')
@@ -17,28 +16,17 @@ afterAll(() => {
 
 describe('content-service — cổng chặn x-internal-token', () => {
   test('thiếu header ⇒ 401', async () => {
-    const res = await request(app)
-      .get('/api/posts')
-      .set('x-dev-user', 'tester')
-      .set('x-dev-roles', 'content:read')
+    const res = await request(app).get('/api/posts')
     expect(res.status).toBe(401)
   })
 
   test('sai token ⇒ 401', async () => {
-    const res = await request(app)
-      .get('/api/posts')
-      .set('x-internal-token', 'sai-be-bet')
-      .set('x-dev-user', 'tester')
-      .set('x-dev-roles', 'content:read')
+    const res = await request(app).get('/api/posts').set('x-internal-token', 'sai-be-bet')
     expect(res.status).toBe(401)
   })
 
   test('đúng token ⇒ đi tiếp (không còn 401 vì token)', async () => {
-    const res = await request(app)
-      .get('/api/posts')
-      .set('x-internal-token', 'test-token')
-      .set('x-dev-user', 'tester')
-      .set('x-dev-roles', 'content:read')
+    const res = await request(app).get('/api/posts').set('x-internal-token', 'test-token')
     expect(res.status).not.toBe(401)
   })
 

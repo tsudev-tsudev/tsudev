@@ -6,6 +6,8 @@
 // gần trùng nhau. Một bản duy nhất thì không có bản nào lệch đi trong im lặng.
 import type { JWT } from 'next-auth/jwt';
 
+import { MIN_SECRET_LEN, SECRET_ENV, readSecret, signIdentity } from '@tsudev/identity-token';
+
 /**
  * Tên đăng nhập gửi xuống service qua header `x-dev-user`.
  *
@@ -24,6 +26,36 @@ export function usernameFromToken(token: JWT): string {
 /** Vai trò gửi xuống service. `token.role` là claim tuỳ biến nên kiểu là unknown. */
 export function roleFromToken(token: JWT): string {
   return typeof token.role === 'string' && token.role ? token.role : 'member';
+}
+
+/**
+ * Header xác thực cho một request đi xuống service backend.
+ *
+ * Thay cho `x-dev-user`, thứ chỉ là một dòng chữ và chỉ được service đọc khi
+ * `AUTH_DEV_BYPASS=true` — biến không đặt ở production. Hệ quả là mọi đường ghi
+ * đã xác thực trả 401 ở production, còn bật cờ lên thì một header cấp được
+ * quyền ADMIN. Xem @tsudev/identity-token.
+ *
+ * Ký lại cho TỪNG request, hạn dùng 120 giây. Không cache: chi phí HMAC không
+ * đáng kể so với chặng mạng ngay sau nó, còn một token được tái dùng là một
+ * token sống lâu hơn cần thiết.
+ *
+ * Ném lỗi khi thiếu khoá thay vì trả header rỗng. Trả rỗng nghĩa là service từ
+ * chối bằng 401, và "đăng nhập rồi mà vẫn 401" là đúng triệu chứng đã tốn cả
+ * một phiên để chẩn đoán — lần này nó phải nói ra lý do.
+ */
+export async function identityHeaders(token: JWT): Promise<Record<string, string>> {
+  const secret = readSecret(process.env);
+  if (!secret) {
+    throw new Error(
+      `${SECRET_ENV} thiếu hoặc ngắn hơn ${MIN_SECRET_LEN} ký tự — không ký được khẳng định danh tính`
+    );
+  }
+  const assertion = await signIdentity(
+    { sub: usernameFromToken(token), role: roleFromToken(token) },
+    secret
+  );
+  return { Authorization: `Bearer ${assertion}` };
 }
 
 /**

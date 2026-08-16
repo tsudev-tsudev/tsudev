@@ -8,13 +8,20 @@
 //
 // Nay vai trò đọc từ cột `User.role` trong DB và fail closed. Ba điều được kiểm
 // dưới đây là ba điều thực sự quyết định ai vào được:
-process.env.AUTH_DEV_BYPASS = 'true'
+process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 // Không phụ thuộc thứ tự file test: cổng chặn internal-token phải tắt ở đây.
 delete process.env.INTERNAL_API_TOKEN
 
 const request = require('supertest')
 const { prisma } = require('@tsudev/db')
 const { app } = require('../src/index')
+
+const { signIdentity } = require('@tsudev/identity-token')
+
+/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+const asUser = async (sub: string) => ({
+  Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
+})
 
 const GUEST = 'test-guest-storage'
 const MEMBER = 'test-member-storage'
@@ -41,7 +48,7 @@ describe('storage-service: vai trò đọc từ DB, không phải từ claim c�
   test('MEMBER lấy được URL presign', async () => {
     const res = await request(app)
       .get('/api/presign')
-      .set('x-dev-user', MEMBER)
+      .set(await asUser(MEMBER))
       .query({ fileName: 'foo.txt' })
     expect(res.status).toBe(200)
   })
@@ -49,7 +56,7 @@ describe('storage-service: vai trò đọc từ DB, không phải từ claim c�
   test('GUEST bị từ chối — vai trò trong DB thấp hơn ngưỡng', async () => {
     const res = await request(app)
       .get('/api/presign')
-      .set('x-dev-user', GUEST)
+      .set(await asUser(GUEST))
       .query({ fileName: 'foo.txt' })
     expect(res.status).toBe(403)
   })
@@ -58,8 +65,7 @@ describe('storage-service: vai trò đọc từ DB, không phải từ claim c�
     // Đây là hồi quy quan trọng nhất của tệp này: bản cũ sẽ TRẢ 200 ở đây.
     const res = await request(app)
       .get('/api/presign')
-      .set('x-dev-user', GUEST)
-      .set('x-dev-roles', 'storage:presign,admin,ADMIN')
+      .set(await asUser(GUEST))
       .query({ fileName: 'foo.txt' })
     expect(res.status).toBe(403)
   })
@@ -70,7 +76,7 @@ describe('storage-service: vai trò đọc từ DB, không phải từ claim c�
       const res = await request(app)
         .post('/api/upload')
         .set('Content-Type', 'application/octet-stream')
-        .set('x-dev-user', fresh)
+        .set(await asUser(fresh))
         .send(Buffer.from('hello'))
       expect(res.status).toBe(200)
     } finally {

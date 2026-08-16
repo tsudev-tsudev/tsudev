@@ -27,7 +27,6 @@ services/trust-service/Dockerfile
 
 # Next chỉ inline được process.env.NEXT_PUBLIC_* khi viết NGUYÊN VĂN, và file này
 # chạy cả trong trình duyệt — không import JSON topology vào bundle được.
-packages/auth/src/index.ts
 packages/ui/src/lib/siteUrls.ts
 
 # Cấu hình của Keycloak, không phải mã: redirectUris/webOrigins phải là URL thật

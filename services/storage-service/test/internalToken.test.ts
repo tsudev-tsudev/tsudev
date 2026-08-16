@@ -3,10 +3,17 @@
 // đây là lớp bù cho việc không giấu được chúng sau mạng nội bộ.
 //
 // Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
-process.env.AUTH_DEV_BYPASS = 'true'
+process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 process.env.INTERNAL_API_TOKEN = 'test-token'
 const request = require('supertest')
 const { app } = require('../src/index')
+
+const { signIdentity } = require('@tsudev/identity-token')
+
+/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+const asUser = async (sub: string) => ({
+  Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
+})
 
 // process.env dùng chung giữa các file test khi jest chạy --runInBand, nên phải
 // trả lại nguyên trạng — nếu không, file chạy sau sẽ bị cổng chặn này mà không
@@ -17,7 +24,9 @@ afterAll(() => {
 
 describe('storage-service — cổng chặn x-internal-token', () => {
   test('thiếu header ⇒ 401', async () => {
-    const res = await request(app).get('/api/files').set('x-dev-user', 'tester')
+    const res = await request(app)
+      .get('/api/files')
+      .set(await asUser('tester'))
     expect(res.status).toBe(401)
   })
 
@@ -25,7 +34,7 @@ describe('storage-service — cổng chặn x-internal-token', () => {
     const res = await request(app)
       .get('/api/files')
       .set('x-internal-token', 'sai-be-bet')
-      .set('x-dev-user', 'tester')
+      .set(await asUser('tester'))
     expect(res.status).toBe(401)
   })
 
@@ -33,7 +42,7 @@ describe('storage-service — cổng chặn x-internal-token', () => {
     const res = await request(app)
       .get('/api/files')
       .set('x-internal-token', 'test-token')
-      .set('x-dev-user', 'tester')
+      .set(await asUser('tester'))
     expect(res.status).not.toBe(401)
   })
 

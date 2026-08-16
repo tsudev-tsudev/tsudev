@@ -12,6 +12,10 @@
 // production. Hậu quả đã đo được: NextAuth bật provider `e2e-dev`, tức là BẤT KỲ
 // AI cũng đăng nhập được vào tài khoản ADMIN bằng mật khẩu `devpass`.
 //
+// Provider đó nay đã bị gỡ hẳn, nhưng lỗ hổng thì KHÔNG phải là nó: lỗ hổng là
+// việc giá trị dev đi được vào bản dựng production. Biến dev tiếp theo sẽ khác
+// tên, và tệp này tồn tại để chặn cả những biến chưa được đặt ra.
+//
 // Chặn từng biến một là trò đuổi bắt: mỗi biến dev mới thêm vào `.env` lại là
 // một lỗ mới, và không có gì báo lỗi. Nên ở đây làm điều dứt khoát: DỜI
 // `.env.local` RA KHỎI ĐƯỜNG trong suốt lúc dựng, rồi trả lại.
@@ -67,11 +71,13 @@ try {
   const env = {
     ...process.env,
     NEXT_PUBLIC_MAIN_URL: mainUrl,
-    // Đai an toàn thứ hai, phòng khi shell của người chạy có sẵn các biến này.
-    // Chuỗi rỗng KHÁC với không đặt: mã kiểm `=== '1'` / `=== 'true'` nên rỗng
-    // là tắt, và biến đã có trong môi trường thì dotenv/Next không ghi đè.
-    E2E_BYPASS_KEYCLOAK: '',
-    AUTH_DEV_BYPASS: '',
+    // E2E_BYPASS_KEYCLOAK và AUTH_DEV_BYPASS từng được xoá tường minh ở đây làm
+    // đai an toàn thứ hai. Cả hai cờ nay đã bị GỠ KHỎI MÃ NGUỒN — không còn dòng
+    // nào đọc chúng — nên việc xoá ở đây là mã chết, và mã chết trong một tệp
+    // bảo mật đọc như một lớp phòng thủ đang hoạt động.
+    //
+    // Lớp phòng thủ THẬT vẫn là việc dời .env.local ra khỏi đường ở trên: nó bảo
+    // vệ mọi biến dev, kể cả những biến chưa tồn tại lúc viết dòng này.
   };
 
   execSync(`npx opennextjs-cloudflare build && npx opennextjs-cloudflare ${action}`, {

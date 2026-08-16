@@ -36,12 +36,12 @@ export const Input = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`rounded-lg border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted outline-none transition-colors ${
-          error ? 'border-[color:var(--error)]' : 'border-hairline focus:border-brand'
+        className={`rounded-md border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted outline-none transition-colors ${
+          error ? 'border-error' : 'border-hairline focus:border-brand'
         }`}
         {...props}
       />
-      {error && <p className="text-sm text-[var(--error)] mt-1">{error}</p>}
+      {error && <p className="text-sm text-error mt-1">{error}</p>}
     </div>
   );
 };

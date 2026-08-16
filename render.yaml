@@ -49,6 +49,11 @@ services:
         sync: false
       - key: S3_SECRET_KEY
         sync: false
+      # Khoá ký KHẲNG ĐỊNH DANH TÍNH mà BFF gửi xuống. PHẢI trùng giá trị đặt
+      # ở Cloudflare Workers cho frontend — lệch nhau thì mọi đường ghi đã xác
+      # thực trả 401, đúng triệu chứng mà cơ chế này ra đời để chấm dứt.
+      - key: INTERNAL_IDENTITY_SECRET
+        sync: false
       # --- nhánh identity (auth-service) ---
       # Đường gửi thư giao dịch: xác minh email và đặt lại mật khẩu. Resend là
       # API HTTP chứ không phải SMTP, vì frontend chạy trên Cloudflare Workers

@@ -6,10 +6,17 @@
 // lệ nào ném ra, không log nào đỏ, chỉ là huy hiệu biến mất trên site người ta.
 //
 // Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
-process.env.AUTH_DEV_BYPASS = 'true'
+process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 process.env.INTERNAL_API_TOKEN = 'test-token'
 const request = require('supertest')
 const { app, SERVICES } = require('../src/index')
+
+const { signIdentity } = require('@tsudev/identity-token')
+
+/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+const asUser = async (sub: string) => ({
+  Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
+})
 
 afterAll(() => {
   delete process.env.INTERNAL_API_TOKEN
@@ -35,7 +42,9 @@ describe('backend-bundle — endpoint công khai của trust không bị cổng 
 
 describe('backend-bundle — cổng chặn của content và storage vẫn nguyên vẹn', () => {
   test('/api/posts thiếu x-internal-token ⇒ 401', async () => {
-    const res = await request(app).get('/api/posts').set('x-dev-user', 'tester')
+    const res = await request(app)
+      .get('/api/posts')
+      .set(await asUser('tester'))
     expect(res.status).toBe(401)
   })
 
@@ -43,7 +52,7 @@ describe('backend-bundle — cổng chặn của content và storage vẫn nguy�
     const res = await request(app)
       .get('/api/posts')
       .set('x-internal-token', 'test-token')
-      .set('x-dev-user', 'tester')
+      .set(await asUser('tester'))
     expect(res.status).not.toBe(401)
   })
 

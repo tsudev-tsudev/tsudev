@@ -11,12 +11,7 @@ import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { CONTENT, internalHeaders } from '../../../lib/services';
-import {
-  catchAllSegments,
-  queryStringOf,
-  roleFromToken,
-  usernameFromToken,
-} from '../../../lib/identity';
+import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
 
 // Danh sách trắng, không phải danh sách đen: thêm nhánh mới phải khai ở đây.
 // Bỏ sót một nhánh thì nó 404 — an toàn hơn là lỡ mở cả /api.
@@ -32,12 +27,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
 
-  const username = usernameFromToken(token);
-
   const headers: Record<string, string> = {
     ...internalHeaders(),
-    'x-dev-user': username,
-    'x-dev-roles': roleFromToken(token),
+    ...(await identityHeaders(token)),
     'Content-Type': 'application/json',
   };
 

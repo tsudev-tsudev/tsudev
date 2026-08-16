@@ -8,7 +8,7 @@
 // nó trong AUTH_PREFIXES thì nó lặng lẽ mở ra, và không có gì báo lỗi — CLAUDE.md
 // liệt kê đúng cái bẫy này. Test dưới đây bắt mọi route mới không thuộc hai nhóm
 // đã được quyết định, nên người thêm route buộc phải chọn một bên.
-process.env.AUTH_DEV_BYPASS = 'true'
+process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 delete process.env.INTERNAL_API_TOKEN
 
 const { app, AUTH_PREFIXES } = require('../src/index')

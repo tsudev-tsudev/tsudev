@@ -3,12 +3,19 @@
 // Trước đợt này, `POST /api/presign` dùng nguyên `key` trong thân request và
 // `POST /api/upload` dùng nguyên header `x-filename`. Bất kỳ ai đăng nhập được
 // cũng ký được URL ghi đè lên object của người khác.
-process.env.AUTH_DEV_BYPASS = 'true'
+process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 delete process.env.INTERNAL_API_TOKEN
 
 const request = require('supertest')
 const { prisma } = require('@tsudev/db')
 const { app } = require('../src/index')
+
+const { signIdentity } = require('@tsudev/identity-token')
+
+/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+const asUser = async (sub: string) => ({
+  Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
+})
 
 const USER = 'test-key-member'
 
@@ -25,8 +32,11 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-const presign = (body: Record<string, unknown>) =>
-  request(app).post('/api/presign').set('x-dev-user', USER).send(body)
+const presign = async (body: Record<string, unknown>) =>
+  request(app)
+    .post('/api/presign')
+    .set(await asUser(USER))
+    .send(body)
 
 describe('storage-service: khoá object không do client quyết định', () => {
   test('bỏ qua `key` client gửi — không ghi đè được object có sẵn', async () => {

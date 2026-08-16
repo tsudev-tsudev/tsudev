@@ -14,6 +14,7 @@ import { Badge } from './components/Badge';
 import { SectionHeading } from './components/SectionHeading';
 import { Avatar } from './components/Avatar';
 import { Stat } from './components/Stat';
+import { ThemeToggle } from './components/ThemeToggle';
 import { MAIN_URL } from './lib/siteUrls';
 
 export {
@@ -34,6 +35,7 @@ export {
   SectionHeading,
   Avatar,
   Stat,
+  ThemeToggle,
 };
 
 export default Layout;

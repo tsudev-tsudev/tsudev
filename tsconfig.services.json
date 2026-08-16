@@ -9,6 +9,7 @@
   "references": [
     { "path": "packages/types" },
     { "path": "packages/trust-crypto" },
+    { "path": "packages/identity-token" },
     { "path": "packages/auth" },
     { "path": "services/content-service" },
     { "path": "services/storage-service" },

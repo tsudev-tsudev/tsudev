@@ -12,12 +12,7 @@ import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { STORAGE, internalHeaders } from '../../../lib/services';
-import {
-  catchAllSegments,
-  queryStringOf,
-  roleFromToken,
-  usernameFromToken,
-} from '../../../lib/identity';
+import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
 
 /** Lỗi có mã HTTP đi kèm — readBody() ném ra khi thân request vượt MAX_BODY. */
 type SizedError = Error & { status?: number };
@@ -54,7 +49,10 @@ function readBody(req: NextApiRequest): Promise<Buffer> {
  * `x-filename` có thể tới dưới dạng mảng khi client gửi trùng tên header; lấy
  * phần tử đầu thay vì để `string[]` rơi vào HeadersInit (nơi nó không hợp lệ).
  */
-function buildHeaders(req: NextApiRequest, username: string, role: string): Record<string, string> {
+function buildHeaders(
+  req: NextApiRequest,
+  identity: Record<string, string>
+): Record<string, string> {
   const rawName = req.headers['x-filename'];
   const fileName = Array.isArray(rawName) ? rawName[0] : rawName;
   return {
@@ -62,16 +60,13 @@ function buildHeaders(req: NextApiRequest, username: string, role: string): Reco
     // storage-service đọc tên tệp từ header này ở nhánh upload phía server.
     ...(fileName ? { 'x-filename': fileName } : {}),
     ...internalHeaders(),
-    'x-dev-user': username,
-    'x-dev-roles': role,
+    ...identity,
   };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
-
-  const username = usernameFromToken(token);
 
   const path = catchAllSegments(req.query.path).join('/');
   const qs = queryStringOf(req.url);
@@ -89,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const upstream = await fetch(`${STORAGE}/api/${path}${qs}`, {
       method: req.method,
-      headers: buildHeaders(req, username, roleFromToken(token)),
+      headers: buildHeaders(req, await identityHeaders(token)),
       // Buffer là Uint8Array, hợp lệ với BodyInit lúc chạy; kiểu của fetch
       // trong lib DOM lại không liệt kê Buffer nên phải nói rõ ra.
       body: body as BodyInit | undefined,

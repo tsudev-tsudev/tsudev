@@ -8,13 +8,15 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "build": "storybook build -o build",
-    "build:lib": "esbuild src/index.tsx --bundle --format=esm --outfile=dist/index.js --platform=browser --external:react --external:react-dom --loader:.tsx=tsx --loader:.ts=ts --sourcemap"
+    "build:lib": "esbuild src/index.tsx --bundle --format=esm --outfile=dist/index.js --platform=browser --external:react --external:react-dom --loader:.tsx=tsx --loader:.ts=ts --sourcemap",
+    "test": "NODE_ENV=test jest --runInBand"
   },
   "devDependencies": {
     "@storybook/addon-essentials": "^7.0.0",
     "@storybook/react": "^7.0.0",
     "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0"
+    "@types/react-dom": "^18.3.0",
+    "jest": "^29.6.0"
   },
   "peerDependencies": {
     "react": "*",
@@ -27,5 +29,12 @@
     "react-dom": {
       "optional": false
     }
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/test/**/*.test.ts"
+    ]
   }
 }

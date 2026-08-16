@@ -1,11 +1,15 @@
 import React from 'react';
 
+// Mọi màu chữ trên nền đặc đều đi qua token, không cắm cứng mã hex: `teal`
+// trước đây dùng #04231f — một màu chữ TỐI, đúng cho nền teal sáng của chế độ
+// tối, nhưng ở chế độ sáng thì nền teal là #0a6a5b (đậm) nên chữ tối trên nền
+// tối gần như không đọc được. Token --on-vivid đảo theo chế độ, mã hex thì không.
 const VARIANTS = {
-  primary: 'text-[var(--primary-contrast)] bg-brand hover:brightness-110',
+  primary: 'text-brandcontrast bg-brand hover:brightness-110',
   secondary: 'bg-panel border border-hairstrong text-ink hover:border-brand',
   ghost: 'bg-transparent text-inksoft hover:bg-panel2 hover:text-ink',
-  teal: 'text-[#04231f] bg-teal hover:brightness-110',
-  danger: 'text-[var(--on-vivid)] bg-[var(--error)] hover:brightness-110',
+  teal: 'text-onvivid bg-teal hover:brightness-110',
+  danger: 'text-onvivid bg-error hover:brightness-110',
 } as const;
 const SIZES = {
   sm: 'h-8 px-3 text-sm',

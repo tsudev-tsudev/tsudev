@@ -6,6 +6,7 @@
   "references": [
     { "path": "packages/types" },
     { "path": "packages/trust-crypto" },
+    { "path": "packages/identity-token" },
     { "path": "packages/auth" },
     { "path": "packages/utils" },
     { "path": "packages/ui" },

@@ -3,17 +3,13 @@
 // Đây là ca đã làm production trống trơn: blog/tài liệu/dự án là nội dung công
 // khai, nhưng BFF của Next gọi SSR không mang Bearer JWT — khách vãng lai không
 // có phiên nào cả. Chặn cứng `/api` bằng auth thì mọi lời gọi trả 401 và
-// `lib/api.js` nuốt thành [], nên TRIỆU CHỨNG LÀ TRANG TRỐNG chứ không phải
-// trang lỗi. Không test nào bắt được, vì local luôn bật AUTH_DEV_BYPASS.
+// `lib/api.ts` nuốt thành [], nên TRIỆU CHỨNG LÀ TRANG TRỐNG chứ không phải
+// trang lỗi. Không test nào bắt được, vì local khi ấy luôn bật AUTH_DEV_BYPASS —
+// cờ đó nay đã bị gỡ hẳn, và dev chạy đúng đường mà production chạy.
 //
 // Đặt biến TRƯỚC khi require app: giá trị đọc lúc module nạp.
-//
-// ĐẶT 'false' CHỨ KHÔNG delete: src/index.js nạp `.env` ở gốc repo qua dotenv,
-// mà `.env` có AUTH_DEV_BYPASS=true. dotenv không ghi đè biến ĐÃ CÓ nhưng sẽ
-// điền lại biến đã bị xoá — nên `delete` khiến cả file test này chạy trong chế
-// độ bypass và mọi assertion đậu vì lý do sai.
 process.env.INTERNAL_API_TOKEN = 'test-token'
-process.env.AUTH_DEV_BYPASS = 'false'
+process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 const request = require('supertest')
 const { app } = require('../src/index')
 

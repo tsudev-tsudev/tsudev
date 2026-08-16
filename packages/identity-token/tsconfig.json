@@ -4,9 +4,8 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "rootDir": "src",
-    "outDir": "dist",
-    "types": ["node"]
+    "outDir": "dist"
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../types" }, { "path": "../identity-token" }]
+  "references": [{ "path": "../types" }]
 }

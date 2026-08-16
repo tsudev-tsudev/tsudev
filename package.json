@@ -29,10 +29,11 @@
     "db:generate": "npm --workspace packages/db run generate",
     "db:seed": "node scripts/with-env.js npm --workspace packages/db run seed",
     "db:reset": "node scripts/with-env.js npm --workspace packages/db exec -- prisma migrate reset --force",
-    "dev:full": "npm run db:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run dev:local",
+    "dev:full": "npm run db:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run build:services && npm run db:seed:dev && npm run dev:local",
     "typecheck": "npm run build:ts && npm --workspace apps/frontend-main run typecheck",
     "build:ts": "tsc -b",
-    "build:services": "tsc -b tsconfig.services.json"
+    "build:services": "tsc -b tsconfig.services.json",
+    "db:seed:dev": "node scripts/with-env.js node services/auth-service/scripts/seed-dev-users.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

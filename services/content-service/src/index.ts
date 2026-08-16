@@ -107,9 +107,9 @@ app.use('/api', (req, res, next) => {
 // Trước đây đây là `app.use('/api', auth)` — chặn cứng — và nó làm production
 // trống trơn: blog, tài liệu và dự án là nội dung CÔNG KHAI, nhưng BFF của Next
 // gọi SSR chỉ kèm x-internal-token chứ không có Bearer JWT (không có phiên người
-// dùng nào khi khách vãng lai mở trang). Ở local không lộ ra vì AUTH_DEV_BYPASS
-// bật; ở production nó trả 401, `lib/api.js` nuốt lỗi thành [] nên TRIỆU CHỨNG
-// LÀ TRANG TRỐNG, KHÔNG PHẢI TRANG LỖI.
+// dùng nào khi khách vãng lai mở trang). Ở local khi ấy không lộ ra vì
+// AUTH_DEV_BYPASS bật; ở production nó trả 401, `lib/api.ts` nuốt lỗi thành []
+// nên TRIỆU CHỨNG LÀ TRANG TRỐNG, KHÔNG PHẢI TRANG LỖI.
 //
 // An toàn vì đường ghi không dựa vào lớp này: mọi route ghi nằm dưới /api/admin
 // và tự gọi requireAdmin(), vốn đọc vai trò TỪ DB và trả 401 khi thiếu req.user
@@ -117,10 +117,14 @@ app.use('/api', (req, res, next) => {
 // trust-service (auth theo nhánh) vốn đã dùng; content-service là cái lệch.
 //
 // Token SAI vẫn bị từ chối: chỉ bỏ qua khi người gọi không đưa gì cả.
+//
+// Nhánh AUTH_DEV_BYPASS đã bị gỡ cùng với chính cờ đó. Nó làm mọi request ở
+// local đi qua xác thực bắt buộc trong khi ở production thì không — tức là hai
+// môi trường chạy hai đường khác nhau ngay tại chỗ nhạy cảm nhất, và đó là lý
+// do lỗi 401 của production không bao giờ lộ ra khi chạy local.
 const optionalAuth: RequestHandler = (req, res, next) => {
   const bearer = /^Bearer /i.test(req.get('authorization') || '')
-  const devBypass = process.env.AUTH_DEV_BYPASS === 'true'
-  if (!bearer && !devBypass) return next()
+  if (!bearer) return next()
   return auth(req, res, next)
 }
 app.use('/api', optionalAuth)

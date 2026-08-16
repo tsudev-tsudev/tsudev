@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { Logo } from './Logo';
+import { ThemeToggle } from './ThemeToggle';
 // tsudev là MỘT site nên href tương đối. Trước đây có hai origin (trang chính và
 // diễn đàn) nên mọi link điều hướng buộc phải là URL tuyệt đối.
 type NavItem = { key: string; path: string; label: string };
@@ -69,6 +70,7 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
               className="bg-transparent outline-none text-sm text-ink w-40 placeholder:text-muted"
             />
           </label>
+          <ThemeToggle />
           {session ? (
             <div className="flex items-center gap-2">
               <span className="hidden lg:inline text-sm text-inksoft max-w-[10rem] truncate">
@@ -76,21 +78,24 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
               </span>
               <button
                 onClick={() => signOut()}
-                className="inline-flex items-center h-9 px-3 rounded-md text-sm font-medium border border-hairline text-inksoft hover:text-ink hover:border-hairstrong transition-colors"
+                className="inline-flex items-center h-8 px-3 rounded-md text-sm font-medium text-inksoft hover:bg-panel2 hover:text-ink transition-colors"
               >
                 Đăng xuất
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => signIn()}
-              className="inline-flex items-center h-9 px-4 rounded-md text-sm font-semibold text-[var(--primary-contrast)] bg-brand hover:brightness-110 transition"
+            // Link chứ không phải nút gọi signIn(): trang /login là trang thật
+            // của site, và một thẻ <a> mở được bằng chuột giữa, bookmark được,
+            // và hoạt động cả khi JavaScript chưa kịp tải.
+            <a
+              href="/login"
+              className="inline-flex items-center h-8 px-4 rounded-md text-sm font-semibold text-brandcontrast bg-brand hover:brightness-110 transition"
             >
               Đăng nhập
-            </button>
+            </a>
           )}
           <button
-            className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-hairline text-inksoft"
+            className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-inksoft hover:bg-panel2 hover:text-ink transition-colors"
             aria-label="Menu"
             onClick={() => setOpen(!open)}
           >

@@ -5,14 +5,12 @@ import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { CONTENT, internalHeaders } from './services';
-import { catchAllSegments, queryStringOf, roleFromToken, usernameFromToken } from './identity';
+import { catchAllSegments, identityHeaders, queryStringOf } from './identity';
 
 export function makeAuthedProxy(base: string) {
   return async function handler(req: NextApiRequest, res: NextApiResponse) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
-    const username = usernameFromToken(token);
-
     const path = catchAllSegments(req.query.path).join('/');
     const qs = queryStringOf(req.url);
     try {
@@ -21,8 +19,7 @@ export function makeAuthedProxy(base: string) {
         headers: {
           'Content-Type': 'application/json',
           ...internalHeaders(),
-          'x-dev-user': username,
-          'x-dev-roles': roleFromToken(token),
+          ...(await identityHeaders(token)),
         },
         body:
           req.method === 'GET' || req.method === 'HEAD'
