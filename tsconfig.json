@@ -5,6 +5,7 @@
   "files": [],
   "references": [
     { "path": "packages/types" },
+    { "path": "packages/auth" },
     { "path": "packages/utils" },
     { "path": "packages/ui" },
     { "path": "services/content-service" },

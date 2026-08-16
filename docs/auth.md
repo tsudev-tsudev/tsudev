@@ -93,25 +93,30 @@ Ký HS256 bằng `DEV_JWT_SECRET`.
 
 Hai hệ vai trò tồn tại song song — biết mình đang nói về hệ nào:
 
-| Hệ               | Nguồn                             | Dùng ở đâu                       |
-| ---------------- | --------------------------------- | -------------------------------- |
-| Vai trò ứng dụng | cột `User.role` trong Prisma      | logic nghiệp vụ, giao diện admin |
-| Vai trò token    | `realm_access.roles` của Keycloak | `requireRole()` trong middleware |
+**MỘT nguồn sự thật: cột `User.role` trong Prisma.**
 
-`Role` (Prisma): `GUEST` · `MEMBER` · `VIP` · `MODERATOR` · `ADMIN`.
+`Role`: `GUEST` · `MEMBER` · `VIP` · `MODERATOR` · `ADMIN`.
 
-`requireRole(role)` **trả về middleware rỗng** trừ khi
-`REQUIRE_ROLE_ENFORCEMENT=true`. Nghĩa là: ở local mọi route "được bảo vệ" đều
-mở. Đây là chủ đích (giữ local dễ chạy), nhưng cũng có nghĩa **route mới không
-được kiểm chứng phân quyền cho tới khi bật biến này**. Sửa route nhạy cảm thì
-chạy lại với `REQUIRE_ROLE_ENFORCEMENT=true` ít nhất một lần.
+`requireRole(role)` (từ `@tsudev/auth`) tra tài khoản trong DB theo
+`preferred_username`/`sub` của token, rồi so với ngưỡng. **Fail closed**, và
+không có biến môi trường nào tắt được nó. Lỗi DB cho 503, không phải "cho qua".
 
-Tên vai trò cho storage cấu hình được: `STORAGE_PRESIGN_ROLE`,
-`STORAGE_UPLOAD_ROLE`.
+Người dùng qua được Keycloak mà service chưa từng thấy sẽ được TẠO ở mức
+`MEMBER` — mức thấp nhất có danh tính, không phải mức có đặc quyền.
 
-`requireRole` tìm vai trò ở ba nơi theo thứ tự: `realm_access.roles`,
-`resource_access[KEYCLOAK_CLIENT_ID].roles`, rồi `scope` (tách theo khoảng
-trắng).
+### Vì sao không dùng vai trò trong token
+
+Repo từng có hệ thứ hai: `requireRole()` đọc `realm_access.roles` của Keycloak,
+gác sau cờ `REQUIRE_ROLE_ENFORCEMENT`. Hệ đó **chưa bao giờ hoạt động ở
+production** — cả hai bản export realm đều khai `"roles": {}`, nên claim luôn
+rỗng. Nó chỉ xanh trong test vì test tự tiêm header `x-dev-roles`.
+
+Tệ hơn: cờ mặc định TẮT, nên 4 route dùng nó **trông như được bảo vệ mà không
+hề được bảo vệ**; và bật cờ lên thì chúng 403 vĩnh viễn (một trong bốn là
+`GET /api/posts` — đường đọc blog công khai). Cả nhánh đó đã được gỡ bỏ.
+
+Muốn dùng lại vai trò từ token thì phải khai roles trong realm và ánh xạ sang
+`User.role` TRƯỚC — đừng dựng lại hệ thứ hai chạy song song.
 
 ## Keycloak local
 

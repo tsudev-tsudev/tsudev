@@ -15,6 +15,7 @@ try {
 import express from 'express'
 import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
 import { prisma } from '@tsudev/db'
+import { createAuthMiddleware } from '@tsudev/auth'
 import type { Prisma, Project, User } from '@prisma/client'
 import { hasAtLeastRole } from '@tsudev/types'
 
@@ -48,23 +49,9 @@ const port = process.env.PORT || process.env.PORT_CONTENT_SERVICE || 4001
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
-// `auth` vừa là middleware gọi được, vừa mang `.requireRole`. Khai kiểu từ chính
-// module đó (`typeof import`) nên hai bên không thể lệch nhau mà không ai biết.
-type AuthMiddleware = typeof import('./authMiddleware')
-
-const passthrough: RequestHandler = (_req, _res, next) => next()
-
-const hasRequireRole = (a: unknown): a is AuthMiddleware =>
-  typeof a === 'function' && typeof (a as AuthMiddleware).requireRole === 'function'
-
-let auth: AuthMiddleware | RequestHandler = passthrough
-try {
-  auth = require('./authMiddleware') as AuthMiddleware
-} catch (e) {
-  auth = passthrough
-}
-const requireRole = (role: string): RequestHandler =>
-  hasRequireRole(auth) ? auth.requireRole(role) : passthrough
+// Xác thực dùng chung. Trước đây mỗi service giữ một bản authMiddleware gần
+// trùng nhau, và CLAUDE.md phải cảnh báo "đổi hành vi xác thực phải sửa cả ba".
+const auth = createAuthMiddleware('content')
 
 // Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
 // được error handler của Express — request treo cho tới khi client bỏ cuộc.
@@ -129,9 +116,17 @@ const optionalAuth: RequestHandler = (req, res, next) => {
 app.use('/api', optionalAuth)
 
 // ---------------- Blog ----------------
+//
+// KHÔNG có cổng vai trò ở đây, có chủ đích. Bản trước gắn
+// `requireRole(CONTENT_READ_ROLE)` lên chính đường đọc bài viết công khai — nó
+// chỉ vô hại vì requireRole là no-op khi REQUIRE_ROLE_ENFORCEMENT tắt. Bật cờ
+// đó lên là blog biến mất khỏi site, và đó là một trong hai lý do khiến cờ này
+// không bao giờ bật được (CLAUDE.md §Gotcha).
+//
+// Blog, tài liệu và dự án là nội dung công khai. Thứ cần bảo vệ là đường GHI,
+// và nó nằm dưới /api/admin với requireAdmin() đọc vai trò từ DB.
 app.get(
   '/api/posts',
-  requireRole(process.env.CONTENT_READ_ROLE || 'content:read'),
   asyncHandler(async (req, res) => {
     const take = Math.min(qInt(req.query.limit, 20), 50)
     const posts = await prisma.post.findMany({

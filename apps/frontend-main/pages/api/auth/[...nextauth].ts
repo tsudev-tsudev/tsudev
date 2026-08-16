@@ -36,13 +36,26 @@ if (process.env.E2E_BYPASS_KEYCLOAK === '1') {
   );
 }
 
+// Keycloak là đường đăng nhập DUY NHẤT ở production. Thiếu bất kỳ biến nào
+// trong ba biến dưới, next-auth vẫn dựng ra một provider — chỉ là nó không bao
+// giờ đăng nhập được, và không có gì báo lỗi. Người dùng thấy một nút bấm không
+// làm gì cả.
+const KEYCLOAK_VARS = ['KEYCLOAK_CLIENT_ID', 'KEYCLOAK_CLIENT_SECRET', 'KEYCLOAK_ISSUER'] as const;
+const missing = KEYCLOAK_VARS.filter((k) => !process.env[k]);
+
+if (missing.length) {
+  const message = `[auth] THIẾU cấu hình Keycloak: ${missing.join(
+    ', '
+  )} — đăng nhập sẽ không hoạt động.`;
+  // `next build` chạy mà KHÔNG có secret thật (job "Build frontends" của CI chỉ
+  // đặt NEXTAUTH_SECRET), nên chỉ cảnh báo lúc dựng. Ở tiến trình đang PHỤC VỤ
+  // thì thiếu cấu hình là lỗi chết người — chết ồn ào còn hơn một nút bấm câm.
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+  if (process.env.NODE_ENV === 'production' && !isBuildPhase) throw new Error(message);
+  console.warn(message);
+}
+
 // Always include Keycloak provider (so dev UI still shows it)
-//
-// `?? ''` ở đây GIỮ NGUYÊN hành vi cũ, không sửa gì: bản JS truyền thẳng
-// `undefined` khi biến môi trường vắng mặt, và next-auth dựng ra một provider
-// hỏng mà không kêu. Kiểu chỉ làm lộ ra rằng ba biến này KHÔNG được bảo đảm có
-// mặt. Chưa chuyển thành lỗi ồn ào ở đây vì job "Build frontends" của CI chạy
-// mà không có chúng — biến nó thành throw là CI đỏ ngay. Thuộc pha siết bảo mật.
 providers.push(
   KeycloakProvider({
     clientId: process.env.KEYCLOAK_CLIENT_ID ?? '',

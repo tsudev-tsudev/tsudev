@@ -27,10 +27,11 @@ route, rồi `sed -n 'X,Yp'` đúng đoạn.
 - Thêm endpoint mà trình duyệt cần gọi ⇒ phải mở rộng route proxy tương ứng
   trong `apps/*/pages/api/`, nếu không trình duyệt chặn CORS. Không tự sửa file
   frontend nếu agent khác đang giữ — báo lại thay vì đụng vào.
-- `requireRole()` là **no-op** trừ khi `REQUIRE_ROLE_ENFORCEMENT=true`. Route
-  nhạy cảm mới thì chạy lại một lần với biến đó bật để xác nhận thật sự chặn.
-- Đổi hành vi xác thực = sửa **cả bốn** `authMiddleware.js` (kể cả trust-service),
-  chúng gần trùng nhau.
+- `requireRole(role)` (từ `@tsudev/auth`) đọc `User.role` trong DB và **fail
+  closed** — không còn biến môi trường nào tắt được. `role` là union `Role`, gõ
+  sai là lỗi biên dịch.
+- Xác thực nay nằm ở **một chỗ duy nhất**: `packages/auth`. Ba bản
+  `authMiddleware.js` gần trùng nhau đã bị gộp — đừng dựng lại bản cục bộ.
 - `/debug/boom` của content-service là công cụ nghiệm thu cảnh báo. Đừng xoá.
 
 ## Xong việc

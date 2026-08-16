@@ -51,6 +51,7 @@ const qInt = (v: unknown, dflt: number): number => {
   return Number.isFinite(n) && n > 0 ? n : dflt
 }
 import { prisma } from '@tsudev/db'
+import { createAuthMiddleware } from '@tsudev/auth'
 import { hasAtLeastRole } from '@tsudev/types'
 import crypto from 'crypto'
 
@@ -74,34 +75,34 @@ const port = process.env.PORT || process.env.PORT_TRUST_SERVICE || 4003
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
-// `auth` vừa là middleware gọi được, vừa mang `.requireRole`. Khai kiểu từ chính
-// module đó (`typeof import`) nên hai bên không thể lệch nhau mà không ai biết.
-type AuthMiddleware = typeof import('./authMiddleware')
-
-const passthrough: RequestHandler = (_req, _res, next) => next()
-
-// Khác content/storage: trust-service KHÔNG dùng requireRole ở đâu cả. Nó gắn
-// auth theo nhánh (xem vòng lặp bên dưới) và tự kiểm vai trò từ DB qua
-// requireReviewer(). Đừng thêm helper requireRole vào đây cho "đồng bộ" — nó sẽ
-// là mã chết, và mã chết ở tầng phân quyền là thứ dễ bị tưởng là đang bảo vệ.
-let auth: AuthMiddleware | RequestHandler = passthrough
-try {
-  auth = require('./authMiddleware') as AuthMiddleware
-} catch (e) {
-  auth = passthrough
-}
+// Xác thực dùng chung. Trước đây mỗi service giữ một bản authMiddleware gần
+// trùng nhau, và CLAUDE.md phải cảnh báo "đổi hành vi xác thực phải sửa cả ba".
+const auth = createAuthMiddleware('trust')
 
 // Khác content-service (gắn auth cho cả /api): ở đây auth chỉ gắn cho các nhánh
 // cần danh tính. Huy hiệu, trang xác thực, thư mục và danh sách chương trình
 // BẮT BUỘC công khai — huy hiệu được trình duyệt của khách truy cập site bên
 // thứ ba tải về, không hề có token nào đi kèm.
-for (const p of [
+/**
+ * Nhánh BẮT BUỘC có danh tính. Xuất ra để test kiểm được độ phủ.
+ *
+ * trust-service gắn auth theo NHÁNH chứ không cho cả `/api` như hai service kia,
+ * vì huy hiệu SVG, trang xác minh, thư mục và JWKS phải công khai — chúng được
+ * trình duyệt của khách trên site BÊN THỨ BA tải về, không hề có token nào.
+ *
+ * Cái giá của lựa chọn đó: mặc định là công khai. Thêm một nhánh riêng tư mà
+ * quên khai ở đây thì nó lặng lẽ mở, và không có gì báo lỗi. Test
+ * `authCoverage.test.ts` khoá chuyện đó lại.
+ */
+const AUTH_PREFIXES = [
   '/api/trust/orgs',
   '/api/trust/domains',
   '/api/trust/applications',
   '/api/trust/certificates',
   '/api/trust/admin',
-]) {
+]
+
+for (const p of AUTH_PREFIXES) {
   app.use(p, auth)
 }
 
@@ -1181,4 +1182,4 @@ async function startServer() {
 // đây là tranh cổng với cha.
 if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) startServer().catch(() => {})
 
-export { app, startServer, init }
+export { app, startServer, init, AUTH_PREFIXES }

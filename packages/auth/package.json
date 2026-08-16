@@ -1,0 +1,16 @@
+{
+  "name": "@tsudev/auth",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "jose": "^5.2.0",
+    "@tsudev/db": "*",
+    "@tsudev/types": "*"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.0.0"
+  }
+}

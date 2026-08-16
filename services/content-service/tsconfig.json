@@ -12,5 +12,5 @@
   // test/ đứng ngoài bản dựng: nó không được đóng gói vào dist/. ts-jest vẫn
   // biên dịch VÀ kiểm kiểu chúng lúc chạy test, dùng chính cấu hình này.
   "include": ["src/**/*"],
-  "references": [{ "path": "../../packages/types" }]
+  "references": [{ "path": "../../packages/types" }, { "path": "../../packages/auth" }]
 }

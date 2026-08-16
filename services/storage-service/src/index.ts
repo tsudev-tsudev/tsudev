@@ -15,6 +15,42 @@ try {
 import express from 'express'
 import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
 
+/** Khoá do CHÍNH service này cấp: dấu thời gian + tên đã làm sạch. */
+const ISSUED_KEY_RE = /^\d{10,}-[A-Za-z0-9._-]{1,200}$/
+
+const MAX_KEY_LEN = 200
+
+/**
+ * Dựng khoá object S3 an toàn từ dữ liệu do người gọi cung cấp.
+ *
+ * Vì sao cần: `POST /api/presign` trước đây nhận `key` từ thân request và dùng
+ * NGUYÊN XI, còn `POST /api/upload` dùng thẳng header `x-filename`. Nghĩa là bất
+ * kỳ ai đăng nhập được cũng chọn được khoá tuỳ ý — ghi đè object của người khác,
+ * hoặc viết ra ngoài tiền tố mong đợi. Không có gì chặn, và không có gì báo lỗi.
+ *
+ * Ba việc hàm này làm:
+ *  1. Bỏ mọi thành phần đường dẫn (`a/b/../c` → `c`) — khoá luôn phẳng.
+ *  2. Ràng bộ ký tự và cắt độ dài.
+ *  3. Gắn dấu thời gian ở đầu, nên KHÔNG BAO GIỜ trùng khoá đã có. Chính điều
+ *     này loại bỏ khả năng ghi đè, chứ không phải việc lọc ký tự.
+ *
+ * `allowIssued` dành riêng cho nhánh upload phía server: ở đó khoá đến từ bước
+ * presign TRƯỚC ĐÓ của chính service này, và phải giữ nguyên thì tệp mới nằm
+ * đúng chỗ đã ký. Chỉ khoá khớp đúng khuôn đã cấp mới được đi qua.
+ */
+function safeObjectKey(raw: unknown, opts: { allowIssued?: boolean } = {}): string {
+  const leaf =
+    String(raw ?? '')
+      .split(/[\\/]/)
+      .pop() ?? ''
+  const cleaned = leaf
+    .replace(/[^A-Za-z0-9._-]/g, '-')
+    .replace(/^\.+/, '')
+    .slice(0, MAX_KEY_LEN)
+  if (opts.allowIssued && ISSUED_KEY_RE.test(cleaned)) return cleaned
+  return `${Date.now()}-${cleaned || 'upload'}`
+}
+
 /** Thông điệp lỗi từ một giá trị `catch` (luôn là `unknown`). */
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
@@ -42,6 +78,7 @@ const {
 } = require('@aws-sdk/client-s3')
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { prisma } from '@tsudev/db'
+import { createAuthMiddleware, requireRole } from '@tsudev/auth'
 
 const app = express()
 const port = process.env.PORT || process.env.PORT_STORAGE_SERVICE || 4002
@@ -134,23 +171,9 @@ async function generatePresign(cmd: Parameters<typeof getSignedUrl>[1]) {
 }
 
 // Auth middleware (Keycloak JWKS verifier)
-// `auth` vừa là middleware gọi được, vừa mang `.requireRole`. Khai kiểu từ chính
-// module đó (`typeof import`) nên hai bên không thể lệch nhau mà không ai biết.
-type AuthMiddleware = typeof import('./authMiddleware')
-
-const passthrough: RequestHandler = (_req, _res, next) => next()
-
-const hasRequireRole = (a: unknown): a is AuthMiddleware =>
-  typeof a === 'function' && typeof (a as AuthMiddleware).requireRole === 'function'
-
-let auth: AuthMiddleware | RequestHandler = passthrough
-try {
-  auth = require('./authMiddleware') as AuthMiddleware
-} catch (e) {
-  auth = passthrough
-}
-const requireRole = (role: string): RequestHandler =>
-  hasRequireRole(auth) ? auth.requireRole(role) : passthrough
+// Xác thực dùng chung. Trước đây mỗi service giữ một bản authMiddleware gần
+// trùng nhau, và CLAUDE.md phải cảnh báo "đổi hành vi xác thực phải sửa cả ba".
+const auth = createAuthMiddleware('storage')
 
 async function ensureBucket() {
   try {
@@ -221,13 +244,10 @@ app.get(
 app.get(
   '/api/presign',
   auth,
-  requireRole(process.env.STORAGE_PRESIGN_ROLE || 'storage:presign'),
+  requireRole('MEMBER'),
   asyncHandler(async (req, res) => {
-    const fileName = req.query.fileName || req.query.key || `upload-${Date.now()}`
-    const contentType = req.query.contentType || 'application/octet-stream'
-    const objectKey = `${Date.now()}-${(fileName || 'upload')
-      .toString()
-      .replace(/[^a-zA-Z0-9._-]/g, '-')}`
+    const contentType = qStr(req.query.contentType) || 'application/octet-stream'
+    const objectKey = safeObjectKey(qStr(req.query.fileName) || qStr(req.query.key))
     const cmd = new PutObjectCommand({
       Bucket: S3_BUCKET,
       Key: objectKey,
@@ -243,11 +263,12 @@ app.get(
 app.post(
   '/api/presign',
   auth,
-  requireRole(process.env.STORAGE_PRESIGN_ROLE || 'storage:presign'),
+  requireRole('MEMBER'),
   asyncHandler(async (req, res) => {
-    const { key, fileName, contentType } = req.body || {}
-    const objectKey =
-      key || `${Date.now()}-${(fileName || 'upload').replace(/[^a-zA-Z0-9._-]/g, '-')}`
+    const { fileName, contentType } = req.body || {}
+    // `key` do client gửi bị BỎ QUA có chủ đích: khoá là do service cấp. Nhận
+    // khoá của client ở đây chính là lỗ ghi đè nói trong safeObjectKey().
+    const objectKey = safeObjectKey(fileName)
     const cmd = new PutObjectCommand({
       Bucket: S3_BUCKET,
       Key: objectKey,
@@ -263,7 +284,7 @@ app.post(
 app.post(
   '/api/upload',
   auth,
-  requireRole(process.env.STORAGE_UPLOAD_ROLE || 'storage:upload'),
+  requireRole('MEMBER'),
   express.raw({ type: '*/*', limit: '100mb' }),
   asyncHandler(async (req, res) => {
     // `fileName` trở thành KHOÁ OBJECT trên S3, và nó nhận từ hai nguồn do người
@@ -276,7 +297,9 @@ app.post(
     const headerName = req.headers['x-filename']
     const fromHeader = Array.isArray(headerName) ? headerName[0] : headerName
     const keyQuery = qStr(req.query?.key)
-    const fileName = fromHeader || keyQuery || `upload-${Date.now()}`
+    // allowIssued: khoá ở đây đến từ bước presign trước đó của chính service này
+    // (đường dự phòng khi PUT trực tiếp lên S3 thất bại), nên phải giữ nguyên.
+    const fileName = safeObjectKey(fromHeader || keyQuery, { allowIssued: true })
     const contentType = req.headers['content-type'] || 'application/octet-stream'
     if (!req.body || req.body.length === 0) {
       return res.status(400).json({ error: 'Empty body' })
