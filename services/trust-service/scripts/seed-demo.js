@@ -23,8 +23,11 @@ if (!process.env.DATABASE_URL) {
 
 const crypto = require('crypto')
 const { prisma } = require('@tsudev/db')
-const signing = require('../src/signing')
-const { nextSerial, buildPayload } = require('../src/certificates')
+// dist/ chứ không phải src/: service đã sang TypeScript và chạy từ bản biên
+// dịch (xem "main" trong package.json). Script này là .js thuần nên require
+// thẳng src/*.ts sẽ MODULE_NOT_FOUND — cần `npm run build:services` trước.
+const signing = require('../dist/signing')
+const { nextSerial, buildPayload } = require('../dist/certificates')
 
 const reset = process.argv.includes('--reset')
 

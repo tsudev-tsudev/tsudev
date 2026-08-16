@@ -50,7 +50,7 @@ const proxyServer = () => ({
 // chúng, getServerSideProps nuốt lỗi và trả mảng rỗng — trang vẫn 200 nên test
 // vẫn xanh mà chẳng chứng minh được gì.
 const backend = (id) => ({
-  command: `node ${node(topo, id).workspace}/src/index.js`,
+  command: `node ${node(topo, id).workspace}/dist/index.js`,
   url: `${internalUrl(topo, id)}/health`,
   cwd: ROOT,
   env: { ...process.env, BIND_HOST: '127.0.0.1', AUTH_DEV_BYPASS: 'true' },

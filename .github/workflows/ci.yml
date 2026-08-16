@@ -146,6 +146,10 @@ jobs:
           npm run db:generate
           npm run db:migrate
           npm run db:seed
+          # seed-demo.js require dist/ của trust-service, nên phải dựng trước.
+          # db:generate phải đứng trước bước này: Prisma client là phụ thuộc
+          # kiểu của service.
+          npm run build:services
           node services/trust-service/scripts/seed-demo.js
       # Playwright tự dựng content-service, trust-service, frontend-main và
       # dev-proxy (webServer trong e2e/playwright.config.js).
