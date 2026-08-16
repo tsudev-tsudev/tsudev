@@ -21,6 +21,16 @@ type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 const errStack = (e: unknown): string => (e instanceof Error ? e.stack || e.message : String(e))
 
+/**
+ * Thông điệp lỗi trả cho CLIENT.
+ *
+ * Ở production luôn là chuỗi chung: `err.message` của Node hay mang theo đường
+ * dẫn tệp trên máy chủ, tên bảng, hoặc cả chuỗi kết nối — thứ giúp người dò tìm
+ * dựng bản đồ hệ thống. Chi tiết vẫn được ghi đầy đủ vào log phía máy chủ.
+ */
+const clientError = (e: unknown): string =>
+  process.env.NODE_ENV === 'production' ? 'internal error' : errMsg(e) || 'internal error'
+
 /** Tham số truy vấn có thể là mảng hoặc object lồng — chỉ nhận chuỗi. */
 const qStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
 
@@ -70,6 +80,16 @@ try {
 
 const app = express()
 app.use(express.json({ limit: '1mb' }))
+
+// Header bảo mật cho mọi phản hồi của service. Ba service đều phục vụ cho bên
+// thứ ba (huy hiệu SVG, JWKS, trang xác minh), nên `nosniff` ở đây không thừa:
+// nó chặn trình duyệt tự diễn giải một phản hồi thành HTML thực thi được.
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
+
 const port = process.env.PORT || process.env.PORT_TRUST_SERVICE || 4003
 // Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
@@ -1154,7 +1174,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     error: err,
     context: `${req.method} ${req.url}`,
   })
-  if (res && !res.headersSent) res.status(500).json({ error: errMsg(err) || 'internal error' })
+  if (res && !res.headersSent) res.status(500).json({ error: clientError(err) })
 }
 app.use(errorHandler)
 

@@ -44,6 +44,16 @@ try {
 }
 const app = express()
 app.use(express.json({ limit: '1mb' }))
+
+// Header bảo mật cho mọi phản hồi của service. Ba service đều phục vụ cho bên
+// thứ ba (huy hiệu SVG, JWKS, trang xác minh), nên `nosniff` ở đây không thừa:
+// nó chặn trình duyệt tự diễn giải một phản hồi thành HTML thực thi được.
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
+
 const port = process.env.PORT || process.env.PORT_CONTENT_SERVICE || 4001
 // Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
@@ -452,7 +462,13 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     error: err,
     context: `${req.method} ${req.url}`,
   })
-  if (res && !res.headersSent) res.status(500).json({ error: message || 'internal error' })
+  // Ở production trả chuỗi chung: `err.message` hay mang theo đường dẫn tệp trên
+  // máy chủ hoặc tên bảng — thứ giúp người dò tìm dựng bản đồ hệ thống. Chi tiết
+  // đã được ghi đầy đủ vào log ở trên.
+  if (res && !res.headersSent)
+    res
+      .status(500)
+      .json({ error: process.env.NODE_ENV === 'production' ? 'internal error' : message })
 }
 app.use(errorHandler)
 

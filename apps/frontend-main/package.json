@@ -10,7 +10,8 @@
     "deploy": "node ../../scripts/deploy-frontend.js deploy",
     "upload": "node ../../scripts/deploy-frontend.js upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "NODE_ENV=test jest --runInBand"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
@@ -25,5 +26,12 @@
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.7",
     "wrangler": "^4.118.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "<rootDir>/test/**/*.test.ts"
+    ]
   }
 }

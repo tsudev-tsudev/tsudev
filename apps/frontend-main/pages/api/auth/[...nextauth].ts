@@ -73,6 +73,15 @@ export default NextAuth({
     sessionToken: {
       name: process.env.NEXTAUTH_COOKIE_NAME || 'next-auth.session-token',
       options: {
+        // httpOnly PHẢI khai tường minh ở đây.
+        //
+        // next-auth gộp cấu hình cookie NÔNG, ở cấp tên cookie:
+        //   cookies: { ...defaultCookies(secure), ...authOptions.cookies }
+        // Khai `sessionToken` là thay thế TRỌN GÓI mặc định, kể cả
+        // `httpOnly: true` nằm bên trong `options`. Trước dòng này, cookie phiên
+        // của tsudev.com ĐỌC ĐƯỢC BẰNG JAVASCRIPT — nghĩa là bất kỳ lỗ XSS nào
+        // cũng nâng cấp thành chiếm tài khoản.
+        httpOnly: true,
         domain: process.env.NEXTAUTH_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || undefined,
         path: '/',
         sameSite: 'lax',

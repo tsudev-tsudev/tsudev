@@ -91,6 +91,10 @@ jobs:
           # nuốt" mất người canh, mà triệu chứng của nó là huy hiệu im lặng biến
           # mất trên site khách chứ không phải CI đỏ.
           npm --workspace services/backend-bundle test
+          # renderMarkdown là ranh giới XSS (đầu ra đi thẳng vào
+          # dangerouslySetInnerHTML ở ba trang). Test của nó phải chạy trong CI,
+          # không phải chỉ tồn tại trong repo.
+          npm --workspace apps/frontend-main test
 
   e2e-app:
     name: E2E — smoke các trang được giữ

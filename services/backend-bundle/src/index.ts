@@ -67,6 +67,18 @@ const dispatch =
 
 const root = express()
 
+// Header bảo mật ở TẦNG NGOÀI CÙNG.
+//
+// Ba app con đều tự đặt header của mình, nhưng `/health` bên dưới là route của
+// CHÍNH bundle — nó không đi qua app con nào, nên middleware của chúng không
+// chạm tới. Đặt ở đây thì mọi phản hồi của tiến trình gộp đều được phủ, kể cả
+// các route tương lai thêm thẳng vào bundle.
+root.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
+
 // Đứng TRƯỚC các app con: cả ba đều khai /health của riêng mình, mount thẳng thì
 // chỉ cái đầu tiên thắng và health check nói dối về hai cái còn lại.
 root.get('/health', (req, res) =>

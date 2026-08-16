@@ -63,6 +63,16 @@ type RouterLayer = {
 const errStack = (e: unknown): string => (e instanceof Error ? e.stack || e.message : String(e))
 
 /**
+ * Thông điệp lỗi trả cho CLIENT.
+ *
+ * Ở production luôn là chuỗi chung: `err.message` của Node hay mang theo đường
+ * dẫn tệp trên máy chủ, tên bảng, hoặc cả chuỗi kết nối — thứ giúp người dò tìm
+ * dựng bản đồ hệ thống. Chi tiết vẫn được ghi đầy đủ vào log phía máy chủ.
+ */
+const clientError = (e: unknown): string =>
+  process.env.NODE_ENV === 'production' ? 'internal error' : errMsg(e) || 'internal error'
+
+/**
  * Tham số truy vấn do người gọi điều khiển hình dạng: `?k=1` cho chuỗi,
  * `?k=1&k=2` cho mảng, `?k[a]=1` cho object. Chỉ chuỗi mới được đi tiếp.
  */
@@ -117,6 +127,15 @@ app.use(
   })
 )
 app.use(express.json())
+
+// Header bảo mật cho mọi phản hồi của service. Ba service đều phục vụ cho bên
+// thứ ba (huy hiệu SVG, JWKS, trang xác minh), nên `nosniff` ở đây không thừa:
+// nó chặn trình duyệt tự diễn giải một phản hồi thành HTML thực thi được.
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
 
 // Log JSON request bodies for troubleshooting small requests (safe-size only)
 app.use((req, res, next) => {
@@ -356,8 +375,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     console.error('[storage] Error logging failed', e)
   }
   try {
-    if (res && !res.headersSent)
-      return res.status(500).json({ error: errMsg(err) || 'internal error' })
+    if (res && !res.headersSent) return res.status(500).json({ error: clientError(err) })
   } catch (e) {
     console.error('[storage] Error sending error response', e)
   }

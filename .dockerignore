@@ -1,20 +1,104 @@
+# =============================================================================
+# BÍ MẬT — đọc trước khi sửa
+#
+# `docker/e2e-runner.Dockerfile` dùng `COPY . /work`, tức là chép NGUYÊN REPO
+# vào image. Trước tệp này, chỉ `.env` bị chặn — nên `backup/`
+# (có production-env-*.txt chứa cả TRUST_SIGNING_KEY), `.env.bak-<timestamp>` và
+# `apps/*/.env.local` đều đi thẳng vào layer của image.
+#
+# Layer image thì không xoá được bằng cách xoá tệp ở layer sau. Đã lọt là lọt.
+#
+# Giữ danh sách này ĐỒNG BỘ với .gitignore mục 1.
+# =============================================================================
+.env
+.env.*
+!.env.example
+!.env.production.example
+!apps/frontend-main/.env.production
+
+.dev.vars
+.dev.vars.*
+
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.asc
+*.gpg
+*.ppk
+id_rsa*
+id_ecdsa*
+id_ed25519*
+
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Bản xuất dữ liệu và phiếu secret production. KHÔNG BAO GIỜ vào image.
+backup/
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+
+# =============================================================================
+# SẢN PHẨM DỰNG — image tự dựng lại, chép vào chỉ làm phình và có thể ghi đè
+# bản dựng đúng bằng bản dựng cũ của máy dev.
+#
+# NGOẠI LỆ: packages/trust-crypto/pkg/*.wasm PHẢI vào được image (image không có
+# Rust để dựng lại). Nó nằm ngoài mọi mẫu dưới đây — đừng thêm mẫu chạm vào nó.
+# =============================================================================
 node_modules
 **/node_modules
-npm-debug.log*
-yarn-debug.log*
 dist
 build
-.next
 out
-.DS_Store
+.next
+.open-next
+.wrangler
+# 45MB thư mục dựng của cargo.
+target/
+*.tsbuildinfo
+.eslintcache
+.turbo/
+.cache/
+
+# =============================================================================
+# THỨ KHÔNG LIÊN QUAN TỚI BẢN DỰNG
+# =============================================================================
 .git
 .gitignore
-.vscode
-.env
-*.log
-*.tgz
+.dockerignore
+.github/
+.husky/
+.claude/
+.vscode/
+.idea/
+# 3MB bản ghi lịch sử của một commit cũ.
+patches/
 verify-output/
+e2e/playwright-report/
+e2e/test-results/
 docker-compose.override.yml
 docker-compose.local.yml
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+*.tgz
+.DS_Store
+Thumbs.db
+*.swp
+*~
+*.orig
+*.rej
+*.bak
+*.tmp
+
+# Lockfile GỐC phải vào image: `npm ci` cần nó để cài đúng cây đã được CI kiểm.
+# Lockfile của workspace con thì không (npm workspaces chỉ dùng cái ở gốc).
 **/package-lock.json
+!package-lock.json
 **/yarn.lock
