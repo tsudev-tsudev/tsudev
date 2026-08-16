@@ -1,15 +1,15 @@
-# Phiếu bàn giao — sau đợt đưa `tsudev.com` lên sóng (16/08/2026)
+# Phiếu bàn giao — sau đợt chuyển TypeScript/Rust và siết bảo mật (16/08/2026)
 
 > **Trạng thái tạm.** Xong hết §1 thì **xoá file này** và xoá dòng trỏ tới nó ở
 > đầu `CLAUDE.md`. Để lâu nó thành tầng tài liệu thứ hai nói khác `docs/`.
 >
-> Nguồn sự thật về vận hành là [`docs/deployment.md`](docs/deployment.md). Phiếu
-> này chỉ liệt kê **việc còn dở**, không lặp lại kiến thức đã nằm trong `docs/`.
+> Nguồn sự thật về vận hành là [`docs/deployment.md`](docs/deployment.md), về
+> xác thực/phân quyền là [`docs/auth.md`](docs/auth.md). Phiếu này chỉ liệt kê
+> **việc còn dở**, không lặp lại kiến thức đã nằm trong `docs/` hay `CLAUDE.md`.
 
 ## Đang chạy
 
-`https://tsudev.com` **đã lên sóng và nghiệm thu xong**: nội dung, SEO, con dấu,
-đăng nhập Keycloak đều chạy. `main` sạch, CI xanh.
+`https://tsudev.com` đã lên sóng và nghiệm thu xong.
 
 | Thành phần       | Ở đâu                   | Ghi chú                              |
 | ---------------- | ----------------------- | ------------------------------------ |
@@ -19,88 +19,135 @@
 | PostgreSQL       | Neon **ap-southeast-1** | DB `neondb` (app) + `keycloak` (SSO) |
 
 Biến môi trường/secret production: **`backup/production-env-2026-08-16.txt`**
-(đã gitignore, không commit). Mất `TRUST_SIGNING_KEY` là chứng chỉ đã cấp không
-xác minh nổi — thứ duy nhất trong phiếu đó không sinh lại được.
+(đã gitignore VÀ dockerignore, không commit). Mất `TRUST_SIGNING_KEY` là chứng
+chỉ đã cấp không xác minh nổi — thứ duy nhất trong phiếu đó không sinh lại được.
 
 ---
 
-## 0. ĐANG CÓ AGENT KHÁC LÀM SONG SONG — đọc trước khi gõ phím
+## 0. VIỆC ĐẦU TIÊN CỦA PHIÊN MỚI — 10 commit chưa đẩy
 
-Một agent khác đang **tái cấu trúc JavaScript sang TypeScript và Rust**. Việc đó
-**chưa commit**, nằm trong cây làm việc, trên nhánh `feat/typescript-migration`.
-
-**Không chạm vào các file sau** — chúng thuộc đợt đó:
+Nhánh **`feat/typescript-migration`** đứng trước `main` **10 commit** và **chưa
+có trên remote**. Cây làm việc sạch, cả bốn cổng xanh, 78 test JS + 9 test Rust.
 
 ```
-tsconfig.json  tsconfig.base.json  packages/utils/tsconfig.json
-package.json (script "typecheck")  .gitignore (*.tsbuildinfo)
-.github/workflows/ci.yml (bước "Kiểm kiểu (TypeScript)")
+74c496a fix(security)!  vá chuỗi XSS → chiếm tài khoản, siết lớp phòng thủ
+13e5cdf chore(gitignore) chặn mặc định, mở lại đúng ba tệp công khai
+ddbc3b3 chore(config)    gỡ dấu vết bốn biến phân quyền không còn được đọc
+11d29c1 feat(trust)!     ký Ed25519 bằng Rust → WebAssembly
+a886f7b docs             cập nhật CLAUDE.md theo hiện trạng
+5752345 feat(auth)!      một nguồn sự thật cho phân quyền, fail closed
+1be1d75 refactor(app)    apps/frontend-main sang TypeScript
+4c54680 refactor(services)! bốn service sang .ts, chạy từ dist/
+432c7c4 refactor(packages)! packages/{types,ui,db} sang TypeScript
+307e74d chore(ts)        nền tsconfig + cổng kiểm kiểu trong CI
 ```
 
-Tình trạng lúc bàn giao: `npm run typecheck` chạy sạch, nhưng solution file mới
-nối đúng `packages/utils`. Cái bẫy của kiểu cấu hình này: thêm workspace mà quên
-thêm một dòng vào `references` thì workspace ấy **không được kiểm kiểu và không
-có gì báo lỗi**.
+**Năm commit mang dấu `!`.** Đọc kỹ phần BREAKING trong từng thông điệp trước
+khi phát hành — đây không phải một đợt đổi tên tệp.
 
-✅ **`topology:check` đã xanh trở lại.** Miễn trừ trong `config/topology.allow`
-đã được cập nhật theo các tên tệp mới (`.js` → `.ts`), và ba dòng
-`services/*/src/authMiddleware.ts` được thay bằng một dòng
-`packages/auth/src/index.ts` sau khi ba bản middleware được gộp.
-
-Bài học giữ lại: **mỗi lần đổi tên tệp có literal cổng trong đó thì phải cập nhật
-`topology.allow` theo.** `.husky/pre-push` chạy `topology:check` **trước** cả cờ
-`ALLOW_MAIN_FORCE`, nên không ai đẩy được gì lên remote cho tới khi nó xanh — kể
-cả commit tài liệu không liên quan.
-
-⚠️ **Chỉ có MỘT cây làm việc.** Quyền sở hữu đường dẫn trong `AGENTS.md` tránh
-được việc hai agent sửa cùng một file, **không** tránh được xung đột git khi
-dùng chung cây. Trước khi commit: xem `git status` và `git branch` — đầu phiên
-16/08 đã có một commit tài liệu rơi nhầm sang `feat/typescript-migration` vì
-không kiểm nhánh trước. Đừng dùng `git add -A`; stage đúng file của mình.
-
-## 1. Việc còn dở — tất cả nằm NGOÀI repo
-
-### 1.1 Xoá 3 service ở tài khoản Render **CŨ** — 🔴 làm trước
-
-`tsudev-content`, `tsudev-storage`, `tsudev-trust` (Oregon) **vẫn đang chạy**.
-Chúng **không nằm trong tài khoản Render hiện tại** — API key của tài khoản mới
-không thấy chúng, phải đăng nhập tài khoản cũ.
-
-Vì sao gấp, dù không tiêu giờ chạy của tài khoản mới:
-
-- Chúng nối vào **đúng DB Neon đang chạy production**.
-- `tsudev-trust` cũ dùng **khoá ký khác** (`tsu-2026-08-13e2a3`; bản đang chạy là
-  `tsu-2026-08-efdb94`). Chứng chỉ cấp qua nó ký bằng khoá không có trong vòng
-  khoá của bản mới ⇒ `tsudev.com/trust` **không xác minh nổi**, không báo lỗi.
-- Chúng chạy **mã cũ** trên dữ liệu production.
-
-Tính tới 16/08/2026 **chưa có thiệt hại**: 0 chứng chỉ, 0 đơn, 0 tổ chức. Kiểm
-lại trước khi làm gì:
+### Trước khi push
 
 ```bash
-DATABASE_URL='<Neon>' node -e "const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();Promise.all([p.trustCertificate.count(),p.sealApplication.count()]).then(r=>{console.log('cert/app =',r);process.exit()})"
+npm run typecheck && npm run format:check && npm run lint && npm run topology:check
+for s in content-service storage-service trust-service backend-bundle; do
+  npm --workspace services/$s test || break
+done
+npm --workspace apps/frontend-main test
+(cd packages/trust-crypto && cargo test --release)
 ```
 
-Nếu mất quyền vào tài khoản cũ: đường thay thế là **xoay mật khẩu Neon**, mô tả
-ở `docs/deployment.md`.
+`.husky/pre-push` chạy `topology:check` **trước** cả cờ `ALLOW_MAIN_FORCE`, nên
+không đẩy được gì lên remote cho tới khi nó xanh — kể cả commit tài liệu không
+liên quan. Bài học giữ lại: **đổi tên tệp có literal cổng trong đó thì phải cập
+nhật `config/topology.allow` theo.**
 
-### 1.2 Thu hồi Render API key — 🔴
+### Bốn thứ đổi ở đường phát hành
 
-Key `rnd_DdZ4…` đã được dùng trong phiên 16/08 và **nằm trong lịch sử hội thoại
-đó**. Nó có quyền xoá mọi service trong workspace.
-Render → Account Settings → API Keys → xoá.
+1. `render.yaml` → `dockerCommand: node services/backend-bundle/dist/index.js`.
+   Blueprint được chọn lúc tạo service nên **sẽ tự áp dụng** — nhưng chỉ khi
+   service còn nối với blueprint. Sau lần deploy đầu, **xem log khởi động**:
+   thấy `src/` là service đã tách khỏi blueprint, phải sửa tay.
+2. `docker/backend-service.Dockerfile` — thêm `COPY package-lock.json`, đổi sang
+   `npm ci`, thêm `RUN npm run build:services`, và `USER node`.
+3. `.dockerignore` phải cho `package-lock.json` gốc vào image, nếu không `npm ci`
+   chết ngay bước đầu.
+4. `packages/trust-crypto/pkg/trust_crypto.wasm` là **artifact được commit**.
+   Image không có Rust để dựng lại.
 
-### 1.3 Dựng bộ ping giữ ấm — 🟠
+### Nghiệm thu sau deploy
 
-Thiết kế dựa trên "giữ ấm **đúng một** service" (free tier: 750 giờ
-instance/tháng cho **cả tài khoản**; một service chạy liên tục tiêu 720 giờ).
-Cần ping `https://tsudev-backend.onrender.com/health` mỗi **5 phút**.
+Chạy §3 bên dưới, **cộng thêm bốn dòng mới của đợt này**:
+
+```bash
+# Cookie phiên phải httpOnly. Trước đợt này nó KHÔNG có — đọc được bằng JS.
+curl -si https://tsudev.com/api/auth/signin | grep -i 'set-cookie' | grep -qi httponly && echo OK
+
+# Header bảo mật đã lên.
+curl -sI https://tsudev.com/ | grep -iE 'x-content-type-options|x-frame-options|strict-transport'
+
+# Đường ký WASM lên đúng: kid phải là khoá đang chạy.
+curl -s https://tsudev.com/.well-known/tsudev-trust-jwks.json | grep -o '"kid":"[^"]*"'
+
+# Lỗi 500 không còn kèm chi tiết nội bộ (chỉ kiểm khi có route lỗi thật).
+```
+
+---
+
+## 1. Việc còn dở
+
+### 1.1 ~~Xoá 3 service Render cũ~~ — ✅ XONG 16/08
+
+Chủ dự án xác nhận đã xoá. Vòng khoá con dấu nay nhất quán; `tsu-2026-08-13e2a3`
+không còn tiến trình nào dùng.
+
+### 1.2 ~~Thu hồi Render API key~~ — ✅ XONG 16/08
+
+### 1.3 Dựng bộ ping giữ ấm — 🟠 CHƯA LÀM
+
+Free tier cấp 750 giờ instance/tháng cho **cả tài khoản**; một service chạy liên
+tục tiêu 720 giờ. Nên chỉ giữ ấm **đúng một** service, và đó phải là
+`tsudev-backend`. Ping `https://tsudev-backend.onrender.com/health` mỗi 5 phút.
 
 **Đừng dùng GitHub Actions cron.** Repo private, mỗi lần chạy tính tối thiểu 1
-phút ⇒ 5 phút/lần là ~8.600 phút/tháng, vượt xa hạn mức 2.000. Dùng UptimeRobot
-free hoặc Better Stack free — nằm ngoài, không tốn gì.
+phút ⇒ ~8.600 phút/tháng, vượt xa hạn mức 2.000. Dùng UptimeRobot free hoặc
+Better Stack free.
 
-`tsudev-sso` **phải được ngủ**. Giữ ấm cả hai là vỡ ngân sách và Render dừng hết.
+`tsudev-sso` **phải được ngủ**. Giữ ấm cả hai là vỡ ngân sách.
+
+### 1.4 Giới hạn tần suất — 🟠 nợ bảo mật lớn nhất còn lại
+
+**Không có rate limit ở bất kỳ đâu trong repo.** Nặng nhất ở hai chỗ:
+
+- `/api/trust/*` công khai (programs, verify, directory, seal SVG) — không cần
+  token, và huy hiệu SVG được trình duyệt của khách trên site bên thứ ba gọi.
+- Đường đăng nhập qua Keycloak.
+
+Cần quyết định chính sách trước khi cài: giới hạn theo IP hay theo phiên, ngưỡng
+bao nhiêu, và lưu bộ đếm ở đâu (tiến trình gộp chỉ có một bản nên bộ nhớ trong
+là đủ — nhưng ghi rõ giả định đó, vì nó vỡ nếu sau này chạy nhiều bản).
+
+### 1.5 `npm audit`: 7 lỗ, 4 mức cao — 🟠
+
+`sharp` kế thừa CVE của libvips qua `next`; sửa cần nâng lên `next@16` —
+breaking. Phải là **đợt riêng có test đầy đủ**, đừng nhét vào commit khác.
+`qs` qua `express` thì `npm audit fix` xử lý được, không breaking.
+
+### 1.6 Bật CSP thật — 🟡
+
+CSP đang ở **`Content-Security-Policy-Report-Only`, CÓ CHỦ ĐÍCH**, không phải
+quên. Trình duyệt PUT thẳng lên endpoint R2 bằng URL presign, mà host đó đến từ
+biến môi trường chứ không biết được lúc build — bật chặn mù là upload chết **mà
+không có lỗi nào phía máy chủ**.
+
+Cách bật: mở site, thao tác thật vài phút (đăng nhập, xem blog, **upload một
+tệp**), xem Console. Không có dòng "Report Only" nào thì đổi tên key trong
+`apps/frontend-main/next.config.js` thành `Content-Security-Policy`.
+
+### 1.7 SSRF: khe TOCTOU ở `domainVerify` — 🟡
+
+`assertPublicHost()` phân giải DNS rồi kiểm IP nội bộ, nhưng giữa lúc kiểm và
+lúc `fetch` vẫn còn khe (DNS rebinding). Chặn triệt để cần ghim IP đã kiểm vào
+tầng socket. Chú thích trong mã đã ghi sẵn từ trước.
 
 ---
 
@@ -108,22 +155,20 @@ free hoặc Better Stack free — nằm ngoài, không tốn gì.
 
 - **`toi-uu-seo-nextjs`** (bài blog) viết "App Router mang lại Server Components
   và metadata API", trong khi site chạy **Pages Router**. Không sai — đó là lời
-  khuyên chung, không khẳng định gì về tsudev — nhưng viết lại thành bài mô tả
-  đúng thứ đã dựng ở đây (sitemap/robots/canonical/OG/RSS trên Pages Router) thì
-  vừa thật vừa có giá trị hơn cho một trang portfolio.
-  Nội dung bài nằm trong **DB**; `seed.js` dùng `upsert` với `update: {}` nên sửa
-  seed **không** đổi bản ghi đang chạy. Phải sửa cả hai, và giữ cho khớp nhau.
-- **Địa chỉ pháp lý** trong `lib/legal.js` chỉ tới cấp tỉnh (`An Giang, Việt
+  khuyên chung — nhưng viết lại thành bài mô tả đúng thứ đã dựng ở đây
+  (sitemap/robots/canonical/OG/RSS trên Pages Router) thì vừa thật vừa có giá
+  trị hơn. Nội dung bài nằm trong **DB**; `seed.js` dùng `upsert` với
+  `update: {}` nên sửa seed **không** đổi bản ghi đang chạy. Phải sửa cả hai.
+- **Địa chỉ pháp lý** trong `lib/legal.ts` chỉ tới cấp tỉnh (`An Giang, Việt
 Nam`). Hợp lệ về hình thức, nhưng Nghị định 147/2024 hướng tới đầu mối xác
   định được. Thêm huyện/xã hay không là đánh đổi giữa tuân thủ và quyền riêng
   tư — **quyết định của chủ dự án**, đừng tự thêm.
-- **Nợ có đăng ký, chưa trả** (đã ghi trong `CLAUDE.md`, nhắc để không quên):
-  root `package.json` còn ghim `react@18.3.1` cho Storybook, mà Storybook không
-  nằm trong CI.
-  ~~`REQUIRE_ROLE_ENFORCEMENT` không bật được~~ — **đã trả**: cả nhánh phân quyền
-  đọc claim Keycloak bị gỡ, thay bằng vai trò đọc từ DB (`@tsudev/auth`), fail
-  closed. Bốn biến `REQUIRE_ROLE_ENFORCEMENT`, `CONTENT_READ_ROLE`,
-  `STORAGE_PRESIGN_ROLE`, `STORAGE_UPLOAD_ROLE` không còn được đọc ở đâu.
+- **Nợ có đăng ký, chưa trả:** root `package.json` còn ghim `react@18.3.1` cho
+  Storybook, mà Storybook không nằm trong CI. Việc dọn: chuyển react/react-dom
+  xuống devDependencies của `packages/ui` rồi kiểm `build-storybook`.
+- **Tiêu chí cấp dấu "Có CSP…" trong `seed.js`** — tsudev nay đã đạt phần lớn
+  (nosniff, Referrer-Policy, X-Frame-Options, HSTS), còn CSP thì đang Report-Only.
+  Khi bật CSP thật thì site mới thực sự đạt tiêu chí nó đang đi cấp cho người khác.
 
 ---
 
@@ -150,3 +195,26 @@ done   # không ra gì là đúng
 
 **Deploy frontend luôn qua `npm --workspace apps/frontend-main run deploy`**,
 đừng gọi thẳng `opennextjs-cloudflare` — lý do ở `docs/deployment.md`.
+
+---
+
+## 4. Ba cái bẫy của đợt vừa rồi — đọc trước khi sửa vùng liên quan
+
+Phần bền vững đã vào `CLAUDE.md`. Ba cái dưới đây đặc thù cho đợt này:
+
+1. **Sửa `packages/trust-crypto/src/lib.rs` ⇒ phải chạy
+   `npm --workspace packages/trust-crypto run build:wasm` rồi commit lại
+   `pkg/trust_crypto.wasm`.** Quên là job "WASM con dấu" của CI đỏ vì artifact
+   không khớp nguồn. Cần `rustup` + target `wasm32-unknown-unknown` ở máy dev —
+   chỉ để sửa mảnh đó, mọi thứ còn lại không cần Rust.
+
+2. **Đụng khối `cookies` trong `[...nextauth].ts` thì giữ `httpOnly: true`.**
+   next-auth gộp cấu hình cookie NÔNG ở cấp tên cookie, nên khai `sessionToken`
+   là thay thế TRỌN GÓI mặc định — kể cả `httpOnly`. Bỏ nó ra là cookie phiên
+   đọc được bằng JavaScript, và mọi lỗ XSS thành chiếm tài khoản. Đây chính là
+   lỗi vừa được vá, và nó tái phát rất dễ.
+
+3. **`renderMarkdown` trong `apps/frontend-main/lib/md.ts` là RANH GIỚI BẢO
+   MẬT** — đầu ra đi thẳng vào `dangerouslySetInnerHTML` ở ba trang. Sửa nó thì
+   `apps/frontend-main/test/md.test.ts` phải xanh. Đừng nới danh sách trắng giao
+   thức của `safeHref` mà không hiểu vì sao nó là danh sách trắng.

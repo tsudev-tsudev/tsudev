@@ -8,10 +8,11 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-⚠️ **Còn việc dở NGOÀI repo: đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay.**
-`tsudev.com` đã lên sóng, nhưng ba service ở **tài khoản Render cũ** vẫn chạy và
-vẫn nối vào DB Neon production — một trong số đó ký bằng khoá khác. Xong việc
-trong đó thì xoá file và xoá cả đoạn này.
+⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay.** Nhánh
+`feat/typescript-migration` đang có **10 commit chưa đẩy**, trong đó **năm commit
+breaking** chạm cả đường phát hành lẫn cơ chế phân quyền. Phiếu đó cũng liệt kê
+việc còn dở (giới hạn tần suất, `npm audit`, bật CSP thật). Xong hết thì xoá file
+và xoá cả đoạn này.
 
 ## Bản đồ
 
