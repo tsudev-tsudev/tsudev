@@ -24,7 +24,10 @@ Thứ tự đề nghị cho phiên mới:
    `displayName` / `avatarUrl` / `bio` không có đường ghi nào.
 3. §1.5 — rà giao diện bằng mắt ở cả hai chế độ (chưa ai nhìn). Làm sau §1.7 thì
    rà được luôn các trang mới thay vì rà hai lần.
-4. Còn lại theo mức độ: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá
+4. §1.9 — đưa Con dấu về chế độ mời + gỡ tín dụng. Đợt LỚN, đã có kế hoạch
+   riêng ở `docs/refactor-trust-invite-access.md`, và **cần chủ dự án quyết hai
+   câu trước khi viết mã**.
+5. Còn lại theo mức độ: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá
    cột · §1.7 **đợt B** (đổi email, xoá tài khoản — cần test đầy đủ).
 
 ## Đang chạy
@@ -340,6 +343,34 @@ KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai
   để người vận hành đọc được mà người ngoài thì không.
 - Trang `/login` thêm gợi ý trung tính kiểu "Tài khoản mới hoặc chưa từng đặt
   mật khẩu? Dùng Quên mật khẩu." — không tiết lộ gì về một tài khoản cụ thể.
+
+---
+
+### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟠 CHƯA LÀM, ĐÃ CÓ KẾ HOẠCH
+
+Chủ dự án giao: ẩn toàn bộ chức năng Con dấu/cấp huy hiệu khỏi giao diện, chỉ
+`tsudev` và tài khoản được cấp quyền thấy; khách phải có **mã mời** mới nộp đơn
+được; **gỡ hẳn `credits`** để site thành dự án cá nhân miễn phí; giữ SEO.
+
+**Kế hoạch đầy đủ: [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).**
+
+Ba điều phải biết trước khi mở tệp đó:
+
+1. **Trang xác minh KHÔNG thể nằm sau mã mời.** Huy hiệu trên site khách hàng
+   trỏ tới `/trust/verify/<serial>`, và người bấm là khách vãng lai không có tài
+   khoản. `TRUST_ISSUER` lại được KÝ VÀO chứng chỉ nên URL trong chứng chỉ đã
+   cấp là cố định vĩnh viễn. Gác nó là vô hiệu hoá mọi huy hiệu đã cấp.
+2. **`credits` KHÔNG phải cột chết** (gotcha riêng ở `CLAUDE.md`) — gỡ nó là gỡ
+   cả cơ chế thu phí nộp đơn, không phải xoá một cột.
+3. **Gỡ `credits` là `DROP COLUMN` ⇒ CODE ĐI TRƯỚC, migration đi sau** (bài học
+   §1.6). Đảo lại là trang trống ở production.
+
+**CẦN CHỦ DỰ ÁN QUYẾT hai câu trước khi viết mã** (ghi rõ trong kế hoạch):
+
+- Có chấp nhận vô hiệu hoá chứng chỉ đã cấp để giấu luôn trang xác minh không?
+  (đề nghị: KHÔNG — chỉ gác phần nộp đơn/quản lý)
+- `/trust/directory` liệt kê tên khách hàng đã cấp dấu: giữ công khai (bằng
+  chứng uy tín + nguồn SEO) hay ẩn (bảo vệ danh sách khách hàng)?
 
 ---
 
