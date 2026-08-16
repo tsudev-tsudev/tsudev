@@ -27,6 +27,8 @@ declare global {
     sub: string;
     preferred_username: string;
     role?: string;
+    /** Xem `IdentityClaims.sv` — đối chiếu với User.sessionVersion. */
+    sv?: number;
   };
 }
 
@@ -67,7 +69,12 @@ export function createAuthMiddleware(service: string): RequestHandler {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    req.user = { sub: claims.sub, preferred_username: claims.sub, role: claims.role };
+    req.user = {
+      sub: claims.sub,
+      preferred_username: claims.sub,
+      role: claims.role,
+      sv: claims.sv,
+    };
     return next();
   };
 }
@@ -83,7 +90,7 @@ export function createAuthMiddleware(service: string): RequestHandler {
 export async function resolveUser(req: Request): Promise<User | null> {
   const username = req.user?.preferred_username || req.user?.sub;
   if (!username) return null;
-  return prisma.user.upsert({
+  const user = await prisma.user.upsert({
     where: { username },
     update: {},
     create: {
@@ -93,13 +100,36 @@ export async function resolveUser(req: Request): Promise<User | null> {
       role: 'MEMBER',
     },
   });
+  return sessionIsCurrent(req, user) ? user : null;
 }
 
 /** Chỉ tra cứu, KHÔNG tạo. Dùng cho đường ghi nhạy cảm của trang quản trị. */
 export async function lookupUser(req: Request): Promise<User | null> {
   const username = req.user?.preferred_username || req.user?.sub;
   if (!username) return null;
-  return prisma.user.findUnique({ where: { username } });
+  const user = await prisma.user.findUnique({ where: { username } });
+  if (!user) return null;
+  return sessionIsCurrent(req, user) ? user : null;
+}
+
+/**
+ * Phiên đã bị thu hồi chưa?
+ *
+ * `User.sessionVersion` tăng lên khi đổi mật khẩu hoặc "đăng xuất mọi thiết
+ * bị". Khẳng định mang số cũ nghĩa là nó được ký từ một phiên đã bị đá ra —
+ * người dùng vẫn giữ một cookie next-auth hợp lệ, nhưng nó không còn giá trị.
+ *
+ * Nếu tài khoản bị chiếm thì kẻ chiếm đang giữ một phiên hợp lệ, và đổi mật
+ * khẩu mà không có phép so sánh này thì KHÔNG lấy lại được gì.
+ *
+ * Khẳng định KHÔNG mang `sv` (undefined) được coi là hợp lệ, có chủ đích: đó là
+ * token do bản BFF cũ ký, còn sống tối đa 120 giây sau khi phát hành. Từ chối
+ * chúng sẽ làm mọi người bị đăng xuất trong lúc triển khai.
+ */
+function sessionIsCurrent(req: Request, user: User): boolean {
+  const sv = req.user?.sv;
+  if (sv === undefined) return true;
+  return sv === user.sessionVersion;
 }
 
 /**

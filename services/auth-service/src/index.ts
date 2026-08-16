@@ -14,9 +14,20 @@ import express from 'express'
 import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'express'
 
 import { prisma } from '@tsudev/db'
+import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
+import { createHash } from 'crypto'
 
 import { checkPasswordPolicy, hashPassword, verifyPassword, burnTiming } from './password'
-import { issueToken, consumeToken } from './tokens'
+import { issueToken, consumeToken, constantTimeEqual } from './tokens'
+import { loginOptions, loginVerify, registerOptions, registerVerify } from './passkey'
+import {
+  decryptSecret,
+  encryptSecret,
+  generateBackupCodes,
+  generateSecret,
+  otpauthUri,
+  verifyTotp,
+} from './totp'
 import { sendMail, verifyEmailHtml, resetPasswordHtml } from './mailer'
 import {
   accountIsLocked,
@@ -179,6 +190,29 @@ app.post(
         .json({ error: 'account_locked', until: user.lockedUntil?.toISOString() })
     }
 
+    // --- Bước hai: TOTP -----------------------------------------------------
+    //
+    // Chỉ tính khi người dùng ĐÃ XÁC NHẬN (confirmedAt khác null). Một bí mật đã
+    // tạo nhưng chưa xác nhận nghĩa là họ mới quét mã QR rồi bỏ dở — coi đó là
+    // đã bật 2FA sẽ khoá chính họ ra khỏi tài khoản.
+    const totp = await prisma.totpCredential.findUnique({ where: { userId: user.id } })
+    if (totp?.confirmedAt) {
+      const supplied = str(req.body?.totp, 32).trim()
+      if (!supplied) {
+        // Mật khẩu đã đúng, nên nói ra rằng cần bước hai là an toàn: người gọi
+        // đã tự chứng minh. KHÔNG ghi nhận là đăng nhập thành công ở đây.
+        return res.status(401).json({ error: 'totp_required' })
+      }
+      const secret = totp.secretEnc ? decryptSecret(totp.secretEnc) : null
+      const okTotp = secret ? verifyTotp(secret, supplied) : false
+      const okBackup = okTotp ? false : await consumeBackupCode(user.id, supplied)
+      if (!okTotp && !okBackup) {
+        await recordAttempt(ip, false)
+        await noteAccountFailure(user.id)
+        return res.status(401).json({ error: 'totp_invalid' })
+      }
+    }
+
     await recordAttempt(ip, true)
     await noteAccountSuccess(user.id)
     pruneAttempts().catch(() => {
@@ -271,6 +305,233 @@ app.post(
       },
     })
     return res.json({ ok: true })
+  })
+)
+
+/**
+ * Đổi một mã dự phòng lấy quyền đi tiếp, và ĐÁNH DẤU ĐÃ DÙNG.
+ *
+ * `updateMany` có điều kiện `usedAt: null` là thứ làm cho "một lần" là thật:
+ * hai request đến cùng lúc thì chỉ một cái đếm được 1 dòng đã đổi.
+ *
+ * Mã lưu dưới dạng SHA-256 — không phải Argon2id, và đó là đúng: mã do CSPRNG
+ * sinh, entropy cao, không có gì để dò.
+ */
+async function consumeBackupCode(userId: string, supplied: string): Promise<boolean> {
+  const normalized = supplied.toUpperCase().replace(/[\s-]/g, '')
+  if (!/^[A-Z2-7]{10}$/.test(normalized)) return false
+  const codeHash = createHash('sha256').update(normalized).digest('hex')
+  const rows = await prisma.backupCode.findMany({ where: { userId, usedAt: null } })
+  const match = rows.find((r) => constantTimeEqual(r.codeHash, codeHash))
+  if (!match) return false
+  const claimed = await prisma.backupCode.updateMany({
+    where: { id: match.id, usedAt: null },
+    data: { usedAt: new Date() },
+  })
+  return claimed.count === 1
+}
+
+// ---------------------------------------------------------------------------
+// Quản lý 2FA — cần đăng nhập
+//
+// Gắn xác thực theo NHÁNH: mọi thứ dưới /api/identity/totp đòi khẳng định danh
+// tính của BFF. Các route phía trên (đăng ký, quên mật khẩu) cố ý công khai vì
+// người gọi chúng chưa có danh tính nào.
+// ---------------------------------------------------------------------------
+const auth = createAuthMiddleware('auth')
+app.use('/api/identity/totp', auth)
+
+/** Sinh bí mật mới và trả về URI để quét. CHƯA bật 2FA — phải xác nhận đã. */
+app.post(
+  '/api/identity/totp/setup',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    const existing = await prisma.totpCredential.findUnique({ where: { userId: user.id } })
+    if (existing?.confirmedAt) return res.status(409).json({ error: 'totp_already_enabled' })
+
+    const secret = generateSecret()
+    await prisma.totpCredential.upsert({
+      where: { userId: user.id },
+      update: { secretEnc: encryptSecret(secret), confirmedAt: null },
+      create: { userId: user.id, secretEnc: encryptSecret(secret) },
+    })
+    // Bí mật thô CHỈ rời khỏi máy chủ ở đây, đúng một lần, cho chính chủ đang
+    // đăng nhập. Sau khi xác nhận thì không đường nào đọc lại được nữa.
+    return res.json({ secret, uri: otpauthUri(secret, user.email) })
+  })
+)
+
+/** Xác nhận bằng mã đầu tiên, và CHỈ khi đó mới bật 2FA + phát mã dự phòng. */
+app.post(
+  '/api/identity/totp/confirm',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    const row = await prisma.totpCredential.findUnique({ where: { userId: user.id } })
+    if (!row) return res.status(400).json({ error: 'totp_not_started' })
+    if (row.confirmedAt) return res.status(409).json({ error: 'totp_already_enabled' })
+
+    const secret = decryptSecret(row.secretEnc)
+    if (!secret || !verifyTotp(secret, str(req.body?.code, 32))) {
+      return res.status(400).json({ error: 'totp_invalid' })
+    }
+
+    // Mã dự phòng phát CÙNG LÚC với việc bật, không phải "để sau": mất điện
+    // thoại mà chưa có mã dự phòng là mất tài khoản.
+    const codes = generateBackupCodes()
+    await prisma.$transaction([
+      prisma.totpCredential.update({
+        where: { userId: user.id },
+        data: { confirmedAt: new Date() },
+      }),
+      prisma.backupCode.deleteMany({ where: { userId: user.id } }),
+      prisma.backupCode.createMany({
+        data: codes.map((c) => ({
+          userId: user.id,
+          codeHash: createHash('sha256').update(c).digest('hex'),
+        })),
+      }),
+    ])
+    // Mã thô hiện đúng một lần.
+    return res.json({ ok: true, backupCodes: codes })
+  })
+)
+
+/** Tắt 2FA. Đòi mật khẩu hiện tại — cookie phiên bị đánh cắp không đủ để tháo. */
+app.post(
+  '/api/identity/totp/disable',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    const password = str(req.body?.password, 400)
+    if (!user.passwordHash || !(await verifyPassword(user.passwordHash, password))) {
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+    await prisma.$transaction([
+      prisma.totpCredential.deleteMany({ where: { userId: user.id } }),
+      prisma.backupCode.deleteMany({ where: { userId: user.id } }),
+    ])
+    return res.json({ ok: true })
+  })
+)
+
+// ---------------------------------------------------------------------------
+// Passkey (WebAuthn)
+//
+// Hai luồng, hai mức bảo vệ khác nhau:
+//   - ĐĂNG KÝ khoá mới đòi đã đăng nhập (gắn auth theo nhánh, bên dưới).
+//   - ĐĂNG NHẬP bằng khoá thì công khai — người gọi chưa có danh tính nào.
+// ---------------------------------------------------------------------------
+
+/** Công khai: xin thử thách để đăng nhập bằng passkey. */
+app.post(
+  '/api/identity/passkey/login-options',
+  asyncHandler(async (req, res) => res.json(await loginOptions()))
+)
+
+/** Công khai: nộp chữ ký. Trả về danh tính giống hệt verify-credentials. */
+app.post(
+  '/api/identity/passkey/login-verify',
+  asyncHandler(async (req, res) => {
+    const ip = callerIp(req.headers as Record<string, unknown>, req.ip || '0.0.0.0')
+    if (await ipIsThrottled(ip)) return res.status(429).json({ error: 'rate_limited' })
+
+    const challengeId = str(req.body?.challengeId, 60)
+    const userId = challengeId ? await loginVerify(challengeId, req.body?.response) : null
+    if (!userId) {
+      await recordAttempt(ip, false)
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) return res.status(401).json({ error: 'invalid_credentials' })
+
+    // Tài khoản đang bị khoá thì passkey CŨNG không vào được. Bỏ qua ở đây sẽ
+    // biến passkey thành đường vòng quanh chính cơ chế khoá.
+    if (accountIsLocked(user)) {
+      return res
+        .status(423)
+        .json({ error: 'account_locked', until: user.lockedUntil?.toISOString() })
+    }
+
+    // KHÔNG hỏi TOTP sau passkey: passkey đã là hai yếu tố trong một (thứ bạn
+    // có + xác minh người dùng trên thiết bị), và nó chống giả mạo tên miền
+    // mạnh hơn TOTP. Bắt thêm một bước nữa chỉ đổi bảo mật lấy phiền phức.
+    await recordAttempt(ip, true)
+    await noteAccountSuccess(user.id)
+    return res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+      sessionVersion: user.sessionVersion,
+      emailVerified: !!user.emailVerifiedAt,
+    })
+  })
+)
+
+// Đăng KÝ khoá mới thì phải đang đăng nhập.
+app.use('/api/identity/passkey/register-options', auth)
+app.use('/api/identity/passkey/register-verify', auth)
+app.use('/api/identity/passkey/list', auth)
+app.use('/api/identity/passkey/delete', auth)
+
+app.post(
+  '/api/identity/passkey/register-options',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    return res.json(await registerOptions(user))
+  })
+)
+
+app.post(
+  '/api/identity/passkey/register-verify',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    const ok = await registerVerify(
+      user.id,
+      str(req.body?.challengeId, 60),
+      req.body?.response,
+      str(req.body?.label, 60)
+    )
+    return ok ? res.json({ ok: true }) : res.status(400).json({ error: 'passkey_invalid' })
+  })
+)
+
+app.post(
+  '/api/identity/passkey/list',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    const keys = await prisma.webAuthnCredential.findMany({
+      where: { userId: user.id },
+      // KHÔNG trả publicKey ra ngoài: nó không bí mật, nhưng cũng không có lý do
+      // gì để nó rời khỏi máy chủ.
+      select: { id: true, label: true, createdAt: true, lastUsedAt: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    return res.json(keys)
+  })
+)
+
+app.post(
+  '/api/identity/passkey/delete',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    // deleteMany có ràng buộc userId: một id của người khác sẽ xoá 0 dòng thay
+    // vì xoá khoá của họ. `delete` theo id trần là lỗ tham chiếu trực tiếp.
+    const gone = await prisma.webAuthnCredential.deleteMany({
+      where: { id: str(req.body?.id, 60), userId: user.id },
+    })
+    return res.json({ ok: gone.count === 1 })
   })
 )
 

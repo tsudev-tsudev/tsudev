@@ -18,7 +18,19 @@ import { catchAllSegments } from '../../../lib/identity';
  * bỏ sót thì nó 404 — an toàn hơn là lỡ mở cả `/api/identity`, nơi có cả
  * `verify-credentials` (thứ chỉ NextAuth phía server được gọi).
  */
-const ALLOWED = new Set(['register', 'verify-email', 'request-password-reset', 'reset-password']);
+const ALLOWED = new Set([
+  'register',
+  'verify-email',
+  'request-password-reset',
+  'reset-password',
+  // Hai bước đăng nhập bằng passkey. Công khai vì người gọi CHƯA có danh tính —
+  // đó chính là thứ họ đang cố chứng minh.
+  //
+  // `passkey/register-*` CỐ Ý KHÔNG có ở đây: đăng ký khoá mới đòi đã đăng
+  // nhập, nên nó đi qua proxy có phiên (pages/api/account/[...path].ts).
+  'passkey/login-options',
+  'passkey/login-verify',
+]);
 
 /** IP thật của người gọi, để auth-service đếm giới hạn tần suất theo đúng trục. */
 function callerIp(req: NextApiRequest): string {
@@ -35,8 +47,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const parts = catchAllSegments(req.query.path);
-  const action = parts[0];
-  if (parts.length !== 1 || !action || !ALLOWED.has(action)) {
+  // So khớp TOÀN BỘ đường dẫn, không chỉ đoạn đầu: cho phép 'passkey' rồi ghép
+  // lại sẽ mở luôn 'passkey/register-verify', thứ phải đòi đăng nhập.
+  const action = parts.join('/');
+  if (parts.length > 2 || !ALLOWED.has(action)) {
     return res.status(404).json({ error: 'Không tìm thấy' });
   }
 

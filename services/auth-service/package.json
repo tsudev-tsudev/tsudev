@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@node-rs/argon2": "2.0.2",
+    "@simplewebauthn/server": "13.2.2",
     "@tsudev/auth": "*",
     "@tsudev/db": "*",
     "@tsudev/types": "*",

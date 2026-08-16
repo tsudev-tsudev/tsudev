@@ -157,6 +157,26 @@ model AuthToken {
   @@index([expiresAt])
 }
 
+/// Challenge WebAuthn đang chờ trả lời.
+///
+/// Phải có TRẠNG THÁI: giao thức yêu cầu máy chủ tự nhớ challenge nó vừa phát
+/// và đối chiếu với cái quay về. Gửi challenge kèm chữ ký cho client giữ hộ sẽ
+/// phá đúng tính chất mà challenge tồn tại để bảo đảm — chống phát lại.
+///
+/// `userId` NULL được: lúc đăng nhập bằng passkey khám phá được, máy chủ chưa
+/// biết đó là ai cho tới khi chữ ký được kiểm xong.
+model WebAuthnChallenge {
+  id        String   @id @default(cuid())
+  userId    String?
+  challenge String
+  /// 'register' | 'login'. Không dùng chung challenge giữa hai luồng.
+  purpose   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 /// Nhật ký thử đăng nhập, phục vụ giới hạn tần suất theo IP.
 ///
 /// Nằm ở DB chứ không phải Redis vì .env.production.example khai REDIS_URL

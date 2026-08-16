@@ -15,7 +15,7 @@ try {
 import express from 'express'
 import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
 import { prisma } from '@tsudev/db'
-import { createAuthMiddleware } from '@tsudev/auth'
+import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
 import type { Prisma, Project, User } from '@prisma/client'
 import { hasAtLeastRole } from '@tsudev/types'
 
@@ -201,17 +201,12 @@ const COPYRIGHT_STATUSES = new Set(['NONE', 'PENDING', 'REGISTERED'])
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-/// Danh tính người gọi, lấy từ payload đã xác thực. Không tự tạo tài khoản như
-/// currentUser() cũ của diễn đàn: đường ghi phải khớp một User có thật.
-async function actingUser(req: Request): Promise<User | null> {
-  const p = req.user
-  const username = p?.preferred_username || p?.sub
-  if (!username) return null
-  return prisma.user.findUnique({ where: { username } })
-}
-
 async function requireAdmin(req: Request, res: Response): Promise<User | null> {
-  const user = await actingUser(req)
+  // lookupUser() của @tsudev/auth: tra cứu chứ KHÔNG tạo (đường ghi phải khớp
+  // một User có thật), và nó cũng đối chiếu sessionVersion để một phiên đã bị
+  // thu hồi không đi qua được. Trước đây đây là bản `actingUser` cục bộ — bản
+  // thứ ba của cùng một hàm, và là bản duy nhất bỏ sót phép so sánh đó.
+  const user = await lookupUser(req)
   if (!user) {
     res.status(401).json({ error: 'Bạn cần đăng nhập' })
     return null

@@ -55,6 +55,9 @@ services:
       - key: INTERNAL_IDENTITY_SECRET
         sync: false
       # --- nhánh identity (auth-service) ---
+      # Mã hoá bí mật TOTP khi lưu. Đổi giá trị này = mọi thiết bị 2FA hỏng.
+      - key: TOTP_ENCRYPTION_KEY
+        sync: false
       # Đường gửi thư giao dịch: xác minh email và đặt lại mật khẩu. Resend là
       # API HTTP chứ không phải SMTP, vì frontend chạy trên Cloudflare Workers
       # nơi không mở được socket TCP tuỳ ý.

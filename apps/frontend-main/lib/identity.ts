@@ -52,7 +52,11 @@ export async function identityHeaders(token: JWT): Promise<Record<string, string
     );
   }
   const assertion = await signIdentity(
-    { sub: usernameFromToken(token), role: roleFromToken(token) },
+    {
+      sub: usernameFromToken(token),
+      role: roleFromToken(token),
+      sv: typeof token.sessionVersion === 'number' ? token.sessionVersion : undefined,
+    },
     secret
   );
   return { Authorization: `Bearer ${assertion}` };

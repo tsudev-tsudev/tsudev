@@ -61,7 +61,9 @@ const qInt = (v: unknown, dflt: number): number => {
   return Number.isFinite(n) && n > 0 ? n : dflt
 }
 import { prisma } from '@tsudev/db'
-import { createAuthMiddleware } from '@tsudev/auth'
+// resolveUser() thay bản `currentUser` cục bộ: cùng phép upsert, nhưng cũng
+// đối chiếu sessionVersion nên phiên đã bị thu hồi không đi qua được.
+import { createAuthMiddleware, resolveUser } from '@tsudev/auth'
 import { hasAtLeastRole } from '@tsudev/types'
 import crypto from 'crypto'
 
@@ -135,19 +137,8 @@ const asyncHandler =
 
 // --- Helpers ---------------------------------------------------------------
 
-async function currentUser(req: Request): Promise<User | null> {
-  const p = req.user
-  const username = p?.preferred_username || p?.sub
-  if (!username) return null
-  return prisma.user.upsert({
-    where: { username },
-    update: {},
-    create: { username, email: `${username}@tsudev.local`, displayName: username, role: 'MEMBER' },
-  })
-}
-
 async function requireMember(req: Request, res: Response): Promise<User | null> {
-  const user = await currentUser(req)
+  const user = await resolveUser(req)
   if (!user) {
     res.status(401).json({ error: 'Bạn cần đăng nhập' })
     return null

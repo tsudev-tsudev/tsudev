@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { getProviders, signIn, useSession } from 'next-auth/react';
 import type { GetServerSideProps } from 'next';
+import { startAuthentication } from '@simplewebauthn/browser';
 import { Button, Input } from '@tsudev/ui';
 
 import { AuthShell, Notice } from '../components/AuthShell';
@@ -32,6 +33,7 @@ type LoginProps = {
  */
 const ERROR_TEXT: Record<string, string> = {
   CredentialsSignin: 'Tên đăng nhập hoặc mật khẩu không đúng.',
+  totp_invalid: 'Mã xác thực không đúng hoặc đã hết hạn. Hãy thử mã mới nhất.',
   OAuthAccountNotLinked:
     'Địa chỉ email này đã có tài khoản đăng nhập bằng cách khác. Hãy đăng nhập theo cách đó rồi liên kết trong phần cài đặt.',
   SessionRequired: 'Bạn cần đăng nhập để mở trang đó.',
@@ -68,8 +70,20 @@ export default function LoginPage({ oauth }: LoginProps) {
   const { status } = useSession();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [totp, setTotp] = useState('');
+  // Ô nhập mã 2FA chỉ hiện SAU khi mật khẩu đã đúng. Hỏi trước là tiết lộ tài
+  // khoản nào có bật 2FA cho bất kỳ ai gõ tên đăng nhập vào.
+  const [needTotp, setNeedTotp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const totpRef = useRef<HTMLInputElement>(null);
+
+  // Chuyển tiêu điểm sang ô mã KHI VÀ CHỈ KHI bước hai vừa xuất hiện. Dùng
+  // `autoFocus` sẽ giành tiêu điểm ở mọi lần vẽ lại — kể cả khi người dùng đang
+  // gõ ở ô khác — và quy tắc a11y chặn nó vì đúng lý do đó.
+  useEffect(() => {
+    if (needTotp) totpRef.current?.focus();
+  }, [needTotp]);
 
   const rawNext = typeof router.query.callbackUrl === 'string' ? router.query.callbackUrl : '/';
   // CHỈ chấp nhận đường dẫn tương đối trong site. `callbackUrl` đến từ URL, nên
@@ -88,13 +102,63 @@ export default function LoginPage({ oauth }: LoginProps) {
     return null;
   }
 
+  /**
+   * Đăng nhập bằng passkey.
+   *
+   * Không hỏi tên đăng nhập trước: khoá khám phá được (`residentKey`) cho phép
+   * trình duyệt tự chọn danh tính. Một bước bấm, không có gì để gõ, và không có
+   * gì để gõ nhầm vào trang giả mạo.
+   */
+  const onPasskey = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const optRes = await fetch('/api/identity/passkey/login-options', { method: 'POST' });
+      if (!optRes.ok) throw new Error('options');
+      const { options, challengeId } = await optRes.json();
+      const assertion = await startAuthentication({ optionsJSON: options });
+      const res = await signIn('passkey', {
+        challengeId,
+        response: JSON.stringify(assertion),
+        redirect: false,
+      });
+      if (res?.error) {
+        setError('Passkey không được chấp nhận. Hãy thử lại hoặc dùng mật khẩu.');
+        return;
+      }
+      router.push(next);
+    } catch (err) {
+      // Người dùng bấm huỷ trên hộp thoại của hệ điều hành cũng rơi vào đây.
+      // Đó KHÔNG phải lỗi, nên không hiện thông báo đỏ cho nó.
+      const name = (err as { name?: string })?.name;
+      if (name !== 'NotAllowedError' && name !== 'AbortError') {
+        setError('Không dùng được passkey trên thiết bị này.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError('');
-    const res = await signIn('credentials', { identifier, password, redirect: false });
+    const res = await signIn('credentials', { identifier, password, totp, redirect: false });
     setBusy(false);
+
     if (res?.error) {
+      // next-auth gói thông điệp của authorize() vào chuỗi lỗi; tìm mã trong đó
+      // thay vì so khớp nguyên văn, vì phần bao quanh khác nhau giữa các bản.
+      if (res.error.includes('totp_required')) {
+        setNeedTotp(true);
+        setError('');
+        return;
+      }
+      if (res.error.includes('totp_invalid')) {
+        setNeedTotp(true);
+        setError(ERROR_TEXT.totp_invalid as string);
+        return;
+      }
       setError(ERROR_TEXT.CredentialsSignin as string);
       return;
     }
@@ -143,10 +207,50 @@ export default function LoginPage({ oauth }: LoginProps) {
             </a>
           </div>
         </div>
+        {needTotp && (
+          <Input
+            id="totp"
+            name="totp"
+            label="Mã xác thực hai bước"
+            value={totp}
+            onChange={(e) => setTotp(e.target.value)}
+            // one-time-code để trình duyệt và iOS tự điền mã từ tin nhắn/ứng dụng.
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            placeholder="6 chữ số, hoặc một mã dự phòng"
+            inputRef={totpRef}
+            required
+          />
+        )}
         <Button type="submit" disabled={busy} className="w-full">
-          {busy ? 'Đang kiểm tra…' : 'Đăng nhập'}
+          {busy ? 'Đang kiểm tra…' : needTotp ? 'Xác nhận' : 'Đăng nhập'}
         </Button>
       </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-muted">
+        <span className="h-px flex-1 bg-hairline" />
+        hoặc
+        <span className="h-px flex-1 bg-hairline" />
+      </div>
+
+      <Button variant="secondary" className="w-full" onClick={onPasskey} disabled={busy}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="9.5" cy="8" r="3.6" stroke="currentColor" strokeWidth="1.7" />
+          <path
+            d="M3.5 20c0-3.2 2.7-5.2 6-5.2 1 0 2 .2 2.8.6"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+          />
+          <path
+            d="M20.5 13.2a2.6 2.6 0 1 0-4 2.2V21l1.4-1.2 1.4 1.2v-5.6c.7-.5 1.2-1.3 1.2-2.2Z"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinejoin="round"
+          />
+        </svg>
+        Đăng nhập bằng passkey
+      </Button>
 
       {oauth.length > 0 && (
         <>

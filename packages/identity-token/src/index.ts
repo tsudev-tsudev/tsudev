@@ -47,6 +47,16 @@ export type IdentityClaims = {
   /** Tên đăng nhập. Service tra `User` theo giá trị này. */
   sub: string;
   /**
+   * Phiên bản phiên tại thời điểm đăng nhập, đối chiếu với `User.sessionVersion`
+   * trong DB. Đây là thứ làm cho "đăng xuất mọi thiết bị" và "đổi mật khẩu thì
+   * đá phiên cũ" có hiệu lực THẬT.
+   *
+   * Kiểm ở tầng service chứ không ở BFF, và đó là điểm mấu chốt: service đằng
+   * nào cũng đã truy vấn `User` để lấy vai trò, nên phép so sánh này miễn phí.
+   * Kiểm ở BFF sẽ tốn một truy vấn Workers → Neon cho MỖI request.
+   */
+  sv?: number;
+  /**
    * Vai trò lấy từ phiên. CHỈ ĐỂ THAM KHẢO, KHÔNG phải nguồn phân quyền —
    * `requireRole()` luôn đọc `User.role` từ DB và fail closed. Có claim này để
    * ghi log và gỡ lỗi được, không phải để tin.
@@ -77,7 +87,7 @@ export function readSecret(env: Record<string, string | undefined>): string | nu
 /** Ký một khẳng định. Chạy được cả trên Node lẫn Cloudflare Workers (jose dùng WebCrypto). */
 export async function signIdentity(claims: IdentityClaims, secret: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  return new SignJWT({ role: claims.role })
+  return new SignJWT({ role: claims.role, sv: claims.sv })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setSubject(claims.sub)
     .setIssuer(ISSUER)
@@ -102,7 +112,11 @@ export async function verifyIdentity(
     });
     const sub = typeof payload.sub === 'string' ? payload.sub : '';
     if (!sub) return null;
-    return { sub, role: typeof payload.role === 'string' ? payload.role : undefined };
+    return {
+      sub,
+      role: typeof payload.role === 'string' ? payload.role : undefined,
+      sv: typeof payload.sv === 'number' ? payload.sv : undefined,
+    };
   } catch {
     return null;
   }

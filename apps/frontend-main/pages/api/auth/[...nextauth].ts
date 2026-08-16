@@ -34,7 +34,12 @@ import { IDENTITY, internalHeaders } from '../../../lib/services';
  * kiểm nằm ở auth-service, và ràng buộc hạ tầng đó trùng với ranh giới đúng —
  * hash mật khẩu không nên đi qua tầng biên.
  */
-async function verifyWithIdentityService(identifier: string, password: string, ip: string) {
+async function verifyWithIdentityService(
+  identifier: string,
+  password: string,
+  totp: string,
+  ip: string
+) {
   const res = await fetch(`${IDENTITY}/api/identity/verify-credentials`, {
     method: 'POST',
     headers: {
@@ -44,9 +49,19 @@ async function verifyWithIdentityService(identifier: string, password: string, i
       // dùng, không phải IP của tiến trình Next.
       ...(ip ? { 'x-forwarded-for': ip } : {}),
     },
-    body: JSON.stringify({ identifier, password }),
+    body: JSON.stringify({ identifier, password, totp }),
   });
-  if (!res.ok) return null;
+  // Mã lỗi được TRẢ RA NGUYÊN VĂN cho tầng trên, không nuốt thành null: trang
+  // /login cần phân biệt "sai mật khẩu" với "cần nhập mã 2FA" để biết hiện ô
+  // nào. Đây là ranh giới duy nhất mà sự phân biệt đó an toàn — người gọi đã
+  // qua được bước mật khẩu.
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    if (body?.error === 'totp_required' || body?.error === 'totp_invalid') {
+      throw new Error(body.error);
+    }
+    return null;
+  }
   return (await res.json()) as {
     id: string;
     username: string;
@@ -58,6 +73,52 @@ async function verifyWithIdentityService(identifier: string, password: string, i
   };
 }
 
+/**
+ * Provider passkey.
+ *
+ * Cũng là CredentialsProvider, nhưng "thông tin đăng nhập" ở đây là một chữ ký
+ * WebAuthn đã được auth-service kiểm — không phải mật khẩu. Dùng lại cơ chế
+ * credentials của next-auth để tránh dựng một luồng phiên thứ hai chạy song
+ * song với luồng đã có.
+ */
+const passkeyProvider = CredentialsProvider({
+  id: 'passkey',
+  name: 'Passkey',
+  credentials: {
+    challengeId: { label: 'challengeId', type: 'text' },
+    response: { label: 'response', type: 'text' },
+  },
+  async authorize(credentials) {
+    if (!credentials?.challengeId || !credentials?.response) return null;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(credentials.response);
+    } catch {
+      return null;
+    }
+    const res = await fetch(`${IDENTITY}/api/identity/passkey/login-verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...internalHeaders() },
+      body: JSON.stringify({ challengeId: credentials.challengeId, response: parsed }),
+    });
+    if (!res.ok) return null;
+    const user = (await res.json()) as {
+      id: string;
+      username: string;
+      email: string;
+      role: string;
+      sessionVersion: number;
+    };
+    return {
+      id: user.id,
+      name: user.username,
+      email: user.email,
+      role: user.role,
+      sessionVersion: user.sessionVersion,
+    };
+  },
+});
+
 const providers: Provider[] = [
   CredentialsProvider({
     id: 'credentials',
@@ -65,6 +126,7 @@ const providers: Provider[] = [
     credentials: {
       identifier: { label: 'Tên đăng nhập hoặc email', type: 'text' },
       password: { label: 'Mật khẩu', type: 'password' },
+      totp: { label: 'Mã xác thực hai bước', type: 'text' },
     },
     async authorize(credentials, req) {
       if (!credentials?.identifier || !credentials?.password) return null;
@@ -73,6 +135,7 @@ const providers: Provider[] = [
       const user = await verifyWithIdentityService(
         credentials.identifier,
         credentials.password,
+        credentials.totp || '',
         ip
       );
       if (!user) return null;
@@ -85,6 +148,7 @@ const providers: Provider[] = [
       };
     },
   }),
+  passkeyProvider,
 ];
 
 // Nhà cung cấp bên thứ ba: chỉ thêm khi ĐÃ cấu hình đủ. next-auth vẫn dựng ra
