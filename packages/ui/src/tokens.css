@@ -45,6 +45,20 @@
   --error: #b3243c;
   --on-vivid: #ffffff;
 
+  /* Màu icon theo CHỨC NĂNG.
+     Mỗi nhóm hành động một sắc riêng để mắt nhận ra nhóm trước khi đọc nhãn —
+     đó là điều một hàng icon cùng màu xám không làm được. Sáu sắc, không nhiều
+     hơn: quá bảy màu thì chúng thôi là mã và trở thành nhiễu.
+
+     Tất cả đều được canh tương phản ≥4.5:1 so với cả ba tầng bề mặt, vì icon
+     mang thông tin chứ không phải trang trí (xem packages/ui/test/contrast). */
+  --icon-nav: #0b5fad; /* điều hướng, liên kết */
+  --icon-create: #146c37; /* tạo, thêm, tải lên */
+  --icon-edit: #7a4d00; /* sửa, cấu hình */
+  --icon-danger: #b3243c; /* xoá, thu hồi */
+  --icon-info: #4a4a8f; /* thông tin, siêu dữ liệu */
+  --icon-trust: #0a6a5b; /* con dấu, xác minh */
+
   /* Hoạ tiết lưới kỹ thuật */
   --grid-line: rgba(16, 26, 38, 0.06);
   --glow: rgba(11, 95, 173, 0.16);
@@ -86,6 +100,15 @@
   --warning: #e0a53a;
   --error: #ff6a6a;
   --on-vivid: #06122a;
+
+  /* Cùng sáu chức năng, sắc SÁNG để nổi trên nền tối. Giữ nguyên bảng của chế
+     độ sáng ở đây sẽ cho ra sáu vệt tối gần như vô hình trên nền đen. */
+  --icon-nav: #6ba6ff;
+  --icon-create: #4fd98a;
+  --icon-edit: #e8b45c;
+  --icon-danger: #ff8a8a;
+  --icon-info: #a8a8ee;
+  --icon-trust: #3fddc4;
 
   --grid-line: rgba(255, 255, 255, 0.05);
   --glow: rgba(76, 139, 255, 0.22);

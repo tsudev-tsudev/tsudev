@@ -19,7 +19,8 @@ const COLS: { title: string; links: FooterLink[] }[] = [
       eco('Con dấu tín nhiệm', '/trust'),
       eco('Tra cứu chứng chỉ', '/trust/verify'),
       eco('Danh bạ đã cấp dấu', '/trust/directory'),
-      ['Đăng nhập', '/api/auth/signin'],
+      // Trang /login của site, không phải trang mặc định của next-auth.
+      ['Đăng nhập', '/login'],
     ],
   },
   {
@@ -33,8 +34,9 @@ const COLS: { title: string; links: FooterLink[] }[] = [
 ];
 
 // Footer không có nền riêng — nó nằm thẳng trên nền trang. Ranh giới với phần
-// nội dung chính chỉ do MỘT đường kẻ đảm nhiệm, dùng --border-strong để đủ nổi
-// trên nền đen (đường mảnh --border sẽ gần như không thấy).
+// nội dung chính chỉ do MỘT đường kẻ đảm nhiệm, dùng --border-strong vì ở chế
+// độ tối đường mảnh --border gần như không thấy, còn ở chế độ sáng nó cho ra
+// một ranh giới rõ mà không cần đổi nền.
 export const SiteFooter = () => (
   <footer className="mt-16 border-t border-hairstrong">
     <div className="max-w-6xl mx-auto px-4 pt-8 pb-6 grid gap-x-8 gap-y-7 md:grid-cols-[1.4fr_repeat(3,1fr)]">

@@ -84,11 +84,11 @@ export const Upload = ({ onGetPresign, onUploadComplete, onServerUpload }: Uploa
   };
 
   return (
-    <div className="bg-panel rounded-xl p-4">
+    <div className="bg-panel rounded-md p-4">
       <div className="flex items-center gap-3">
         <input ref={inputRef} type="file" className="" aria-label="Choose file to upload" />
         <button
-          className="px-3 py-1 rounded-md bg-brand text-[var(--primary-contrast)] font-semibold"
+          className="px-3 py-1 rounded-md bg-brand text-brandcontrast font-semibold"
           disabled={uploading}
           onClick={handleUpload}
         >

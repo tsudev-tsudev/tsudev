@@ -19,7 +19,7 @@ const BASIS = [
 ];
 
 const inputCls =
-  'w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand outline-none';
+  'w-full rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand outline-none';
 const labelCls = 'block text-sm font-medium text-inksoft mb-1.5';
 
 export default function AdminTrust() {
@@ -207,7 +207,7 @@ export default function AdminTrust() {
 
         {/* --- Bảng thẩm định chi tiết --- */}
         {detail && (
-          <section className="mb-14 rounded-xl bg-panel p-6">
+          <section className="mb-14 rounded-md bg-panel p-6">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-lg font-semibold text-ink">{detail.program?.name}</h2>

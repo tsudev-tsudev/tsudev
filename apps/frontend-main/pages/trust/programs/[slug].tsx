@@ -106,7 +106,7 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
                 <a
                   key={p.id}
                   href={`/projects/${p.slug}`}
-                  className="p-4 rounded-xl transition-colors hover:bg-panel group"
+                  className="p-4 rounded-md transition-colors hover:bg-panel group"
                 >
                   <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
                     <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>

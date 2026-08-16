@@ -30,6 +30,34 @@ module.exports = {
         warning: 'var(--warning)',
         error: 'var(--error)',
         onvivid: 'var(--on-vivid)',
+        // Màu icon theo chức năng — dùng qua `text-icon-create`, `text-icon-danger`…
+        icon: {
+          nav: 'var(--icon-nav)',
+          create: 'var(--icon-create)',
+          edit: 'var(--icon-edit)',
+          danger: 'var(--icon-danger)',
+          info: 'var(--icon-info)',
+          trust: 'var(--icon-trust)',
+        },
+      },
+      // Thang chữ theo bậc của giao diện sản phẩm (Fluent), không phải bậc mặc
+      // định của Tailwind. Khác biệt thật sự nằm ở khoảng giữa: mặc định nhảy
+      // 16 → 18 → 20 → 24, quá dày để tạo được thứ bậc rõ ràng, nên trang nào
+      // cũng có ba cỡ chữ trông gần giống nhau. Bậc dưới đây nhảy 16 → 20 → 24
+      // → 28, mỗi bậc đủ xa để mắt đọc ra ngay đâu là tiêu đề, đâu là thân.
+      //
+      // Chiều cao dòng đi kèm từng bậc: chữ càng lớn thì tỉ lệ dòng càng phải
+      // NHỎ, nếu không tiêu đề hai dòng bị rời ra thành hai khối không liên quan.
+      fontSize: {
+        xs: ['0.75rem', { lineHeight: '1.125rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.25rem', { lineHeight: '1.75rem' }],
+        xl: ['1.5rem', { lineHeight: '2rem' }],
+        '2xl': ['1.75rem', { lineHeight: '2.25rem' }],
+        '3xl': ['2rem', { lineHeight: '2.5rem' }],
+        '4xl': ['2.5rem', { lineHeight: '3rem' }],
+        '5xl': ['3.25rem', { lineHeight: '3.5rem' }],
       },
       fontFamily: {
         sans: [

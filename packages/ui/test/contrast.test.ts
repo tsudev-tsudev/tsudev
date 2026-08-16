@@ -81,6 +81,21 @@ const PAIRS: Array<[string, string, number, string]> = [
   ['--on-vivid', '--success', 4.5, 'chữ trên nền thành công'],
   ['--on-vivid', '--warning', 4.5, 'chữ trên nền cảnh báo'],
   ['--on-vivid', '--error', 4.5, 'chữ trên nền lỗi'],
+  // Icon theo chức năng. 4.5:1 chứ không phải 3:1: các icon này MANG THÔNG TIN
+  // (màu là mã cho nhóm hành động), nên chúng chịu ngưỡng của chữ, không phải
+  // ngưỡng của đồ hoạ trang trí.
+  ['--icon-nav', '--surface', 4.5, 'icon điều hướng trên nền trang'],
+  ['--icon-nav', '--panel', 4.5, 'icon điều hướng trên card'],
+  ['--icon-create', '--surface', 4.5, 'icon tạo trên nền trang'],
+  ['--icon-create', '--panel', 4.5, 'icon tạo trên card'],
+  ['--icon-edit', '--surface', 4.5, 'icon sửa trên nền trang'],
+  ['--icon-edit', '--panel', 4.5, 'icon sửa trên card'],
+  ['--icon-danger', '--surface', 4.5, 'icon xoá trên nền trang'],
+  ['--icon-danger', '--panel', 4.5, 'icon xoá trên card'],
+  ['--icon-info', '--surface', 4.5, 'icon thông tin trên nền trang'],
+  ['--icon-info', '--panel', 4.5, 'icon thông tin trên card'],
+  ['--icon-trust', '--surface', 4.5, 'icon con dấu trên nền trang'],
+  ['--icon-trust', '--panel', 4.5, 'icon con dấu trên card'],
   // Thành phần giao diện và viền — 3:1 theo WCAG 1.4.11.
   ['--border-strong', '--surface', 3, 'viền đậm trên nền trang'],
   ['--border-strong', '--panel', 3, 'viền đậm trên card'],
@@ -106,6 +121,30 @@ describe.each([
       ratio: expect.any(Number),
     });
     expect(ratio).toBeGreaterThanOrEqual(min);
+  });
+
+  // Màu icon phải phân biệt được VỚI NHAU. Sáu màu cùng đạt tương phản với nền
+  // mà lại gần giống nhau thì chúng không còn là mã cho chức năng nữa — người
+  // dùng không đọc ra nhóm, và cả hệ thống chỉ còn là trang trí.
+  test('sáu màu icon phân biệt được với nhau', () => {
+    const names = [
+      '--icon-nav',
+      '--icon-create',
+      '--icon-edit',
+      '--icon-danger',
+      '--icon-info',
+      '--icon-trust',
+    ];
+    for (let i = 0; i < names.length; i++) {
+      for (let j = i + 1; j < names.length; j++) {
+        const a = t[names[i] as string] as string;
+        const b = t[names[j] as string] as string;
+        expect({ pair: `${names[i]}/${names[j]}`, same: a === b }).toEqual({
+          pair: `${names[i]}/${names[j]}`,
+          same: false,
+        });
+      }
+    }
   });
 
   // Thứ bậc bề mặt là cách hệ này dựng chiều sâu (CLAUDE.md: bằng độ sáng nền,

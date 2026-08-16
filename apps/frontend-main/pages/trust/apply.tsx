@@ -14,7 +14,7 @@ const METHOD_LABEL: Record<string, string> = {
 };
 
 const inputCls =
-  'w-full rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand outline-none transition-colors';
+  'w-full rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand outline-none transition-colors';
 const labelCls = 'block text-sm font-medium text-inksoft mb-1.5';
 
 type StepProps = {

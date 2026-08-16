@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Seo from '../../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
-import { Layout, Card, Button, Input, Badge, SectionHeading } from '@tsudev/ui';
+import { Layout, Card, Button, Input, Badge, Icon, SectionHeading } from '@tsudev/ui';
 import {
   KIND_LABEL,
   STATUS_LABEL,
@@ -90,7 +90,7 @@ function Select({ id, label, value, onChange, options, labels }: SelectProps) {
         id={id}
         value={value}
         onChange={onChange}
-        className="rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
+        className="rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
       >
         {options.map((o) => {
           const raw = labels?.[o];
@@ -273,7 +273,7 @@ export default function AdminProjects() {
                 rows={6}
                 value={form.descriptionMd}
                 onChange={set('descriptionMd')}
-                className="rounded-lg border border-hairline bg-surface px-3 py-2.5 text-sm text-ink font-mono outline-none focus:border-brand"
+                className="rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink font-mono outline-none focus:border-brand"
               />
             </div>
 
@@ -419,11 +419,18 @@ export default function AdminProjects() {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => startEdit(p)}>
+                {/* Nút hành động KHÔNG có nền và viền riêng. Ở một danh sách,
+                    mỗi hàng có hai nút đặc là hai mảng màu lặp lại xuống hết
+                    trang — chúng át cả nội dung mà chúng phục vụ. Màu icon (hổ
+                    phách = sửa, đỏ = xoá) đã mang đủ tín hiệu; nền chỉ xuất hiện
+                    khi rê chuột. */}
+                <div className="flex shrink-0 gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => startEdit(p)}>
+                    <Icon name="edit" />
                     Sửa
                   </Button>
-                  <Button size="sm" variant="danger" onClick={() => remove(p.slug)}>
+                  <Button size="sm" variant="ghost" onClick={() => remove(p.slug)}>
+                    <Icon name="trash" />
                     Xoá
                   </Button>
                 </div>

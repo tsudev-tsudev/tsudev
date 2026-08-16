@@ -1,6 +1,6 @@
 import React from 'react';
 import Seo from './Seo';
-import { Layout, Badge } from '@tsudev/ui';
+import { Layout, Badge, TableOfContents } from '@tsudev/ui';
 
 // Khung chung cho các trang văn bản dài (Điều khoản, Quyền riêng tư, Nội quy).
 // Mỗi mục có `id` để trích dẫn được bằng liên kết neo — văn bản pháp lý hay bị
@@ -57,7 +57,7 @@ export const LegalDoc = ({
         </dl>
       </header>
 
-      <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_15rem] lg:items-start">
+      <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
         <div className="prose-tsu max-w-3xl order-2 lg:order-1">
           {sections.map((s, i) => (
             <section key={s.id} id={s.id} className="scroll-mt-24">
@@ -75,24 +75,20 @@ export const LegalDoc = ({
           )}
         </div>
 
-        <nav
-          aria-label="Mục lục"
-          className="order-1 lg:order-2 lg:sticky lg:top-24 border-l border-hairline pl-5"
-        >
-          <div className="font-mono text-xs uppercase tracking-[0.14em] text-muted font-semibold mb-3">
-            Mục lục
-          </div>
-          <ol className="space-y-2 text-sm">
-            {sections.map((s, i) => (
-              <li key={s.id} className="flex gap-2.5">
-                <span className="font-mono text-muted shrink-0">{i + 1}.</span>
-                <a href={`#${s.id}`} className="text-inksoft hover:text-brandink transition-colors">
-                  {s.heading}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </nav>
+        {/* Cùng MỘT component mục lục với blog và tài liệu. Bản trước ở đây là
+            một danh sách viết tay chỉ có viền trái — nghĩa là ba trang dài nhất
+            của site có ba kiểu mục lục khác nhau, và chỉ có kiểu này không có
+            nền riêng nên nó lẫn vào thân bài ở chế độ sáng. */}
+        <aside className="order-1 lg:order-2 lg:sticky lg:top-20">
+          <TableOfContents
+            items={sections.map((s, i) => ({
+              id: s.id,
+              // Số thứ tự giữ lại: văn bản pháp lý được dẫn chiếu theo số mục.
+              text: `${i + 1}. ${typeof s.heading === 'string' ? s.heading : ''}`,
+              level: 2,
+            }))}
+          />
+        </aside>
       </div>
     </div>
   </Layout>

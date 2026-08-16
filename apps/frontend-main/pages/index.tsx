@@ -141,7 +141,7 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
               <a
                 key={e.title}
                 href={e.href}
-                className="p-5 block group rounded-xl transition-colors hover:bg-panel"
+                className="p-5 block group rounded-md transition-colors hover:bg-panel"
               >
                 <span
                   className={`inline-flex h-11 w-11 items-center justify-center rounded-lg mb-4 ${
@@ -190,7 +190,7 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
                 <a
                   key={p.id}
                   href={`/projects/${p.slug}`}
-                  className="p-5 flex flex-col group rounded-xl transition-colors hover:bg-panel"
+                  className="p-5 flex flex-col group rounded-md transition-colors hover:bg-panel"
                 >
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>
@@ -229,7 +229,7 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
               <a
                 key={p.id}
                 href={`/blog/${p.slug}`}
-                className="p-5 flex flex-col group rounded-xl transition-colors hover:bg-panel"
+                className="p-5 flex flex-col group rounded-md transition-colors hover:bg-panel"
               >
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {(p.tags || []).slice(0, 2).map((t: string) => (
