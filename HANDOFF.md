@@ -17,9 +17,15 @@ mục khác trong §1 đều đợi được.
 Thứ tự đề nghị cho phiên mới:
 
 1. §0.5 — đặt mật khẩu production, đăng nhập, mở `/admin/projects`.
-2. §1.5 — rà giao diện bằng mắt ở cả hai chế độ (chưa ai nhìn).
-3. §1.7 — thêm chức năng đổi mật khẩu trong ứng dụng.
-4. Còn lại theo mức độ: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột.
+   Chưa xong bước này thì không nghiệm thu được gì, kể cả các mục dưới.
+2. §1.7 **đợt A** — dựng trang quản lý tài khoản (`/settings/profile` + đổi mật
+   khẩu + ảnh đại diện). Đây là khoảng trống LỚN NHẤT về mặt sản phẩm: hiện
+   không có route nào cho người dùng sửa hồ sơ của chính mình, và ba cột
+   `displayName` / `avatarUrl` / `bio` không có đường ghi nào.
+3. §1.5 — rà giao diện bằng mắt ở cả hai chế độ (chưa ai nhìn). Làm sau §1.7 thì
+   rà được luôn các trang mới thay vì rà hai lần.
+4. Còn lại theo mức độ: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá
+   cột · §1.7 **đợt B** (đổi email, xoá tài khoản — cần test đầy đủ).
 
 ## Đang chạy
 
@@ -250,19 +256,77 @@ dọn dẹp — không có dữ liệu nào mất.
 
 ---
 
-### 1.7 Không có chức năng ĐỔI MẬT KHẨU trong ứng dụng — 🟠 CHƯA LÀM
+### 1.7 KHÔNG CÓ trang quản lý tài khoản / thông tin cá nhân — 🟠 CHƯA LÀM
 
-`/settings/security` có 2FA và passkey nhưng **không có đổi mật khẩu**. Người
-dùng đã đăng nhập muốn đổi mật khẩu buộc phải đi vòng qua "quên mật khẩu" (cần
-hộp thư) hoặc nhờ quản trị chạy script. Đó là thiếu sót trong luồng, không phải
-quyết định thiết kế.
+Đây là khoảng trống lớn nhất còn lại về mặt sản phẩm, không phải một chi tiết
+thiếu. `/settings/security` chỉ có 2FA và passkey — nó được dựng để hai cơ chế
+đó không thành mã chết, chứ không phải để quản lý tài khoản.
 
-Cần: route `POST /api/identity/change-password` ở auth-service, **đòi mật khẩu
-hiện tại** (cookie phiên bị đánh cắp không được phép đủ để đổi mật khẩu), tăng
-`sessionVersion`, và một khối trên `/settings/security` đi qua proxy có phiên
-`pages/api/account/[...path].ts`.
+#### Hiện trạng đã đo
 
-Khuôn có sẵn: `totp/disable` đã làm đúng kiểu "đòi mật khẩu hiện tại" đó.
+**Không có route nào cho phép người dùng sửa hồ sơ của chính mình.** Mọi
+`prisma.user.update` trong repo chỉ thuộc bốn nhóm, không nhóm nào do người dùng
+chủ động gọi:
+
+| Nơi                     | Sửa gì                                      |
+| ----------------------- | ------------------------------------------- |
+| `auth-service`          | `emailVerifiedAt`, `passwordHash` (đặt lại) |
+| `auth-service/throttle` | bộ đếm sai / `lockedUntil` / `lastLoginAt`  |
+| `trust-service`         | trừ `credits` khi nộp đơn cấp dấu           |
+
+Hệ quả trên ba cột đang tồn tại trong schema:
+
+- **`displayName`** — đặt một lần lúc đăng ký (hoặc mặc định bằng username), sau
+  đó KHÔNG có đường nào đổi. Nó lại là thứ hiển thị công khai dưới mỗi bài viết
+  (`authorCard` của content-service).
+- **`avatarUrl`** — chỉ xuất hiện trong khai báo kiểu và trong `authorCard`.
+  Không có gì GHI vào nó.
+- **`bio`** — grep toàn bộ `services/`, `apps/`, `packages/`: không nơi nào đọc.
+  Cột chết, chỉ được `seed.js` điền một lần.
+
+Cũng không có `/admin/users` — quản trị chỉ có dự án và con dấu.
+
+#### Vì sao thành ra thế
+
+Site vốn dùng Keycloak, nơi bảng `User` được `resolveUser()` tự tạo ÂM THẦM từ
+token — không ai "có tài khoản" theo nghĩa sản phẩm, chỉ có một dòng dữ liệu để
+gắn quyền. Không có đăng ký thì cũng không có gì để quản lý.
+
+Khái niệm tài khoản chỉ thành thật ở đợt vừa rồi, khi thêm đăng ký/mật khẩu/2FA/
+passkey. Trang quản lý tài khoản là hệ quả trực tiếp của thay đổi đó nhưng nằm
+ngoài phạm vi được giao, nên không được dựng.
+
+#### Cần làm gì
+
+Đề nghị chia hai đợt. **Đợt A** không có rủi ro chiếm tài khoản, làm trước:
+
+| Mảnh                | Ghi chú                                                         |
+| ------------------- | --------------------------------------------------------------- |
+| `/settings/profile` | `displayName`, `bio`, ảnh đại diện                              |
+| Đổi mật khẩu        | `POST /api/identity/change-password`, **đòi mật khẩu hiện tại** |
+| Ảnh đại diện        | storage-service + presign đã có sẵn, chỉ cần nối vào            |
+
+Đổi mật khẩu phải đòi mật khẩu hiện tại: cookie phiên bị đánh cắp KHÔNG được
+phép đủ để đổi mật khẩu. Xong thì tăng `sessionVersion` để đá mọi phiên khác.
+Khuôn có sẵn — `totp/disable` đã làm đúng kiểu đó.
+
+Đường ghi đi qua proxy CÓ PHIÊN `pages/api/account/[...path].ts`, không phải
+`pages/api/identity/[...path].ts` (proxy công khai). Hai tệp, hai mức bảo vệ —
+thêm nhầm nhánh là mở một route đáng lẽ phải đăng nhập.
+
+**Đợt B** chạm vào chiếm tài khoản và nghĩa vụ ở `/privacy`, làm riêng có test
+đầy đủ:
+
+| Mảnh              | Cạm bẫy                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Đổi email         | phải xác minh địa chỉ MỚI trước khi thay. Thay trước rồi mới gửi thư xác minh là đường chiếm tài khoản: kẻ chiếm phiên đổi email sang của mình rồi dùng "quên mật khẩu". |
+| Xem/thu hồi phiên | cơ chế đã có (`sessionVersion`), chỉ thiếu giao diện                                                                                                                     |
+| Xoá tài khoản     | `Post.authorId` và `FileObject.ownerId` đều `onDelete: SetNull` nên xoá được mà không mất nội dung. Nhớ xoá kèm passkey/TOTP/mã dự phòng — `onDelete: Cascade` đã lo.    |
+
+#### Thứ tự
+
+Làm SAU §0.5. Chưa đăng nhập được vào production thì không thử được bất kỳ trang
+tài khoản nào — mà đây đúng là loại tính năng chỉ lộ lỗi khi bấm thật.
 
 ### 1.8 Cân nhắc: đường chẩn đoán cho tài khoản không có mật khẩu — 🟡
 
