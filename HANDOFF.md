@@ -24,9 +24,9 @@ Thứ tự đề nghị cho phiên mới:
    `displayName` / `avatarUrl` / `bio` không có đường ghi nào.
 3. §1.5 — rà giao diện bằng mắt ở cả hai chế độ (chưa ai nhìn). Làm sau §1.7 thì
    rà được luôn các trang mới thay vì rà hai lần.
-4. §1.9 — đưa Con dấu về chế độ mời + gỡ tín dụng. Đợt LỚN, đã có kế hoạch
-   riêng ở `docs/refactor-trust-invite-access.md`, và **cần chủ dự án quyết hai
-   câu trước khi viết mã**.
+4. §1.9 — đưa Con dấu về chế độ mời + gỡ tín dụng. Đợt LỚN, kế hoạch đã CHỐT ở
+   `docs/refactor-trust-invite-access.md`, làm được ngay. Chia **ba lần phát
+   hành riêng** vì hai đợt migration chạy ngược chiều nhau.
 5. Còn lại theo mức độ: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá
    cột · §1.7 **đợt B** (đổi email, xoá tài khoản — cần test đầy đủ).
 
@@ -346,31 +346,44 @@ KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai
 
 ---
 
-### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟠 CHƯA LÀM, ĐÃ CÓ KẾ HOẠCH
-
-Chủ dự án giao: ẩn toàn bộ chức năng Con dấu/cấp huy hiệu khỏi giao diện, chỉ
-`tsudev` và tài khoản được cấp quyền thấy; khách phải có **mã mời** mới nộp đơn
-được; **gỡ hẳn `credits`** để site thành dự án cá nhân miễn phí; giữ SEO.
+### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟠 CHƯA LÀM, KẾ HOẠCH ĐÃ CHỐT
 
 **Kế hoạch đầy đủ: [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).**
+Phạm vi đã được chủ dự án chốt 16/08/2026 — **không còn câu nào phải hỏi trước
+khi bắt đầu.**
 
-Ba điều phải biết trước khi mở tệp đó:
+Chốt: **mọi trang liên quan tới chứng chỉ/huy hiệu chỉ truy cập và nhìn thấy
+được qua mã mời do admin cấp**, không ngoại lệ cho trang xác minh. Gỡ hẳn
+`credits`.
 
-1. **Trang xác minh KHÔNG thể nằm sau mã mời.** Huy hiệu trên site khách hàng
-   trỏ tới `/trust/verify/<serial>`, và người bấm là khách vãng lai không có tài
-   khoản. `TRUST_ISSUER` lại được KÝ VÀO chứng chỉ nên URL trong chứng chỉ đã
-   cấp là cố định vĩnh viễn. Gác nó là vô hiệu hoá mọi huy hiệu đã cấp.
-2. **`credits` KHÔNG phải cột chết** (gotcha riêng ở `CLAUDE.md`) — gỡ nó là gỡ
-   cả cơ chế thu phí nộp đơn, không phải xoá một cột.
-3. **Gỡ `credits` là `DROP COLUMN` ⇒ CODE ĐI TRƯỚC, migration đi sau** (bài học
-   §1.6). Đảo lại là trang trống ở production.
+Cái giá của quyết định đó, đã đếm trên Neon: **0 chứng chỉ · 0 tổ chức · 0 đơn ·
+0 tên miền**. Không có huy hiệu nào đang chạy trên site bên thứ ba, nên không có
+gì để hỏng — quyết định này hôm nay tốn con số không.
 
-**CẦN CHỦ DỰ ÁN QUYẾT hai câu trước khi viết mã** (ghi rõ trong kế hoạch):
+Bốn điều phải biết trước khi mở kế hoạch:
 
-- Có chấp nhận vô hiệu hoá chứng chỉ đã cấp để giấu luôn trang xác minh không?
-  (đề nghị: KHÔNG — chỉ gác phần nộp đơn/quản lý)
-- `/trust/directory` liệt kê tên khách hàng đã cấp dấu: giữ công khai (bằng
-  chứng uy tín + nguồn SEO) hay ẩn (bảo vệ danh sách khách hàng)?
+1. **BA LẦN PHÁT HÀNH RIÊNG, không gộp.** Hai đợt migration chạy NGƯỢC chiều
+   nhau: gỡ `credits` là `DROP` ⇒ code trước, migration sau. Mã mời là thêm bảng
+   ⇒ migration trước, code sau. Gộp vào một lần là trang trống ở production.
+2. **Phần A (gác bề mặt) làm CUỐI CÙNG** — đó là đợt duy nhất có thể khoá nhầm
+   chính mình ra ngoài. Làm sau thì mã mời đã chạy và có đường vào lại.
+3. **`credits` KHÔNG phải cột chết** (gotcha riêng ở `CLAUDE.md`) — gỡ nó là gỡ
+   cả cơ chế thu phí: 9 chỗ trong trust-service, 4 chương trình trong seed,
+   3 trang frontend.
+4. **JWKS được đề nghị giữ công khai** — nó chỉ chứa khoá công khai, không tiết
+   lộ khách hàng/chứng chỉ nào. Gác nó không che giấu gì mà chỉ làm hỏng xác
+   minh chữ ký ngoại tuyến. Chủ dự án muốn gác luôn cũng được, chỉ cần biết là
+   nó không bảo vệ điều gì.
+
+Điểm phải quyết lại TRONG TƯƠNG LAI (ghi trong kế hoạch, đừng quyết bây giờ):
+khi cấp chứng chỉ đầu tiên cho khách hàng THẬT, phải trả lời "khách vãng lai bấm
+vào huy hiệu thì thấy gì". `TRUST_ISSUER` được ký vào chứng chỉ nên URL xác minh
+là cố định vĩnh viễn. Serial hiện có dạng tuần tự `TSU-CR-2026-000123` — nếu sau
+này chọn hình "URL-năng-lực" thì phải đổi cách sinh serial TRƯỚC lần cấp đầu.
+
+Hệ quả đã ghi nhận: **SEO không còn đến từ Con dấu.** Mục tiêu "đạt tiêu chí SEO"
+phải do blog · tài liệu · dự án gánh. Với Con dấu, việc SEO duy nhất là rút khỏi
+`sitemap.xml` và `noindex` cho sạch.
 
 ---
 
