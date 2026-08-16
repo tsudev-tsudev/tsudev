@@ -130,8 +130,16 @@ Tài khoản tạo từ thời Keycloak không có `passwordHash`. Đường t�
 Cho những tài khoản đó:
 
 ```bash
+# PRODUCTION — phải xuất DATABASE_URL TRƯỚC
+set -a; . <(grep '^DATABASE_URL=' backup/production-env-2026-08-16.txt); set +a
 NEW_PASSWORD='…' node services/auth-service/scripts/set-password.js <username>
 ```
+
+⚠️ **Không xuất `DATABASE_URL` thì script nhắm DB LOCAL.** Nó nạp `.env` ở gốc
+repo, vốn trỏ cluster dev. Chạy thiếu bước đó thì nó vẫn báo "thành công" —
+thành công thật, chỉ là trên máy dev — còn cột `passwordHash` ở production vẫn
+rỗng và tài khoản vẫn không đăng nhập được. Đã xảy ra thật. Script nay **in ra
+host của database trước khi ghi**; đọc dòng đó.
 
 Mật khẩu truyền qua **biến môi trường**, không phải tham số dòng lệnh: tham số
 nằm trong `ps` và trong lịch sử shell.

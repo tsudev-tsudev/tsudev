@@ -71,6 +71,99 @@ toàn**, trong khi `/api/auth/providers` vẫn trả về đúng nên nhìn qua 
 mã thoát 1 khi thiếu biến). **Thêm service mới ⇒ vẫn phải khai biến ở
 `wrangler.jsonc` bằng tay**, chỉ khác là nay quên sẽ bị chặn.
 
+## 0.5 🔴 VIỆC ĐẦU TIÊN CỦA PHIÊN MỚI — production KHÔNG đăng nhập được
+
+**Tài khoản ADMIN duy nhất trên production chưa có mật khẩu.** Đã kiểm trực tiếp
+trên Neon:
+
+```
+username: tsudev · email: devnguyentrangtinhsu@gmail.com · vai trò: ADMIN
+passwordHash: RỖNG          ← nguyên nhân
+lastLoginAt : chưa bao giờ
+failedLoginCount: 0
+```
+
+### Triệu chứng và cách đọc nó
+
+Đăng nhập ở https://tsudev.com/login báo **"Tên đăng nhập hoặc mật khẩu không
+đúng"** — dù tên đăng nhập và mật khẩu đều đúng ý người dùng. Vì
+`verify-credentials` rơi vào nhánh:
+
+```ts
+if (!user || !user.passwordHash) { await burnTiming(password); ... return 401 'invalid_credentials' }
+```
+
+Thông điệp **cố ý giống hệt** trường hợp sai mật khẩu (chống dò tài khoản). Ở
+đây nó quay lại chống chính chủ tài khoản: nó giấu mất nguyên nhân thật.
+
+**Dấu hiệu phân biệt hai nhánh:** `failedLoginCount` vẫn **0** sau nhiều lần
+thử. Nhánh "không có mật khẩu" KHÔNG gọi `noteAccountFailure()`; nếu mật khẩu
+sai thật thì bộ đếm đã tăng. Dùng dấu hiệu này để chẩn đoán, đừng đoán từ
+thông điệp trên màn hình.
+
+### Vì sao xảy ra
+
+Chủ dự án đã chạy `set-password.js` và thấy báo "thành công" — **thành công
+thật, nhưng trên DB LOCAL**. Script nạp `DATABASE_URL` từ `.env` ở gốc repo,
+vốn trỏ cluster dev `localhost:5433`, và bản đầu **không in ra đang ghi vào đâu**.
+
+Đã vá hai lần trong phiên trước (xem "Thay đổi chưa commit" bên dưới):
+script nay in host của database trước khi ghi, và nhận mật khẩu qua **stdin**
+thay vì biến môi trường.
+
+Lần vá thứ hai vì lý do riêng: mật khẩu của chủ dự án chứa dấu nháy đơn, nên
+`NEW_PASSWORD='…'` đóng chuỗi sớm và bash rơi vào dấu nhắc `>`.
+
+### Cách sửa
+
+Chạy trên máy có `backup/production-env-2026-08-16.txt` (dán cả ba dòng):
+
+```bash
+set -a && . <(grep '^DATABASE_URL=' backup/production-env-2026-08-16.txt) && set +a && node services/auth-service/scripts/set-password.js tsudev <<'MK'
+mật khẩu ở đây, gõ nguyên văn, KHÔNG thêm dấu nháy
+MK
+```
+
+`<<'MK'` có nháy quanh `MK` là phần quan trọng — nó tắt mọi phép diễn giải của
+shell bên trong khối, nên dấu nháy đơn/`$`/backtick trong mật khẩu đều an toàn.
+Đã kiểm chứng vòng tròn: pipe vào rồi `verifyPassword()` đọc ra khớp nguyên văn,
+và bản thiếu 1 ký tự bị từ chối.
+
+**Đọc dòng `Database:` nó in ra** — phải là host `...neon.tech`. Thấy
+`localhost:5433` là phần export chưa chạy.
+
+Đường thay thế, không cần shell: **https://tsudev.com/forgot-password**. Email
+của tài khoản là địa chỉ thật và Resend đã cấu hình, nên đường này chạy được và
+xác minh luôn email (hiện `emailVerifiedAt` đang rỗng).
+
+### Nghiệm thu sau khi sửa
+
+```bash
+# phải trả 200 và Set-Cookie phiên
+curl -s -o /dev/null -w '%{http_code}\n' https://tsudev.com/api/auth/session
+```
+
+Rồi đăng nhập thật và mở `/admin/projects` — đó là đường đã im lặng trả 401 suốt
+thời gian dài và là thứ đợt vừa rồi vá.
+
+---
+
+## 0.6 Thay đổi CHƯA COMMIT trong cây làm việc
+
+Hai tệp đang sửa dở trên `main`, **chưa commit, chưa đẩy**:
+
+| Tệp                                             | Nội dung                                                 |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| `services/auth-service/scripts/set-password.js` | in host DB trước khi ghi; nhận mật khẩu qua stdin        |
+| `docs/auth.md`                                  | §5 ghi cách chạy nhắm production + cảnh báo nhắm nhầm DB |
+
+Đã chạy thử ở local và đạt. **Chưa chạy `npm run lint` / test toàn bộ sau lần
+sửa cuối** — chạy trước khi commit.
+
+`main` có branch protection qua `.husky/pre-push`, nên phải đi qua nhánh + PR.
+
+---
+
 ## 1. Việc còn dở
 
 ### 1.1 Dựng bộ ping giữ ấm — 🟠 CHƯA LÀM
@@ -145,6 +238,35 @@ nên Prisma Client đang chạy ở production VẪN SELECT nó.
 
 Mọi giá trị trong cột đều NULL và không dòng mã nào đọc nó, nên đây thuần tuý là
 dọn dẹp — không có dữ liệu nào mất.
+
+---
+
+### 1.7 Không có chức năng ĐỔI MẬT KHẨU trong ứng dụng — 🟠 CHƯA LÀM
+
+`/settings/security` có 2FA và passkey nhưng **không có đổi mật khẩu**. Người
+dùng đã đăng nhập muốn đổi mật khẩu buộc phải đi vòng qua "quên mật khẩu" (cần
+hộp thư) hoặc nhờ quản trị chạy script. Đó là thiếu sót trong luồng, không phải
+quyết định thiết kế.
+
+Cần: route `POST /api/identity/change-password` ở auth-service, **đòi mật khẩu
+hiện tại** (cookie phiên bị đánh cắp không được phép đủ để đổi mật khẩu), tăng
+`sessionVersion`, và một khối trên `/settings/security` đi qua proxy có phiên
+`pages/api/account/[...path].ts`.
+
+Khuôn có sẵn: `totp/disable` đã làm đúng kiểu "đòi mật khẩu hiện tại" đó.
+
+### 1.8 Cân nhắc: đường chẩn đoán cho tài khoản không có mật khẩu — 🟡
+
+Thông điệp đăng nhập cố ý không phân biệt "không có tài khoản" / "sai mật khẩu"
+/ "tài khoản chưa đặt mật khẩu". Đúng về chống dò tài khoản, nhưng §0.5 cho thấy
+nó làm chính chủ tài khoản mắc kẹt và mất nhiều lượt mới chẩn đoán ra.
+
+KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai. Hai hướng an toàn:
+
+- Ghi log ở auth-service khi rơi vào nhánh `!user.passwordHash` (có username),
+  để người vận hành đọc được mà người ngoài thì không.
+- Trang `/login` thêm gợi ý trung tính kiểu "Tài khoản mới hoặc chưa từng đặt
+  mật khẩu? Dùng Quên mật khẩu." — không tiết lộ gì về một tài khoản cụ thể.
 
 ---
 
