@@ -8,11 +8,13 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay.** PR #1 đang mở, gộp cả
-đợt TypeScript/Rust lẫn đợt xác thực tự quản lý + tái cấu trúc giao diện. Phiếu
-đó liệt kê **bốn việc phải làm TAY ở production** trước khi gộp, và việc còn dở
-(ping giữ ấm, `npm audit`, bật CSP thật, rà giao diện bằng mắt). Xong hết thì xoá
-file và xoá cả đoạn này.
+🔴 **Đọc [`HANDOFF.md`](HANDOFF.md) §0.5 TRƯỚC KHI LÀM BẤT CỨ VIỆC GÌ.**
+Đợt TypeScript/Rust + xác thực tự quản lý + tái cấu trúc giao diện đã phát hành
+lên production. Nhưng **tài khoản ADMIN duy nhất trên production chưa có mật
+khẩu**, nên hiện KHÔNG đăng nhập được và không nghiệm thu được gì. Đó là việc
+chặn. Phiếu đó cũng liệt kê việc còn dở (rà giao diện bằng mắt, đổi mật khẩu
+trong ứng dụng, ping giữ ấm, `npm audit`, CSP thật). Xong hết thì xoá file và
+xoá cả đoạn này.
 
 ## Bản đồ
 
