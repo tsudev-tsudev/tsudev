@@ -3,19 +3,20 @@
 Đọc **chọn lọc** theo vùng công việc. Không nạp cả thư mục: mỗi file thừa là
 token trả tiền mà không dùng đến.
 
-| Đang làm việc ở đâu                           | Đọc file nào                                                 |
-| --------------------------------------------- | ------------------------------------------------------------ |
-| Mới vào repo, cần bản đồ tổng thể             | [architecture.md](architecture.md)                           |
-| Dựng môi trường, chạy local, gỡ lỗi khởi động | [development.md](development.md)                             |
-| Đăng nhập, mật khẩu, 2FA, passkey, RBAC       | [auth.md](auth.md)                                           |
-| Viết/chạy test, E2E presign–upload            | [testing.md](testing.md)                                     |
-| Sửa giao diện, component, token màu           | [design-system.md](design-system.md)                         |
-| Đưa lên production, biến môi trường, CI       | [deployment.md](deployment.md)                               |
-| Con dấu tín nhiệm (trust-service)             | [trust-seal.md](trust-seal.md)                               |
-| Vì sao repo mất Diễn đàn/Chợ/Tin nhắn         | [refactor-personal-site.md](refactor-personal-site.md)       |
-| Vì sao chỉ còn một cổng vào ở dev             | [refactor-network-topology.md](refactor-network-topology.md) |
-| Logo, favicon, avatar                         | [../packages/brand/README.md](../packages/brand/README.md)   |
-| Hạ tầng Cloudflare/giám sát (kế hoạch)        | [../infrastructure/README.md](../infrastructure/README.md)   |
+| Đang làm việc ở đâu                           | Đọc file nào                                                       |
+| --------------------------------------------- | ------------------------------------------------------------------ |
+| Mới vào repo, cần bản đồ tổng thể             | [architecture.md](architecture.md)                                 |
+| Dựng môi trường, chạy local, gỡ lỗi khởi động | [development.md](development.md)                                   |
+| Đăng nhập, mật khẩu, 2FA, passkey, RBAC       | [auth.md](auth.md)                                                 |
+| Viết/chạy test, E2E presign–upload            | [testing.md](testing.md)                                           |
+| Sửa giao diện, component, token màu           | [design-system.md](design-system.md)                               |
+| Đưa lên production, biến môi trường, CI       | [deployment.md](deployment.md)                                     |
+| Con dấu tín nhiệm (trust-service)             | [trust-seal.md](trust-seal.md)                                     |
+| Vì sao repo mất Diễn đàn/Chợ/Tin nhắn         | [refactor-personal-site.md](refactor-personal-site.md)             |
+| Vì sao chỉ còn một cổng vào ở dev             | [refactor-network-topology.md](refactor-network-topology.md)       |
+| Kế hoạch: Con dấu về chế độ mời, gỡ tín dụng  | [refactor-trust-invite-access.md](refactor-trust-invite-access.md) |
+| Logo, favicon, avatar                         | [../packages/brand/README.md](../packages/brand/README.md)         |
+| Hạ tầng Cloudflare/giám sát (kế hoạch)        | [../infrastructure/README.md](../infrastructure/README.md)         |
 
 ## Đặc tả gốc
 
