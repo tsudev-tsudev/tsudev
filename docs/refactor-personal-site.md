@@ -452,5 +452,6 @@ rút từ 11 cổng xuống 7 ở GĐ 3 là sửa một file thay vì truy lùng
   phần bị dọn.
 - **Không** gộp `storage-service` vào `content-service`, dù nó nhỏ: nó có phụ
   thuộc S3 riêng và vòng đời phát hành riêng.
-- **Không** bật `REQUIRE_ROLE_ENFORCEMENT` — vẫn vướng đúng lý do cũ (không realm
-  nào khai vai trò nào), xem [refactor-network-topology.md](refactor-network-topology.md) §2B.
+- ~~**Không** bật `REQUIRE_ROLE_ENFORCEMENT`~~ — **mục này đã lỗi thời.** Cả
+  nhánh phân quyền đọc claim Keycloak đã bị gỡ khỏi mã nguồn; vai trò nay đọc từ
+  DB qua `@tsudev/auth`. Xem [auth.md](auth.md).

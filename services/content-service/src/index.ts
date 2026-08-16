@@ -117,14 +117,11 @@ app.use('/api', optionalAuth)
 
 // ---------------- Blog ----------------
 //
-// KHÔNG có cổng vai trò ở đây, có chủ đích. Bản trước gắn
-// `requireRole(CONTENT_READ_ROLE)` lên chính đường đọc bài viết công khai — nó
-// chỉ vô hại vì requireRole là no-op khi REQUIRE_ROLE_ENFORCEMENT tắt. Bật cờ
-// đó lên là blog biến mất khỏi site, và đó là một trong hai lý do khiến cờ này
-// không bao giờ bật được (CLAUDE.md §Gotcha).
+// KHÔNG có cổng vai trò ở đây, có chủ đích: blog, tài liệu và dự án là nội dung
+// công khai. Bản trước từng gắn một cổng vai trò lên chính đường đọc này, thứ
+// chỉ vô hại vì cổng đó khi ấy là no-op — bật lên là blog biến mất khỏi site.
 //
-// Blog, tài liệu và dự án là nội dung công khai. Thứ cần bảo vệ là đường GHI,
-// và nó nằm dưới /api/admin với requireAdmin() đọc vai trò từ DB.
+// Thứ cần bảo vệ là đường GHI, nằm dưới /api/admin với requireAdmin().
 app.get(
   '/api/posts',
   asyncHandler(async (req, res) => {
@@ -181,9 +178,8 @@ app.get(
 
 // ---------------- Dự án & bản quyền ----------------
 //
-// Đọc: công khai. Ghi: chỉ ADMIN, và kiểm bằng vai trò LƯU TRONG DB chứ không
-// bằng requireRole() — requireRole là no-op trừ khi REQUIRE_ROLE_ENFORCEMENT=true,
-// nên dựa vào nó để gác đường ghi là để cửa mở ở local lẫn production.
+// Đọc: công khai. Ghi: chỉ ADMIN, kiểm bằng vai trò LƯU TRONG DB qua
+// requireAdmin(). Thêm đường ghi mới phải theo đúng khuôn đó.
 
 const PROJECT_KINDS = new Set(['APP', 'TOOL', 'LIBRARY', 'SERVICE'])
 const PROJECT_STATUSES = new Set(['WIP', 'BETA', 'STABLE', 'ARCHIVED'])

@@ -14,7 +14,6 @@
 // độ bypass và mọi assertion đậu vì lý do sai.
 process.env.INTERNAL_API_TOKEN = 'test-token'
 process.env.AUTH_DEV_BYPASS = 'false'
-process.env.REQUIRE_ROLE_ENFORCEMENT = 'false'
 const request = require('supertest')
 const { app } = require('../src/index')
 

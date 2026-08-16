@@ -118,9 +118,12 @@ Nam`). Hợp lệ về hình thức, nhưng Nghị định 147/2024 hướng t�
   định được. Thêm huyện/xã hay không là đánh đổi giữa tuân thủ và quyền riêng
   tư — **quyết định của chủ dự án**, đừng tự thêm.
 - **Nợ có đăng ký, chưa trả** (đã ghi trong `CLAUDE.md`, nhắc để không quên):
-  `REQUIRE_ROLE_ENFORCEMENT` vẫn không bật được (realm khai `roles: {}`);
   root `package.json` còn ghim `react@18.3.1` cho Storybook, mà Storybook không
   nằm trong CI.
+  ~~`REQUIRE_ROLE_ENFORCEMENT` không bật được~~ — **đã trả**: cả nhánh phân quyền
+  đọc claim Keycloak bị gỡ, thay bằng vai trò đọc từ DB (`@tsudev/auth`), fail
+  closed. Bốn biến `REQUIRE_ROLE_ENFORCEMENT`, `CONTENT_READ_ROLE`,
+  `STORAGE_PRESIGN_ROLE`, `STORAGE_UPLOAD_ROLE` không còn được đọc ở đâu.
 
 ---
 
