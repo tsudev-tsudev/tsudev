@@ -43,15 +43,23 @@ jobs:
         run: rustup show
       - name: Test Rust
         run: cargo test --release
-      - name: Dựng lại .wasm
-        run: cargo build --release --target wasm32-unknown-unknown
+      # Dựng bằng ĐÚNG script mà máy dev dùng, không phải `cargo build` trần.
+      # Script đó gắn --remap-path-prefix; thiếu nó, thông điệp panic của các
+      # crate phụ thuộc nhúng đường dẫn TUYỆT ĐỐI của máy dựng
+      # (/home/<user>/.cargo/registry/...), nên bản dựng ở local và trên runner
+      # KHÔNG BAO GIỜ khớp byte. Hai bên dựng bằng hai lệnh khác nhau là cách
+      # chắc chắn nhất để cổng kiểm tra này báo đỏ vì lý do sai.
+      - name: Dựng lại .wasm bằng đúng script của repo
+        working-directory: .
+        run: npm --workspace packages/trust-crypto run build:wasm
       # Artifact .wasm được COMMIT vào repo vì image Docker dựng từ git và không
       # có Rust. Bước này là thứ duy nhất chứng minh artifact đó khớp mã nguồn —
       # thiếu nó thì mã Rust và thứ đang ký chứng chỉ có thể trôi xa nhau mà
-      # không ai biết. Bản dựng đã được kiểm là tái lập và độc lập đường dẫn.
+      # không ai biết. build:wasm đã chép vào pkg/, nên cây git bẩn = lệch.
       - name: Artifact đã commit phải khớp bản vừa dựng
+        working-directory: .
         run: |
-          cmp target/wasm32-unknown-unknown/release/trust_crypto.wasm pkg/trust_crypto.wasm \
+          git diff --exit-code -- packages/trust-crypto/pkg/trust_crypto.wasm \
             || { echo "::error::pkg/trust_crypto.wasm không khớp mã nguồn Rust — chạy 'npm --workspace packages/trust-crypto run build:wasm' rồi commit lại"; exit 1; }
 
   test:
