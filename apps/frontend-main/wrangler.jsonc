@@ -33,9 +33,17 @@
   // xem apps/frontend-main/.env.production). Chỉ để giá trị KHÔNG bí mật ở đây;
   // secret đặt bằng `wrangler secret put`, đừng commit.
   //
-  // Ba biến *_SERVICE_URL cùng trỏ một chỗ vì ba service backend đã gộp thành
-  // một tiến trình trên Render (services/backend-bundle). Giữ ba biến thay vì
+  // Bốn biến *_SERVICE_URL cùng trỏ một chỗ vì bốn service backend đã gộp thành
+  // một tiến trình trên Render (services/backend-bundle). Giữ bốn biến thay vì
   // gộp thành một: tách lại sau này không phải sửa mã.
+  //
+  // ⚠️ TỆP NÀY KHÔNG ĐƯỢC `npm run topology:gen` SINH RA và `topology:check`
+  // KHÔNG đối chiếu nó. Thêm một service mới vào config/topology.json thì phải
+  // thêm biến ở đây BẰNG TAY. Quên là biến rơi về giá trị dự phòng
+  // `http://localhost:<port>` trong lib/services.ts — Worker gọi vào chính nó và
+  // không bao giờ tới được service. Đã xảy ra thật với AUTH_SERVICE_URL ở lần
+  // phát hành đầu của auth-service: đăng nhập hỏng hoàn toàn, mà `/api/auth/
+  // providers` vẫn trả về đúng nên nhìn qua thì tưởng đã xong.
   //
   // ⚠️ Đối chiếu URL này với URL Render thật sự cấp cho service `tsudev-backend`
   // sau khi tạo — Render đổi tên nếu tên đã bị chiếm. Sai URL thì SSR nuốt lỗi
@@ -45,8 +53,7 @@
     "CONTENT_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "STORAGE_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "TRUST_SERVICE_URL": "https://tsudev-backend.onrender.com",
-    "KEYCLOAK_ISSUER": "https://auth.tsudev.com/realms/tsudev",
-    "KEYCLOAK_CLIENT_ID": "tsudev-frontend",
+    "AUTH_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "NEXTAUTH_URL": "https://tsudev.com",
     "NEXTAUTH_COOKIE_DOMAIN": ".tsudev.com"
   }
