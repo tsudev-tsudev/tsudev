@@ -42,20 +42,15 @@ nối đúng `packages/utils`. Cái bẫy của kiểu cấu hình này: thêm w
 thêm một dòng vào `references` thì workspace ấy **không được kiểm kiểu và không
 có gì báo lỗi**.
 
-🔴 **PUSH ĐANG BỊ CHẶN — `topology:check` đỏ, và đây là hệ quả của đợt đổi tên.**
+✅ **`topology:check` đã xanh trở lại.** Miễn trừ trong `config/topology.allow`
+đã được cập nhật theo các tên tệp mới (`.js` → `.ts`), và ba dòng
+`services/*/src/authMiddleware.ts` được thay bằng một dòng
+`packages/auth/src/index.ts` sau khi ba bản middleware được gộp.
 
-```
-✗ packages/ui/src/lib/siteUrls.ts — hardcode cổng 8080 (dòng 14)
-```
-
-Miễn trừ ở `config/topology.allow:33` vẫn ghi đường dẫn **`.js`** cũ. Sửa dòng đó
-thành `.ts` là hết. `.husky/pre-push` chạy `topology:check` **trước** cả cờ
-`ALLOW_MAIN_FORCE`, nên không ai đẩy được gì lên remote cho tới khi nó xanh —
-kể cả commit tài liệu không liên quan.
-
-Mỗi lần đổi tên file có literal cổng trong đó thì phải cập nhật `topology.allow`
-theo. Tôi cố ý **không** tự sửa: đợt đổi tên còn đang chạy, vá một thứ đang
-chuyển động chỉ tạo xung đột.
+Bài học giữ lại: **mỗi lần đổi tên tệp có literal cổng trong đó thì phải cập nhật
+`topology.allow` theo.** `.husky/pre-push` chạy `topology:check` **trước** cả cờ
+`ALLOW_MAIN_FORCE`, nên không ai đẩy được gì lên remote cho tới khi nó xanh — kể
+cả commit tài liệu không liên quan.
 
 ⚠️ **Chỉ có MỘT cây làm việc.** Quyền sở hữu đường dẫn trong `AGENTS.md` tránh
 được việc hai agent sửa cùng một file, **không** tránh được xung đột git khi

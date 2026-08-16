@@ -38,7 +38,8 @@ thành MỘT tiến trình `services/backend-bundle` (cổng 4000, `npm run dev:
 Render free chỉ cho 750 giờ instance/tháng cho cả tài khoản; ba tiến trình chạy
 liên tục cần 2160 giờ nên không giữ ấm được cái nào. Dev vẫn ba cổng cho dễ lặp.
 
-`packages/`: `@tsudev/db` (Prisma) · `@tsudev/ui` (design system) ·
+`packages/`: `@tsudev/db` (Prisma) · `@tsudev/auth` (xác thực + phân quyền dùng
+chung) · `@tsudev/ui` (design system) ·
 `@tsudev/types` · `@tsudev/utils` · `brand/` (ảnh nguồn) · `observability/`
 (thư mục thuần, không phải workspace).
 
@@ -78,9 +79,17 @@ nguồn là hiện trạng; TSD là đích đến.
 
 ## Quy ước code
 
-- **Service**: CommonJS, **không dấu chấm phẩy** (`.prettierrc.json` ghi đè
-  `semi:false` cho `services/**`, `packages/db/**`). App/package khác: **có**
-  chấm phẩy, nháy đơn.
+- **TypeScript ở khắp nơi.** Services là `.ts` biên dịch ra `dist/` với
+  `module: commonjs` (KHÔNG phải ESM — giữ nguyên ngữ nghĩa `require()` và bảng
+  tiền tố của backend-bundle). App là `.ts`/`.tsx`. `npm run typecheck` chạy cả
+  hai. Đổi `.ts` mới nhớ thêm vào `references` của `tsconfig.json` gốc, thiếu là
+  workspace đó **không được kiểm kiểu và không có gì báo lỗi**.
+- **Service**: **không dấu chấm phẩy** (`.prettierrc.json` ghi đè `semi:false`
+  cho `services/**/*.js`, `services/**/*.ts`, `packages/db/**`). App/package
+  khác: **có** chấm phẩy, nháy đơn.
+- **Backend dựng bằng `tsconfig.services.json`**, không phải `tsconfig.json`
+  gốc: image Docker không COPY `apps/`, nên không có `@types/react` để dựng
+  `packages/ui`.
 - **DB**: chỉ qua `@tsudev/db`. Một database, một schema, ba service dùng chung.
 - **Trình duyệt KHÔNG gọi thẳng cổng service.** Mọi lời gọi qua route proxy
   `apps/*/pages/api/<domain>/[...path].js` (kể cả storage: `/api/storage/*`).
@@ -108,21 +117,26 @@ nguồn là hiện trạng; TSD là đích đến.
   Tạo migration mới.
 - **Đổi `schema.prisma` ⇒ bắt buộc `npm run db:generate`.** Quên là job "Build
   frontends" của CI đỏ dù không ai đụng frontend — nguyên nhân hay bị chẩn nhầm.
-- **`requireRole()` là no-op** trừ khi `REQUIRE_ROLE_ENFORCEMENT=true`. Ở local
-  mọi route "được bảo vệ" đều mở. Route nhạy cảm mới phải thử một lần với biến
-  đó bật.
+- **`requireRole()` (từ `@tsudev/auth`) đọc `User.role` trong DB và FAIL CLOSED.**
+  Không còn biến môi trường nào tắt được nó. `role` là union `Role` nên gõ sai là
+  lỗi biên dịch, không phải một cổng lặng lẽ cho qua.
 - **trust-service gắn auth theo NHÁNH, không cho cả `/api`** (khác hai service
-  kia). Mặc định là công khai — thêm nhánh riêng tư mà quên khai thì nó lộ ra và
-  **không có gì báo lỗi**.
+  kia). Mặc định là công khai — thêm nhánh riêng tư mà quên khai thì nó lộ ra.
+  Danh sách nhánh nay là hằng `AUTH_PREFIXES` được xuất ra, và
+  `test/authCoverage.test.ts` bắt mọi route không nằm rõ ràng ở một bên của ranh
+  giới. Route mới buộc phải chọn một bên, không còn im lặng.
 - **`TRUST_ISSUER` được ký vào chứng chỉ**; `TRUST_SIGNING_KEY` thiếu ở
   production ⇒ service từ chối khởi động (cố ý). Xoay khoá phải chuyển khoá cũ
   vào `TRUST_SIGNING_KEYS_RETIRED` trước.
-- **`REQUIRE_ROLE_ENFORCEMENT=true` hiện KHÔNG bật được ở production.** Chỉ 4/46
-  route có `requireRole`, và **không realm nào khai một vai trò nào** — bật lên
-  là bốn route đó 403 vĩnh viễn (mất blog, presign, upload). Phải thiết kế chính
-  sách vai trò trước; xem `docs/refactor-network-topology.md` §2B.
-  Vì thế **đường ghi mới phải tự kiểm vai trò từ DB**, đừng dựa vào
-  `requireRole` — xem `requireAdmin` trong content-service.
+- **`REQUIRE_ROLE_ENFORCEMENT` ĐÃ BỊ GỠ. Đừng đặt lại.** Nó từng gác một nhánh
+  đọc vai trò từ claim Keycloak — nhánh chưa bao giờ chạy ở production vì cả hai
+  realm khai `"roles": {}`. Cờ mặc định tắt nên 4 route trông như được bảo vệ mà
+  mở toang; bật lên thì chúng 403 vĩnh viễn (một trong bốn là `GET /api/posts`,
+  đường đọc blog công khai). `.env.production.example` từng khuyến nghị đúng giá
+  trị nguy hiểm đó.
+  Phân quyền nay chỉ có MỘT nguồn: cột `User.role` trong DB, qua `@tsudev/auth`.
+  Muốn dùng lại vai trò từ token thì phải khai roles trong realm và ánh xạ sang
+  `User.role` TRƯỚC — đừng dựng lại hệ thứ hai chạy song song.
 - **`INTERNAL_API_TOKEN` gác `/api` của content/storage** khi được đặt
   (không đặt = no-op). `trust-service` cố ý đứng ngoài — endpoint của nó phải
   công khai cho bên thứ ba.
@@ -139,8 +153,8 @@ nguồn là hiện trạng; TSD là đích đến.
   đã công khai, nên cả hai cùng một giá trị. **Đừng đặt thành `cdn.tsudev.com`**
   — tên miền tuỳ chỉnh R2 không cài đặt giao thức chữ ký S3 (URL presign bị từ
   chối) và còn làm bucket thành công khai.
-- **Ba `authMiddleware.js` gần trùng nhau.** Đổi hành vi xác thực phải sửa cả
-  ba.
+- **Xác thực nằm ở MỘT chỗ: `packages/auth`.** Ba bản `authMiddleware.js` gần
+  trùng nhau đã bị gộp. Đừng dựng lại bản cục bộ trong service.
 - **`User.credits` KHÔNG phải di sản của chợ ký quỹ** — trust-service thu phí
   nộp đơn cấp dấu bằng cột này. Xoá theo là hỏng luồng nộp đơn, **không test nào
   bắt được**.
