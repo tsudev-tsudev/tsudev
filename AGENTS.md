@@ -13,17 +13,17 @@ song](#chạy-song-song) bên dưới.
 
 | Agent           | Sở hữu đường dẫn                                                                                          | Thế mạnh                                     |
 | --------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `backend-api`   | `services/{content,storage}-service/`                                                                     | route Express, truy vấn Prisma, hợp đồng API |
+| `backend-api`   | `services/{content,storage,auth}-service/`                                                                | route Express, truy vấn Prisma, hợp đồng API |
 | `trust-seal`    | `services/trust-service/`, `apps/frontend-main/pages/{trust,admin/trust}`                                 | ký Ed25519, vòng khoá, quy tắc giám sát      |
 | `frontend-web`  | `apps/frontend-main/` (trừ phần của trust-seal)                                                           | trang Next, route proxy, NextAuth            |
 | `design-system` | `packages/ui/`, `packages/brand/`                                                                         | token, component dùng chung, a11y, Storybook |
 | `data-schema`   | `packages/db/`                                                                                            | schema Prisma, migration, seed               |
 | `infra-deploy`  | `docker/`, `render.yaml`, `.github/`, `.husky/`, `scripts/`, `wrangler.jsonc`, `services/backend-bundle/` | build, phát hành, CI, biến môi trường        |
-| `qa-test`       | `services/*/test/`, `e2e/`                                                                                | unit + E2E, chẩn đoán CI                     |
+| `qa-test`       | `services/*/test/`, `e2e/`, `packages/ui/test/`                                                           | unit + E2E, cổng tương phản, chẩn đoán CI    |
 | `docs-curator`  | `docs/`, mọi `README.md`, `AGENTS.md`                                                                     | giữ tài liệu đúng và gọn                     |
 
 > **`services/backend-bundle/` là vùng giáp ranh nguy hiểm.** Nó không chứa
-> logic nghiệp vụ nào — chỉ mount ba app Express của `backend-api` và
+> logic nghiệp vụ nào — chỉ mount bốn app Express của `backend-api` và
 > `trust-seal` vào một tiến trình, điều phối theo **bảng tiền tố đường dẫn**.
 > Thêm route mới có tiền tố chưa nằm trong bảng đó ⇒ route sống khi chạy service
 > riêng, nhưng **404 ở production** (nơi chạy chế độ gộp). Sửa route thì sửa

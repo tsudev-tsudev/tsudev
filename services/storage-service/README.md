@@ -10,12 +10,12 @@ npm --workspace services/storage-service test
 
 ## Endpoint
 
-| Method | Đường dẫn      | Ghi chú                                             |
-| ------ | -------------- | --------------------------------------------------- |
-| GET    | `/health`      | công khai                                           |
-| GET    | `/api/presign` | trả URL presign, cần vai trò `STORAGE_PRESIGN_ROLE` |
-| POST   | `/api/upload`  | upload phía server, cần `STORAGE_UPLOAD_ROLE`       |
-| GET    | `/api/files`   | liệt kê                                             |
+| Method | Đường dẫn      | Ghi chú                                          |
+| ------ | -------------- | ------------------------------------------------ |
+| GET    | `/health`      | công khai                                        |
+| GET    | `/api/presign` | trả URL presign, cần vai trò `MEMBER` trở lên    |
+| POST   | `/api/upload`  | upload phía server, cần vai trò `MEMBER` trở lên |
+| GET    | `/api/files`   | liệt kê                                          |
 
 ## Hai đường upload
 

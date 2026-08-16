@@ -11,7 +11,6 @@ const URL_OF = {
   storage: internalUrl(topo, 'storage'),
   content: internalUrl(topo, 'content'),
   main: publicUrl(topo, 'main'),
-  auth: publicUrl(topo, 'auth'),
 };
 
 const outDir = path.join(__dirname, '..', 'verify-output');
@@ -72,7 +71,7 @@ async function main() {
 
   // logs
   await run(
-    `${compose} logs --tail=200 keycloak minio postgres content-service storage-service frontend-main`,
+    `${compose} logs --tail=200 minio postgres content-service storage-service frontend-main`,
     'compose-logs.txt'
   );
 
@@ -81,10 +80,6 @@ async function main() {
     { name: 'storage', url: `${URL_OF.storage}/health` },
     { name: 'content', url: `${URL_OF.content}/health` },
     { name: 'frontend-main', url: `${URL_OF.main}/` },
-    {
-      name: 'keycloak-oidc',
-      url: `${URL_OF.auth}/realms/${topo.dev.realm}/.well-known/openid-configuration`,
-    },
   ];
 
   for (const ep of endpoints) {

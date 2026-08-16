@@ -1,122 +1,153 @@
-# Phiếu bàn giao — sau đợt đưa `tsudev.com` lên sóng (16/08/2026)
+# Phiếu bàn giao — sau đợt xác thực tự quản lý và tái cấu trúc giao diện (16/08/2026)
 
 > **Trạng thái tạm.** Xong hết §1 thì **xoá file này** và xoá dòng trỏ tới nó ở
 > đầu `CLAUDE.md`. Để lâu nó thành tầng tài liệu thứ hai nói khác `docs/`.
 >
-> Nguồn sự thật về vận hành là [`docs/deployment.md`](docs/deployment.md). Phiếu
-> này chỉ liệt kê **việc còn dở**, không lặp lại kiến thức đã nằm trong `docs/`.
+> Nguồn sự thật về vận hành là [`docs/deployment.md`](docs/deployment.md), về
+> xác thực/phân quyền là [`docs/auth.md`](docs/auth.md), về giao diện là
+> [`docs/design-system.md`](docs/design-system.md). Phiếu này chỉ liệt kê **việc
+> còn dở**, không lặp lại kiến thức đã nằm trong `docs/` hay `CLAUDE.md`.
 
 ## Đang chạy
 
-`https://tsudev.com` **đã lên sóng và nghiệm thu xong**: nội dung, SEO, con dấu,
-đăng nhập Keycloak đều chạy. `main` sạch, CI xanh.
+`https://tsudev.com` đã lên sóng.
 
-| Thành phần       | Ở đâu                   | Ghi chú                              |
-| ---------------- | ----------------------- | ------------------------------------ |
-| `frontend-main`  | Cloudflare Workers      | `tsudev.com` + `www.tsudev.com`      |
-| `tsudev-backend` | Render **singapore**    | gộp content+storage+trust            |
-| `tsudev-sso`     | Render **singapore**    | `auth.tsudev.com`                    |
-| PostgreSQL       | Neon **ap-southeast-1** | DB `neondb` (app) + `keycloak` (SSO) |
+| Thành phần       | Ở đâu                   | Ghi chú                                      |
+| ---------------- | ----------------------- | -------------------------------------------- |
+| `frontend-main`  | Cloudflare Workers      | `tsudev.com` + `www.tsudev.com`              |
+| `tsudev-backend` | Render **singapore**    | gộp content + storage + trust + **identity** |
+| PostgreSQL       | Neon **ap-southeast-1** | DB `neondb`                                  |
 
 Biến môi trường/secret production: **`backup/production-env-2026-08-16.txt`**
-(đã gitignore, không commit). Mất `TRUST_SIGNING_KEY` là chứng chỉ đã cấp không
-xác minh nổi — thứ duy nhất trong phiếu đó không sinh lại được.
+(đã gitignore VÀ dockerignore, không commit).
+
+Ba thứ mất là không sinh lại được:
+
+- `TRUST_SIGNING_KEY` — mất là chứng chỉ đã cấp không xác minh nổi.
+- `TOTP_ENCRYPTION_KEY` — mất là mọi thiết bị 2FA đang dùng hỏng.
+- `INTERNAL_IDENTITY_SECRET` — sinh lại được, nhưng phải đổi ĐỒNG THỜI ở
+  Cloudflare Workers và Render; lệch nhau là mọi đường ghi trả 401.
 
 ---
 
-## 1. Việc còn dở — tất cả nằm NGOÀI repo
+## 0. VIỆC ĐẦU TIÊN CỦA PHIÊN MỚI
 
-### 1.1 Xoá 3 service ở tài khoản Render **CŨ** — 🔴 làm trước
+**PR #1** (`feat/typescript-migration` → `main`) đang mở và xanh. Nó gộp cả đợt
+TypeScript/Rust lẫn đợt xác thực + giao diện này. Gộp nó trước khi bắt đầu bất
+cứ thứ gì mới.
 
-`tsudev-content`, `tsudev-storage`, `tsudev-trust` (Oregon) **vẫn đang chạy**.
-Chúng **không nằm trong tài khoản Render hiện tại** — API key của tài khoản mới
-không thấy chúng, phải đăng nhập tài khoản cũ.
+### ~~Bốn việc phải làm TAY ở production~~ — ✅ XONG 16/08
 
-Vì sao gấp, dù không tiêu giờ chạy của tài khoản mới:
+Chủ dự án xác nhận: đã xoá service `tsudev-sso` trên Render, đã đặt
+`INTERNAL_IDENTITY_SECRET` / `TOTP_ENCRYPTION_KEY` / `RESEND_API_KEY` **giống
+nhau ở Worker và Render**, đã xác minh tên miền `tsudev.com` bên Resend, và đã
+đặt mật khẩu cho tài khoản `tsudev`.
 
-- Chúng nối vào **đúng DB Neon đang chạy production**.
-- `tsudev-trust` cũ dùng **khoá ký khác** (`tsu-2026-08-13e2a3`; bản đang chạy là
-  `tsu-2026-08-efdb94`). Chứng chỉ cấp qua nó ký bằng khoá không có trong vòng
-  khoá của bản mới ⇒ `tsudev.com/trust` **không xác minh nổi**, không báo lỗi.
-- Chúng chạy **mã cũ** trên dữ liệu production.
+### THỨ TỰ PHÁT HÀNH — không được đảo
 
-Tính tới 16/08/2026 **chưa có thiệt hại**: 0 chứng chỉ, 0 đơn, 0 tổ chức. Kiểm
-lại trước khi làm gì:
+`prisma migrate deploy` **không tự chạy lúc service khởi động** (xem
+`docs/deployment.md`). Nên phải:
+
+1. **Chạy migration lên Neon TRƯỚC.** Ba migration của đợt này đều THUẦN TÍNH
+   CỘNG — mã cũ đang phục vụ không bị ảnh hưởng.
+2. Gộp PR ⇒ Render tự dựng và phát hành `tsudev-backend`.
+3. Phát hành frontend: `npm --workspace apps/frontend-main run deploy`.
+
+⚠️ **Migration xoá cột `User.keycloakId` CỐ Ý bị hoãn sang đợt sau.** Trong
+khoảng giữa bước 1 và bước 2, mã CŨ vẫn đang chạy, mà `GET /api/posts` dùng
+`include: { author: true }` ⇒ Prisma SELECT mọi cột của `User`. Xoá cột đó ở
+bước 1 là blog và trang bài viết 500 — và `lib/api.ts` nuốt lỗi thành `[]`, nên
+triệu chứng là **trang trống**, không phải trang lỗi.
+
+Xoá nó ở §1.6 bên dưới, sau khi mã mới đã lên sóng.
+
+### Nghiệm thu sau khi phát hành
 
 ```bash
-DATABASE_URL='<Neon>' node -e "const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();Promise.all([p.trustCertificate.count(),p.sealApplication.count()]).then(r=>{console.log('cert/app =',r);process.exit()})"
+curl -s https://tsudev.com/api/auth/providers   # chỉ credentials/passkey/oauth đã cấu hình
+curl -s -o /dev/null -w '%{http_code}\n' https://tsudev.com/login   # 200
 ```
 
-Nếu mất quyền vào tài khoản cũ: đường thay thế là **xoay mật khẩu Neon**, mô tả
-ở `docs/deployment.md`.
+Rồi đăng nhập thật và mở `/admin/projects` — đó là đường đã im lặng trả 401 suốt
+thời gian dài và là thứ đợt này vá.
 
-### 1.2 Thu hồi Render API key — 🔴
+---
 
-Key `rnd_DdZ4…` đã được dùng trong phiên 16/08 và **nằm trong lịch sử hội thoại
-đó**. Nó có quyền xoá mọi service trong workspace.
-Render → Account Settings → API Keys → xoá.
+## 1. Việc còn dở
 
-### 1.3 Dựng bộ ping giữ ấm — 🟠
+### 1.1 Dựng bộ ping giữ ấm — 🟠 CHƯA LÀM
 
-Thiết kế dựa trên "giữ ấm **đúng một** service" (free tier: 750 giờ
-instance/tháng cho **cả tài khoản**; một service chạy liên tục tiêu 720 giờ).
-Cần ping `https://tsudev-backend.onrender.com/health` mỗi **5 phút**.
+Free tier cấp 750 giờ instance/tháng cho **cả tài khoản**; một service chạy liên
+tục tiêu 720 giờ. Nay chỉ còn MỘT service (`tsudev-backend`) nên toàn bộ ngân
+sách dồn về nó — không còn phải đánh đổi với đường đăng nhập như khi còn
+Keycloak. Ping `https://tsudev-backend.onrender.com/health` mỗi 5 phút.
 
 **Đừng dùng GitHub Actions cron.** Repo private, mỗi lần chạy tính tối thiểu 1
-phút ⇒ 5 phút/lần là ~8.600 phút/tháng, vượt xa hạn mức 2.000. Dùng UptimeRobot
-free hoặc Better Stack free — nằm ngoài, không tốn gì.
+phút ⇒ ~8.600 phút/tháng, vượt xa hạn mức 2.000. Dùng UptimeRobot free hoặc
+Better Stack free.
 
-`tsudev-sso` **phải được ngủ**. Giữ ấm cả hai là vỡ ngân sách và Render dừng hết.
+### 1.2 ~~Giới hạn tần suất~~ — ✅ XONG 16/08
 
----
+- Đường đăng nhập: hai trục (theo IP qua bảng `LoginAttempt`, theo tài khoản qua
+  `failedLoginCount`/`lockedUntil`) trong `services/auth-service/src/throttle.ts`.
+- Nhánh công khai của con dấu: `services/trust-service/src/rateLimit.ts`, cửa sổ
+  trượt trong bộ nhớ tiến trình.
 
-## 2. Có thể làm, không gấp
+⚠️ **Bộ đếm của trust-service nằm trong RAM và giả định ĐÚNG MỘT tiến trình.**
+Giả định đó đúng hôm nay (`backend-bundle` là một tiến trình) và **vỡ** nếu chạy
+nhiều bản — lúc đó ngưỡng thực tế nhân lên theo số bản. Chú thích đầu tệp ghi rõ.
 
-- **`toi-uu-seo-nextjs`** (bài blog) viết "App Router mang lại Server Components
-  và metadata API", trong khi site chạy **Pages Router**. Không sai — đó là lời
-  khuyên chung, không khẳng định gì về tsudev — nhưng viết lại thành bài mô tả
-  đúng thứ đã dựng ở đây (sitemap/robots/canonical/OG/RSS trên Pages Router) thì
-  vừa thật vừa có giá trị hơn cho một trang portfolio.
-  Nội dung bài nằm trong **DB**; `seed.js` dùng `upsert` với `update: {}` nên sửa
-  seed **không** đổi bản ghi đang chạy. Phải sửa cả hai, và giữ cho khớp nhau.
-- **Địa chỉ pháp lý** trong `lib/legal.js` chỉ tới cấp tỉnh (`An Giang, Việt
-Nam`). Hợp lệ về hình thức, nhưng Nghị định 147/2024 hướng tới đầu mối xác
-  định được. Thêm huyện/xã hay không là đánh đổi giữa tuân thủ và quyền riêng
-  tư — **quyết định của chủ dự án**, đừng tự thêm.
-- **Cây làm việc đang có thay đổi CHƯA COMMIT của chủ dự án** — không phải rác,
-  đừng dọn: thiết lập TypeScript project references (`tsconfig.json` gốc dạng
-  solution file, `tsconfig.base.json`, `packages/utils/tsconfig.json`, script
-  `typecheck`, và `*.tsbuildinfo` trong `.gitignore`). `npm run typecheck` chạy
-  sạch nhưng **mới nối đúng `packages/utils`** — thêm workspace nào thì phải
-  thêm một dòng vào `references` của solution file, thiếu là workspace đó không
-  được kiểm kiểu và **không có gì báo lỗi**. Hỏi chủ dự án trước khi commit hộ.
-- **Nợ có đăng ký, chưa trả** (đã ghi trong `CLAUDE.md`, nhắc để không quên):
-  `REQUIRE_ROLE_ENFORCEMENT` vẫn không bật được (realm khai `roles: {}`);
-  root `package.json` còn ghim `react@18.3.1` cho Storybook, mà Storybook không
-  nằm trong CI.
+### 1.3 `npm audit`: 7 lỗ, 4 mức cao — 🟠 CHƯA LÀM
 
----
+`sharp` kế thừa CVE của libvips qua `next`; sửa cần nâng lên `next@16` —
+breaking. Phải là **đợt riêng có test đầy đủ**, đừng nhét vào commit khác.
+`qs` qua `express` thì `npm audit fix` xử lý được, không breaking.
 
-## 3. Nghiệm thu nhanh — chạy sau mọi thay đổi production
+### 1.4 Bật CSP thật — 🟡 CHƯA LÀM
+
+CSP đang ở **`Content-Security-Policy-Report-Only`, CÓ CHỦ ĐÍCH**, không phải
+quên. Trình duyệt PUT thẳng lên endpoint R2 bằng URL presign, mà host đó đến từ
+biến môi trường chứ không biết được lúc build — bật chặn mù là upload chết **mà
+không có lỗi nào phía máy chủ**.
+
+Cách bật: mở site, thao tác thật vài phút (đăng nhập, xem blog, **upload một
+tệp**, **đăng ký một passkey**), xem Console. Không có dòng "Report Only" nào thì
+đổi tên key trong `apps/frontend-main/next.config.js` thành
+`Content-Security-Policy`.
+
+> Đợt này thêm một script NỘI TUYẾN trong `pages/_document.tsx` (chống nháy màu).
+> CSP thật sẽ chặn nó trừ khi có `'unsafe-inline'` hoặc một nonce. Xử lý trước
+> khi bật, nếu không mọi lần tải trang đều nháy trắng ở chế độ tối.
+
+### 1.5 Kiểm giao diện bằng MẮT — 🟠 CHƯA LÀM
+
+Đợt tái cấu trúc giao diện được canh bằng cổng tương phản tự động
+(`packages/ui/test/contrast.test.ts`, 68 phép kiểm) và E2E, nhưng **chưa ai nhìn
+thấy nó bằng mắt**. Cổng đó chứng minh màu đủ tương phản; nó không chứng minh bố
+cục đẹp hay khoảng cách hợp lý.
+
+Cần rà tay ở cả hai chế độ, ưu tiên: trang chủ · `/blog/[slug]` (mục lục mới) ·
+`/login` · `/settings/security` · `/admin/projects` · `/trust`.
+
+### 1.6 Xoá cột `User.keycloakId` — 🟡 CHỜ mã mới lên sóng
+
+Hoãn khỏi đợt phát hành trước có chủ đích (xem §0). Khi `tsudev-backend` đã chạy
+mã mới và không còn tiến trình nào dùng schema cũ:
 
 ```bash
-# 1. Bản dựng KHÔNG nhiễm giá trị dev. Thấy "e2e-dev" là ai cũng đăng nhập
-#    được vào tài khoản ADMIN bằng mật khẩu devpass. Đã từng xảy ra thật.
-curl -s https://tsudev.com/api/auth/providers      # phải CHỈ có "keycloak"
-
-# 2. Nội dung thật sự tới được trình duyệt (không phải trang trống).
-curl -s https://tsudev.com/projects | grep -c "tsudev Platform"   # 1
-curl -s https://tsudev.com/sitemap.xml | grep -c "<loc>"          # 23
-
-# 3. Endpoint công khai của con dấu không bị cổng chặn nuốt.
-curl -s -o /dev/null -w "%{http_code}\n" https://tsudev.com/api/trust/programs   # 200
-
-# 4. Không còn di sản diễn đàn/chợ/tin nhắn lọt ra trang công khai.
-for p in / /blog /docs /projects /trust /terms /privacy /rules; do
-  curl -s "https://tsudev.com$p" | sed 's/<[^>]*>//g' \
-   | grep -oE "diễn đàn|hệ sinh thái|/api/users|tin nhắn" | sort -u
-done   # không ra gì là đúng
+# bỏ trường keycloakId khỏi packages/db/prisma/schema.prisma, rồi:
+npm --workspace packages/db exec -- prisma migrate dev --name drop_keycloak_id
 ```
 
-**Deploy frontend luôn qua `npm --workspace apps/frontend-main run deploy`**,
-đừng gọi thẳng `opennextjs-cloudflare` — lý do ở `docs/deployment.md`.
+Mọi giá trị trong cột đều NULL và không dòng mã nào đọc nó, nên đây thuần tuý là
+dọn dẹp — không có dữ liệu nào mất.
+
+---
+
+## 2. Nợ có đăng ký, KHÔNG phải việc cần làm
+
+- **Storybook không nằm trong CI** và root còn ghim `react@18.3.1` cho nó. App
+  thật chạy React 19. Đợt này thêm prop `inputRef` cho `Input` thay vì dựa vào
+  `ref` đi lọt qua `...props` — chính vì khoảng cách đó.
+- **`documents-tsudev.md` là ĐẶC TẢ, không phải hiện trạng.** Nó vẫn mô tả
+  Keycloak. Mã nguồn là hiện trạng.

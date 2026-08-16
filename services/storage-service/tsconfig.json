@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // CommonJS có chủ đích. Chuyển sang ESM sẽ đổi ngữ nghĩa require() và kéo
+    // theo bảng tiền tố của backend-bundle — rủi ro không mua lại được gì.
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node", "jest"]
+  },
+  // test/ đứng ngoài bản dựng: nó không được đóng gói vào dist/. ts-jest vẫn
+  // biên dịch VÀ kiểm kiểu chúng lúc chạy test, dùng chính cấu hình này.
+  "include": ["src/**/*"],
+  "references": [{ "path": "../../packages/types" }, { "path": "../../packages/auth" }]
+}

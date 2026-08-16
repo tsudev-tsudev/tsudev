@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "rootDir": "src",
+    "outDir": "dist",
+
+    // CHỈ phát sinh .d.ts, không phát sinh .js. Package này được Next tiêu thụ
+    // thẳng từ `src/index.tsx` qua `transpilePackages`, và esbuild dựng bản lib
+    // riêng. Phát sinh .js ở đây là tạo ra bản dựng thứ ba không ai dùng nhưng
+    // vẫn có thể bị resolve nhầm.
+    "emitDeclarationOnly": true
+  },
+  // stories/ cố ý đứng ngoài: Storybook không nằm trong CI và còn lấy react@18
+  // từ root, nên kiểm kiểu chúng chỉ tạo ra tiếng ồn không chặn được lỗi thật.
+  "include": ["src/**/*"],
+  "exclude": ["src/stories/**"]
+}

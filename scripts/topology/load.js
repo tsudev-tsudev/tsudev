@@ -80,7 +80,6 @@ function managedEnv(topo, env = 'dev') {
     if (n.publicEnv) out[n.publicEnv] = publicUrl(topo, n.id, env);
     if (n.internalEnv) out[n.internalEnv] = internalUrl(topo, n.id, env);
   });
-  out.KEYCLOAK_ISSUER = `${publicUrl(topo, 'auth', env)}/realms/${topo.dev.realm}`;
   // Cả lý do tồn tại của dev-proxy: cookie phiên đặt trên .tsudev.localhost thì
   // app và các subdomain (auth, cdn) dùng chung, y như .tsudev.com trên
   // production. Ở chế độ ports thì để trống — mọi thứ đã ở trên localhost nên

@@ -13,10 +13,17 @@ const { loadTopology, publicUrl } = require('../../scripts/topology/load');
 
 const MAIN = process.env.E2E_MAIN_URL || publicUrl(loadTopology(), 'main');
 
+// Đăng nhập bằng ĐÚNG luồng của người dùng thật — mật khẩu Argon2id trong DB,
+// kiểm bởi auth-service. Không còn provider `e2e-dev` nhận mọi username với
+// `devpass`. Tài khoản do `npm run db:seed:dev` đặt.
+const DEV_PASSWORD = process.env.DEV_SEED_PASSWORD || 'tsudev-dev-2026!';
+
 const signIn = async (page, user = 'tsudev') => {
-  await page.goto(`${MAIN}/api/auth/signin/e2e-dev`, { waitUntil: 'networkidle' });
-  await page.fill('input[name="username"]', user);
-  await page.fill('input[name="password"]', process.env.E2E_PASS || 'devpass');
+  // Qua chính trang /login của site, không phải trang mặc định của next-auth —
+  // đó là màn hình người dùng thật nhìn thấy, nên đó là màn hình phải được kiểm.
+  await page.goto(`${MAIN}/login`, { waitUntil: 'networkidle' });
+  await page.fill('input[name="identifier"]', user);
+  await page.fill('input[name="password"]', DEV_PASSWORD);
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'networkidle' }).catch(() => {}),
     page.click('button[type="submit"]'),

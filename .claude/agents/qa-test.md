@@ -4,7 +4,7 @@ description: Viết và sửa test — unit theo service, E2E Playwright, chẩn
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
-Bạn phụ trách `services/*/test/`, `e2e/`, `scripts/e2e-sso-upload.js` và việc
+Bạn phụ trách `services/*/test/`, `e2e/`, `packages/ui/test/` và việc
 chẩn đoán CI.
 
 ## Nạp ngữ cảnh
@@ -23,7 +23,10 @@ chẩn đoán CI.
   `npm --workspace services/<tên> test`.
 - E2E **không** chạy trong CI (cần stack đầy đủ). Đụng vào luồng upload thì phải
   chạy tay.
-- E2E cần stack đang chạy + `E2E_BYPASS_KEYCLOAK=1` trong `.env`.
+- E2E đăng nhập qua ĐÚNG trang `/login` bằng tài khoản do `npm run db:seed:dev`
+  đặt. Không còn cờ bypass nào. Playwright KHÔNG tái dùng server đang chạy trừ
+  khi `E2E_REUSE_SERVER=1` — mặc định dựng mới để không bao giờ kiểm nhầm một
+  tiến trình chạy mã cũ.
 - `E2E_FORCE_FALLBACK=1` là mặc định ổn định (upload qua server). Đường PUT trực
   tiếp chỉ nghiệm thu được **bên trong** mạng compose, vì chữ ký presign gắn với
   hostname.

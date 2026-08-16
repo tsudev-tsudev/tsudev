@@ -1,0 +1,58 @@
+// Cổng chặn x-internal-token (giai đoạn 5). Bốn service backend nằm ở URL Render
+// công khai vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render —
+// đây là lớp bù cho việc không giấu được chúng sau mạng nội bộ.
+//
+// Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
+process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
+process.env.INTERNAL_API_TOKEN = 'test-token'
+const request = require('supertest')
+const { app } = require('../src/index')
+
+const { signIdentity } = require('@tsudev/identity-token')
+
+/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+const asUser = async (sub: string) => ({
+  Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
+})
+
+// process.env dùng chung giữa các file test khi jest chạy --runInBand, nên phải
+// trả lại nguyên trạng — nếu không, file chạy sau sẽ bị cổng chặn này mà không
+// hiểu vì sao 401.
+afterAll(() => {
+  delete process.env.INTERNAL_API_TOKEN
+})
+
+describe('storage-service — cổng chặn x-internal-token', () => {
+  test('thiếu header ⇒ 401', async () => {
+    const res = await request(app)
+      .get('/api/files')
+      .set(await asUser('tester'))
+    expect(res.status).toBe(401)
+  })
+
+  test('sai token ⇒ 401', async () => {
+    const res = await request(app)
+      .get('/api/files')
+      .set('x-internal-token', 'sai-be-bet')
+      .set(await asUser('tester'))
+    expect(res.status).toBe(401)
+  })
+
+  test('đúng token ⇒ đi tiếp (không còn 401 vì token)', async () => {
+    const res = await request(app)
+      .get('/api/files')
+      .set('x-internal-token', 'test-token')
+      .set(await asUser('tester'))
+    expect(res.status).not.toBe(401)
+  })
+
+  test('/health đứng ngoài cổng chặn — health check của Render phải chạy', async () => {
+    const res = await request(app).get('/health')
+    expect(res.status).toBe(200)
+  })
+})
+
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và các biến top-level (`request`, `app`) của những tệp test
+// khác nhau sẽ đụng tên nhau. Không đổi gì lúc chạy.
+export {}

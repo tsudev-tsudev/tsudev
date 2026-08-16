@@ -4,8 +4,8 @@
   "description": "Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, con dấu tín nhiệm.",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#000000",
+  "theme_color": "#eef3fa",
+  "background_color": "#eef3fa",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

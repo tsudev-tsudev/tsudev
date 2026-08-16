@@ -14,6 +14,9 @@ import { Badge } from './components/Badge';
 import { SectionHeading } from './components/SectionHeading';
 import { Avatar } from './components/Avatar';
 import { Stat } from './components/Stat';
+import { ThemeToggle } from './components/ThemeToggle';
+import { Icon } from './components/Icon';
+import { TableOfContents } from './components/TableOfContents';
 import { MAIN_URL } from './lib/siteUrls';
 
 export {
@@ -34,6 +37,18 @@ export {
   SectionHeading,
   Avatar,
   Stat,
+  ThemeToggle,
+  Icon,
+  TableOfContents,
 };
 
 export default Layout;
+
+// Kiểu của prop cũng là một phần hợp đồng công khai của design system. Không
+// xuất chúng thì nơi dùng buộc phải viết `string` rồi đụng vào union bên trong —
+// đúng thứ đã xảy ra với `tone` của Badge ở trang quản trị dự án.
+export type { BadgeTone } from './components/Badge';
+export type { ButtonSize, ButtonVariant } from './components/Button';
+export type { ToastType } from './components/Toast';
+export type { IconName } from './components/Icon';
+export type { TocItem } from './components/TableOfContents';

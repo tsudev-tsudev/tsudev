@@ -1,35 +1,137 @@
-node_modules
-.env
-.DS_Store
-.next
-dist
-coverage
-logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-/.cache
-verify-output/
-*:Zone.Identifier
-.env.local
-# Bản sao lưu .env do script sinh ra (.env.bak-<timestamp>). Chúng chứa NGUYÊN
-# VĂN mọi secret của .env, kể cả TRUST_SIGNING_KEY — trước đây không khớp mẫu
-# nào ở trên nên `git add -A` sẽ nuốt gọn.
-.env.bak*
-.env.*.bak
-.pgdata/
+# =============================================================================
+# 1. BÍ MẬT
+#
+# Nhóm này quan trọng hơn toàn bộ phần còn lại cộng lại, và nó có một giới hạn
+# phải hiểu rõ: .gitignore chỉ chặn thứ CHƯA được commit. Bí mật đã lọt vào
+# lịch sử thì phải XOAY KHOÁ — thêm một dòng vào đây không gỡ được nó ra.
+#
+# Nguyên tắc: chặn theo MẶC ĐỊNH, rồi mở lại đúng những tệp công khai có chủ
+# đích. Làm ngược lại (liệt kê từng thứ cần chặn) đã suýt hỏng một lần: bản sao
+# lưu `.env.bak-<timestamp>` do script sinh ra không khớp mẫu nào, và
+# `git add -A` sẽ nuốt gọn cả TRUST_SIGNING_KEY.
+# =============================================================================
 
-# Trạng thái runtime của Claude Code — riêng .claude/agents/ thì PHẢI commit
-.claude/scheduled_tasks.lock
-.claude/settings.local.json
+# Mọi biến thể .env — kể cả .env.bak-*, .env.local, apps/*/.env.local
+.env
+.env.*
+# ...trừ ba tệp cố ý công khai. Liệt kê theo ĐƯỜNG DẪN CHÍNH XÁC, không theo
+# mẫu: một `.env.production` mọc ra ở chỗ khác vẫn phải bị chặn.
+!.env.example
+!.env.production.example
+!apps/frontend-main/.env.production
+
+# Tệp secret của Cloudflare Workers. Trước đây CHỈ được che bởi .gitignore cấp
+# app — tạo nó ở gốc repo hay ở một app thứ hai là lọt thẳng vào commit.
+.dev.vars
+.dev.vars.*
+
+# Khoá riêng và chứng thư ở mọi định dạng. Lộ TRUST_SIGNING_KEY đồng nghĩa giả
+# được mọi chứng chỉ con dấu đã và sẽ cấp.
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.asc
+*.gpg
+*.ppk
+id_rsa*
+id_ecdsa*
+id_ed25519*
+
+# Trạng thái hạ tầng — chứa cả secret lẫn sơ đồ hệ thống.
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Bản xuất dữ liệu và sao lưu DB: có thể chứa dữ liệu người dùng thật.
+# Xem scripts/export-legacy-data.js
+backup/
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+
+# =============================================================================
+# 2. SẢN PHẨM DỰNG VÀ BỘ NHỚ ĐỆM
+#
+# Không nhạy cảm, nhưng commit vào thì gây xung đột merge vô nghĩa và phình
+# repo. Ngoại lệ DUY NHẤT được commit có chủ đích:
+# packages/trust-crypto/pkg/trust_crypto.wasm — xem README của gói đó.
+# =============================================================================
+node_modules
+dist
+build
+coverage
+.nyc_output/
+*.lcov
+
+# Next.js / OpenNext / Cloudflare
+.next
+.open-next
+.wrangler
+
+# Rust (packages/trust-crypto). Chỉ khớp THƯ MỤC nhờ dấu / ở cuối.
+target/
+
+# tsc -b ghi cache biên dịch tăng dần cạnh mỗi tsconfig.
+*.tsbuildinfo
+
+# Bộ nhớ đệm của công cụ
+/.cache
+.eslintcache
+.turbo/
+.parcel-cache/
+.pnpm-store/
+.yarn/cache/
+
+# =============================================================================
+# 3. TRẠNG THÁI CỤC BỘ VÀ KẾT QUẢ CHẠY THỬ
+# =============================================================================
+.pgdata/
+verify-output/
 
 # Playwright
 e2e/playwright-report/
 e2e/test-results/
+playwright-report/
+test-results/
 
-# Bản xuất dữ liệu trước migration DROP — có thể chứa dữ liệu production.
-# KHÔNG commit. Xem scripts/export-legacy-data.js
-backup/
-
-# File .env.local được dời tạm khi deploy (scripts/deploy-frontend.js).
+# Tệp .env.local được dời tạm khi deploy (scripts/deploy-frontend.js).
 .env.local.deploy-stash
+
+# Trạng thái runtime của Claude Code — riêng .claude/agents/ thì PHẢI commit.
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
+# =============================================================================
+# 4. NHẬT KÝ
+# =============================================================================
+logs
+*.log
+
+# =============================================================================
+# 5. RÁC CỦA HỆ ĐIỀU HÀNH VÀ TRÌNH SOẠN THẢO
+# =============================================================================
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+# Alternate Data Stream do Windows gắn vào tệp tải từ Internet.
+*:Zone.Identifier
+
+# =============================================================================
+# 6. TÀN DƯ CỦA MERGE / PATCH
+#
+# `git add -A` sau một lần merge hỏng sẽ nuốt cả ba loại này.
+# =============================================================================
+*.orig
+*.rej
+*.bak
+*.tmp

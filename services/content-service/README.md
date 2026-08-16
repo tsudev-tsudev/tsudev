@@ -23,10 +23,11 @@ phải đăng ký trước dòng đó.
 
 ## Lưu ý
 
-- **Đường ghi không dựa vào `requireRole()`.** Hàm đó là no-op trừ khi
-  `REQUIRE_ROLE_ENFORCEMENT=true`, mà biến đó hiện không bật được ở production.
-  `/api/admin/projects` vì thế kiểm vai trò **lưu trong DB** qua `requireAdmin`.
-  Thêm đường ghi mới phải theo đúng khuôn đó, không thì cửa để ngỏ.
+- **Đọc mở, ghi đóng.** `/api/posts`, `/api/docs`, `/api/projects` là nội dung
+  công khai và KHÔNG có cổng vai trò — bản trước gắn `requireRole('content:read')`
+  lên `/api/posts`, thứ chỉ vô hại vì cổng đó là no-op. Đường ghi nằm dưới
+  `/api/admin` và kiểm vai trò **lưu trong DB** qua `requireAdmin`. Thêm đường
+  ghi mới phải theo đúng khuôn đó, không thì cửa để ngỏ.
 - **`copyrightStatus=REGISTERED` bắt buộc có `copyrightNo`.** PATCH kiểm trên
   giá trị SAU khi ghép, không phải trên phần thân request — gửi mỗi
   `copyrightStatus` vẫn phải thoả. Đây là khẳng định pháp lý, không để trống

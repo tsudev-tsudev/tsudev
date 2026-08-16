@@ -6,8 +6,7 @@ Hai nhà cung cấp, hai đường deploy khác nhau. Biết mình đang đổi 
 | ---------------- | ------------------ | --------------------------------------------------- |
 | `frontend-main`  | Cloudflare Workers | `apps/frontend-main/wrangler.jsonc`                 |
 | `backend-bundle` | Render (Docker)    | `render.yaml` + `docker/backend-service.Dockerfile` |
-| Keycloak (SSO)   | Render (Docker)    | `render.yaml` + `docker/keycloak.Dockerfile`        |
-| PostgreSQL       | ngoài (Neon)       | `DATABASE_URL`, `KC_DB_*` (secret Render)           |
+| PostgreSQL       | ngoài (Neon)       | `DATABASE_URL` (secret Render)                      |
 
 ## Frontend — Cloudflare Workers
 
@@ -36,7 +35,7 @@ Nhưng Next xếp **`.env.local` CAO HƠN `.env.production`**, mà
 Ngày 16/08/2026 điều này đã thành lỗ hổng thật trên production: bản dựng mang
 theo `E2E_BYPASS_KEYCLOAK=1`, nên NextAuth bật provider `e2e-dev` và **bất kỳ ai
 cũng đăng nhập được vào tài khoản ADMIN bằng mật khẩu `devpass`**. Cùng đường đó
-còn kéo theo `NEXTAUTH_SECRET=change-me-secret`, `KEYCLOAK_CLIENT_SECRET=dev-secret`
+còn kéo theo `NEXTAUTH_SECRET=change-me-secret`
 và khoá ký dev. Site vẫn chạy bình thường; không có gì báo lỗi.
 
 Vì thế `deploy`/`preview`/`upload` **không gọi thẳng `opennextjs-cloudflare`**
@@ -52,25 +51,30 @@ npm --workspace apps/frontend-main run deploy
 **Nghiệm thu sau mỗi lần deploy** — một lệnh, đáng chạy mọi lần:
 
 ```bash
-curl -s https://tsudev.com/api/auth/providers   # phải CHỈ có "keycloak"
+curl -s https://tsudev.com/api/auth/providers   # phải CHỈ có credentials/passkey/oauth đã cấu hình
 ```
 
 Thấy `e2e-dev` trong đó là bản dựng đã nhiễm giá trị dev — dừng và tìm nguồn.
 
 ## Backend — Render
 
-Blueprint `render.yaml` khai báo **2** web service, cả hai `plan: free`,
-`region: singapore`: `tsudev-backend` (ba service gộp) và `tsudev-sso`
-(Keycloak, `healthCheckPath: /health/ready`).
+Blueprint `render.yaml` khai báo **1** web service, `plan: free`,
+`region: singapore`: `tsudev-backend` — bốn service backend gộp thành một tiến
+trình (content, storage, trust, identity).
+
+> `tsudev-sso` (Keycloak) đã được gỡ khỏi blueprint. **Gỡ khỏi repo KHÔNG xoá
+> service đang chạy trên Render** — phải xoá tay ở dashboard, nếu không nó vẫn
+> tiêu giờ instance của tài khoản.
 
 ### Ngân sách giờ chạy — quyết định thiết kế, không phải chi tiết vặt
 
 Gói free cấp **750 giờ instance/tháng cho CẢ TÀI KHOẢN**, không phải cho mỗi
 service. Một service chạy liên tục tiêu 720 giờ. Nên chỉ giữ ấm được **đúng
-một** service, và đó phải là `tsudev-backend` — nó nằm trên mọi đường đọc của
-site. `tsudev-sso` buộc phải được ngủ; cái giá là cold start ở lần đăng nhập
-đầu tiên, và đó là đánh đổi có chủ ý. Thêm service thứ ba chạy liên tục là vỡ
-ngân sách và Render dừng hết.
+một** service, và đó là `tsudev-backend` — nó nằm trên mọi đường đọc của site.
+
+Trước đây `tsudev-sso` buộc phải được ngủ, và cái giá là cold start ở lần đăng
+nhập đầu tiên. Gỡ Keycloak dồn toàn bộ 750 giờ về một chỗ và xoá luôn đánh đổi
+đó. Thêm service thứ hai chạy liên tục là vỡ ngân sách và Render dừng hết.
 
 ### Region là bất biến
 
@@ -140,47 +144,7 @@ Vì sao đáng dọn dù không tiêu giờ chạy của tài khoản mới:
 Tính tới 16/08/2026 chưa có thiệt hại: 0 chứng chỉ, 0 đơn, 0 tổ chức.
 
 Nếu mất quyền vào tài khoản cũ, đường thay thế là **xoay mật khẩu Neon** — đổi
-mật khẩu role rồi cập nhật đồng bộ `DATABASE_URL` của `tsudev-backend` và
-`KC_DB_PASSWORD` của `tsudev-sso`. Có gián đoạn ngắn.
-
-## Keycloak trên Render — những vết đã trả giá
-
-Free tier giới hạn **512MB RAM**. Bốn lần sửa liên tiếp (commit #3–#7) đều xoay
-quanh chỗ này; đừng lặp lại:
-
-- `start-dev` build lúc container khởi động → **OOM ngay bước đầu**. Phải
-  `kc.sh build` lúc `docker build`, runtime chỉ `start --optimized`.
-- `--cache=local` là **build-time option**, chỉ hợp lệ ở `kc.sh build`. Đặt nó
-  vào `start` thì Keycloak **treo cứng** chờ cluster JGroups.
-- `dev-mem` (H2 trong RAM) **sai**: free tier ngủ rồi khởi động lại thường
-  xuyên, mỗi lần là xoá sạch toàn bộ tài khoản. Phải trỏ Postgres thật.
-- Chỉ chọn `KC_DB=postgres` lúc build; URL/user/pass là runtime option đọc từ
-  secret của Render, **không bake vào image**.
-- Render tiêm `PORT` lúc chạy ⇒ `CMD` phải qua shell để giãn `${PORT}`, không
-  dùng exec-form.
-- Giới hạn heap JVM: `-Xms64m -Xmx320m -XX:MaxMetaspaceSize=128m`.
-
-Realm production: `apps/sso-auth/keycloak/realm-export.prod.json` (khác bản dev).
-
-⚠️ **`--import-realm` chỉ import khi realm CHƯA tồn tại.** Sửa file realm trong
-repo rồi deploy lại **không** đổi được realm đang chạy — Keycloak bỏ qua trong im
-lặng. Muốn đổi cấu hình realm đã chạy thì phải sửa qua Admin console/API, hoặc
-xoá realm rồi cho import lại (mất toàn bộ user của realm đó).
-
-Lấy client secret bằng API thay vì mò console:
-
-```bash
-KC=https://auth.tsudev.com
-TOK=$(curl -s -X POST "$KC/realms/master/protocol/openid-connect/token" \
-  -d client_id=admin-cli -d username=tsudev-admin \
-  --data-urlencode "password=$KEYCLOAK_ADMIN_PASSWORD" -d grant_type=password \
-  | node -pe "JSON.parse(require('fs').readFileSync(0)).access_token")
-curl -s -H "Authorization: Bearer $TOK" \
-  "$KC/admin/realms/tsudev/clients?clientId=tsudev-frontend"
-```
-
-Service ngủ dậy mất tới ~2 phút. Lệnh đăng nhập trả `invalid_grant` ngay sau khi
-Render vừa khởi động **không có nghĩa là sai mật khẩu** — đợi rồi thử lại.
+mật khẩu role rồi cập nhật `DATABASE_URL` của `tsudev-backend`. Có gián đoạn ngắn.
 
 ## Hợp đồng cổng & tên miền
 
@@ -188,11 +152,10 @@ Nguồn sự thật là **`config/topology.json`**. Nó khai cả hình trạng 
 miền production; `npm run topology:check` (chạy trong CI và `.husky/pre-push`)
 chặn cổng hardcode mọc lại. Đổi cổng ⇒ sửa file đó rồi `npm run topology:gen`.
 
-| Tên miền          | Trỏ về        | Nền tảng                         |
-| ----------------- | ------------- | -------------------------------- |
-| `tsudev.com`      | frontend-main | Cloudflare Workers               |
-| `auth.tsudev.com` | Keycloak      | Render                           |
-| _(không có)_      | R2 object     | Cloudflare R2 — xem ghi chú dưới |
+| Tên miền     | Trỏ về        | Nền tảng                         |
+| ------------ | ------------- | -------------------------------- |
+| `tsudev.com` | frontend-main | Cloudflare Workers               |
+| _(không có)_ | R2 object     | Cloudflare R2 — xem ghi chú dưới |
 
 Ba service backend **không** có tên miền công khai và cũng **không giấu được
 sau mạng nội bộ Render**: `frontend-main` chạy trên Cloudflare Workers, ngoài
@@ -231,17 +194,16 @@ Mẫu: `.env.production.example` ở gốc. Secret đặt trong dashboard Render
 
 Bắt buộc theo service:
 
-| Nơi chạy                   | Biến bắt buộc                                                                                                                                                                            |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tsudev-backend` (Render)  | `KEYCLOAK_ISSUER`, `DATABASE_URL`, `INTERNAL_API_TOKEN`, `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `TRUST_SIGNING_KEY`, `TRUST_SIGNING_KEY_ID` |
-| `tsudev-sso` (Render)      | `KEYCLOAK_ADMIN_PASSWORD`, `KC_DB_URL`, `KC_DB_USERNAME`, `KC_DB_PASSWORD`                                                                                                               |
-| Worker — `vars`            | `*_SERVICE_URL` ×3, `KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`, `NEXTAUTH_URL`, `NEXTAUTH_COOKIE_DOMAIN` — khai trong `wrangler.jsonc`                                                      |
-| Worker — `wrangler secret` | `NEXTAUTH_SECRET`, `KEYCLOAK_CLIENT_SECRET`, `INTERNAL_API_TOKEN` — **không** commit                                                                                                     |
+| Nơi chạy                   | Biến bắt buộc                                                                                                                                                                                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tsudev-backend` (Render)  | `DATABASE_URL`, `INTERNAL_IDENTITY_SECRET`, `TOTP_ENCRYPTION_KEY`, `RESEND_API_KEY`, `NEXT_PUBLIC_MAIN_URL`, `INTERNAL_API_TOKEN`, `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `TRUST_SIGNING_KEY`, `TRUST_SIGNING_KEY_ID` |
+| Worker — `vars`            | `*_SERVICE_URL` ×4, `NEXTAUTH_URL`, `NEXTAUTH_COOKIE_DOMAIN` — khai trong `wrangler.jsonc`                                                                                                                                                                         |
+| Worker — `wrangler secret` | `NEXTAUTH_SECRET`, `INTERNAL_IDENTITY_SECRET`, `INTERNAL_API_TOKEN`, `GITHUB_*`, `GOOGLE_*` — **không** commit                                                                                                                                                     |
 
-`KEYCLOAK_ISSUER` thiếu ở bất kỳ đâu là rơi về mặc định local, JWKS trỏ vào hư
-vô, **mọi token thật bị 401**.
+`INTERNAL_IDENTITY_SECRET` phải GIỐNG NHAU ở Worker và Render. Lệch nhau là mọi
+đường ghi đã xác thực trả 401, và triệu chứng là "đăng nhập rồi mà vẫn 401".
 
-⚠️ **Production tuyệt đối không đặt `E2E_BYPASS_KEYCLOAK` hay `AUTH_DEV_BYPASS`.**
+⚠️ Hai cờ `E2E_BYPASS_KEYCLOAK` và `AUTH_DEV_BYPASS` **đã bị gỡ khỏi mã nguồn**; đặt lại không có tác dụng gì.
 Chúng cho phép đăng nhập bằng bất kỳ username nào.
 
 Hai biến "một lần rồi thôi":

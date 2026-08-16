@@ -20,6 +20,47 @@ jobs:
         run: npm run topology:check
       - run: npm run format:check
       - run: npm run lint --silent
+      # Cổng kiểm kiểu. Trước đây repo có typescript trong devDependencies
+      # và 3 file .ts/.tsx chạy thật, nhưng KHÔNG có tsconfig nào và không
+      # có bước tsc — esbuild chỉ xoá kiểu chứ không kiểm. Bước này đóng lỗ đó.
+      # Kiểm kiểu đọc kiểu Prisma qua packages/db/src/index.d.ts, mà client của
+      # Prisma là mã SINH RA — chưa generate thì tsc không tìm thấy @prisma/client.
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Kiểm kiểu (TypeScript)
+        run: npm run typecheck
+
+  wasm:
+    name: WASM con dấu — artifact phải khớp mã nguồn
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/trust-crypto
+    steps:
+      - uses: actions/checkout@v4
+      # rust-toolchain.toml ghim phiên bản và target; `rustup show` cài đúng bộ đó.
+      - name: Toolchain Rust (ghim trong rust-toolchain.toml)
+        run: rustup show
+      - name: Test Rust
+        run: cargo test --release
+      # Dựng bằng ĐÚNG script mà máy dev dùng, không phải `cargo build` trần.
+      # Script đó gắn --remap-path-prefix; thiếu nó, thông điệp panic của các
+      # crate phụ thuộc nhúng đường dẫn TUYỆT ĐỐI của máy dựng
+      # (/home/<user>/.cargo/registry/...), nên bản dựng ở local và trên runner
+      # KHÔNG BAO GIỜ khớp byte. Hai bên dựng bằng hai lệnh khác nhau là cách
+      # chắc chắn nhất để cổng kiểm tra này báo đỏ vì lý do sai.
+      - name: Dựng lại .wasm bằng đúng script của repo
+        working-directory: .
+        run: npm --workspace packages/trust-crypto run build:wasm
+      # Artifact .wasm được COMMIT vào repo vì image Docker dựng từ git và không
+      # có Rust. Bước này là thứ duy nhất chứng minh artifact đó khớp mã nguồn —
+      # thiếu nó thì mã Rust và thứ đang ký chứng chỉ có thể trôi xa nhau mà
+      # không ai biết. build:wasm đã chép vào pkg/, nên cây git bẩn = lệch.
+      - name: Artifact đã commit phải khớp bản vừa dựng
+        working-directory: .
+        run: |
+          git diff --exit-code -- packages/trust-crypto/pkg/trust_crypto.wasm \
+            || { echo "::error::pkg/trust_crypto.wasm không khớp mã nguồn Rust — chạy 'npm --workspace packages/trust-crypto run build:wasm' rồi commit lại"; exit 1; }
 
   test:
     name: Migrate & test services
@@ -53,11 +94,18 @@ jobs:
           npm --workspace services/content-service test
           npm --workspace services/storage-service test
           npm --workspace services/trust-service test
+          npm --workspace services/auth-service test
           # Chế độ gộp là hình trạng CHẠY THẬT trên production. Bỏ dòng này thì
           # bất biến "endpoint công khai của trust không bị cổng chặn của content
           # nuốt" mất người canh, mà triệu chứng của nó là huy hiệu im lặng biến
           # mất trên site khách chứ không phải CI đỏ.
           npm --workspace services/backend-bundle test
+          # renderMarkdown là ranh giới XSS (đầu ra đi thẳng vào
+          # dangerouslySetInnerHTML ở ba trang). Test của nó phải chạy trong CI,
+          # không phải chỉ tồn tại trong repo.
+          npm --workspace apps/frontend-main test
+          # Cổng tương phản của hệ token màu — đọc thẳng packages/ui/src/tokens.css.
+          npm --workspace packages/ui test
 
   e2e-app:
     name: E2E — smoke các trang được giữ
@@ -101,7 +149,15 @@ jobs:
           npm run db:generate
           npm run db:migrate
           npm run db:seed
+          # seed-demo.js require dist/ của trust-service, nên phải dựng trước.
+          # db:generate phải đứng trước bước này: Prisma client là phụ thuộc
+          # kiểu của service.
+          npm run build:services
           node services/trust-service/scripts/seed-demo.js
+          # Mật khẩu cho ba tài khoản dev. Bộ E2E đăng nhập bằng đúng luồng của
+          # người dùng thật (Argon2id trong DB) — không còn provider `e2e-dev`
+          # nhận mọi username với `devpass`.
+          npm run db:seed:dev
       # Playwright tự dựng content-service, trust-service, frontend-main và
       # dev-proxy (webServer trong e2e/playwright.config.js).
       - run: npm run e2e:app
@@ -124,6 +180,8 @@ jobs:
       - run: npm ci
       - name: Generate Prisma client
         run: npm run db:generate
+      - name: Build TypeScript workspaces
+        run: npm run build:ts
       - name: Build Next.js apps
         run: |
           npm --workspace apps/frontend-main run build

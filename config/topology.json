@@ -5,13 +5,11 @@
     "mode": "proxy",
     "host": "localhost",
     "domain": "tsudev.localhost",
-    "proxyPort": 8080,
-    "realm": "tsudev-local"
+    "proxyPort": 8080
   },
   "prod": {
     "domain": "tsudev.com",
-    "scheme": "https",
-    "realm": "tsudev"
+    "scheme": "https"
   },
   "nodes": [
     {
@@ -49,20 +47,21 @@
       "internalEnv": "TRUST_SERVICE_URL"
     },
     {
+      "id": "identity",
+      "label": "auth-service",
+      "workspace": "services/auth-service",
+      "port": 4004,
+      "public": false,
+      "internalEnv": "AUTH_SERVICE_URL",
+      "note": "Sở hữu mật khẩu, TOTP, passkey và token một lần. Tách riêng vì đây là ranh giới bảo mật: nó là service DUY NHẤT đọc User.passwordHash. Ở production nó gộp vào backend-bundle như ba service kia."
+    },
+    {
       "id": "bundle",
       "label": "backend-bundle",
       "workspace": "services/backend-bundle",
       "port": 4000,
       "public": false,
       "note": "Hình trạng CHẠY THẬT của production: một tiến trình phục vụ cả content+storage+trust. Render tiêm PORT lúc chạy nên số này chỉ dùng khi gọi tay (npm run dev:merged). Không có internalEnv: không ai trỏ tới nó bằng biến môi trường, nó LÀ ba service kia."
-    },
-    {
-      "id": "auth",
-      "label": "Keycloak",
-      "port": 4100,
-      "sub": "auth",
-      "public": true,
-      "note": "Đổi từ 8080 ở giai đoạn 3 để nhường cổng cho dev-proxy — 8080 chạy được mà không cần quyền root."
     },
     {
       "id": "cdn",

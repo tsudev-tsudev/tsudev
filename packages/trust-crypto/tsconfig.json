@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // `WebAssembly` và `BufferSource` chỉ được khai trong lib DOM — @types/node
+    // không có chúng. Đây thuần tuý là khai báo KIỂU: gói này chạy trên Node và
+    // không đụng tới bất kỳ API DOM nào.
+    "lib": ["ES2022", "DOM"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": "js",
+    "outDir": "dist",
+    "types": ["node"]
+  },
+  "include": ["js/**/*"]
+}

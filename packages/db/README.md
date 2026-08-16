@@ -38,7 +38,7 @@ Bỏ bước 3 là job **build frontends** trong CI đỏ, dù chẳng đụng g
 ## Vai trò
 
 `enum Role`: `GUEST` · `MEMBER` · `VIP` · `MODERATOR` · `ADMIN`, mặc định
-`MEMBER`. Đây là vai trò **ứng dụng**, khác với vai trò trong token Keycloak —
+`MEMBER`. Đây là NGUỒN SỰ THẬT DUY NHẤT về phân quyền — claim `role` trong khẳng định danh tính chỉ để tham khảo và không nâng được quyền —
 xem [../../docs/auth.md](../../docs/auth.md).
 
 ## Seed

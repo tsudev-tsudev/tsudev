@@ -429,6 +429,11 @@ xanh với override `docker` đã gỡ; 4 bộ test service xanh (29/29).
 
 ### 2B — `REQUIRE_ROLE_ENFORCEMENT=true`: **KHÔNG bật, đang bị chặn** 🔴
 
+> **Đã giải quyết theo hướng khác — mục này giữ làm biên bản, đừng làm theo.**
+> Thay vì gỡ vướng để bật cờ, cả nhánh đọc claim Keycloak đã bị gỡ bỏ; phân
+> quyền nay chỉ đọc `User.role` từ DB qua `@tsudev/auth` và fail closed.
+> Xem [auth.md](auth.md).
+
 Kế hoạch ban đầu định bật cờ này cho production. **Khảo sát cho thấy làm vậy sẽ
 gây mất dịch vụ, không phải siết bảo mật.** Bằng chứng:
 

@@ -10,23 +10,11 @@ Bạn phụ trách `docker/`, `docker-compose.yml`, `render.yaml`,
 
 ## Nạp ngữ cảnh
 
-1. `docs/deployment.md` — luôn đọc. Phần Keycloak ghi lại bốn lần sửa liên tiếp
-   đã trả giá; đọc trước khi đụng `docker/keycloak.Dockerfile`.
+1. `docs/deployment.md` — luôn đọc.
 2. Chú thích đầu `docker/backend-service.Dockerfile` — giải thích vì sao build
    context phải là gốc repo.
 
 ## Bẫy đã trả giá — đừng lặp lại
-
-Keycloak trên Render, free tier **512MB RAM**:
-
-- `start-dev` build lúc container khởi động ⇒ **OOM ngay bước đầu**. Phải
-  `kc.sh build` lúc docker build, runtime chỉ `start --optimized`.
-- `--cache=local` là **build-time option**. Đặt vào `start` ⇒ Keycloak **treo
-  cứng** chờ cluster JGroups.
-- `dev-mem` (H2 trong RAM) ⇒ free tier ngủ rồi khởi động lại là **xoá sạch toàn
-  bộ tài khoản**. Phải trỏ Postgres thật.
-- Render tiêm `PORT` lúc chạy ⇒ `CMD` phải qua shell để giãn `${PORT}`, không
-  dùng exec-form.
 
 Image backend:
 

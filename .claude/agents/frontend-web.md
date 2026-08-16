@@ -27,7 +27,8 @@ Bạn phụ trách `apps/frontend-main` (:3000) — app Next duy nhất của ts
   đăng nhập ở diễn đàn bị đá về `:3000`.
 - Ở local hai app **không** chia sẻ cookie phiên (`localhost:3000` vs `:3001`) —
   đó là đúng, không phải lỗi cần sửa.
-- Giao diện **chỉ có chế độ tối**. Đừng thêm nhánh sáng.
+- Giao diện có **hai chế độ**, Sáng là mặc định. Đừng cắm cứng mã màu — dùng
+  token; `--on-vivid` đảo theo chế độ còn mã hex thì không.
 - Component dùng chung thuộc `packages/ui`. Viết trong `apps/*` chỉ khi thật sự
   chỉ một app dùng.
 

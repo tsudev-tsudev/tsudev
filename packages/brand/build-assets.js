@@ -432,8 +432,11 @@ async function main() {
     start_url: '/',
     display: 'standalone',
     // Khớp với giao diện tối duy nhất của site (xem packages/ui/src/tokens.css).
-    theme_color: '#000000',
-    background_color: '#000000',
+    // Chế độ SÁNG là mặc định của site, nên màu khởi động của PWA phải là
+    // --surface của chế độ sáng. Để '#000000' thì màn hình chờ đen chuyển sang
+    // trang sáng — một cú nháy ngược, ở đúng khoảnh khắc đầu tiên người dùng nhìn.
+    theme_color: '#eef3fa',
+    background_color: '#eef3fa',
     icons: [
       { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
       { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
@@ -448,8 +451,10 @@ async function main() {
   console.log('\n[5/5] Ảnh Open Graph 1200×630');
   const OG_W = 1200;
   const OG_H = 630;
-  // Nền dùng --surface/--panel của packages/ui/src/tokens.css: ảnh xem trước
-  // phải trông như cùng một site, không phải một tấm bìa rời.
+  // Nền CỐ Ý dùng bảng màu TỐI, không bám theo --surface (nay là màu sáng).
+  // Ảnh xem trước được các nền tảng chia sẻ cache lại và hiển thị giống nhau cho
+  // mọi người — nó không thể đi theo lựa chọn sáng/tối của từng người đọc, nên
+  // nó là một hằng thương hiệu.
   const ogBackdrop = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_W}" height="${OG_H}">
       <defs>

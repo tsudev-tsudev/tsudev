@@ -15,7 +15,10 @@ Bạn phụ trách `packages/ui` và `packages/brand`.
 
 ## Luật của vùng này
 
-- **Chỉ giao diện tối.** `:root { color-scheme: dark }`, không có chế độ sáng.
+- **Hai chế độ, Sáng là mặc định.** `:root` = bảng sáng, `:root[data-theme='dark']`
+  ghi đè. KHÔNG dùng `prefers-color-scheme`. Mọi cặp màu bị
+  `packages/ui/test/contrast.test.ts` canh ở ngưỡng WCAG AA — đổi mã màu làm
+  tụt tương phản là CI đỏ.
   Thêm nhánh `prefers-color-scheme: light` là làm hỏng một nửa bảng màu.
 - **Thứ bậc bằng độ sáng nền, không bằng viền/đổ bóng.** Card đã cố ý bỏ viền và
   shadow. Cần tách lớp thì dùng `--panel-2`.

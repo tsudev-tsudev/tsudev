@@ -5,12 +5,16 @@
 // TỒN TẠI VÌ MỘT LỖ HỔNG THẬT, đã xảy ra trên production ngày 16/08/2026:
 //
 // `apps/frontend-main/.env.local` là BẢN SAO NGUYÊN VĂN của `.env` gốc (do
-// scripts/write-env-local.js sinh ra), gồm E2E_BYPASS_KEYCLOAK=1,
-// AUTH_DEV_BYPASS=true, NEXTAUTH_SECRET=change-me-secret, KEYCLOAK_CLIENT_SECRET
-// =dev-secret và cả khoá ký dev. Next xếp `.env.local` CAO HƠN `.env.production`,
+// scripts/write-env-local.js sinh ra), gồm cả NEXTAUTH_SECRET=change-me-secret,
+// khoá ký dev, và — vào thời điểm sự cố — E2E_BYPASS_KEYCLOAK=1 cùng
+// AUTH_DEV_BYPASS=true. Next xếp `.env.local` CAO HƠN `.env.production`,
 // còn lệnh deploy thì chạy trên máy dev — nên mọi giá trị dev bị nướng vào bản
 // production. Hậu quả đã đo được: NextAuth bật provider `e2e-dev`, tức là BẤT KỲ
 // AI cũng đăng nhập được vào tài khoản ADMIN bằng mật khẩu `devpass`.
+//
+// Provider đó nay đã bị gỡ hẳn, nhưng lỗ hổng thì KHÔNG phải là nó: lỗ hổng là
+// việc giá trị dev đi được vào bản dựng production. Biến dev tiếp theo sẽ khác
+// tên, và tệp này tồn tại để chặn cả những biến chưa được đặt ra.
 //
 // Chặn từng biến một là trò đuổi bắt: mỗi biến dev mới thêm vào `.env` lại là
 // một lỗ mới, và không có gì báo lỗi. Nên ở đây làm điều dứt khoát: DỜI
@@ -67,11 +71,13 @@ try {
   const env = {
     ...process.env,
     NEXT_PUBLIC_MAIN_URL: mainUrl,
-    // Đai an toàn thứ hai, phòng khi shell của người chạy có sẵn các biến này.
-    // Chuỗi rỗng KHÁC với không đặt: mã kiểm `=== '1'` / `=== 'true'` nên rỗng
-    // là tắt, và biến đã có trong môi trường thì dotenv/Next không ghi đè.
-    E2E_BYPASS_KEYCLOAK: '',
-    AUTH_DEV_BYPASS: '',
+    // Hai cờ dev từng được xoá tường minh ở đây làm đai an toàn thứ hai. Cả hai
+    // nay đã bị GỠ KHỎI MÃ NGUỒN — không còn dòng nào đọc chúng — nên việc xoá
+    // ở đây là mã chết, và mã chết trong một tệp bảo mật đọc như một lớp phòng
+    // thủ đang hoạt động.
+    //
+    // Lớp phòng thủ THẬT vẫn là việc dời .env.local ra khỏi đường ở trên: nó bảo
+    // vệ mọi biến dev, kể cả những biến chưa tồn tại lúc viết dòng này.
   };
 
   execSync(`npx opennextjs-cloudflare build && npx opennextjs-cloudflare ${action}`, {

@@ -71,6 +71,7 @@ const processes = [
   { name: 'content-service', type: 'service', cwd: path.join(ROOT, 'services/content-service') },
   { name: 'storage-service', type: 'service', cwd: path.join(ROOT, 'services/storage-service') },
   { name: 'trust-service', type: 'service', cwd: path.join(ROOT, 'services/trust-service') },
+  { name: 'auth-service', type: 'service', cwd: path.join(ROOT, 'services/auth-service') },
   {
     name: 'frontend-main',
     type: 'next',
@@ -110,7 +111,18 @@ function spawnProc(def) {
       const nodemonBin = require.resolve('nodemon/bin/nodemon.js', { paths: [cwd] });
       child = spawn(
         process.execPath,
-        [nodemonBin, '-L', '--watch', 'src', '--ext', 'js,json', '--exec', 'node src/index.js'],
+        // Theo dõi .ts và chạy dist/: services đã sang TypeScript. `tsc -b` ở đây
+        // là biên dịch tăng dần trên toàn solution nên chỉ tốn vài trăm ms mỗi lần.
+        [
+          nodemonBin,
+          '-L',
+          '--watch',
+          'src',
+          '--ext',
+          'ts,json',
+          '--exec',
+          'tsc -b ../.. && node dist/index.js',
+        ],
         spawnOpts
       );
     } catch (err) {
