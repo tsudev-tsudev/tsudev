@@ -30,48 +30,46 @@ Ba thứ mất là không sinh lại được:
 
 ---
 
-## 0. VIỆC ĐẦU TIÊN CỦA PHIÊN MỚI
+## 0. ~~Phát hành~~ — ✅ XONG 16/08
 
-**PR #1** (`feat/typescript-migration` → `main`) đang mở và xanh. Nó gộp cả đợt
-TypeScript/Rust lẫn đợt xác thực + giao diện này. Gộp nó trước khi bắt đầu bất
-cứ thứ gì mới.
+PR #1 (20 commit) và PR #2 đã gộp vào `main`; production đang chạy mã mới.
 
-### ~~Bốn việc phải làm TAY ở production~~ — ✅ XONG 16/08
+Thứ tự đã thực hiện — **không được đảo ở lần sau**:
 
-Chủ dự án xác nhận: đã xoá service `tsudev-sso` trên Render, đã đặt
-`INTERNAL_IDENTITY_SECRET` / `TOTP_ENCRYPTION_KEY` / `RESEND_API_KEY` **giống
-nhau ở Worker và Render**, đã xác minh tên miền `tsudev.com` bên Resend, và đã
-đặt mật khẩu cho tài khoản `tsudev`.
+1. `prisma migrate deploy` lên Neon (2 migration, đều thuần tính cộng).
+   Nghiệm thu ngay sau đó: site chạy mã CŨ vẫn liệt kê bài viết thật.
+2. Gộp PR ⇒ Render tự dựng `tsudev-backend` (~160s).
+   Dấu hiệu đã lên mã mới: `/health` trả `bundled` có `identity`.
+3. `npm --workspace apps/frontend-main run deploy`.
 
-### THỨ TỰ PHÁT HÀNH — không được đảo
+### Nghiệm thu đã chạy
 
-`prisma migrate deploy` **không tự chạy lúc service khởi động** (xem
-`docs/deployment.md`). Nên phải:
+| Kiểm                                                     | Kết quả                    |
+| -------------------------------------------------------- | -------------------------- |
+| Bảy trang công khai                                      | 200                        |
+| `/api/auth/providers`                                    | chỉ `credentials, passkey` |
+| Blog còn nội dung thật                                   | 3 bài                      |
+| Endpoint công khai của con dấu + JWKS                    | 200                        |
+| Rate limit không chặn quá tay                            | 30/30 qua                  |
+| `POST /api/identity/register` với username sai định dạng | **400 `invalid_username`** |
 
-1. **Chạy migration lên Neon TRƯỚC.** Ba migration của đợt này đều THUẦN TÍNH
-   CỘNG — mã cũ đang phục vụ không bị ảnh hưởng.
-2. Gộp PR ⇒ Render tự dựng và phát hành `tsudev-backend`.
-3. Phát hành frontend: `npm --workspace apps/frontend-main run deploy`.
+Phép kiểm cuối là phép kiểm QUAN TRỌNG NHẤT, và nó được chọn có lý do: thử đăng
+nhập bằng mật khẩu sai cho ra 401 — nhưng cổng `INTERNAL_API_TOKEN` bị thiếu
+cũng cho ra đúng 401 ở tầng NextAuth, nên phép thử đó **không phân biệt được**
+"mật khẩu bị từ chối" với "request chưa bao giờ tới auth-service". `400
+invalid_username` thì chỉ có thể đến từ route handler của auth-service.
 
-⚠️ **Migration xoá cột `User.keycloakId` CỐ Ý bị hoãn sang đợt sau.** Trong
-khoảng giữa bước 1 và bước 2, mã CŨ vẫn đang chạy, mà `GET /api/posts` dùng
-`include: { author: true }` ⇒ Prisma SELECT mọi cột của `User`. Xoá cột đó ở
-bước 1 là blog và trang bài viết 500 — và `lib/api.ts` nuốt lỗi thành `[]`, nên
-triệu chứng là **trang trống**, không phải trang lỗi.
+### ⚠️ Vết đã trả giá ở chính lần phát hành này
 
-Xoá nó ở §1.6 bên dưới, sau khi mã mới đã lên sóng.
+`wrangler.jsonc` **KHÔNG** được `topology:gen` sinh ra và `topology:check`
+trước đó **không** nhìn nó. Thêm `auth-service` vào `config/topology.json` vì
+thế không kéo theo `AUTH_SERVICE_URL` cho Worker ⇒ `lib/services.ts` rơi về
+`http://localhost:4004` ⇒ Worker gọi vào chính nó ⇒ **đăng nhập hỏng hoàn
+toàn**, trong khi `/api/auth/providers` vẫn trả về đúng nên nhìn qua tưởng xong.
 
-### Nghiệm thu sau khi phát hành
-
-```bash
-curl -s https://tsudev.com/api/auth/providers   # chỉ credentials/passkey/oauth đã cấu hình
-curl -s -o /dev/null -w '%{http_code}\n' https://tsudev.com/login   # 200
-```
-
-Rồi đăng nhập thật và mở `/admin/projects` — đó là đường đã im lặng trả 401 suốt
-thời gian dài và là thứ đợt này vá.
-
----
+Đã vá ở PR #2, và `topology:check` nay canh luôn tệp đó (đã kiểm chứng nó báo
+mã thoát 1 khi thiếu biến). **Thêm service mới ⇒ vẫn phải khai biến ở
+`wrangler.jsonc` bằng tay**, chỉ khác là nay quên sẽ bị chặn.
 
 ## 1. Việc còn dở
 
@@ -131,13 +129,19 @@ Cần rà tay ở cả hai chế độ, ưu tiên: trang chủ · `/blog/[slug]`
 
 ### 1.6 Xoá cột `User.keycloakId` — 🟡 CHỜ mã mới lên sóng
 
-Hoãn khỏi đợt phát hành trước có chủ đích (xem §0). Khi `tsudev-backend` đã chạy
-mã mới và không còn tiến trình nào dùng schema cũ:
+Hoãn khỏi đợt phát hành trước có chủ đích (xem §0). Cột vẫn còn trong schema,
+nên Prisma Client đang chạy ở production VẪN SELECT nó.
 
-```bash
-# bỏ trường keycloakId khỏi packages/db/prisma/schema.prisma, rồi:
-npm --workspace packages/db exec -- prisma migrate dev --name drop_keycloak_id
-```
+⚠️ **Với `DROP`, thứ tự NGƯỢC với `ADD`.** Thêm cột thì migration đi trước, code
+đi sau. Xoá cột thì **code phải đi TRƯỚC**:
+
+1. Bỏ trường `keycloakId` khỏi `packages/db/prisma/schema.prisma`, tạo migration,
+   nhưng **chưa chạy nó lên production**.
+2. Phát hành code mới (Render + Worker). Từ lúc này không tiến trình nào còn
+   SELECT cột đó.
+3. Mới chạy `prisma migrate deploy` lên Neon.
+
+Đảo lại là `GET /api/posts` 500 ⇒ `lib/api.ts` nuốt thành `[]` ⇒ **trang trống**.
 
 Mọi giá trị trong cột đều NULL và không dòng mã nào đọc nó, nên đây thuần tuý là
 dọn dẹp — không có dữ liệu nào mất.
