@@ -36,28 +36,30 @@ Ba thứ mất là không sinh lại được:
 TypeScript/Rust lẫn đợt xác thực + giao diện này. Gộp nó trước khi bắt đầu bất
 cứ thứ gì mới.
 
-### Trước khi gộp — bốn việc phải làm TAY ở production
+### ~~Bốn việc phải làm TAY ở production~~ — ✅ XONG 16/08
 
-Không có việc nào trong số này làm được từ repo:
+Chủ dự án xác nhận: đã xoá service `tsudev-sso` trên Render, đã đặt
+`INTERNAL_IDENTITY_SECRET` / `TOTP_ENCRYPTION_KEY` / `RESEND_API_KEY` **giống
+nhau ở Worker và Render**, đã xác minh tên miền `tsudev.com` bên Resend, và đã
+đặt mật khẩu cho tài khoản `tsudev`.
 
-1. **Xoá service `tsudev-sso` trên Render.** Gỡ khỏi `render.yaml` KHÔNG xoá
-   service đang chạy; nó vẫn tiêu giờ instance của tài khoản.
-2. **Đặt ba secret mới** cho `tsudev-backend` và Worker:
-   `INTERNAL_IDENTITY_SECRET` (≥32 ký tự, **giống nhau ở cả hai**),
-   `TOTP_ENCRYPTION_KEY` (≥32 ký tự), `RESEND_API_KEY`.
-3. **Xác minh tên miền `tsudev.com` bên Resend.** Chưa có thì luồng quên mật
-   khẩu im lặng không gửi thư — có cảnh báo ở log, không có lỗi cho người dùng
-   (phản hồi luôn giống nhau để không dò được tài khoản).
-4. **Đặt mật khẩu cho tài khoản production.** Tài khoản tạo từ thời Keycloak
-   không có `passwordHash`:
+### THỨ TỰ PHÁT HÀNH — không được đảo
 
-   ```bash
-   NEW_PASSWORD='…' node services/auth-service/scripts/set-password.js tsudev
-   ```
+`prisma migrate deploy` **không tự chạy lúc service khởi động** (xem
+`docs/deployment.md`). Nên phải:
 
-   Tài khoản `tsudev` có email thật nên cũng dùng được "quên mật khẩu". Tài
-   khoản do `resolveUser()` tạo mang email `@tsudev.local` — tên miền không nhận
-   được thư, nên **chỉ** vào được bằng script trên.
+1. **Chạy migration lên Neon TRƯỚC.** Ba migration của đợt này đều THUẦN TÍNH
+   CỘNG — mã cũ đang phục vụ không bị ảnh hưởng.
+2. Gộp PR ⇒ Render tự dựng và phát hành `tsudev-backend`.
+3. Phát hành frontend: `npm --workspace apps/frontend-main run deploy`.
+
+⚠️ **Migration xoá cột `User.keycloakId` CỐ Ý bị hoãn sang đợt sau.** Trong
+khoảng giữa bước 1 và bước 2, mã CŨ vẫn đang chạy, mà `GET /api/posts` dùng
+`include: { author: true }` ⇒ Prisma SELECT mọi cột của `User`. Xoá cột đó ở
+bước 1 là blog và trang bài viết 500 — và `lib/api.ts` nuốt lỗi thành `[]`, nên
+triệu chứng là **trang trống**, không phải trang lỗi.
+
+Xoá nó ở §1.6 bên dưới, sau khi mã mới đã lên sóng.
 
 ### Nghiệm thu sau khi phát hành
 
@@ -126,6 +128,19 @@ cục đẹp hay khoảng cách hợp lý.
 
 Cần rà tay ở cả hai chế độ, ưu tiên: trang chủ · `/blog/[slug]` (mục lục mới) ·
 `/login` · `/settings/security` · `/admin/projects` · `/trust`.
+
+### 1.6 Xoá cột `User.keycloakId` — 🟡 CHỜ mã mới lên sóng
+
+Hoãn khỏi đợt phát hành trước có chủ đích (xem §0). Khi `tsudev-backend` đã chạy
+mã mới và không còn tiến trình nào dùng schema cũ:
+
+```bash
+# bỏ trường keycloakId khỏi packages/db/prisma/schema.prisma, rồi:
+npm --workspace packages/db exec -- prisma migrate dev --name drop_keycloak_id
+```
+
+Mọi giá trị trong cột đều NULL và không dòng mã nào đọc nó, nên đây thuần tuý là
+dọn dẹp — không có dữ liệu nào mất.
 
 ---
 

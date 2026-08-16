@@ -24,6 +24,18 @@ enum Role {
 // ---------------------------------------------------------------------------
 model User {
   id          String   @id @default(cuid())
+  /// Di sản của thời Keycloak. KHÔNG có dòng mã nào đọc hay ghi cột này.
+  ///
+  /// GIỮ LẠI CÓ CHỦ ĐÍCH cho tới khi mã mới đã lên sóng. Đợt phát hành này phải
+  /// THUẦN TÍNH CỘNG: `prisma migrate deploy` chạy TRƯỚC khi service khởi động
+  /// lại (nó không tự chạy lúc boot), nên trong khoảng giữa hai bước, mã CŨ vẫn
+  /// đang phục vụ. Mà `GET /api/posts` dùng `include: { author: true }` ⇒ Prisma
+  /// SELECT mọi cột của User, kể cả cột này. Xoá sớm là blog và trang bài viết
+  /// 500 — và `lib/api.ts` nuốt lỗi thành [], nên triệu chứng là TRANG TRỐNG
+  /// chứ không phải trang lỗi.
+  ///
+  /// Xoá ở đợt phát hành SAU, khi không còn tiến trình nào chạy schema cũ.
+  keycloakId  String?  @unique
   username    String   @unique
   email       String   @unique
   displayName String?
