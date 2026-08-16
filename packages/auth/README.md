@@ -11,7 +11,7 @@ lặng.
 
 Repo từng có **hai** cơ chế song song:
 
-- `requireRole()` đọc vai trò từ **claim Keycloak**, dùng ở 4 route.
+- `requireRole()` đọc vai trò từ **cột `User.role` trong DB**, fail closed.
 - `requireAdmin()`/`requireReviewer()` đọc vai trò từ **cột `User.role` trong
   DB**, dùng ở 32 route.
 

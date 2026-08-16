@@ -1,19 +1,4 @@
 services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:21.1.1
-    command: start-dev
-    environment:
-      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
-      - KEYCLOAK_IMPORT=/opt/keycloak/data/import/realm-export.json
-      # 4100 chứ không phải 8080: dev-proxy chiếm 8080 để chạy được mà không cần
-      # quyền root. Xem config/topology.json.
-      - KC_HTTP_PORT=4100
-    ports:
-      - '4100:4100'
-    volumes:
-      - ./apps/sso-auth/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
-
   postgres:
     image: postgres:15-alpine
     environment:
@@ -79,10 +64,9 @@ services:
     environment:
       - NEXTAUTH_URL=http://frontend-main:3000
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - E2E_BYPASS_KEYCLOAK=1
-      - KEYCLOAK_ISSUER=http://keycloak:4100/realms/tsudev-local
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      # Khoá ký khẳng định danh tính BFF → service. PHẢI giống giá trị của
+      # backend, nếu không mọi đường ghi đã xác thực trả 401.
+      - INTERNAL_IDENTITY_SECRET=${INTERNAL_IDENTITY_SECRET}
 
   storage-service:
     build: ./services/storage-service
@@ -117,13 +101,12 @@ services:
       - E2E_FORCE_FALLBACK=1
     depends_on:
       - frontend-main
-      - keycloak
       - storage-service
     command:
       [
         'bash',
         '-lc',
-        "for i in $(seq 1 120); do if ( (echo > /dev/tcp/frontend-main/3000) >/dev/null 2>&1 ) && ( (echo > /dev/tcp/storage-service/4002) >/dev/null 2>&1 ) && ( (echo > /dev/tcp/keycloak/4100) >/dev/null 2>&1 ); then echo 'all services up'; break; fi; echo 'waiting for services...'; sleep 1; done; node /work/scripts/e2e-sso-upload.js",
+        "for i in $(seq 1 120); do if ( (echo > /dev/tcp/frontend-main/3000) >/dev/null 2>&1 ) && ( (echo > /dev/tcp/storage-service/4002) >/dev/null 2>&1 ); then echo 'all services up'; break; fi; echo 'waiting for services...'; sleep 1; done; npx playwright test --config=e2e/playwright.config.js --project=full-stack",
       ]
 
 volumes:

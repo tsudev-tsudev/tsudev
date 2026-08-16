@@ -43,7 +43,7 @@ Hai project, tách theo thứ chúng cần:
 | Lệnh                  | Project   | Cần gì               | Ở CI |
 | --------------------- | --------- | -------------------- | ---- |
 | `npm run e2e:session` | `session` | hai frontend + proxy | ✅   |
-| `npm run e2e`         | cả hai    | + MinIO, Keycloak    | ❌   |
+| `npm run e2e`         | cả hai    | + MinIO              | ❌   |
 
 `session` là lưới an toàn của việc tái cấu trúc cổng/tên miền: đăng nhập ở main,
 bấm link điều hướng, phải sang đúng trang và **còn phiên**. Bản không cần trình
@@ -71,12 +71,12 @@ Muốn nghiệm thu đường trực tiếp thì chạy runner **bên trong** m�
 
 ```bash
 docker compose up -d minio postgres redis content-service \
-                     storage-service keycloak frontend-main
+                     storage-service frontend-main
 docker compose build e2e-runner
 docker compose run --rm -e E2E_FORCE_FALLBACK=0 e2e-runner
 ```
 
-Mã liên quan: `scripts/e2e-sso-upload.js` (kịch bản có ghi vết), và
+Mã liên quan: `e2e/tests/upload.spec.js` (project `full-stack`), và
 `services/storage-service/src/index.js` (`/api/presign`, `/api/upload`).
 
 ## Cổng CI

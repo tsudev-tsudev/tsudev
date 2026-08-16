@@ -22,12 +22,13 @@ Các lần sau chỉ cần `npm run dev:local` (DB đã có sẵn).
 - Mở http://tsudev.localhost:8080 (một cổng vào duy nhất qua
   `scripts/dev-proxy.js`; `*.localhost` tự trỏ loopback, không phải sửa
   `/etc/hosts`). Proxy hỏng: `DEV_PROXY=0 npm run dev:local`.
-- Đăng nhập dev: **bất kỳ username** + mật khẩu `devpass`
-  (`.env` đã đặt `E2E_BYPASS_KEYCLOAK=1`, không cần Keycloak).
+- Đăng nhập dev: `tsudev` (ADMIN) · `alice` (MEMBER) · `bob` (VIP), mật khẩu
+  `tsudev-dev-2026!`. Do `npm run db:seed:dev` đặt — hash Argon2id thật, đi qua
+  ĐÚNG đường mà người dùng thật đi. Không còn "bất kỳ username nào + devpass".
   `tsudev` = ADMIN (xem `/admin`), `alice` = MEMBER, `bob` = VIP.
 
 Không cần Docker cho việc thường ngày. `docker-compose.yml` chỉ dùng khi cần
-Keycloak/MinIO thật.
+MinIO thật.
 
 **Chi tiết, gỡ lỗi khởi động, đổi cổng → [docs/development.md](docs/development.md).**
 
@@ -36,7 +37,6 @@ Keycloak/MinIO thật.
 | Thư mục                    | Nội dung                                                   | Cổng |
 | -------------------------- | ---------------------------------------------------------- | ---- |
 | `apps/frontend-main`       | Next.js 15 — app duy nhất: dự án, blog, docs, trust, admin | 3000 |
-| `apps/sso-auth`            | cấu hình realm Keycloak (không phải app Node)              | —    |
 | `services/content-service` | blog, docs, dự án & bản quyền                              | 4001 |
 | `services/storage-service` | presign S3/R2, upload                                      | 4002 |
 | `services/trust-service`   | con dấu tín nhiệm                                          | 4003 |
@@ -80,17 +80,17 @@ Không có lệnh `test` ở gốc — test chạy theo từng service.
 
 ## Trạng thái
 
-| Phase | Nội dung                                                           | Trạng thái                             |
-| ----- | ------------------------------------------------------------------ | -------------------------------------- |
-| 0     | Postgres + Prisma + migration/seed, `@tsudev/db`, `@tsudev/types`  | ✅                                     |
-| 1     | Backend dùng dữ liệu thật (users/blog/docs/files) + RBAC           | ✅                                     |
-| 2     | Design system + trang chủ SSR                                      | ✅                                     |
-| 3     | Hạ tầng & giám sát: alerting Telegram/email, CI, Docker            | ✅ cần credential để kích hoạt thật    |
-| 4     | Con dấu tín nhiệm: cấp, ký, xác thực, phân phối huy hiệu           | ✅                                     |
-| 5     | Một cổng vào + nguồn sự thật cổng/tên miền (`topology:check`)      | ✅                                     |
-| 6     | Chuyển thành website dự án cá nhân: gỡ diễn đàn/chợ/tin nhắn       | ✅                                     |
-| 7     | Dự án & bản quyền + hồ sơ uy tín tổ chức                           | ✅                                     |
-| 8     | Production: Cloudflare Workers (main) + Render (service, Keycloak) | 🚧 chưa deploy migration DROP lên Neon |
+| Phase | Nội dung                                                          | Trạng thái                             |
+| ----- | ----------------------------------------------------------------- | -------------------------------------- |
+| 0     | Postgres + Prisma + migration/seed, `@tsudev/db`, `@tsudev/types` | ✅                                     |
+| 1     | Backend dùng dữ liệu thật (users/blog/docs/files) + RBAC          | ✅                                     |
+| 2     | Design system + trang chủ SSR                                     | ✅                                     |
+| 3     | Hạ tầng & giám sát: alerting Telegram/email, CI, Docker           | ✅ cần credential để kích hoạt thật    |
+| 4     | Con dấu tín nhiệm: cấp, ký, xác thực, phân phối huy hiệu          | ✅                                     |
+| 5     | Một cổng vào + nguồn sự thật cổng/tên miền (`topology:check`)     | ✅                                     |
+| 6     | Chuyển thành website dự án cá nhân: gỡ diễn đàn/chợ/tin nhắn      | ✅                                     |
+| 7     | Dự án & bản quyền + hồ sơ uy tín tổ chức                          | ✅                                     |
+| 8     | Production: Cloudflare Workers (main) + Render (backend gộp)      | 🚧 chưa deploy migration DROP lên Neon |
 
 ## Đóng góp
 

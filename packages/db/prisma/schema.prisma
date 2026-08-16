@@ -24,10 +24,6 @@ enum Role {
 // ---------------------------------------------------------------------------
 model User {
   id          String   @id @default(cuid())
-  /// Di sản của thời Keycloak. KHÔNG có dòng mã nào đọc hay ghi cột này — mọi
-  /// giá trị đều NULL. Giữ lại ở migration này để đợt thêm cột thuần TÍNH CỘNG
-  /// (triển khai được trong khi mã cũ còn chạy); xoá ở migration gỡ Keycloak.
-  keycloakId  String?  @unique
   username    String   @unique
   email       String   @unique
   displayName String?

@@ -8,7 +8,6 @@ Hạ tầng, giám sát và quy trình triển khai cho hệ sinh thái tsudev.
 Cloudflare (DNS *.tsudev.com · CDN · WAF · Zero Trust)
         │
         ├─ tsudev.com         → frontend-main   (Next.js, SSR)
-        └─ auth.tsudev.com    → Keycloak (OIDC IdP)
                 │  (API qua BFF/proxy)
                 └─ services: user · content · storage
                         │
@@ -30,8 +29,9 @@ Cloudflare (DNS *.tsudev.com · CDN · WAF · Zero Trust)
 **Hiện trạng đã chạy** khác với kế hoạch ban đầu (VPS/k8s) — thực tế dùng PaaS:
 
 - `apps/frontend-main` → **Cloudflare Workers** qua `@opennextjs/cloudflare`.
-- 4 service backend + Keycloak → **Render**, khai báo trong `render.yaml`,
-  build từ `docker/backend-service.Dockerfile` và `docker/keycloak.Dockerfile`.
+- 4 service backend gộp thành MỘT tiến trình → **Render**, khai báo trong
+  `render.yaml`, build từ `docker/backend-service.Dockerfile`. Keycloak đã được
+  gỡ; xác thực do codebase tự quản lý (xem `docs/auth.md`).
 - PostgreSQL → dịch vụ ngoài (Neon), truyền qua `DATABASE_URL` / `KC_DB_*`.
 
 Hợp đồng cổng/tên miền (cả dev lẫn production) khai ở **`config/topology.json`**,
@@ -41,14 +41,14 @@ subdomain `*.tsudev.localhost` — cùng hình trạng với `*.tsudev.com`, nê
 chia sẻ phiên đăng nhập kiểm chứng được ngay ở máy dev.
 Chi tiết và lộ trình: [../docs/refactor-network-topology.md](../docs/refactor-network-topology.md).
 
-`docker-compose.yml` ở gốc dựng full stack (Keycloak, Postgres, Redis, MinIO,
+`docker-compose.yml` ở gốc dựng full stack (Postgres, Redis, MinIO,
 services, frontends) — dùng cho phát triển và E2E, không phải cho production.
 
 `prisma migrate deploy` **không** tự chạy khi service khởi động; phải chạy trước
 khi phát hành phiên bản có migration mới.
 
 Quy trình đầy đủ, biến môi trường bắt buộc và các bẫy đã trả giá (đặc biệt là
-Keycloak trên free tier 512MB): **[../docs/deployment.md](../docs/deployment.md)**.
+ngân sách giờ instance của free tier): **[../docs/deployment.md](../docs/deployment.md)**.
 Không hardcode credential (tiêu chí §6.4).
 
 ## 3. Giám sát & cảnh báo (§4)

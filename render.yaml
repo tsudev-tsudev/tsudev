@@ -1,11 +1,14 @@
-# Blueprint Render. HAI service, không phải bốn — xem docs/deployment.md.
+# Blueprint Render. MỘT service — xem docs/deployment.md.
 #
 # NGÂN SÁCH GIỜ CHẠY, đọc trước khi thêm service: gói free cấp 750 giờ instance
 # mỗi tháng cho CẢ TÀI KHOẢN, không phải cho mỗi service. Một service chạy liên
-# tục tiêu 720 giờ. Nghĩa là chỉ giữ ấm được ĐÚNG MỘT service, và đó phải là
-# tsudev-backend (nằm trên mọi đường đọc của site). tsudev-sso buộc phải được
-# ngủ — nó chỉ thức khi có người đăng nhập, và cái giá là cold start ở lần đăng
-# nhập đầu tiên. Thêm service thứ ba chạy liên tục là vỡ ngân sách.
+# tục tiêu 720 giờ. Nghĩa là chỉ giữ ấm được ĐÚNG MỘT service, và đó là
+# tsudev-backend (nằm trên mọi đường đọc của site).
+#
+# tsudev-sso (Keycloak) ĐÃ ĐƯỢC GỠ. Xác thực nay do codebase tự quản lý và nằm
+# trong chính tsudev-backend, nên toàn bộ 750 giờ dồn về một chỗ thay vì phải
+# để đường đăng nhập ngủ và trả giá bằng cold start ở lần đăng nhập đầu tiên.
+# Thêm service thứ hai chạy liên tục là vỡ ngân sách.
 #
 # REGION LÀ BẤT BIẾN sau khi service được tạo. Đổi `region` trong file này
 # KHÔNG di chuyển service đang chạy — phải xoá và dựng lại. Trước đây không khai
@@ -28,9 +31,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Thiếu là rơi về mặc định local, JWKS trỏ vào hư vô, MỌI token thật bị 401.
-      - key: KEYCLOAK_ISSUER
-        sync: false
       # Gác /api của nhánh content và storage. Nhánh trust CỐ Ý đứng ngoài —
       # huy hiệu, trang xác minh và JWKS phải công khai cho bên thứ ba.
       - key: INTERNAL_API_TOKEN
@@ -81,23 +81,3 @@ services:
       # rot. Đặt đúng domain thật TRƯỚC lần cấp đầu tiên. Xem docs/trust-seal.md.
       - key: TRUST_ISSUER
         value: https://tsudev.com
-
-  - type: web
-    name: tsudev-sso
-    runtime: docker
-    plan: free
-    region: singapore
-    dockerfilePath: ./docker/keycloak.Dockerfile
-    dockerContext: .
-    healthCheckPath: /health/ready
-    envVars:
-      - key: KEYCLOAK_ADMIN
-        value: tsudev-admin
-      - key: KEYCLOAK_ADMIN_PASSWORD
-        sync: false
-      - key: KC_DB_URL
-        sync: false
-      - key: KC_DB_USERNAME
-        sync: false
-      - key: KC_DB_PASSWORD
-        sync: false

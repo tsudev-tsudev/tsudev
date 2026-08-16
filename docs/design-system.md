@@ -5,32 +5,86 @@ component riêng trong `apps/*` chỉ được phép khi nó thật sự chỉ d
 
 ## Token
 
-`packages/ui/src/tokens.css` khai báo toàn bộ biến CSS. **Chỉ giao diện tối** —
-không có chế độ sáng, `:root { color-scheme: dark }`. Đừng thêm nhánh
-`prefers-color-scheme: light`; hệ màu được dựng cho nền đen tuyền và một nửa
-bảng màu sẽ hỏng.
+`packages/ui/src/tokens.css` khai báo toàn bộ biến CSS. **HAI chế độ, Sáng là
+mặc định**: `:root` mang bảng màu sáng, `:root[data-theme='dark']` ghi đè.
+
+**Không dùng `prefers-color-scheme`.** Lựa chọn hiển thị là một quyết định của
+sản phẩm — một site đổi diện mạo theo cài đặt hệ điều hành thì hai người mở cùng
+một đường link sẽ thấy hai thứ khác nhau mà không ai chọn gì cả. Người dùng bật
+chế độ tối bằng nút trên header (`ThemeToggle`), lựa chọn ghi vào localStorage
+và được áp **trước khi vẽ** bởi script nội tuyến trong `pages/_document.tsx`.
+Script đó phải đồng bộ và nằm trong `<head>`; bất cứ thứ gì chạy sau lần vẽ đầu
+đều cho ra một khung hình sáng trắng trước khi chuyển sang tối.
 
 Nhóm biến chính:
 
-| Nhóm        | Biến                                                                        |
-| ----------- | --------------------------------------------------------------------------- |
-| Bề mặt      | `--surface` (#000) < `--panel` < `--panel-2`, `--border`, `--border-strong` |
-| Chữ         | `--ink`, `--ink-soft`, `--muted`                                            |
-| Thương hiệu | `--primary`, `--primary-ink`, `--primary-contrast`, `--accent`              |
-| Ngữ nghĩa   | `--success`, `--warning`, `--error`, `--on-vivid`                           |
-| Hoạ tiết    | `--grid-line`, `--glow`                                                     |
-| Chữ & hình  | `--font-sans`, `--font-mono`, `--radius-sm/md/lg`                           |
+| Nhóm        | Biến                                                                 |
+| ----------- | -------------------------------------------------------------------- |
+| Bề mặt      | `--surface` < `--panel` < `--panel-2`, `--border`, `--border-strong` |
+| Chữ         | `--ink`, `--ink-soft`, `--muted`                                     |
+| Thương hiệu | `--primary`, `--primary-ink`, `--primary-contrast`, `--accent`       |
+| Ngữ nghĩa   | `--success`, `--warning`, `--error`, `--on-vivid`                    |
+| Icon        | `--icon-nav/create/edit/danger/info/trust`                           |
+| Hoạ tiết    | `--grid-line`, `--glow`                                              |
+| Chữ & hình  | `--font-sans`, `--font-mono`, `--radius-sm/md/lg`                    |
 
-Hai luật dễ vi phạm:
+### Cổng tương phản
 
-- **Thứ bậc do độ sáng nền, không do viền/đổ bóng.** Card đã bỏ viền và shadow.
-  Thêm `border`/`box-shadow` vào card là đi ngược hệ thống — dùng `--panel-2`.
-- **Chữ đặt trên màu ngữ nghĩa phải là màu tối** (`--on-vivid`), không phải
-  trắng. Các màu đó cố ý sáng để nổi trên nền đen; chữ trắng lên trên là không
-  đạt tương phản.
+`packages/ui/test/contrast.test.ts` đọc **thẳng** `tokens.css` và kiểm mọi cặp
+chữ/nền ở CẢ HAI chế độ theo ngưỡng WCAG AA (4.5:1 cho chữ và icon mang thông
+tin, 3:1 cho viền). Đổi một mã màu làm tụt xuống dưới ngưỡng là **CI đỏ**, không
+phải một khiếu nại của người dùng vài tháng sau. Nó chạy trong job
+`Migrate & test services`.
 
-Không dùng trắng tinh (`#fff`) cho chữ trên nền đen tuyền — dùng `--ink` (#ededed)
-để giảm loé.
+Hai chế độ nghĩa là mỗi cặp màu tồn tại hai lần, và một cặp đủ tương phản ở chế
+độ tối hoàn toàn có thể không đủ ở chế độ sáng. Kiểm bằng mắt bắt được cái chói,
+không bắt được cái vừa-đủ-trượt.
+
+### Luật dễ vi phạm
+
+- **Thứ bậc chủ yếu do độ sáng nền.** Card có thêm viền hairline vì ở chế độ
+  sáng, card (trắng) trên nền trang (xanh rất nhạt) chênh nhau quá ít để mắt tự
+  dựng ra cạnh. Ở chế độ tối viền gần như vô hình và thứ bậc vẫn do độ sáng nền
+  đảm nhiệm. Đừng thêm `box-shadow` để tạo chiều sâu.
+- **Chữ trên màu ngữ nghĩa luôn là `--on-vivid`**, đừng cắm cứng mã hex.
+  `--on-vivid` là màu TỐI ở chế độ tối (các sắc ngữ nghĩa sáng) và màu TRẮNG ở
+  chế độ sáng (các sắc ngữ nghĩa đậm) — một mã hex cắm cứng đúng ở một chế độ và
+  gần như không đọc được ở chế độ kia.
+- **Đừng khai lại bảng màu song song.** `tailwind.config.js` từng có một thang
+  `primary` 50→900 cắm cứng bên cạnh bảng token; thang đó không đổi theo chế độ,
+  nên `bg-primary-100` cho ra một mảng xanh nhạt chói giữa nền đen.
+
+## Icon
+
+`Icon` (`packages/ui/src/components/Icon.tsx`) — màu **đi theo chức năng**, gắn
+cứng với tên icon và không cho truyền từ nơi gọi:
+
+| Vai trò  | Màu        | Dùng cho                         |
+| -------- | ---------- | -------------------------------- |
+| `nav`    | xanh dương | điều hướng, liên kết, mở         |
+| `create` | xanh lá    | tạo, thêm, tải lên               |
+| `edit`   | hổ phách   | sửa, cấu hình                    |
+| `danger` | đỏ         | xoá, thu hồi, huỷ                |
+| `info`   | tím        | siêu dữ liệu, thời gian, số liệu |
+| `trust`  | ngọc       | con dấu, xác minh, chữ ký        |
+
+Khi mỗi trang tự chọn màu thì cùng một hành động "xoá" sẽ đỏ ở trang này và xám
+ở trang kia, và người dùng mất khả năng đọc màu như một tín hiệu. Cần một sắc
+khác nghĩa là cần một **chức năng** khác — thêm vào bảng, đừng ghi đè tại chỗ gọi.
+
+Icon không có prop `label` sẽ bị `aria-hidden`: icon trang trí mà lọt vào cây
+a11y sẽ được đọc thành một "graphic" vô nghĩa xen giữa câu chữ.
+
+## Mục lục
+
+`TableOfContents` dùng chung cho blog, tài liệu và ba trang pháp lý. Nó có nền
+và viền riêng vì mục lục là **điều hướng**, không phải nội dung — không tách ra
+khỏi thân bài bằng một bề mặt riêng thì ở chế độ sáng nó đọc như một danh sách
+gạch đầu dòng nằm giữa bài.
+
+Neo do `extractHeadings()` và `renderMarkdown()` sinh ra bằng **cùng một** bộ
+tạo slug (`apps/frontend-main/lib/md.ts`). Hai bên tính riêng thì mục lục trỏ
+tới những neo không tồn tại, và triệu chứng chỉ là "bấm vào không nhảy".
 
 ## Cách app nạp
 

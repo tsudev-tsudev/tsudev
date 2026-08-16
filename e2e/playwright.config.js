@@ -100,10 +100,10 @@ module.exports = defineConfig({
       testMatch: /smoke\.spec\.js/,
     },
     {
-      // Cần MinIO + storage-service + Keycloak ⇒ chỉ chạy khi có full stack
+      // Cần MinIO + storage-service ⇒ chỉ chạy khi có full stack
       // (docker-compose). Không đưa vào CI.
       name: 'full-stack',
-      testMatch: /sso-upload\.spec\.js/,
+      testMatch: /upload\.spec\.js/,
     },
   ],
 });

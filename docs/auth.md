@@ -1,138 +1,149 @@
 # Xác thực & phân quyền
 
-Ba lớp riêng biệt, hay bị lẫn: **phiên trình duyệt** (NextAuth), **token gọi
-service** (Keycloak JWT), và **kiểm tra vai trò** (RBAC, hiện là opt-in).
+Ba lớp riêng biệt, hay bị lẫn:
+
+1. **Phiên trình duyệt** — NextAuth, cookie `httpOnly` trên `.tsudev.com`.
+2. **Danh tính gửi xuống service** — khẳng định có chữ ký do BFF ký.
+3. **Phân quyền** — cột `User.role` trong DB, fail closed.
+
+Xác thực do **codebase tự quản lý**. Keycloak đã được gỡ hẳn; nếu bạn đọc thấy
+`KEYCLOAK_*` ở đâu đó thì đó là dấu vết cũ, không phải cấu hình đang chạy.
 
 ## 1. Phiên trình duyệt — NextAuth
 
-Cấu hình ở `apps/*/pages/api/auth/[...nextauth].js` (mỗi app một bản).
+`apps/frontend-main/pages/api/auth/[...nextauth].ts`.
 
-- Provider chính: Keycloak OIDC (`KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`,
-  `KEYCLOAK_CLIENT_SECRET`).
-- **`tsudev-frontend` là confidential client** (`publicClient: false` trong
-  `realm-export.prod.json`), không phải public client. Lý do: `next-auth` truyền
-  `clientSecret` khi đổi mã lấy token; khai public client thì Keycloak từ chối
-  và **đăng nhập hỏng ở production dù local vẫn chạy** (local dùng
-  `E2E_BYPASS_KEYCLOAK`, không đi qua Keycloak thật). Luồng này chạy phía server
-  nên confidential cũng là lựa chọn đúng về bảo mật.
-  Secret **không nằm trong git** — Keycloak sinh ra lúc import realm; lấy ở
-  Clients → tsudev-frontend → Credentials rồi đặt vào Worker bằng
-  `wrangler secret put KEYCLOAK_CLIENT_SECRET`.
-- `session.strategy = 'jwt'`, cookie `secure` chỉ khi `NODE_ENV=production`.
-- `NEXTAUTH_COOKIE_DOMAIN` chia sẻ phiên giữa các subdomain: `.tsudev.com` ở
-  production, `.tsudev.localhost` ở local. Giá trị do `config/topology.json`
-  sinh ra, đừng đặt tay.
-  Từ giai đoạn 3, local đi qua `dev-proxy` nên app và Keycloak nằm trên hai
-  subdomain thật của `tsudev.localhost` — nghĩa là **đường chia sẻ phiên kiểm
-  chứng được ngay ở local**, đúng như `tsudev.com` / `auth.tsudev.com` trên
-  production. Trước đó thì không: mọi thứ nằm trên cùng host `localhost` khác
-  cổng, mà cookie thì không phân biệt cổng — nên bug về phạm vi cookie chỉ lộ ra
-  lần đầu khi lên production.
-  Đã đo trên Chromium và Firefox: cookie host-only **không** sang được
-  subdomain, cookie có `Domain=.tsudev.localhost` thì sang được.
-- `NEXTAUTH_URL` phải khớp origin của **chính app đang chạy**, xem
-  [development.md](development.md#biến-môi-trường).
+Ba provider:
 
-### Provider dev
+| Provider          | Dùng khi                                             |
+| ----------------- | ---------------------------------------------------- |
+| `credentials`     | tên đăng nhập/email + mật khẩu (+ mã 2FA nếu đã bật) |
+| `passkey`         | WebAuthn — chữ ký đã được auth-service kiểm          |
+| `github`/`google` | chỉ được thêm KHI ĐỦ biến môi trường                 |
 
-`E2E_BYPASS_KEYCLOAK=1` thêm provider credentials `e2e-dev`: mọi username +
-mật khẩu `devpass` (`E2E_PASS`). **Chỉ cho local và E2E.** Production tuyệt đối
-không đặt biến này.
+Provider OAuth thiếu biến thì **không được thêm vào** thay vì được dựng ra rồi
+không đăng nhập được — một nút bấm câm là lỗi khó chẩn đoán hơn một nút vắng mặt.
 
-## 2. Token gọi service — Keycloak JWT
+- `session.strategy = 'jwt'`. Cookie `httpOnly: true` khai **tường minh**:
+  next-auth gộp cấu hình cookie NÔNG ở cấp tên cookie, nên khai `sessionToken`
+  là thay thế trọn gói mặc định — kể cả `httpOnly` nằm bên trong. Bỏ dòng đó là
+  cookie phiên đọc được bằng JavaScript.
+- `pages.signIn = '/login'` — trang của chính site, không phải trang mặc định.
+- `NEXTAUTH_COOKIE_DOMAIN` do `config/topology.json` sinh; đừng đặt tay.
 
-`services/*/src/authMiddleware.js` (bốn bản gần như giống nhau) xác thực bằng
-`jose`:
+**Không có provider dev nào.** Đăng nhập ở local đi qua đúng đường của
+production: mật khẩu Argon2id trong DB. Tài khoản dev do `npm run db:seed:dev`
+đặt (`tsudev` ADMIN · `alice` MEMBER · `bob` VIP, mật khẩu `tsudev-dev-2026!`).
 
-- Lấy JWKS từ `${KEYCLOAK_ISSUER}/protocol/openid-connect/certs`.
-- Kiểm `issuer`; kiểm `audience` nếu có `KEYCLOAK_CLIENT_ID`.
-- Thiếu/sai token → `401`.
-- Gắn payload đã giải mã vào `req.user`.
+> Bản trước có provider `e2e-dev` nhận **bất kỳ username nào** với mật khẩu
+> `devpass`, gác sau `E2E_BYPASS_KEYCLOAK`. Ngày 16/08/2026 bản production đã
+> mang theo cờ đó. Cả provider lẫn cờ đã bị gỡ khỏi mã nguồn.
 
-**Hai service gắn middleware theo hai kiểu khác nhau** — nhớ kiểu của service
-mình đang sửa:
+## 2. Danh tính gửi xuống service
 
-- `content-service`, `storage-service`: `app.use('/api', auth)`.
-  Route công khai (`/health`) phải đăng ký **trước** dòng đó.
-- `trust-service`: chỉ gắn `auth` cho từng nhánh cần danh tính (`/api/trust/orgs`,
-  `/api/trust/domains`, `/api/trust/applications`, `/api/trust/certificates`,
-  `/api/trust/admin`). Mặc định ở đây là **công khai** — huy hiệu, trang xác
-  thực, thư mục và danh sách chương trình được trình duyệt của khách trên site
-  bên thứ ba tải về, hoàn toàn không có token. Thêm nhánh riêng tư mới thì phải
-  bổ sung vào danh sách đó, nếu không nó lộ ra công khai và không có gì báo lỗi.
+`packages/identity-token` — dùng chung giữa bên ký và bên kiểm.
 
-### Bypass khi phát triển
+BFF đọc phiên next-auth, ký một JWT HS256 hạn **120 giây**, gửi trong
+`Authorization: Bearer`. `packages/auth` kiểm nó. Người dùng không bao giờ giữ
+token này.
+
+Claim:
+
+| Claim  | Nghĩa                                                             |
+| ------ | ----------------------------------------------------------------- |
+| `sub`  | tên đăng nhập — service tra `User` theo giá trị này               |
+| `role` | **CHỈ ĐỂ THAM KHẢO**, không phải nguồn phân quyền                 |
+| `sv`   | `sessionVersion` lúc đăng nhập, đối chiếu với DB để thu hồi phiên |
+
+`INTERNAL_IDENTITY_SECRET` (≥32 ký tự) phải **giống nhau** ở Cloudflare Workers
+và Render. Lệch nhau ⇒ mọi đường ghi đã xác thực trả 401.
+
+> Bản trước gửi danh tính bằng header thuần `x-dev-user`, mà service chỉ đọc
+> header đó khi `AUTH_DEV_BYPASS=true` — biến không đặt ở production. Hệ quả là
+> hai lỗi ngược chiều: production 401 ở mọi đường ghi, còn bật cờ lên thì một
+> dòng header cấp quyền ADMIN.
+
+### Ranh giới của từng service
+
+- `content-service`: `/api` dùng **xác thực TUỲ CHỌN** — có Bearer thì kiểm, không
+  có thì đi tiếp. Blog/tài liệu/dự án là nội dung công khai và SSR gọi không kèm
+  token. Đường ghi nằm dưới `/api/admin` và tự gọi `requireAdmin()`.
+- `storage-service`: `requireRole('MEMBER')` theo từng route.
+- `trust-service`: auth theo **nhánh** (`AUTH_PREFIXES`). Mặc định là công khai —
+  huy hiệu, trang xác minh và JWKS phải mở cho bên thứ ba.
+  `test/authCoverage.test.ts` bắt mọi route mới phải chọn một bên.
+- `auth-service`: **không có endpoint công khai nào**; mọi thứ đi qua BFF.
+
+## 3. Phân quyền
+
+**MỘT nguồn sự thật: cột `User.role`.** `Role`: `GUEST` · `MEMBER` · `VIP` ·
+`MODERATOR` · `ADMIN`.
+
+`requireRole(role)` từ `@tsudev/auth` **fail closed**, không có biến môi trường
+nào tắt được. Lỗi DB cho 503, không phải "cho qua". Claim `role` trong khẳng
+định KHÔNG nâng được quyền — có test canh.
+
+Muốn dùng lại vai trò từ token của nhà cung cấp bên ngoài thì phải ánh xạ sang
+`User.role` TRƯỚC. Đừng dựng hệ thứ hai chạy song song: bản trước đã có, gác sau
+`REQUIRE_ROLE_ENFORCEMENT`, và nó chưa bao giờ hoạt động ở production.
+
+## 4. auth-service — nơi giữ bí mật
+
+Service DUY NHẤT đọc `User.passwordHash`. Nó tách riêng vì một ràng buộc hạ
+tầng trùng với ranh giới đúng: `frontend-main` chạy trên Cloudflare Workers,
+không có kết nối Postgres và không nạp được native module, nên Argon2id không
+thể chạy ở đó.
+
+| Cơ chế             | Chi tiết                                                             |
+| ------------------ | -------------------------------------------------------------------- |
+| Mật khẩu           | Argon2id 19MiB/2/1 (OWASP). Tối thiểu 12 ký tự.                      |
+| Chống dò tài khoản | Tài khoản không tồn tại vẫn chạy một lần verify thật (`burnTiming`)  |
+| Giới hạn tần suất  | Hai trục: theo IP (`LoginAttempt`) và theo tài khoản (`lockedUntil`) |
+| 2FA                | TOTP tự cài trên `crypto` của Node, có test theo vector RFC 6238     |
+| Mã dự phòng        | 10 mã, chỉ lưu SHA-256, dùng một lần                                 |
+| Passkey            | WebAuthn qua `@simplewebauthn/server`                                |
+| Token một lần      | Chỉ lưu SHA-256; đổi bằng `updateMany` có điều kiện `usedAt: null`   |
+
+### Vì sao đăng nhập bằng passkey không hỏi thêm TOTP
+
+Chữ ký WebAuthn được **trình duyệt buộc vào tên miền**. Một trang giả ở
+`tsudev-login.example` không lấy được chữ ký dùng cho `tsudev.com`, kể cả khi
+người dùng bị lừa hoàn toàn. Mật khẩu và TOTP đều không có tính chất đó. Bắt
+thêm một bước nữa chỉ đổi bảo mật lấy phiền phức.
+
+Passkey **vẫn** phải qua cổng khoá tài khoản — nếu không nó thành đường vòng
+quanh chính cơ chế đó.
+
+### Thu hồi phiên
+
+`User.sessionVersion` tăng khi đổi/đặt lại mật khẩu. Khẳng định mang số cũ bị từ
+chối ở tầng service — nơi truy vấn `User` đằng nào cũng đã xảy ra, nên phép so
+sánh miễn phí. Kiểm ở BFF sẽ tốn một truy vấn Workers → Neon cho **mỗi** request.
+
+## 5. Tài khoản không có mật khẩu
+
+Tài khoản tạo từ thời Keycloak không có `passwordHash`. Đường tự phục hồi là
+"quên mật khẩu", nhưng nó chỉ chạy khi tài khoản có email **thật** — mà
+`resolveUser()` tạo tài khoản với `<username>@tsudev.local`, tên miền không nhận
+được thư.
+
+Cho những tài khoản đó:
 
 ```bash
-export AUTH_DEV_BYPASS=true
-# Gọi thẳng cổng service — chỉ để gỡ rối. Từ giai đoạn 4, TRÌNH DUYỆT phải đi
-# qua BFF cùng origin: /api/storage/presign trên frontend-main.
-curl -H 'x-dev-user: alice' -H 'x-dev-roles: storage:presign' \
-     "$STORAGE_SERVICE_URL/api/presign?fileName=foo.txt"
+NEW_PASSWORD='…' node services/auth-service/scripts/set-password.js <username>
 ```
 
-- `x-dev-user` → `sub` và `preferred_username`.
-- `x-dev-roles` → `realm_access.roles` (ngăn nhau bằng dấu phẩy).
-- Mặc định khi thiếu header: `DEV_DEFAULT_USER` (`dev`) và `DEV_DEFAULT_ROLES`
-  (`admin`).
+Mật khẩu truyền qua **biến môi trường**, không phải tham số dòng lệnh: tham số
+nằm trong `ps` và trong lịch sử shell.
 
-**Không bật ở CI hay production.** CI nên dùng realm Keycloak test hoặc mock
-JWKS.
+## Biến môi trường
 
-### JWT dev có chữ ký
-
-Khi cần header `Authorization: Bearer` thật (client không gửi được header tuỳ ý):
-
-```bash
-node scripts/generate-dev-jwt.js --sub alice --roles 'storage:presign,storage:upload' --exp 3600
-```
-
-Ký HS256 bằng `DEV_JWT_SECRET`.
-
-## 3. RBAC
-
-Hai hệ vai trò tồn tại song song — biết mình đang nói về hệ nào:
-
-**MỘT nguồn sự thật: cột `User.role` trong Prisma.**
-
-`Role`: `GUEST` · `MEMBER` · `VIP` · `MODERATOR` · `ADMIN`.
-
-`requireRole(role)` (từ `@tsudev/auth`) tra tài khoản trong DB theo
-`preferred_username`/`sub` của token, rồi so với ngưỡng. **Fail closed**, và
-không có biến môi trường nào tắt được nó. Lỗi DB cho 503, không phải "cho qua".
-
-Người dùng qua được Keycloak mà service chưa từng thấy sẽ được TẠO ở mức
-`MEMBER` — mức thấp nhất có danh tính, không phải mức có đặc quyền.
-
-### Vì sao không dùng vai trò trong token
-
-Repo từng có hệ thứ hai: `requireRole()` đọc `realm_access.roles` của Keycloak,
-gác sau cờ `REQUIRE_ROLE_ENFORCEMENT`. Hệ đó **chưa bao giờ hoạt động ở
-production** — cả hai bản export realm đều khai `"roles": {}`, nên claim luôn
-rỗng. Nó chỉ xanh trong test vì test tự tiêm header `x-dev-roles`.
-
-Tệ hơn: cờ mặc định TẮT, nên 4 route dùng nó **trông như được bảo vệ mà không
-hề được bảo vệ**; và bật cờ lên thì chúng 403 vĩnh viễn (một trong bốn là
-`GET /api/posts` — đường đọc blog công khai). Cả nhánh đó đã được gỡ bỏ.
-
-Muốn dùng lại vai trò từ token thì phải khai roles trong realm và ánh xạ sang
-`User.role` TRƯỚC — đừng dựng lại hệ thứ hai chạy song song.
-
-## Keycloak local
-
-Realm export: `apps/sso-auth/keycloak/realm-export.json` — định nghĩa client
-public `tsudev-frontend` và user `devuser` / `devpass`.
-
-```bash
-docker compose up keycloak   # :4100, qua proxy: auth.tsudev.localhost:8080
-```
-
-Không có Docker thì trỏ `KEYCLOAK_ISSUER` sang một instance bên ngoài. Production
-dùng client **confidential** kèm secret thật và bắt buộc HTTPS.
-
-## Nợ kỹ thuật đã biết
-
-- Bốn `authMiddleware.js` gần trùng nhau, chỉ khác tiền tố log. Sửa hành vi xác
-  thực thì phải sửa **cả bốn** — hoặc gom về `packages/utils` (chưa làm).
-- Chưa có test tích hợp nào chạy token Keycloak thật; test hiện chỉ khẳng định
-  request không xác thực bị từ chối.
+| Biến                       | Bắt buộc ở production | Ghi chú                                     |
+| -------------------------- | --------------------- | ------------------------------------------- |
+| `NEXTAUTH_SECRET`          | ✔                     |                                             |
+| `INTERNAL_IDENTITY_SECRET` | ✔ (≥32 ký tự)         | phải GIỐNG NHAU ở frontend và backend       |
+| `TOTP_ENCRYPTION_KEY`      | ✔ (≥32 ký tự)         | đổi = mọi thiết bị 2FA hỏng                 |
+| `RESEND_API_KEY`           | ✔                     | thiếu ⇒ không gửi được thư đặt lại mật khẩu |
+| `NEXT_PUBLIC_MAIN_URL`     | ✔                     | liên kết trong thư và RP ID của passkey     |
+| `GITHUB_*` / `GOOGLE_*`    | —                     | thiếu ⇒ provider không xuất hiện            |
+| `INTERNAL_API_TOKEN`       | —                     | cổng chặn `/api` của content/storage/auth   |

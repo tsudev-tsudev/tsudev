@@ -5,9 +5,9 @@
 // TỒN TẠI VÌ MỘT LỖ HỔNG THẬT, đã xảy ra trên production ngày 16/08/2026:
 //
 // `apps/frontend-main/.env.local` là BẢN SAO NGUYÊN VĂN của `.env` gốc (do
-// scripts/write-env-local.js sinh ra), gồm E2E_BYPASS_KEYCLOAK=1,
-// AUTH_DEV_BYPASS=true, NEXTAUTH_SECRET=change-me-secret, KEYCLOAK_CLIENT_SECRET
-// =dev-secret và cả khoá ký dev. Next xếp `.env.local` CAO HƠN `.env.production`,
+// scripts/write-env-local.js sinh ra), gồm cả NEXTAUTH_SECRET=change-me-secret,
+// khoá ký dev, và — vào thời điểm sự cố — E2E_BYPASS_KEYCLOAK=1 cùng
+// AUTH_DEV_BYPASS=true. Next xếp `.env.local` CAO HƠN `.env.production`,
 // còn lệnh deploy thì chạy trên máy dev — nên mọi giá trị dev bị nướng vào bản
 // production. Hậu quả đã đo được: NextAuth bật provider `e2e-dev`, tức là BẤT KỲ
 // AI cũng đăng nhập được vào tài khoản ADMIN bằng mật khẩu `devpass`.
@@ -71,10 +71,10 @@ try {
   const env = {
     ...process.env,
     NEXT_PUBLIC_MAIN_URL: mainUrl,
-    // E2E_BYPASS_KEYCLOAK và AUTH_DEV_BYPASS từng được xoá tường minh ở đây làm
-    // đai an toàn thứ hai. Cả hai cờ nay đã bị GỠ KHỎI MÃ NGUỒN — không còn dòng
-    // nào đọc chúng — nên việc xoá ở đây là mã chết, và mã chết trong một tệp
-    // bảo mật đọc như một lớp phòng thủ đang hoạt động.
+    // Hai cờ dev từng được xoá tường minh ở đây làm đai an toàn thứ hai. Cả hai
+    // nay đã bị GỠ KHỎI MÃ NGUỒN — không còn dòng nào đọc chúng — nên việc xoá
+    // ở đây là mã chết, và mã chết trong một tệp bảo mật đọc như một lớp phòng
+    // thủ đang hoạt động.
     //
     // Lớp phòng thủ THẬT vẫn là việc dời .env.local ra khỏi đường ở trên: nó bảo
     // vệ mọi biến dev, kể cả những biến chưa tồn tại lúc viết dòng này.

@@ -13,7 +13,6 @@ viên đã được gỡ — xem [refactor-personal-site.md](refactor-personal-s
 apps/
   frontend-main/     Next.js 15 + React 19 · tsudev.localhost · app DUY NHẤT
                      trang chủ, dự án, blog, docs, trust, admin
-  sso-auth/          KHÔNG phải app Node — chỉ chứa realm export Keycloak
 services/            Express + CommonJS, mỗi service một tiến trình
   content-service/   :4001  blog, docs, dự án & bản quyền
   storage-service/   :4002  presign S3/R2, upload phía server, liệt kê file
@@ -43,7 +42,7 @@ Next.js: getServerSideProps  •  hoặc  API route (pages/api/<domain>/[...path
    │  chuyển tiếp kèm token, thêm header nội bộ
    ▼
 service Express  (:4001–:4003)
-   │  jose xác thực JWT theo JWKS của Keycloak
+   │  jose kiểm khẳng định danh tính do BFF ký (@tsudev/identity-token)
    ▼
 Prisma → PostgreSQL      ·      S3/R2 (chỉ storage-service)
 ```

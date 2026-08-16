@@ -26,15 +26,14 @@ Nguồn sự thật là **`config/topology.json`**, không phải bảng dưới
 
 Chỉ **một** cổng công khai — phần còn lại nghe loopback và không cần gõ tay:
 
-| Địa chỉ                           | Tiến trình      | Cổng nội bộ |
-| --------------------------------- | --------------- | ----------- |
-| http://tsudev.localhost:8080      | frontend-main   | 3000        |
-| http://auth.tsudev.localhost:8080 | Keycloak        | 4100        |
-| http://cdn.tsudev.localhost:8080  | MinIO           | 9000        |
-| _(chỉ SSR/BFF gọi)_               | content-service | 4001        |
-| _(chỉ SSR/BFF gọi)_               | storage-service | 4002        |
-| _(chỉ SSR/BFF gọi)_               | trust-service   | 4003        |
-| _(chỉ service gọi)_               | PostgreSQL      | 5433        |
+| Địa chỉ                          | Tiến trình      | Cổng nội bộ |
+| -------------------------------- | --------------- | ----------- |
+| http://tsudev.localhost:8080     | frontend-main   | 3000        |
+| http://cdn.tsudev.localhost:8080 | MinIO           | 9000        |
+| _(chỉ SSR/BFF gọi)_              | content-service | 4001        |
+| _(chỉ SSR/BFF gọi)_              | storage-service | 4002        |
+| _(chỉ SSR/BFF gọi)_              | trust-service   | 4003        |
+| _(chỉ service gọi)_              | PostgreSQL      | 5433        |
 
 `*.localhost` phân giải sẵn về loopback — **không** phải sửa `/etc/hosts`. Trên
 nhiều máy nó ra `::1` (IPv6), nên dev-proxy bind dual-stack và luôn gọi upstream
@@ -63,9 +62,14 @@ Không cài Postgres hệ thống: script tự dò binary trong
 
 ## Đăng nhập khi dev
 
-`.env` đặt sẵn `E2E_BYPASS_KEYCLOAK=1` ⇒ NextAuth thêm provider credentials
-**chỉ dùng cho dev**: bất kỳ username nào + mật khẩu `devpass` (đổi bằng
-`E2E_PASS`). Không cần Keycloak.
+Ba tài khoản dev do `npm run db:seed:dev` đặt: `tsudev` (ADMIN), `alice`
+(MEMBER), `bob` (VIP) — mật khẩu `tsudev-dev-2026!` (đổi bằng
+`DEV_SEED_PASSWORD`).
+
+Chúng là hash Argon2id THẬT trong DB và đi qua đúng luồng đăng nhập của
+production. Không còn provider dev nào nhận "bất kỳ username nào": một đường
+đăng nhập mà độ an toàn phụ thuộc vào việc một biến môi trường không được đặt là
+một đường đăng nhập đang chờ tới lượt hỏng.
 
 Tài khoản đã seed:
 
@@ -75,7 +79,7 @@ Tài khoản đã seed:
 | `alice`  | MEMBER  | luồng người dùng thường                     |
 | `bob`    | VIP     | quyền theo hạng                             |
 
-Gọi API trực tiếp (không qua trình duyệt) thì dùng `AUTH_DEV_BYPASS` — xem
+Gọi API trực tiếp (không qua trình duyệt) thì tự ký một khẳng định danh tính bằng `@tsudev/identity-token` — xem
 [auth.md](auth.md).
 
 ## Biến môi trường
@@ -112,10 +116,10 @@ npm --workspace services/<tên> test    # service nào sửa thì chạy service
 
 ## Docker (tuỳ chọn)
 
-`docker-compose.yml` ở gốc dựng full stack gồm Keycloak, MinIO, Redis. Chỉ cần
+`docker-compose.yml` ở gốc dựng full stack gồm MinIO, Redis. Chỉ cần
 khi kiểm thử luồng SSO thật hoặc presign trực tiếp lên MinIO; công việc thường
 ngày không cần. Chạy riêng hạ tầng:
 
 ```bash
-docker compose up keycloak minio redis
+docker compose up minio redis
 ```

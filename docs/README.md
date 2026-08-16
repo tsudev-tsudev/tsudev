@@ -7,7 +7,7 @@ token trả tiền mà không dùng đến.
 | --------------------------------------------- | ------------------------------------------------------------ |
 | Mới vào repo, cần bản đồ tổng thể             | [architecture.md](architecture.md)                           |
 | Dựng môi trường, chạy local, gỡ lỗi khởi động | [development.md](development.md)                             |
-| Đăng nhập, JWT, RBAC, bypass khi dev          | [auth.md](auth.md)                                           |
+| Đăng nhập, mật khẩu, 2FA, passkey, RBAC       | [auth.md](auth.md)                                           |
 | Viết/chạy test, E2E presign–upload            | [testing.md](testing.md)                                     |
 | Sửa giao diện, component, token màu           | [design-system.md](design-system.md)                         |
 | Đưa lên production, biến môi trường, CI       | [deployment.md](deployment.md)                               |

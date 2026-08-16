@@ -1,18 +1,18 @@
 # CLAUDE.md — tsudev
 
-Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, SSO, object storage,
-con dấu tín nhiệm. Monorepo npm workspaces.
+Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, xác thực, object
+storage, con dấu tín nhiệm. Monorepo npm workspaces.
 Repo: private, `github.com/tsudev-tsudev/tsudev`.
 
 > File này là NGỮ CẢNH TĨNH được nạp + cache ở đầu MỌI phiên. Đọc kỹ một lần,
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay.** Nhánh
-`feat/typescript-migration` đang có **10 commit chưa đẩy**, trong đó **năm commit
-breaking** chạm cả đường phát hành lẫn cơ chế phân quyền. Phiếu đó cũng liệt kê
-việc còn dở (giới hạn tần suất, `npm audit`, bật CSP thật). Xong hết thì xoá file
-và xoá cả đoạn này.
+⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay.** PR #1 đang mở, gộp cả
+đợt TypeScript/Rust lẫn đợt xác thực tự quản lý + tái cấu trúc giao diện. Phiếu
+đó liệt kê **bốn việc phải làm TAY ở production** trước khi gộp, và việc còn dở
+(ping giữ ấm, `npm audit`, bật CSP thật, rà giao diện bằng mắt). Xong hết thì xoá
+file và xoá cả đoạn này.
 
 ## Bản đồ
 
@@ -26,22 +26,22 @@ biệt bằng subdomain, đúng hình trạng production.
 | Thành phần                | Địa chỉ dev                        | Cổng nội bộ | Ghi chú                          |
 | ------------------------- | ---------------------------------- | ----------- | -------------------------------- |
 | `apps/frontend-main`      | `tsudev.localhost:8080`            | 3000        | Next 15 · app DUY NHẤT: dự án, blog, docs, trust, admin |
-| Keycloak                  | `auth.tsudev.localhost:8080`       | 4100        | **không** còn 8080 (nhường proxy) |
 | MinIO / R2                | `cdn.tsudev.localhost:8080`        | 9000        | đích của URL presign             |
-| `apps/sso-auth`           | —                                  | —           | KHÔNG phải app Node, chỉ realm export |
 | `services/content-service`| *(chỉ SSR/BFF)*                    | 4001        | blog, docs, dự án & bản quyền    |
 | `services/storage-service`| *(chỉ SSR/BFF)*                    | 4002        | presign S3/R2, upload            |
 | `services/trust-service`  | *(chỉ SSR/BFF)*                    | 4003        | con dấu tín nhiệm                |
+| `services/auth-service`   | *(chỉ SSR/BFF)*                    | 4004        | mật khẩu, 2FA, passkey — RANH GIỚI BẢO MẬT |
 | PostgreSQL                | —                                  | 5433        | cluster user-space, **không** phải 5432 |
 
-⚠️ **Production KHÔNG chạy ba tiến trình như bảng trên.** Ba service backend gộp
-thành MỘT tiến trình `services/backend-bundle` (cổng 4000, `npm run dev:merged`).
-Render free chỉ cho 750 giờ instance/tháng cho cả tài khoản; ba tiến trình chạy
-liên tục cần 2160 giờ nên không giữ ấm được cái nào. Dev vẫn ba cổng cho dễ lặp.
+⚠️ **Production KHÔNG chạy bốn tiến trình như bảng trên.** Bốn service backend
+gộp thành MỘT tiến trình `services/backend-bundle` (cổng 4000, `npm run
+dev:merged`). Render free chỉ cho 750 giờ instance/tháng cho cả tài khoản; nhiều
+tiến trình chạy liên tục thì không giữ ấm được cái nào. Dev vẫn bốn cổng cho dễ lặp.
 
-`packages/`: `@tsudev/db` (Prisma) · `@tsudev/auth` (xác thực + phân quyền dùng
-chung) · `@tsudev/trust-crypto` (Ed25519 bằng Rust→WASM) · `@tsudev/ui`
-(design system) ·
+`packages/`: `@tsudev/db` (Prisma) · `@tsudev/auth` (kiểm danh tính + phân quyền
+dùng chung) · `@tsudev/identity-token` (hợp đồng khẳng định danh tính BFF→service,
+dùng chung giữa Workers và Node) · `@tsudev/trust-crypto` (Ed25519 bằng Rust→WASM)
+· `@tsudev/ui` (design system) ·
 `@tsudev/types` · `@tsudev/utils` · `brand/` (ảnh nguồn) · `observability/`
 (thư mục thuần, không phải workspace).
 
@@ -57,15 +57,17 @@ Mở ở **http://tsudev.localhost:8080**.
 `*.localhost` tự trỏ loopback — không phải sửa `/etc/hosts`. Proxy hỏng thì
 `DEV_PROXY=0 npm run dev:local` quay về gõ thẳng cổng từng app.
 
-Đăng nhập dev: bất kỳ username + `devpass` (`.env` đã đặt `E2E_BYPASS_KEYCLOAK=1`).
-`tsudev`=ADMIN, `alice`=MEMBER, `bob`=VIP.
+Đăng nhập dev: `tsudev`=ADMIN · `alice`=MEMBER · `bob`=VIP, mật khẩu
+`tsudev-dev-2026!` (do `npm run db:seed:dev` đặt — hash Argon2id THẬT, đi qua
+đúng đường của production). **Không còn** "bất kỳ username + devpass".
 
 ⚠️ Vào bằng `localhost:3000` hay `127.0.0.1:3000` thì **đăng nhập không chạy**:
 cookie phiên mang `Domain=.tsudev.localhost` nên không gắn được vào host khác.
 
 Test theo workspace, **không** có lệnh test ở gốc:
-`npm --workspace services/<tên> test`. Cổng chung:
-`npm run format:check` · `npm run lint`.
+`npm --workspace services/<tên> test`. `packages/ui` cũng có test — đó là cổng
+tương phản của hệ token màu. Cổng chung: `npm run format:check` · `npm run lint`
+· `npm run typecheck` · `npm run topology:check`.
 
 Chi tiết → `docs/development.md`.
 
@@ -92,7 +94,7 @@ nguồn là hiện trạng; TSD là đích đến.
 - **Backend dựng bằng `tsconfig.services.json`**, không phải `tsconfig.json`
   gốc: image Docker không COPY `apps/`, nên không có `@types/react` để dựng
   `packages/ui`.
-- **DB**: chỉ qua `@tsudev/db`. Một database, một schema, ba service dùng chung.
+- **DB**: chỉ qua `@tsudev/db`. Một database, một schema, bốn service dùng chung.
 - **Trình duyệt KHÔNG gọi thẳng cổng service.** Mọi lời gọi qua route proxy
   `apps/*/pages/api/<domain>/[...path].js` (kể cả storage: `/api/storage/*`).
   Thêm endpoint ⇒ phải mở rộng proxy, nếu không CORS chặn.
@@ -102,8 +104,14 @@ nguồn là hiện trạng; TSD là đích đến.
 - **Điều hướng trong site dùng href tương đối** — tsudev chỉ còn MỘT origin.
   `MAIN_URL` của `@tsudev/ui` chỉ cho URL tuyệt đối thật sự cần (canonical, OG,
   mã nhúng huy hiệu).
-- **Giao diện chỉ có chế độ tối.** Không thêm nhánh sáng. Thứ bậc bằng độ sáng
-  nền (`--surface` < `--panel` < `--panel-2`), không bằng viền/đổ bóng.
+- **Giao diện có HAI chế độ, Sáng là mặc định.** `:root` = bảng sáng,
+  `:root[data-theme='dark']` ghi đè. KHÔNG dùng `prefers-color-scheme` — lựa
+  chọn hiển thị là quyết định của sản phẩm, không phải của hệ điều hành. Thứ bậc
+  chủ yếu bằng độ sáng nền (`--surface` < `--panel` < `--panel-2`); card có thêm
+  viền hairline vì ở chế độ sáng hai tầng đó chênh nhau quá ít để mắt dựng ra
+  cạnh. Đừng cắm cứng mã hex: `--on-vivid` đảo theo chế độ, mã hex thì không.
+  Mọi cặp màu bị `packages/ui/test/contrast.test.ts` canh ở ngưỡng WCAG AA —
+  đổi mã màu làm tụt tương phản là CI đỏ.
 - **`apps/*/.env.local` được sinh tự động** — sửa tay vô ích, lần chạy dev sau
   ghi đè. Sửa `.env` gốc.
 - **Root `package.json` còn ghim `react@18.3.1`** — di sản của app diễn đàn đã
@@ -144,15 +152,24 @@ nguồn là hiện trạng; TSD là đích đến.
   đường đọc blog công khai). `.env.production.example` từng khuyến nghị đúng giá
   trị nguy hiểm đó.
   Phân quyền nay chỉ có MỘT nguồn: cột `User.role` trong DB, qua `@tsudev/auth`.
-  Muốn dùng lại vai trò từ token thì phải khai roles trong realm và ánh xạ sang
-  `User.role` TRƯỚC — đừng dựng lại hệ thứ hai chạy song song.
+  Claim `role` trong khẳng định danh tính CHỈ ĐỂ THAM KHẢO và không nâng được
+  quyền — có test canh. Đừng dựng lại hệ thứ hai chạy song song.
 - **`INTERNAL_API_TOKEN` gác `/api` của content/storage** khi được đặt
   (không đặt = no-op). `trust-service` cố ý đứng ngoài — endpoint của nó phải
   công khai cho bên thứ ba.
-- **Keycloak trên Render free tier (512MB)**: `--cache=local` là build-time
-  option (đặt vào `start` ⇒ treo cứng); `start-dev` ⇒ OOM; H2 in-memory ⇒ mất
-  sạch tài khoản mỗi lần dịch vụ ngủ dậy. Bốn commit liên tiếp đã trả giá —
-  đọc `docs/deployment.md` trước khi đụng `docker/keycloak.Dockerfile`.
+- **`INTERNAL_IDENTITY_SECRET` phải GIỐNG NHAU ở Cloudflare Workers và Render.**
+  BFF ký khẳng định danh tính bằng nó, service kiểm bằng nó. Lệch nhau ⇒ mọi
+  đường ghi đã xác thực trả 401, và triệu chứng là "đăng nhập rồi mà vẫn 401" —
+  đúng lỗi mà cơ chế này ra đời để chấm dứt. Thiếu hẳn ⇒ service trả 503 kèm log
+  nói rõ lý do, cố ý ồn ào.
+- **`TOTP_ENCRYPTION_KEY` đổi = MỌI thiết bị 2FA đang dùng hỏng.** Bí mật TOTP
+  không băm được (kiểm mã cần chính giá trị đó) nên nó được mã hoá bằng khoá
+  này. Sao lưu cùng chỗ với `TRUST_SIGNING_KEY`.
+- **auth-service là service DUY NHẤT đọc `User.passwordHash`.** Nó tách riêng vì
+  `frontend-main` chạy trên Cloudflare Workers — không có kết nối Postgres, không
+  nạp được native module, nên Argon2id KHÔNG THỂ chạy ở tầng biên. Đừng "tối ưu"
+  bằng cách đưa việc kiểm mật khẩu lên đó.
+
 - **Docker build context phải là gốc repo** — service phụ thuộc package nội bộ
   không có trên npm registry.
 - **`S3_ENDPOINT` và `S3_PUBLIC_ENDPOINT` khác nhau Ở DEV, TRÙNG NHAU ở
@@ -163,7 +180,10 @@ nguồn là hiện trạng; TSD là đích đến.
   — tên miền tuỳ chỉnh R2 không cài đặt giao thức chữ ký S3 (URL presign bị từ
   chối) và còn làm bucket thành công khai.
 - **Xác thực nằm ở MỘT chỗ: `packages/auth`.** Ba bản `authMiddleware.js` gần
-  trùng nhau đã bị gộp. Đừng dựng lại bản cục bộ trong service.
+  trùng nhau đã bị gộp; ba bản tra-cứu-người-dùng (`resolveUser`, `actingUser`,
+  `currentUser`) cũng vậy — và hai bản cục bộ chính là hai nơi phép so sánh
+  `sessionVersion` bị bỏ sót, nên thu hồi phiên không có tác dụng ở đó. Đừng
+  dựng lại bản cục bộ trong service.
 - **`User.credits` KHÔNG phải di sản của chợ ký quỹ** — trust-service thu phí
   nộp đơn cấp dấu bằng cột này. Xoá theo là hỏng luồng nộp đơn, **không test nào
   bắt được**.
@@ -171,7 +191,7 @@ nguồn là hiện trạng; TSD là đích đến.
   duy nhất là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
   `ALLOW_MAIN_FORCE=1 git push`.
 - **`backend-bundle` điều phối theo BẢNG TIỀN TỐ đường dẫn**, không mount chồng
-  ba app. Mount thẳng thì `/api/trust/*` đi vào app content trước và dính cổng
+  bốn app. Mount thẳng thì `/api/trust/*` đi vào app content trước và dính cổng
   chặn `INTERNAL_API_TOKEN` của nó ⇒ huy hiệu SVG, trang xác minh và JWKS (bắt
   buộc công khai) trả 401, **không có gì báo lỗi**. Thêm route có tiền tố chưa
   nằm trong bảng ⇒ route đó **404 ở production** dù chạy service riêng vẫn sống.
@@ -187,10 +207,13 @@ nguồn là hiện trạng; TSD là đích đến.
   `apps/*/.env.local` là bản sao nguyên văn `.env` gốc, và lệnh deploy chạy trên
   máy dev. Ngày 16/08/2026 bản production đã mang theo `E2E_BYPASS_KEYCLOAK=1`:
   **ai cũng đăng nhập được vào tài khoản ADMIN bằng `devpass`**, site vẫn chạy
-  bình thường, không có gì báo lỗi. Vì thế deploy đi qua
+  bình thường, không có gì báo lỗi. Provider đó nay đã bị gỡ, nhưng LỖ HỔNG
+  KHÔNG PHẢI LÀ NÓ: lỗ hổng là việc giá trị dev đi được vào bản dựng production,
+  và biến dev tiếp theo sẽ mang tên khác. Vì thế deploy đi qua
   `scripts/deploy-frontend.js` — nó **dời `.env.local` ra khỏi đường lúc dựng**.
   Đừng gọi thẳng `opennextjs-cloudflare deploy`. Nghiệm thu mỗi lần:
-  `curl -s https://tsudev.com/api/auth/providers` phải CHỈ có `keycloak`.
+  `curl -s https://tsudev.com/api/auth/providers` phải CHỈ liệt kê provider đã
+  cấu hình thật.
 - **(cũ, vẫn đúng)** `NEXT_PUBLIC_*` được nội
   suy lúc build; `apps/*/.env.local` sinh tự động mỗi lần chạy dev và trỏ về
   `tsudev.localhost`; lệnh deploy chạy trên máy dev. Vì vậy `deploy`/`preview`/

@@ -28,7 +28,8 @@ Bạn phụ trách `packages/db`: `prisma/schema.prisma`, `prisma/migrations/`,
   liệu tham chiếu và ba tài khoản dev. Dữ liệu giả để xem giao diện thuộc
   `services/trust-service/scripts/seed-demo.js`.
 - `enum Role`: `GUEST` · `MEMBER` · `VIP` · `MODERATOR` · `ADMIN`. Đây là vai trò
-  **ứng dụng**, khác vai trò trong token Keycloak — đừng trộn hai hệ.
+  **ứng dụng** và là NGUỒN SỰ THẬT DUY NHẤT — claim `role` trong khẳng định
+  danh tính chỉ để tham khảo và không nâng được quyền.
 
 ## Quy trình đổi schema
 

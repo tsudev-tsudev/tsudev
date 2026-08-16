@@ -5,13 +5,11 @@
     "mode": "proxy",
     "host": "localhost",
     "domain": "tsudev.localhost",
-    "proxyPort": 8080,
-    "realm": "tsudev-local"
+    "proxyPort": 8080
   },
   "prod": {
     "domain": "tsudev.com",
-    "scheme": "https",
-    "realm": "tsudev"
+    "scheme": "https"
   },
   "nodes": [
     {
@@ -64,14 +62,6 @@
       "port": 4000,
       "public": false,
       "note": "Hình trạng CHẠY THẬT của production: một tiến trình phục vụ cả content+storage+trust. Render tiêm PORT lúc chạy nên số này chỉ dùng khi gọi tay (npm run dev:merged). Không có internalEnv: không ai trỏ tới nó bằng biến môi trường, nó LÀ ba service kia."
-    },
-    {
-      "id": "auth",
-      "label": "Keycloak",
-      "port": 4100,
-      "sub": "auth",
-      "public": true,
-      "note": "Đổi từ 8080 ở giai đoạn 3 để nhường cổng cho dev-proxy — 8080 chạy được mà không cần quyền root."
     },
     {
       "id": "cdn",

@@ -64,6 +64,8 @@ import { prisma } from '@tsudev/db'
 // resolveUser() thay bản `currentUser` cục bộ: cùng phép upsert, nhưng cũng
 // đối chiếu sessionVersion nên phiên đã bị thu hồi không đi qua được.
 import { createAuthMiddleware, resolveUser } from '@tsudev/auth'
+
+import { createRateLimit } from './rateLimit'
 import { hasAtLeastRole } from '@tsudev/types'
 import crypto from 'crypto'
 
@@ -127,6 +129,24 @@ const AUTH_PREFIXES = [
 for (const p of AUTH_PREFIXES) {
   app.use(p, auth)
 }
+
+/**
+ * Giới hạn tần suất cho nhánh CÔNG KHAI của con dấu.
+ *
+ * Đây là mặt tiếp xúc rộng nhất của toàn hệ thống: không cần token, và huy hiệu
+ * SVG được trình duyệt của khách trên site BÊN THỨ BA gọi ở mỗi lượt xem trang.
+ * Trước đợt này nó không có bất kỳ giới hạn nào — HANDOFF gọi đó là món nợ bảo
+ * mật lớn nhất còn lại.
+ *
+ * Ngưỡng rộng tay có chủ đích: một website khách đông người đọc sẽ tạo ra nhiều
+ * request thật từ nhiều IP khác nhau, và chặn nhầm ở đây nghĩa là huy hiệu biến
+ * mất trên site của khách hàng. Con số này chặn kẻ quét, không chặn lưu lượng
+ * bình thường.
+ *
+ * Đặt SAU vòng gắn auth ở trên: nhánh riêng tư đã có cổng danh tính riêng, và
+ * đếm chúng theo IP sẽ gộp mọi thao tác quản trị vào cùng một xô.
+ */
+app.use('/api/trust', createRateLimit({ name: 'trust-public', windowMs: 60_000, max: 240 }))
 
 // Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
 // được error handler của Express — request treo cho tới khi client bỏ cuộc.
