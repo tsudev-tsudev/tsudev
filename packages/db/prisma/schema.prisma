@@ -24,6 +24,9 @@ enum Role {
 // ---------------------------------------------------------------------------
 model User {
   id          String   @id @default(cuid())
+  /// Di sản của thời Keycloak. KHÔNG có dòng mã nào đọc hay ghi cột này — mọi
+  /// giá trị đều NULL. Giữ lại ở migration này để đợt thêm cột thuần TÍNH CỘNG
+  /// (triển khai được trong khi mã cũ còn chạy); xoá ở migration gỡ Keycloak.
   keycloakId  String?  @unique
   username    String   @unique
   email       String   @unique
@@ -37,8 +40,137 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // --- Xác thực do codebase tự quản lý ---
+  //
+  // NULL được: tài khoản chỉ đăng nhập bằng GitHub/Google hoặc chỉ bằng passkey
+  // thì không có mật khẩu nào cả. Đừng suy ra "chưa đăng ký" từ cột này.
+  /// Argon2id. KHÔNG BAO GIỜ trả cột này ra khỏi tầng service.
+  passwordHash     String?
+  /// NULL = email chưa xác minh. Đường ghi nhạy cảm phải tự kiểm, vì tài khoản
+  /// vẫn tồn tại và vẫn đăng nhập được trước khi xác minh.
+  emailVerifiedAt  DateTime?
+  /// Thu hồi phiên mà không cần bảng phiên. JWT mang số này; đổi mật khẩu hoặc
+  /// "đăng xuất mọi thiết bị" thì tăng lên, và mọi token đã phát mất hiệu lực
+  /// ngay. Phiên lưu DB sẽ đúng hơn về lý thuyết nhưng frontend chạy trên
+  /// Cloudflare Workers còn DB ở Neon ap-southeast-1 — nghĩa là một truy vấn
+  /// xuyên lục địa cho MỖI request.
+  sessionVersion   Int       @default(0)
+  /// Đếm số lần sai LIÊN TIẾP; đăng nhập thành công đặt lại về 0.
+  failedLoginCount Int       @default(0)
+  /// Khoá tạm sau quá nhiều lần sai. Khoá theo TÀI KHOẢN, khác với chặn theo IP
+  /// ở LoginAttempt — thiếu một trong hai thì kẻ tấn công chỉ cần đổi trục.
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+
   posts Post[]
   files FileObject[]
+
+  oauthAccounts OAuthAccount[]
+  passkeys      WebAuthnCredential[]
+  totp          TotpCredential?
+  backupCodes   BackupCode[]
+  authTokens    AuthToken[]
+}
+
+/// Tài khoản bên thứ ba đã liên kết (GitHub, Google). Một User có thể liên kết
+/// nhiều nhà cung cấp; mỗi tài khoản bên đó chỉ gắn được vào MỘT User.
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "github" | "google" — chuỗi chứ không phải enum: thêm nhà cung cấp là dữ
+  /// liệu, không phải migration.
+  provider          String
+  /// Định danh ổn định do nhà cung cấp cấp. KHÔNG dùng email làm khoá — email
+  /// đổi được, và tin vào email của bên thứ ba là đường chiếm tài khoản.
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+/// Passkey / WebAuthn.
+model WebAuthnCredential {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// credentialId do trình duyệt cấp, lưu dạng base64url.
+  credentialId String    @unique
+  publicKey    String
+  /// Bộ đếm chống phát lại: giá trị mới phải LỚN HƠN giá trị đã lưu.
+  counter      Int       @default(0)
+  transports   String[]  @default([])
+  /// Nhãn người dùng đặt để tự phân biệt thiết bị khi thu hồi.
+  label        String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+}
+
+/// Bí mật TOTP. Bảng riêng chứ không phải cột trên User: nó là bí mật cần mã
+/// hoá, và để chung thì mọi truy vấn User bình thường đều kéo nó theo.
+model TotpCredential {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Bí mật đã mã hoá bằng khoá ứng dụng, KHÔNG phải base32 thô.
+  secretEnc   String
+  /// NULL = đã tạo nhưng người dùng chưa nhập đúng mã lần đầu. Chưa xác nhận
+  /// thì KHÔNG được coi là đã bật 2FA, nếu không người dùng tự khoá mình ra.
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+/// Mã dự phòng dùng MỘT LẦN, cho trường hợp mất thiết bị TOTP.
+model BackupCode {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Chỉ lưu hash. Mã thô hiện đúng một lần lúc sinh ra.
+  codeHash String
+  usedAt   DateTime?
+
+  @@index([userId])
+}
+
+enum AuthTokenPurpose {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+/// Token một lần gửi qua email.
+model AuthToken {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   AuthTokenPurpose
+  /// HASH của token, không phải token. Rò một bản sao DB thì không được phép
+  /// biến thành khả năng đặt lại mật khẩu của mọi tài khoản đang chờ.
+  tokenHash String           @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+/// Nhật ký thử đăng nhập, phục vụ giới hạn tần suất theo IP.
+///
+/// Nằm ở DB chứ không phải Redis vì .env.production.example khai REDIS_URL
+/// nhưng Render KHÔNG có instance Redis nào và không dòng mã nào đọc biến đó.
+/// Thà chậm hơn một chút còn hơn một lớp phòng thủ chỉ tồn tại trên giấy.
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  /// IP hoặc tên đăng nhập — trục nào đang bị đếm.
+  identifier String
+  succeeded  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, createdAt])
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------
