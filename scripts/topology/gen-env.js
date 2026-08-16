@@ -74,6 +74,31 @@ function syncFile(file, vars, { check }) {
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/**
+ * `wrangler.jsonc` KHÔNG được sinh tự động — nó là cấu hình phát hành, có bình
+ * luận và nhiều khối không liên quan tới topology. Nhưng nó PHẢI khai đủ mọi
+ * biến `internalEnv`, nếu không biến rơi về giá trị dự phòng
+ * `http://localhost:<port>` trong `lib/services.ts`, và Worker gọi vào chính nó.
+ *
+ * Đã xảy ra thật: thêm `auth-service` vào topology nhưng quên khai
+ * `AUTH_SERVICE_URL` ở đây ⇒ đăng nhập ở production hỏng hoàn toàn, trong khi
+ * `/api/auth/providers` vẫn trả về đúng nên nhìn qua thì tưởng đã xong.
+ *
+ * Chỉ kiểm SỰ CÓ MẶT, không kiểm giá trị: URL production đến từ Render/
+ * Cloudflare chứ không suy ra được từ topology.
+ */
+function checkWranglerVars(topo) {
+  const file = 'apps/frontend-main/wrangler.jsonc';
+  const abs = path.join(ROOT, file);
+  if (!fs.existsSync(abs)) return { file, missing: [], skipped: true };
+  const body = fs.readFileSync(abs, 'utf8');
+  const missing = topo.nodes
+    .filter((n) => n.internalEnv)
+    .map((n) => n.internalEnv)
+    .filter((name) => !new RegExp(`"${escapeRe(name)}"\\s*:`).test(body));
+  return { file, missing };
+}
+
 function main() {
   const check = process.argv.includes('--check');
   const topo = loadTopology();
@@ -88,8 +113,21 @@ function main() {
     r.changes.forEach((c) => console.log(`    ${c}`));
   });
 
+  const w = checkWranglerVars(topo);
+  if (w.skipped) {
+    console.log(`- ${w.file} (không có, bỏ qua)`);
+  } else if (w.missing.length) {
+    drifted = true;
+    console.log(`✗ ${w.file} thiếu biến: ${w.missing.join(', ')}`);
+    console.log('    Thêm BẰNG TAY — tệp này không được sinh tự động.');
+  } else {
+    console.log(`✓ ${w.file} khai đủ biến service`);
+  }
+
   if (check && drifted) {
-    console.error('\n✗ .env lệch topology. Chạy: npm run topology:gen');
+    console.error(
+      '\n✗ Cấu hình lệch topology. Chạy: npm run topology:gen (và sửa tay wrangler.jsonc nếu được nhắc)'
+    );
     process.exit(1);
   }
   if (!check && drifted) console.log('\nĐã đồng bộ. Khởi động lại dev để nạp giá trị mới.');
