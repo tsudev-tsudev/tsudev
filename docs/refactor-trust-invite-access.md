@@ -277,7 +277,20 @@ proxy công khai `pages/api/identity/[...path].ts`. Hai tệp, hai mức bảo v
 
 ---
 
-## Phần C — gỡ tín dụng
+## Phần C — gỡ tín dụng ✅ XONG (đợt 1, phát hành 17/08/2026)
+
+> **Đã thực hiện.** Code lên sóng trước, migration `DROP` chạy sau — đúng thứ tự
+> kế hoạch. Nghiệm thu: `/api/trust/programs` của production không còn trả
+> `feeCredits` (đó cũng là dấu hiệu dùng để biết Render đã lên mã mới), ba cột
+> đã biến mất khỏi Neon, site vẫn 200 và blog vẫn có 3 bài thật.
+>
+> **Đính chính:** kế hoạch ước lượng "3 trang frontend" — thực tế là **4**.
+> `trust/portal.tsx` cũng hiển thị phí và lọt lưới ở lần khảo sát đầu vì grep
+> chỉ quét ba tệp đã biết tên. Bài học cho Phần A và B: grep theo TỪ KHOÁ trên
+> cả cây, đừng grep trong danh sách tệp mình đoán trước.
+>
+> Đường nộp đơn nay được canh bởi
+> `services/trust-service/test/applicationSubmit.test.ts` (7 test).
 
 ### Phạm vi (đã grep)
 
