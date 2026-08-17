@@ -31,8 +31,9 @@ apps/frontend-main run deploy`. Dấu hiệu bản mới đã lên sóng:
    không có route nào cho người dùng sửa hồ sơ của chính mình.
 4. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 và §1.9 thì rà
    một lần cho cả trang mới.
-5. Còn lại: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột
-   `keycloakId` · §1.7 đợt B · §1.8.
+5. Còn lại: §1.10 dọn service Render trùng (10 phút, làm lúc nào cũng được) ·
+   §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột `keycloakId` ·
+   §1.7 đợt B · §1.8.
 
 ## Đang chạy
 
@@ -510,6 +511,29 @@ này chọn hình "URL-năng-lực" thì phải đổi cách sinh serial TRƯỚ
 Hệ quả đã ghi nhận: **SEO không còn đến từ Con dấu.** Mục tiêu "đạt tiêu chí SEO"
 phải do blog · tài liệu · dự án gánh. Với Con dấu, việc SEO duy nhất là rút khỏi
 `sitemap.xml` và `noindex` cho sạch.
+
+---
+
+### 1.10 Dọn service Render trùng `tsudev-backend-rqkz` — 🟠 CHƯA LÀM
+
+Mỗi lần deploy, hộp thư nhận `deploy failed for tsudev-backend-rqkz`. **Đó không
+phải sự cố production** — nó là một service THỨ HAI chưa bao giờ khởi động nổi vì
+không có secret nào (`render.yaml` khai `NODE_ENV: production` bằng giá trị
+literal, còn 11 biến kia là `sync: false`), nên nó chết ngay lúc nạp module ở
+`services/trust-service/src/signing.ts`.
+
+Đã đo 18/08/2026: `tsudev-backend.onrender.com/health` trả 200 và đủ bốn nhánh;
+`tsudev-backend-rqkz.onrender.com` không phản hồi nhưng DNS **vẫn phân giải** ⇒
+service tồn tại trong tài khoản.
+
+⚠️ **Thứ tự khi dọn: xoá Blueprint instance TRƯỚC, rồi mới xoá service.** Xoá mỗi
+service mà để blueprint lại thì lần push sau nó dựng lại y nguyên. Và sau khi gỡ
+blueprint phải xác nhận `tsudev-backend` còn bật Auto-Deploy — nếu đường deploy
+tự động lâu nay do blueprint kéo thì gỡ xong sẽ thành "đã gộp PR rồi mà
+production vẫn chạy mã cũ".
+
+Chẩn đoán đầy đủ, ba rủi ro nếu để nguyên, và cảnh báo "đừng làm ngược lại":
+[`docs/deployment.md`](docs/deployment.md) §`tsudev-backend-rqkz`.
 
 ---
 
