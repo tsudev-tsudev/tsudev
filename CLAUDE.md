@@ -14,8 +14,8 @@ nhập được.
 
 Đang dở giữa chừng: **kế hoạch ba đợt cho Con dấu tín nhiệm**
 ([`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md)).
-Đợt 1 (gỡ tín dụng) đã phát hành; còn đợt 2 (mã mời) và đợt 3 (gác bề mặt).
-⚠️ Hai đợt migration chạy NGƯỢC chiều nhau — đọc kế hoạch trước khi viết mã.
+Đợt 1 (gỡ tín dụng) đã phát hành; đợt 2 (mã mời) đã xong ở cây làm việc nhưng
+**chưa phát hành**; còn đợt 3 (gác bề mặt + SEO, chỉ code, không migration).
 
 `HANDOFF.md` §0.7 ghi bốn kỹ thuật đã trả giá để học (dấu hiệu bản mới đã lên
 sóng, bẫy `--shadow-database-url`, cách khảo sát bằng grep, và
@@ -199,6 +199,20 @@ nguồn là hiện trạng; TSD là đích đến.
   phí nộp đơn, và **không test nào bắt được** nếu xoá nhầm. Nay đường nộp đơn
   được canh bởi `services/trust-service/test/applicationSubmit.test.ts` — thêm
   lại cơ chế thu phí thì phải sửa test đó trước, không sửa lén được.
+- **Mã mời là đường DUY NHẤT nâng vai trò bằng dữ liệu, và nó chặn trần ở VIP
+  TRONG MÃ.** `services/auth-service/src/invite.ts` quyết định bậc vai trò, chứ
+  không phải một cột trong `TrustInvite`. Để dữ liệu nói bậc vai trò nghĩa là ai
+  ghi được vào bảng đó là tự cấp được ADMIN. Nó nằm ở auth-service chứ không ở
+  trust-service vì nó ghi vào `User.role` — trust-service chỉ gọi
+  `requireRole('VIP')` và không cần biết mã mời tồn tại.
+- **`token.role` của next-auth CHỈ được ghi ở lần đăng nhập ĐẦU TIÊN.** Mọi thứ
+  đổi `User.role` giữa chừng (đổi mã mời, admin sửa tay) sẽ đúng ở tầng service
+  mà SAI ở phiên trình duyệt cho tới lần đăng nhập sau — giao diện lọc theo
+  `session.role` vì thế hiện vai trò cũ, và triệu chứng là "làm xong mà không
+  thấy gì đổi". Đường sửa đã có: `POST /api/identity/session-state` + nhánh
+  `trigger === 'update'` ở callback `jwt`, đọc lại vai trò TỪ DB. Client gọi
+  `update()` của `useSession`. **Đừng lấy vai trò từ tham số truyền vào
+  `update()`** — đó là dữ liệu người dùng.
 - **`main` không có branch protection** (GitHub Free + repo private). Lớp chắn
   duy nhất là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
   `ALLOW_MAIN_FORCE=1 git push`.

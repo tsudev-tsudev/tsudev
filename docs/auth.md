@@ -87,6 +87,34 @@ Muốn dùng lại vai trò từ token của nhà cung cấp bên ngoài thì ph
 `User.role` TRƯỚC. Đừng dựng hệ thứ hai chạy song song: bản trước đã có, gác sau
 `REQUIRE_ROLE_ENFORCEMENT`, và nó chưa bao giờ hoạt động ở production.
 
+### Mã mời → VIP
+
+Vùng Con dấu tín nhiệm chỉ mở cho `VIP` trở lên, và đường lên VIP là **đổi mã
+mời** (`POST /api/identity/invite/redeem`, xem `services/auth-service/src/invite.ts`).
+
+Nó nằm ở auth-service chứ không ở trust-service vì nó **ghi vào `User.role`** —
+tức là thuộc ranh giới danh tính. trust-service chỉ việc gọi `requireRole('VIP')`
+và không cần biết mã mời tồn tại.
+
+Bốn bất biến, cả bốn đều hỏng âm thầm nếu làm sai:
+
+| Bất biến                                | Vì sao                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Trần cứng ở VIP, ghi trong MÃ           | Nếu dữ liệu nói được bậc vai trò thì ai ghi được vào bảng mã mời là tự cấp được ADMIN    |
+| Không hạ vai trò                        | ADMIN đổi mã vẫn là ADMIN                                                                |
+| Đếm lượt bằng `updateMany` có điều kiện | Đọc-rồi-ghi cho hai người cùng tiêu lượt cuối cùng                                       |
+| DB chỉ giữ SHA-256 của mã               | Cùng lý do với `AuthToken.tokenHash` — bản sao DB bị rò không thành một xấp mã dùng được |
+
+`sessionVersion` **không** tăng khi đổi mã: nâng quyền không phải lý do đá người
+ta ra khỏi phiên đang dùng, và phiên cũ mang vai trò cũ thì chỉ có ít quyền hơn.
+
+⚠️ **`token.role` của next-auth chỉ được ghi ở lần đăng nhập ĐẦU TIÊN.** Sau khi
+đổi mã, DB nói VIP còn phiên vẫn nói MEMBER. `POST /api/identity/session-state`
+và nhánh `trigger === 'update'` ở callback `jwt` tồn tại đúng vì chuyện đó — vai
+trò được đọc lại **từ DB**, không bao giờ từ tham số mà client truyền vào
+`update()`. Trang nào lọc giao diện theo `session.role` mà không đi qua đường đó
+sẽ hiển thị vai trò cũ, và triệu chứng là "đổi mã xong mà không thấy gì đổi".
+
 ## 4. auth-service — nơi giữ bí mật
 
 Service DUY NHẤT đọc `User.passwordHash`. Nó tách riêng vì một ràng buộc hạ
@@ -103,6 +131,7 @@ thể chạy ở đó.
 | Mã dự phòng        | 10 mã, chỉ lưu SHA-256, dùng một lần                                 |
 | Passkey            | WebAuthn qua `@simplewebauthn/server`                                |
 | Token một lần      | Chỉ lưu SHA-256; đổi bằng `updateMany` có điều kiện `usedAt: null`   |
+| Mã mời             | Chỉ lưu SHA-256; nâng lên VIP, trần cứng trong mã (xem §3)           |
 
 ### Vì sao đăng nhập bằng passkey không hỏi thêm TOTP
 

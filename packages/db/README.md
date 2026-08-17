@@ -41,6 +41,12 @@ Bỏ bước 3 là job **build frontends** trong CI đỏ, dù chẳng đụng g
 `MEMBER`. Đây là NGUỒN SỰ THẬT DUY NHẤT về phân quyền — claim `role` trong khẳng định danh tính chỉ để tham khảo và không nâng được quyền —
 xem [../../docs/auth.md](../../docs/auth.md).
 
+`TrustInvite` / `TrustInviteRedemption` là đường DUY NHẤT nâng vai trò bằng dữ
+liệu, và nó chỉ nâng được tới `VIP`. Trần đó nằm trong mã
+(`services/auth-service/src/invite.ts`), KHÔNG trong bảng — cố ý, vì bậc vai trò
+do dữ liệu quyết định nghĩa là ai ghi được vào bảng đó là tự cấp được ADMIN.
+`codeHash` chỉ lưu SHA-256, cùng lý do với `AuthToken.tokenHash`.
+
 ## Seed
 
 `prisma/seed.js` tạo dữ liệu tham chiếu và ba tài khoản dev: `tsudev` (ADMIN),

@@ -98,5 +98,15 @@ Ba lỗi CI hay gặp và nguyên nhân thật:
 - **`format:check` đỏ mà máy mình sạch** → file nằm trong `.prettierignore` ở
   máy nhưng CI vẫn kiểm phần khác, hoặc quên chạy `npm run format`.
 
-E2E **không** chạy trong CI (cần stack đầy đủ). Chạy tay trước khi đụng vào
-luồng upload.
+E2E chia làm hai project, và chỉ MỘT trong hai chạy trong CI:
+
+| Project      | Tệp                               | Cần gì               | Trong CI           |
+| ------------ | --------------------------------- | -------------------- | ------------------ |
+| `app`        | `smoke.spec.js`, `invite.spec.js` | Postgres + 4 service | ✅ (job `e2e-app`) |
+| `full-stack` | `upload.spec.js`                  | thêm MinIO           | ❌ chạy tay        |
+
+Thêm tệp spec mới thì phải khai vào `testMatch` của một project — Playwright
+**không** tự nhặt. Quên là spec đó im lặng không bao giờ chạy, và triệu chứng
+duy nhất là số test không tăng.
+
+Chạy `full-stack` bằng tay trước khi đụng vào luồng upload.

@@ -1,9 +1,13 @@
 # Kế hoạch: đưa Con dấu tín nhiệm về chế độ mời, và gỡ tín dụng
 
-> **Trạng thái: KẾ HOẠCH, chưa thực hiện.** Viết cho phiên sau. Đọc hết mục
-> "Quyết định đã có" trước khi viết dòng mã đầu tiên. Chủ dự án đã chốt phạm vi
-> ngày 16/08/2026; phần còn lại chứa một ràng buộc thứ tự có thể làm trang trống
-> ở production mà không test nào bắt được.
+> **Trạng thái: 2/3 đợt XONG.** Phần C (gỡ tín dụng) phát hành 17/08/2026;
+> Phần B (mã mời) hoàn thành 18/08/2026, **chưa phát hành**. Còn lại Phần A + D
+> (gác bề mặt, SEO, điều hướng) — đợt duy nhất có thể khoá nhầm chính mình ra
+> ngoài, nên nó đi cuối.
+>
+> Đọc hết mục "Quyết định đã có" trước khi viết dòng mã đầu tiên. Chủ dự án đã
+> chốt phạm vi ngày 16/08/2026; phần còn lại chứa một ràng buộc thứ tự có thể
+> làm trang trống ở production mà không test nào bắt được.
 
 ## Mục tiêu (chủ dự án giao)
 
@@ -182,6 +186,44 @@ chưa đạt VIP. `SiteHeader` đã dùng `useSession()`, và `role` đã có tr
 > ⚠️ Ẩn ở điều hướng **không phải** bảo mật — nó chỉ dọn giao diện. Cổng thật
 > nằm ở `requireRole()` phía service, vốn đọc `User.role` từ DB và fail closed.
 > Đừng bao giờ dựa vào việc giấu link.
+
+## Phần B — mã mời ✅ XONG (đợt 2, hoàn thành 18/08/2026 — CHƯA PHÁT HÀNH)
+
+> **Đã thực hiện đúng thứ tự của đợt này: migration TRƯỚC, code SAU.**
+> Migration `20260817172916_trust_invite` thuần tính cộng (hai `CREATE TABLE`,
+> không đụng bảng nào đang có), nên chạy nó lên Neon trước khi phát hành code là
+> an toàn — mã cũ không biết hai bảng đó tồn tại.
+>
+> Thứ tự phát hành: `prisma migrate deploy` lên Neon → gộp PR (Render dựng lại)
+> → `npm --workspace apps/frontend-main run deploy`.
+>
+> **Dấu hiệu "bản mới đã lên sóng" cho đợt này** (xem HANDOFF §0.7 — nó phải là
+> thứ THAY ĐỔI giữa hai bản, `/health` thì không):
+> `POST /api/identity/invite/redeem` không kèm khẳng định danh tính trả **401**
+> ở bản mới, **404** ở bản cũ.
+>
+> **Ba chỗ lệch so với bản kế hoạch này, đều là bổ sung chứ không phải cắt bớt:**
+>
+> 1. Thêm `POST /api/identity/session-state` (không có trong kế hoạch).
+>    `token.role` của next-auth CHỈ được ghi ở lần đăng nhập đầu, nên sau khi đổi
+>    mã thì DB nói VIP còn phiên vẫn nói MEMBER — điều hướng tiếp tục giấu mục
+>    Con dấu, trông y hệt như đổi mã không có tác dụng. Callback `jwt` nay xử lý
+>    `trigger === 'update'` bằng cách đọc lại vai trò từ DB qua route này, KHÔNG
+>    từ tham số client truyền vào. **Đợt 3 phụ thuộc vào chỗ này** — nó lọc điều
+>    hướng theo `session.role`.
+> 2. `sessionVersion` **không** tăng khi đổi mã. Nâng quyền không phải lý do đá
+>    người ta ra khỏi phiên đang dùng, và phiên cũ mang vai trò cũ thì chỉ có ÍT
+>    quyền hơn chứ không nhiều hơn.
+> 3. Giới hạn tần suất dùng CHUNG bộ đếm `LoginAttempt` với đường đăng nhập, chứ
+>    không dựng bộ đếm riêng. Mã mời là một bí mật đoán được như mật khẩu; bộ
+>    đếm riêng cho phép kẻ dò tiêu hết hạn mức trục này rồi quay sang trục kia.
+>
+> Nghiệm thu: 17 test đơn vị mới (`services/auth-service/test/invite.test.ts`) và
+> 2 test E2E mới (`e2e/tests/invite.spec.js`, nằm trong project `app`). E2E là
+> chỗ duy nhất chứng minh mã in ra ở trang quản trị đổi được ở trang đổi mã —
+> giữa hai đầu có bốn lớp (dạng hiển thị, phép chuẩn hoá, danh sách trắng của
+> proxy có phiên, bảng tiền tố của backend-bundle) có thể lệch nhau mà cả hai
+> phía vẫn "chạy".
 
 ## Phần B — mã mời
 
@@ -369,11 +411,22 @@ Phạm vi đã được chốt, không còn câu nào phải hỏi trước khi 
 
 **Ba lần phát hành riêng**, không gộp — hai đợt migration chạy ngược chiều nhau:
 
-| Đợt | Nội dung                                     | Thứ tự trong đợt                         |
-| --- | -------------------------------------------- | ---------------------------------------- |
-| 1   | **Phần C** — gỡ tín dụng                     | code → phát hành → migration (`DROP`)    |
-| 2   | **Phần B** — mã mời                          | migration (thêm bảng) → code → phát hành |
-| 3   | **Phần A + D** — gác bề mặt, SEO, điều hướng | chỉ code, không migration                |
+| Đợt  | Nội dung                                     | Thứ tự trong đợt                         |
+| ---- | -------------------------------------------- | ---------------------------------------- |
+| 1 ✅ | **Phần C** — gỡ tín dụng                     | code → phát hành → migration (`DROP`)    |
+| 2 ✅ | **Phần B** — mã mời                          | migration (thêm bảng) → code → phát hành |
+| 3 🟠 | **Phần A + D** — gác bề mặt, SEO, điều hướng | chỉ code, không migration                |
+
+**Đợt 3 bắt đầu từ đâu.** Mã mời đã chạy, nên đường vào lại đã có: một ADMIN cấp
+mã ở `/admin/trust`, người nhận đổi ở `/trust/redeem`, và họ thành VIP. Đó là
+tiền đề mà đợt 3 chờ. Hai việc phải làm TRONG CÙNG MỘT COMMIT (xem cảnh báo bên
+dưới): `AUTH_PREFIXES` của trust-service, `PUBLIC_PREFIXES`/`PRIVATE_PREFIXES`
+của proxy, và `authCoverage.test.ts`.
+
+⚠️ Đợt 3 lọc điều hướng theo `session.role`. Vai trò trong phiên **chỉ đúng sau
+khi làm mới** — xem điểm 1 ở khối trạng thái Phần B. Trang `/trust/redeem` đã tự
+gọi `update()`; trang nào của đợt 3 dựa vào `session.role` mà không đi qua đường
+đó sẽ thấy vai trò cũ.
 
 Vì sao Phần C đi đầu: nó độc lập, ít rủi ro nhất, và làm bề mặt gọn lại trước
 khi phân loại — bớt được `feeCredits`/`feeCharged` khỏi 9 chỗ trong

@@ -11,6 +11,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import type { Provider } from 'next-auth/providers/index';
 
 import { IDENTITY, internalHeaders } from '../../../lib/services';
+import { identityHeaders } from '../../../lib/identity';
 
 /**
  * Xác thực do codebase tự quản lý.
@@ -171,6 +172,36 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   );
 }
 
+/**
+ * Vai trò hiện tại trong DB, cho callback `jwt` khi client gọi `update()`.
+ *
+ * Trả về null khi có bất kỳ trục trặc nào — token giữ nguyên giá trị cũ. Đó là
+ * hướng an toàn: giá trị cũ luôn là vai trò THẤP HƠN hoặc bằng (vai trò chỉ
+ * được nâng qua đường này), nên hỏng mạng dẫn tới ít quyền hơn chứ không nhiều
+ * hơn. Ném lỗi ở đây thì người dùng bị đăng xuất.
+ */
+async function freshSessionState(
+  token: import('next-auth/jwt').JWT
+): Promise<{ role: string; sessionVersion: number } | null> {
+  try {
+    const res = await fetch(`${IDENTITY}/api/identity/session-state`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...internalHeaders(),
+        ...(await identityHeaders(token)),
+      },
+      body: '{}',
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { role?: unknown; sessionVersion?: unknown };
+    if (typeof data.role !== 'string' || typeof data.sessionVersion !== 'number') return null;
+    return { role: data.role, sessionVersion: data.sessionVersion };
+  } catch {
+    return null;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers,
   secret: process.env.NEXTAUTH_SECRET,
@@ -182,11 +213,26 @@ export const authOptions: NextAuthOptions = {
   },
   debug: process.env.NODE_ENV !== 'production',
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       // `user` chỉ có mặt ở lần đăng nhập đầu; các lần sau token đã mang sẵn.
       if (user) {
         token.role = (user as { role?: string }).role;
         token.sessionVersion = (user as { sessionVersion?: number }).sessionVersion ?? 0;
+        return token;
+      }
+      // Client gọi `update()` từ useSession. Vai trò đọc lại từ DB qua
+      // auth-service — KHÔNG bao giờ từ tham số mà client truyền vào, vì tham
+      // số đó là dữ liệu người dùng và token này là thứ quyết định họ là ai.
+      //
+      // Cần thiết vì `token.role` chỉ được ghi ở lần đăng nhập đầu: đổi mã mời
+      // xong thì DB nói VIP còn phiên vẫn nói MEMBER, và điều hướng tiếp tục
+      // giấu mục Con dấu — trông y hệt như đổi mã không có tác dụng.
+      if (trigger === 'update') {
+        const fresh = await freshSessionState(token);
+        if (fresh) {
+          token.role = fresh.role;
+          token.sessionVersion = fresh.sessionVersion;
+        }
       }
       return token;
     },

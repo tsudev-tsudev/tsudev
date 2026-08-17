@@ -20,6 +20,12 @@ const ALLOWED = new Set([
   'passkey/register-verify',
   'passkey/list',
   'passkey/delete',
+  // Mã mời vào Con dấu. `invite/redeem` là của người dùng thường; ba cái còn
+  // lại tự kiểm ADMIN ở auth-service (đọc User.role từ DB, không từ claim).
+  'invite/redeem',
+  'invite/create',
+  'invite/list',
+  'invite/revoke',
 ]);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

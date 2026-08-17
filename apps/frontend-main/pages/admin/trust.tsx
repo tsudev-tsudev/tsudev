@@ -10,6 +10,7 @@ import type {
   AuditEntry,
   RecheckConfig,
   TrustAdminSummary,
+  TrustInvite,
 } from '../../lib/types';
 
 const BASIS = [
@@ -35,6 +36,11 @@ export default function AdminTrust() {
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [recheck, setRecheck] = useState<RecheckConfig | null>(null);
   const [detail, setDetail] = useState<AdminApplicationDetail | null>(null);
+  const [invites, setInvites] = useState<TrustInvite[]>([]);
+  // Mã thô hiện ĐÚNG MỘT LẦN, ngay sau khi cấp. Nó không nằm trong `invites`
+  // và không đọc lại được từ đâu — DB chỉ giữ SHA-256.
+  const [freshCode, setFreshCode] = useState<string | null>(null);
+  const [inviteForm, setInviteForm] = useState({ label: '', maxUses: '1', expiresInDays: '' });
   const [form, setForm] = useState({ basis: 'EVIDENCE_REVIEWED', note: '', scope: '' });
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -59,6 +65,11 @@ export default function AdminTrust() {
     setCerts(c);
     setAudit(a);
     setRecheck(cfg);
+    // Mã mời do auth-service quản, không phải trust-service — đổi mã ghi vào
+    // User.role nên nó thuộc ranh giới danh tính. Đường đi cũng khác: proxy CÓ
+    // PHIÊN /api/account/*, không phải /api/trust/*.
+    const inv = await fetch('/api/account/invite/list', { method: 'POST' });
+    setInvites(inv.ok ? await inv.json() : []);
   }, []);
 
   useEffect(() => {
@@ -481,6 +492,152 @@ export default function AdminTrust() {
             >
               Kiểm toàn bộ ngay
             </Button>
+          </div>
+        </section>
+
+        {/* --- Mã mời --- */}
+        <section className="mb-14">
+          <h2 className="text-lg font-semibold text-ink mb-1">Mã mời</h2>
+          <p className="text-sm text-muted mb-4 max-w-2xl leading-relaxed">
+            Đổi mã hợp lệ nâng tài khoản lên <span className="font-mono text-xs">VIP</span> — mức
+            tối đa mà mã mời cấp được, và trần đó nằm trong mã nguồn chứ không trong dữ liệu. Mã thô
+            chỉ hiện một lần ngay sau khi cấp; hệ thống chỉ lưu bản băm.
+          </p>
+
+          {freshCode && (
+            <div className="mb-4 rounded-md border border-hairstrong bg-panel p-4">
+              <p className="text-sm text-inksoft">
+                Mã vừa cấp — chép lại ngay, nó không hiện lại lần nào nữa:
+              </p>
+              <p className="mt-2 font-mono text-lg font-bold tracking-wider text-ink select-all">
+                {freshCode}
+              </p>
+              <button
+                type="button"
+                className="mt-2 text-xs text-muted hover:text-ink underline"
+                onClick={() => setFreshCode(null)}
+              >
+                Tôi đã chép xong, ẩn đi
+              </button>
+            </div>
+          )}
+
+          <form
+            className="mb-6 flex flex-wrap items-end gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setErr(null);
+              setMsg(null);
+              setBusy(true);
+              try {
+                const r = await fetch('/api/account/invite/create', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    label: inviteForm.label,
+                    maxUses: Number(inviteForm.maxUses) || 1,
+                    expiresInDays: Number(inviteForm.expiresInDays) || 0,
+                  }),
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) {
+                  setErr(d.error || `Lỗi ${r.status}`);
+                  return;
+                }
+                setFreshCode(d.code);
+                setInviteForm({ label: '', maxUses: '1', expiresInDays: '' });
+                await load();
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <div className="min-w-56 flex-1">
+              <label className={labelCls} htmlFor="invite-label">
+                Nhãn (chỉ người vận hành thấy)
+              </label>
+              <input
+                id="invite-label"
+                className={inputCls}
+                value={inviteForm.label}
+                onChange={(e) => setInviteForm({ ...inviteForm, label: e.target.value })}
+                placeholder="Đối tác ABC"
+              />
+            </div>
+            <div className="w-28">
+              <label className={labelCls} htmlFor="invite-uses">
+                Số lượt
+              </label>
+              <input
+                id="invite-uses"
+                className={inputCls}
+                type="number"
+                min={1}
+                value={inviteForm.maxUses}
+                onChange={(e) => setInviteForm({ ...inviteForm, maxUses: e.target.value })}
+              />
+            </div>
+            <div className="w-36">
+              <label className={labelCls} htmlFor="invite-days">
+                Hết hạn sau (ngày)
+              </label>
+              <input
+                id="invite-days"
+                className={inputCls}
+                type="number"
+                min={0}
+                value={inviteForm.expiresInDays}
+                onChange={(e) => setInviteForm({ ...inviteForm, expiresInDays: e.target.value })}
+                placeholder="không hạn"
+              />
+            </div>
+            <Button type="submit" size="sm" disabled={busy || !inviteForm.label.trim()}>
+              Cấp mã
+            </Button>
+          </form>
+
+          <div className="divide-y divide-[color:var(--border)]">
+            {invites.map((i) => {
+              const expired = !!i.expiresAt && new Date(i.expiresAt).getTime() <= Date.now();
+              const dead = !!i.revokedAt || expired || i.usedCount >= i.maxUses;
+              return (
+                <div
+                  key={i.id}
+                  className="py-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+                >
+                  <span className="font-medium text-ink">{i.label}</span>
+                  <Badge tone={dead ? 'outline' : 'success'}>
+                    {i.revokedAt
+                      ? 'đã thu hồi'
+                      : expired
+                      ? 'hết hạn'
+                      : i.usedCount >= i.maxUses
+                      ? 'hết lượt'
+                      : 'còn dùng được'}
+                  </Badge>
+                  <span className="font-mono text-xs text-muted">
+                    {i.usedCount}/{i.maxUses} lượt · cấp {i.grantsRole}
+                  </span>
+                  {i.expiresAt && (
+                    <span className="text-xs text-muted">hạn {fmtDate(i.expiresAt)}</span>
+                  )}
+                  <span className="ml-auto text-xs text-muted">{fmtDate(i.createdAt)}</span>
+                  {!i.revokedAt && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        act('/api/account/invite/revoke', { id: i.id }, 'Đã thu hồi mã.')
+                      }
+                    >
+                      Thu hồi
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+            {invites.length === 0 && <p className="py-8 text-muted text-sm">Chưa cấp mã nào.</p>}
           </div>
         </section>
 
