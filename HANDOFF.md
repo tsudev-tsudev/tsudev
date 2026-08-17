@@ -12,9 +12,13 @@
 
 **Không còn việc chặn nào.** Production đã đăng nhập được (§0.5 đã xong 17/08).
 
+➡️ **Phiên mới: đọc [§0.8 Bàn giao phiên 3](#08-bàn-giao-phiên-3-18082026--đọc-trước)
+trước tiên.** Có hai PR chưa gộp (#12, #13) và chính tệp này nằm trong cả hai —
+bản trên `main` đã cũ.
+
 Thứ tự đề nghị:
 
-1. **PHÁT HÀNH đợt 2 (mã mời).** Mã đã xong và xanh hết cổng kiểm nhưng **chưa
+1. **Gộp #12 + #13, rồi PHÁT HÀNH đợt 2 (mã mời).** Mã đã xong và xanh hết cổng kiểm nhưng **chưa
    lên sóng**. Thứ tự: `prisma migrate deploy` lên Neon (thuần tính cộng, hai
    `CREATE TABLE`) → gộp PR (Render dựng lại) → `npm --workspace
 apps/frontend-main run deploy`. Dấu hiệu bản mới đã lên sóng:
@@ -126,9 +130,104 @@ production: `docs/auth.md` §5.
 - Bốn cổng gốc xanh · **219 test JS** · 9 test Rust · **13 E2E**.
 - Production đang chạy mã của `main`. Neon đã áp dụng **9 migration**.
 
-⚠️ **CÓ thay đổi đang treo (phiên 3):** đợt 2 của §1.9 (mã mời) đã xong ở cây
-làm việc — 6 tệp mã, 1 migration, 2 tệp test, 4 tệp tài liệu. **Chưa commit,
-chưa phát hành.** Neon chưa có migration `20260817172916_trust_invite`.
+---
+
+## 0.8 Bàn giao phiên 3 (18/08/2026) — ĐỌC TRƯỚC
+
+### ⚠️ Nếu bạn đang đọc bản này trên `main` thì nó đã CŨ
+
+Phiên 3 để lại **hai PR chưa gộp**, và chính tệp này được sửa trong cả hai. Bản
+trên `main` nói "đợt 2 chưa làm" — **sai**. Đợt 2 đã xong.
+
+| PR                                                     | Nhánh                           | Nội dung                                       |
+| ------------------------------------------------------ | ------------------------------- | ---------------------------------------------- |
+| [#12](https://github.com/tsudev-tsudev/tsudev/pull/12) | `feat/trust-invite-codes`       | §1.9 đợt 2 — mã mời. 19 tệp, +1370/−28         |
+| [#13](https://github.com/tsudev-tsudev/tsudev/pull/13) | `docs/render-duplicate-service` | §1.10 + chẩn đoán `tsudev-backend-rqkz`. 2 tệp |
+
+Cả hai `MERGEABLE`; `git merge-tree` khô cho **0 xung đột** nên gộp thứ tự nào
+cũng được. **Việc đầu tiên của phiên mới là gộp chúng**, nếu không mọi thứ đọc
+được từ `main` đều lệch một nhịp.
+
+### Việc 1 — PHÁT HÀNH đợt 2 (mã mời)
+
+Mã đã xong, xanh hết cổng kiểm, **chưa lên sóng**. Neon **chưa** có migration
+`20260817172916_trust_invite`.
+
+⚠️ Thứ tự đợt này **NGƯỢC** với đợt 1 (đợt 1 là `DROP COLUMN` nên code đi trước;
+đợt này là thêm bảng nên migration đi trước):
+
+1. `prisma migrate deploy` lên Neon — thuần tính cộng, hai `CREATE TABLE`, không
+   đụng bảng nào đang có. Mã cũ đang chạy không biết hai bảng đó tồn tại.
+2. Gộp #12 ⇒ Render dựng lại `tsudev-backend` (~160s).
+3. `npm --workspace apps/frontend-main run deploy`.
+
+Dấu hiệu bản mới đã lên sóng — phải là thứ THAY ĐỔI giữa hai bản, `/health` thì
+không (xem §0.7):
+
+```
+POST /api/identity/invite/redeem   không kèm khẳng định danh tính
+  → 401 ở bản mới · 404 ở bản cũ
+```
+
+Nghiệm thu sau khi lên sóng: đăng nhập bằng `tsudev`, cấp một mã ở
+`/admin/trust`, đổi nó ở `/trust/redeem` bằng một tài khoản khác. Đây là loại
+tính năng **chỉ lộ lỗi khi bấm thật**.
+
+### Việc 2 — §1.9 đợt 3 (gác bề mặt + SEO + điều hướng)
+
+Đợt cuối của kế hoạch, và là đợt **duy nhất có thể khoá nhầm chính mình ra
+ngoài**. Làm được rồi vì mã mời đã chạy: có đường vào lại qua `/trust/redeem`.
+
+Chỉ có code, **không migration**. Ba thứ phải sửa **TRONG CÙNG MỘT COMMIT**:
+`AUTH_PREFIXES` của trust-service · `PUBLIC_PREFIXES`/`PRIVATE_PREFIXES` của
+`pages/api/trust/[...path].ts` · `authCoverage.test.ts`. Lệch một nhịp là hoặc
+route riêng tư lộ ra, hoặc trang công khai chết — **cả hai đều im lặng**.
+
+⚠️ Đợt 3 lọc điều hướng theo `session.role`. Vai trò trong phiên **chỉ đúng sau
+khi làm mới** — `token.role` của next-auth chỉ được ghi ở lần đăng nhập đầu.
+Đường sửa đã có sẵn từ đợt 2 (`POST /api/identity/session-state` + nhánh
+`trigger === 'update'` ở callback `jwt`); `/trust/redeem` đã tự gọi `update()`.
+Trang nào của đợt 3 dựa vào `session.role` mà không đi qua đường đó sẽ thấy vai
+trò cũ.
+
+Kế hoạch đầy đủ + danh sách cổng kiểm bắt buộc:
+[`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).
+
+### Việc 3 — §1.10 dọn service Render trùng
+
+10 phút, làm lúc nào cũng được, nằm trong PR #13. Không phải sự cố production.
+
+### Có người khác đang làm song song — ĐỪNG quét chung vào commit của mình
+
+Nhánh **`feat/minio-user-space`** (MinIO user-space cho dev: `scripts/start-minio.sh`,
+`scripts/ensure-bucket.js`, `minio:up` trong `package.json`, mục mới ở
+`docs/development.md`) **không phải của phiên 3**. Nó xuất hiện trong cây làm
+việc giữa phiên và đã suýt bị `git add -A` quét vào PR #12.
+
+Bài học dùng lại được: **trước khi commit, đối chiếu danh sách staged với danh
+sách tệp mình thực sự sửa.** `git status --short` trước và sau khi làm việc,
+hoặc đơn giản là `ls -l --time-style=+%H:%M` để xem mtime — tệp của người khác
+có dấu thời gian không khớp với phiên của mình.
+
+### Trạng thái máy dev khi bàn giao
+
+- Postgres user-space đang chạy ở `5433`; migration của đợt 2 **đã áp dụng cục bộ**.
+- DB dev đã seed lại; `alice` đã trả về `MEMBER`, mã mời do E2E sinh đã xoá.
+- Một stack dev (`3000/4001/4002/4003/4004/8080`) đang chạy từ trước phiên 3.
+  E2E chạy bằng `E2E_REUSE_SERVER=1` để bám vào nó — **mặc định là dựng mới**, và
+  mặc định đó có lý do (xem chú thích trong `e2e/playwright.config.js`).
+
+### Vết đã trả giá ở phiên 3
+
+- **`gh pr create` gặp GitHub API 503 suốt ~5 phút** trong khi `git push` (HTTPS)
+  vẫn chạy bình thường — hai đường khác nhau, GraphQL hỏng riêng. Lần thử đầu trả
+  503 **sau khi** đã gửi request, nên phải `gh pr list` kiểm trước khi thử lại,
+  nếu không dễ tạo PR trùng. Mất 6 lần thử.
+- **Thêm tệp spec E2E mới thì phải khai vào `testMatch`** của một project trong
+  `e2e/playwright.config.js`. Playwright **không** tự nhặt; quên là spec đó im
+  lặng không bao giờ chạy, và triệu chứng duy nhất là số test không tăng.
+- **`docs/testing.md` từng ghi sai** rằng "E2E không chạy trong CI". Project `app`
+  **vẫn** chạy ở job `e2e-app`. Đã sửa trong PR #12.
 
 ---
 
