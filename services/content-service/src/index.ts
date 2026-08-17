@@ -1,6 +1,6 @@
 require('source-map-support').install()
 require('dotenv').config()
-// npm workspace đặt cwd ở thư mục service, nơi không có .env — nạp thêm .env ở
+// npm workspace đặt cwd ở thư mục service, nơi không có .env - nạp thêm .env ở
 // gốc repo. Thiếu bước này thì `npm --workspace ... test` chạy không có
 // DATABASE_URL và mọi route chạm DB đều trả 500.
 if (!process.env.DATABASE_URL) {
@@ -25,9 +25,9 @@ type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
  * Đọc một tham số truy vấn dạng CHUỖI.
  *
  * Express khai `req.query.x` là `string | ParsedQs | (string|ParsedQs)[] |
- * undefined` — và nó nói đúng: người gọi điều khiển hình dạng này. `?limit=1`
+ * undefined` - và nó nói đúng: người gọi điều khiển hình dạng này. `?limit=1`
  * cho chuỗi, `?limit=1&limit=2` cho mảng, `?limit[a]=1` cho object. Bản cũ đưa
- * thẳng giá trị đó vào parseInt, nơi mảng bị ép về chuỗi và object thành NaN —
+ * thẳng giá trị đó vào parseInt, nơi mảng bị ép về chuỗi và object thành NaN -
  * im lặng cả hai trường hợp. Ở đây chỉ chuỗi mới được đi tiếp.
  */
 const qStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
@@ -55,7 +55,7 @@ app.use((_req, res, next) => {
 })
 
 const port = process.env.PORT || process.env.PORT_CONTENT_SERVICE || 4001
-// Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
+// Mặc định 0.0.0.0 - đừng đổi: bind loopback bên trong container là tự cắt liên
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
@@ -64,7 +64,7 @@ const bindHost = process.env.BIND_HOST || '0.0.0.0'
 const auth = createAuthMiddleware('content')
 
 // Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
-// được error handler của Express — request treo cho tới khi client bỏ cuộc.
+// được error handler của Express - request treo cho tới khi client bỏ cuộc.
 const asyncHandler =
   (fn: (req: Request, res: Response, next: NextFunction) => unknown): RequestHandler =>
   (req, res, next) =>
@@ -87,7 +87,7 @@ const authorCard = (
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'content-service' }))
 
-// Ba service backend nằm trên URL Render CÔNG KHAI — không giấu sau mạng nội bộ
+// Ba service backend nằm trên URL Render CÔNG KHAI - không giấu sau mạng nội bộ
 // được, vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render. Cổng
 // chặn này là lớp bù: chỉ ai biết INTERNAL_API_TOKEN mới gọi được /api.
 //
@@ -104,7 +104,7 @@ app.use('/api', (req, res, next) => {
 // XÁC THỰC TUỲ CHỌN, không phải chặn cứng. Gắn req.user nếu người gọi có mang
 // danh tính; KHÔNG từ chối nếu không có.
 //
-// Trước đây đây là `app.use('/api', auth)` — chặn cứng — và nó làm production
+// Trước đây đây là `app.use('/api', auth)` - chặn cứng - và nó làm production
 // trống trơn: blog, tài liệu và dự án là nội dung CÔNG KHAI, nhưng BFF của Next
 // gọi SSR chỉ kèm x-internal-token chứ không có Bearer JWT (không có phiên người
 // dùng nào khi khách vãng lai mở trang). Ở local khi ấy không lộ ra vì
@@ -113,13 +113,13 @@ app.use('/api', (req, res, next) => {
 //
 // An toàn vì đường ghi không dựa vào lớp này: mọi route ghi nằm dưới /api/admin
 // và tự gọi requireAdmin(), vốn đọc vai trò TỪ DB và trả 401 khi thiếu req.user
-// — fail closed. Đây cũng là hình mà storage-service (auth theo từng route) và
+// - fail closed. Đây cũng là hình mà storage-service (auth theo từng route) và
 // trust-service (auth theo nhánh) vốn đã dùng; content-service là cái lệch.
 //
 // Token SAI vẫn bị từ chối: chỉ bỏ qua khi người gọi không đưa gì cả.
 //
 // Nhánh AUTH_DEV_BYPASS đã bị gỡ cùng với chính cờ đó. Nó làm mọi request ở
-// local đi qua xác thực bắt buộc trong khi ở production thì không — tức là hai
+// local đi qua xác thực bắt buộc trong khi ở production thì không - tức là hai
 // môi trường chạy hai đường khác nhau ngay tại chỗ nhạy cảm nhất, và đó là lý
 // do lỗi 401 của production không bao giờ lộ ra khi chạy local.
 const optionalAuth: RequestHandler = (req, res, next) => {
@@ -133,7 +133,7 @@ app.use('/api', optionalAuth)
 //
 // KHÔNG có cổng vai trò ở đây, có chủ đích: blog, tài liệu và dự án là nội dung
 // công khai. Bản trước từng gắn một cổng vai trò lên chính đường đọc này, thứ
-// chỉ vô hại vì cổng đó khi ấy là no-op — bật lên là blog biến mất khỏi site.
+// chỉ vô hại vì cổng đó khi ấy là no-op - bật lên là blog biến mất khỏi site.
 //
 // Thứ cần bảo vệ là đường GHI, nằm dưới /api/admin với requireAdmin().
 app.get(
@@ -204,7 +204,7 @@ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 async function requireAdmin(req: Request, res: Response): Promise<User | null> {
   // lookupUser() của @tsudev/auth: tra cứu chứ KHÔNG tạo (đường ghi phải khớp
   // một User có thật), và nó cũng đối chiếu sessionVersion để một phiên đã bị
-  // thu hồi không đi qua được. Trước đây đây là bản `actingUser` cục bộ — bản
+  // thu hồi không đi qua được. Trước đây đây là bản `actingUser` cục bộ - bản
   // thứ ba của cùng một hàm, và là bản duy nhất bỏ sót phép so sánh đó.
   const user = await lookupUser(req)
   if (!user) {
@@ -241,7 +241,7 @@ const projectCard = (p: Project) => ({
 type ProjectWritable = Partial<Prisma.ProjectUncheckedCreateInput>
 /**
  * Discriminant tường minh (`ok`) chứ không phải "có trường error hay không".
- * Nhờ nó mà sau `if (!parsed.ok) return`, TypeScript BIẾT `parsed.data` có mặt —
+ * Nhờ nó mà sau `if (!parsed.ok) return`, TypeScript BIẾT `parsed.data` có mặt -
  * không còn chỗ nào đọc data của một request đã bị từ chối.
  */
 type ReadBodyResult = { ok: true; data: ProjectWritable } | { ok: false; error: string }
@@ -250,7 +250,7 @@ function readProjectBody(body: unknown, { partial }: { partial: boolean }): Read
   const b = (body ?? {}) as Record<string, unknown>
   const data: ProjectWritable = {}
   // Các vòng lặp bên dưới gán theo khoá động. Giữ MỘT tham chiếu lỏng kiểu ở đây
-  // thay vì rắc cast khắp nơi — hình dạng trả về cho nơi gọi vẫn là ProjectWritable.
+  // thay vì rắc cast khắp nơi - hình dạng trả về cho nơi gọi vẫn là ProjectWritable.
   const loose = data as Record<string, unknown>
   const set = (key: string, value: unknown) => {
     if (value !== undefined) loose[key] = value
@@ -294,7 +294,7 @@ function readProjectBody(body: unknown, { partial }: { partial: boolean }): Read
   }
 
   // REGISTERED mà không có số giấy chứng nhận là một khẳng định pháp lý không có
-  // gì chống lưng — chặn ngay ở đây, đừng để nó hiện lên trang công khai.
+  // gì chống lưng - chặn ngay ở đây, đừng để nó hiện lên trang công khai.
   const nextCopyright = data.copyrightStatus
   const nextNo = b.copyrightNo === undefined ? undefined : String(b.copyrightNo || '').trim()
   if (nextCopyright === 'REGISTERED' && !partial && !nextNo)
@@ -367,7 +367,7 @@ app.get(
   })
 )
 
-/// Danh sách đầy đủ cho trang quản trị — gồm cả dự án chưa công bố.
+/// Danh sách đầy đủ cho trang quản trị - gồm cả dự án chưa công bố.
 app.get(
   '/api/admin/projects',
   asyncHandler(async (req, res) => {
@@ -441,7 +441,7 @@ app.delete(
 //
 // Chặn ở production: endpoint này không cần đăng nhập, và mỗi lần gọi là một
 // cảnh báo thật bắn về Telegram/email. Để mở thì bất kỳ ai cũng làm ngập kênh
-// trực của đội — thứ khiến cảnh báo thật bị bỏ qua.
+// trực của đội - thứ khiến cảnh báo thật bị bỏ qua.
 if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEBUG_BOOM === 'true') {
   app.get('/debug/boom', () => {
     throw new Error('Boom! Lỗi chủ động để kiểm thử cảnh báo.')
@@ -462,7 +462,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
     context: `${req.method} ${req.url}`,
   })
   // Ở production trả chuỗi chung: `err.message` hay mang theo đường dẫn tệp trên
-  // máy chủ hoặc tên bảng — thứ giúp người dò tìm dựng bản đồ hệ thống. Chi tiết
+  // máy chủ hoặc tên bảng - thứ giúp người dò tìm dựng bản đồ hệ thống. Chi tiết
   // đã được ghi đầy đủ vào log ở trên.
   if (res && !res.headersSent)
     res
@@ -472,7 +472,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 app.use(errorHandler)
 
 /** Chuẩn bị trước khi phục vụ. Chạy ở CẢ hai chế độ: tiến trình riêng và nhúng
- *  trong services/backend-bundle. content-service không có gì phải dựng sẵn —
+ *  trong services/backend-bundle. content-service không có gì phải dựng sẵn -
  *  giữ hàm rỗng để ba service có cùng một hợp đồng khởi tạo. */
 async function init() {}
 

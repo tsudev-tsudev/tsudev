@@ -8,12 +8,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      # Cổng HOST là 5433 để trùng DATABASE_URL trong .env — trước đây map 5432
+      # Cổng HOST là 5433 để trùng DATABASE_URL trong .env - trước đây map 5432
       # nên `npm run db:migrate` chạy từ host lại migrate cluster user-space chứ
       # không phải Postgres của compose, và không có gì báo. Cổng trong container
       # vẫn 5432 (mặc định của image), service khác nối qua `postgres:5432`.
       # Hệ quả có chủ ý: chạy đồng thời cluster user-space và compose sẽ đụng cổng
-      # và compose báo lỗi ngay — thà vậy còn hơn âm thầm tách làm hai database.
+      # và compose báo lỗi ngay - thà vậy còn hơn âm thầm tách làm hai database.
       - '5433:5432'
 
   redis:
@@ -45,7 +45,7 @@ services:
     ports:
       - '4003:4003'
     environment:
-      # Khoá ký của cơ quan cấp dấu. Bắt buộc ở production — service từ chối
+      # Khoá ký của cơ quan cấp dấu. Bắt buộc ở production - service từ chối
       # khởi động nếu thiếu. Sinh bằng: node services/trust-service/scripts/genkey.js
       TRUST_SIGNING_KEY: ${TRUST_SIGNING_KEY}
       TRUST_SIGNING_KEY_ID: ${TRUST_SIGNING_KEY_ID}

@@ -38,7 +38,7 @@ export default function DocPage({ doc, slug, toc }: DocPageProps) {
           {doc.title}
         </h1>
         {/* Hai cột từ lg trở lên: thân bài giữ bề rộng đọc được, mục lục bám
-            dính bên phải. Dưới lg thì mục lục nằm TRÊN thân bài — trên màn hình
+            dính bên phải. Dưới lg thì mục lục nằm TRÊN thân bài - trên màn hình
             hẹp nó phải là thứ người đọc gặp trước, không phải thứ họ cuộn qua
             hết bài mới thấy. */}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">

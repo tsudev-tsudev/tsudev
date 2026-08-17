@@ -4,19 +4,19 @@
  *
  * Con dấu không phải thứ cấp một lần rồi thôi: chủ site có thể gỡ bản ghi xác
  * minh, bán tên miền, hoặc để nó hết hạn. Huy hiệu vẫn hiện trên trang họ, và
- * người dùng vẫn tin — nên hệ thống phải tự phát hiện và tự hạ dấu.
+ * người dùng vẫn tin - nên hệ thống phải tự phát hiện và tự hạ dấu.
  *
  * Ba quyết định đáng ghi lại:
  *
  * 1. MỘT LẦN HỎNG KHÔNG HẠ DẤU. DNS chập chờn, site bảo trì, mạng của chính
- *    tsudev lỗi — đều làm kiểm tra trượt mà chủ site không có lỗi gì. Chỉ đình
+ *    tsudev lỗi - đều làm kiểm tra trượt mà chủ site không có lỗi gì. Chỉ đình
  *    chỉ sau TRUST_RECHECK_GRACE_FAILURES lần trượt LIÊN TIẾP (mặc định 3).
  *
  * 2. TỰ ĐÌNH CHỈ, KHÔNG TỰ THU HỒI. Đình chỉ đảo ngược được; thu hồi thì không.
  *    Máy chỉ được làm việc đảo ngược được, thu hồi luôn là quyết định của người.
  *
  * 3. CHỈ TỰ KHÔI PHỤC THỨ CHÍNH MÌNH ĐÃ ĐÌNH CHỈ. Kiểm duyệt viên đình chỉ vì
- *    lý do nội dung thì domain vẫn xác minh tốt — nếu máy thấy "kiểm tra đạt"
+ *    lý do nội dung thì domain vẫn xác minh tốt - nếu máy thấy "kiểm tra đạt"
  *    rồi bật lại thì nó vừa lật quyết định của con người. Nguồn phân biệt là
  *    nhật ký kiểm toán: nó bất biến và đã ghi sẵn ai là người ra tay.
  */
@@ -25,7 +25,7 @@ import { prisma } from '@tsudev/db'
 import type { TrustCertificate } from '@prisma/client'
 import { verifyDomain } from './domainVerify'
 
-/** Cảnh báo ra ngoài. Không bắt buộc — thiếu module thì thay bằng no-op. */
+/** Cảnh báo ra ngoài. Không bắt buộc - thiếu module thì thay bằng no-op. */
 type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
 
 const errText = (e: unknown): string => (e instanceof Error ? e.stack || e.message : String(e))
@@ -94,7 +94,7 @@ async function consecutiveFailures(certificateId: string, limit: number): Promis
 
 /**
  * Lần đình chỉ hiện hành có phải do hệ thống không. Đọc hành động đình chỉ/khôi
- * phục gần nhất trong nhật ký — nếu người làm thì máy không được lật lại.
+ * phục gần nhất trong nhật ký - nếu người làm thì máy không được lật lại.
  */
 async function suspendedBySystem(certificateId: string): Promise<boolean> {
   const last = await prisma.trustAuditLog.findFirst({
@@ -198,7 +198,7 @@ async function recheckOne(cert: DueCertificate, cfg: RecheckConfig): Promise<Rec
     await audit(
       'CERTIFICATE_SUSPEND',
       cert,
-      `Tự đình chỉ: xác minh tên miền trượt ${streak} lần liên tiếp — ${result.detail}`
+      `Tự đình chỉ: xác minh tên miền trượt ${streak} lần liên tiếp - ${result.detail}`
     )
     row.action = 'suspended'
     row.streak = streak
@@ -220,7 +220,7 @@ async function recheckOne(cert: DueCertificate, cfg: RecheckConfig): Promise<Rec
 }
 
 /**
- * Một vòng giám sát. Lỗi của một chứng chỉ không được làm hỏng cả vòng — một
+ * Một vòng giám sát. Lỗi của một chứng chỉ không được làm hỏng cả vòng - một
  * domain chết không thể chặn việc kiểm những domain còn lại.
  */
 type RunOpts = Partial<RecheckConfig> & { now?: Date; certificates?: DueCertificate[] }
@@ -261,7 +261,7 @@ let timer: NodeJS.Timeout | null = null
 /**
  * Bộ hẹn giờ trong tiến trình. Đủ cho một service chạy một bản; nếu sau này
  * chạy nhiều bản thì phải khoá phân tán (hoặc tắt biến môi trường và gọi
- * /api/trust/admin/recheck từ cron bên ngoài) — nếu không mọi bản sẽ cùng kiểm
+ * /api/trust/admin/recheck từ cron bên ngoài) - nếu không mọi bản sẽ cùng kiểm
  * một tập chứng chỉ.
  */
 function startScheduler() {

@@ -17,7 +17,7 @@ import type { Role } from '@tsudev/types';
  *     trở thành quyền ADMIN cấp bằng một dòng header.
  *
  * Khẳng định có chữ ký thay cả hai: nó buộc danh tính vào một chữ ký và một
- * hạn dùng, và nó chạy GIỐNG NHAU ở dev lẫn production — chính sự khác biệt
+ * hạn dùng, và nó chạy GIỐNG NHAU ở dev lẫn production - chính sự khác biệt
  * giữa hai môi trường mới là thứ đã giấu lỗi này đi.
  *
  * VÌ SAO LÀ MỘT PACKAGE RIÊNG
@@ -25,7 +25,7 @@ import type { Role } from '@tsudev/types';
  * Bên ký (apps/frontend-main, chạy trên Cloudflare Workers) và bên kiểm
  * (packages/auth, chạy trong service Node) phải khớp nhau từng claim. Chép
  * đoạn này thành hai bản là tái lập đúng lỗi mà ba bản authMiddleware gần
- * trùng nhau đã gây ra. Package này CỐ Ý không phụ thuộc Prisma — @tsudev/auth
+ * trùng nhau đã gây ra. Package này CỐ Ý không phụ thuộc Prisma - @tsudev/auth
  * có, và frontend trên Workers không nạp được nó.
  */
 
@@ -57,7 +57,7 @@ export type IdentityClaims = {
    */
   sv?: number;
   /**
-   * Vai trò lấy từ phiên. CHỈ ĐỂ THAM KHẢO, KHÔNG phải nguồn phân quyền —
+   * Vai trò lấy từ phiên. CHỈ ĐỂ THAM KHẢO, KHÔNG phải nguồn phân quyền -
    * `requireRole()` luôn đọc `User.role` từ DB và fail closed. Có claim này để
    * ghi log và gỡ lỗi được, không phải để tin.
    */
@@ -68,7 +68,7 @@ const key = (secret: string): Uint8Array => new TextEncoder().encode(secret);
 
 /**
  * Tên biến môi trường mang khoá ký. Khai ở đây để hai bên không bao giờ đọc
- * hai tên khác nhau — thiếu khoá ở một bên là 401 im lặng.
+ * hai tên khác nhau - thiếu khoá ở một bên là 401 im lặng.
  */
 export const SECRET_ENV = 'INTERNAL_IDENTITY_SECRET';
 
@@ -97,7 +97,7 @@ export async function signIdentity(claims: IdentityClaims, secret: string): Prom
     .sign(key(secret));
 }
 
-/** Kiểm một khẳng định. Trả về null cho MỌI lý do thất bại — không phân biệt ra ngoài. */
+/** Kiểm một khẳng định. Trả về null cho MỌI lý do thất bại - không phân biệt ra ngoài. */
 export async function verifyIdentity(
   token: string,
   secret: string

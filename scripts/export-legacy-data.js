@@ -8,9 +8,9 @@
 //   DATABASE_URL=... node scripts/export-legacy-data.js
 //
 // Ghi ra backup/legacy-<ngày>/<Model>.json + manifest.json. Thoát khác 0 nếu có
-// bảng nào không đọc được — thà dừng còn hơn xuất thiếu rồi tưởng là đã xong.
+// bảng nào không đọc được - thà dừng còn hơn xuất thiếu rồi tưởng là đã xong.
 //
-// ⚠️ SCRIPT NÀY NAY LUÔN BÁO "đã qua migration DROP" — ĐỪNG TIN NÓ.
+// ⚠️ SCRIPT NÀY NAY LUÔN BÁO "đã qua migration DROP" - ĐỪNG TIN NÓ.
 // Cửa vào bên dưới kiểm `prisma[model]`, mà Prisma client đã được sinh từ schema
 // ĐÃ XOÁ các model đó, nên điều kiện luôn đúng bất kể DB thật ra sao. Giữ file
 // lại làm hiện vật lịch sử. Muốn biết DB thật có bảng cũ hay không thì hỏi thẳng
@@ -51,10 +51,10 @@ const outDir = path.join(__dirname, '..', 'backup', `legacy-${stamp}`);
 
 async function main() {
   // Sau khi migration DROP đã chạy, Prisma client không còn delegate nào trong
-  // MODELS. Đó là trạng thái ĐÚNG, không phải lỗi — thoát 0 và nói rõ, thay vì
+  // MODELS. Đó là trạng thái ĐÚNG, không phải lỗi - thoát 0 và nói rõ, thay vì
   // báo "15 bảng không xuất được" khiến người chạy tưởng hỏng.
   if (!MODELS.some((m) => prisma[m])) {
-    console.log('DB này đã qua migration DROP của giai đoạn 4 — không còn bảng cũ để xuất.');
+    console.log('DB này đã qua migration DROP của giai đoạn 4 - không còn bảng cũ để xuất.');
     console.log('Bản xuất trước đó nằm trong backup/legacy-<ngày>/.');
     return;
   }
@@ -80,7 +80,7 @@ async function main() {
     }
   }
 
-  // Cột User.reputation cũng biến mất — xuất riêng, không xuất cả bảng User
+  // Cột User.reputation cũng biến mất - xuất riêng, không xuất cả bảng User
   // (bảng đó được GIỮ, chỉ mất một cột).
   try {
     const users = await prisma.user.findMany({

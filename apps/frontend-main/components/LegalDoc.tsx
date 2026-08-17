@@ -3,7 +3,7 @@ import Seo from './Seo';
 import { Layout, Badge, TableOfContents } from '@tsudev/ui';
 
 // Khung chung cho các trang văn bản dài (Điều khoản, Quyền riêng tư, Nội quy).
-// Mỗi mục có `id` để trích dẫn được bằng liên kết neo — văn bản pháp lý hay bị
+// Mỗi mục có `id` để trích dẫn được bằng liên kết neo - văn bản pháp lý hay bị
 // dẫn chiếu tới từng mục nên đây là yêu cầu bắt buộc, không phải trang trí.
 /** Một mục trong văn bản pháp lý. `id` là neo trích dẫn, bắt buộc. */
 export type LegalSection = {
@@ -76,7 +76,7 @@ export const LegalDoc = ({
         </div>
 
         {/* Cùng MỘT component mục lục với blog và tài liệu. Bản trước ở đây là
-            một danh sách viết tay chỉ có viền trái — nghĩa là ba trang dài nhất
+            một danh sách viết tay chỉ có viền trái - nghĩa là ba trang dài nhất
             của site có ba kiểu mục lục khác nhau, và chỉ có kiểu này không có
             nền riêng nên nó lẫn vào thân bài ở chế độ sáng. */}
         <aside className="order-1 lg:order-2 lg:sticky lg:top-20">

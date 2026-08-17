@@ -1,9 +1,9 @@
-# tsudev — Developer Ecosystem
+# tsudev - Developer Ecosystem
 
 [![CI](https://github.com/tsudev-tsudev/tsudev/actions/workflows/ci.yml/badge.svg)](https://github.com/tsudev-tsudev/tsudev/actions/workflows/ci.yml)
 
 Website dự án cá nhân của tsudev: **dự án & bản quyền** (ứng dụng, công cụ, thư
-viện — kèm giấy phép và trạng thái đăng ký quyền tác giả), blog, kho tài liệu,
+viện - kèm giấy phép và trạng thái đăng ký quyền tác giả), blog, kho tài liệu,
 **SSO**, và **con dấu tín nhiệm** cấp cho website dùng mã nguồn tsudev hoặc do
 đội ngũ tsudev thực hiện.
 
@@ -23,7 +23,7 @@ Các lần sau chỉ cần `npm run dev:local` (DB đã có sẵn).
   `scripts/dev-proxy.js`; `*.localhost` tự trỏ loopback, không phải sửa
   `/etc/hosts`). Proxy hỏng: `DEV_PROXY=0 npm run dev:local`.
 - Đăng nhập dev: `tsudev` (ADMIN) · `alice` (MEMBER) · `bob` (VIP), mật khẩu
-  `tsudev-dev-2026!`. Do `npm run db:seed:dev` đặt — hash Argon2id thật, đi qua
+  `tsudev-dev-2026!`. Do `npm run db:seed:dev` đặt - hash Argon2id thật, đi qua
   ĐÚNG đường mà người dùng thật đi. Không còn "bất kỳ username nào + devpass".
   `tsudev` = ADMIN (xem `/admin`), `alice` = MEMBER, `bob` = VIP.
 
@@ -36,14 +36,14 @@ MinIO thật.
 
 | Thư mục                    | Nội dung                                                   | Cổng |
 | -------------------------- | ---------------------------------------------------------- | ---- |
-| `apps/frontend-main`       | Next.js 15 — app duy nhất: dự án, blog, docs, trust, admin | 3000 |
+| `apps/frontend-main`       | Next.js 15 - app duy nhất: dự án, blog, docs, trust, admin | 3000 |
 | `services/content-service` | blog, docs, dự án & bản quyền                              | 4001 |
 | `services/storage-service` | presign S3/R2, upload                                      | 4002 |
 | `services/trust-service`   | con dấu tín nhiệm                                          | 4003 |
-| `packages/db`              | schema Prisma, migration, seed                             | —    |
+| `packages/db`              | schema Prisma, migration, seed                             | -    |
 | `packages/ui`              | design system + Storybook                                  | 6006 |
-| `packages/brand`           | ảnh nguồn logo/favicon/avatar                              | —    |
-| `infrastructure/`          | tài liệu hạ tầng & giám sát                                | —    |
+| `packages/brand`           | ảnh nguồn logo/favicon/avatar                              | -    |
+| `infrastructure/`          | tài liệu hạ tầng & giám sát                                | -    |
 
 Mỗi thư mục có `README.md` riêng.
 
@@ -63,7 +63,7 @@ npm --workspace services/<tên> test
 npm --workspace packages/ui run storybook
 ```
 
-Không có lệnh `test` ở gốc — test chạy theo từng service.
+Không có lệnh `test` ở gốc - test chạy theo từng service.
 
 ## Tài liệu
 
@@ -94,7 +94,7 @@ Không có lệnh `test` ở gốc — test chạy theo từng service.
 
 ## Đóng góp
 
-`main` **không** có branch protection — GitHub Free không hỗ trợ cho repo
+`main` **không** có branch protection - GitHub Free không hỗ trợ cho repo
 private. Lớp chắn duy nhất là hook client `.husky/pre-push`, tự cài khi
 `npm install`. Làm việc trên nhánh feature rồi mở PR; thật sự cần vượt thì
 `ALLOW_MAIN_FORCE=1 git push`.

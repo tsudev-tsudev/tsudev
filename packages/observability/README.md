@@ -1,6 +1,6 @@
 # observability
 
-Theo dõi lỗi và cảnh báo. **Thư mục thuần, không phải npm workspace** — không có
+Theo dõi lỗi và cảnh báo. **Thư mục thuần, không phải npm workspace** - không có
 `package.json`, import theo đường dẫn tương đối chứ không phải `@tsudev/...`.
 
 | File            | Việc                                                   |
@@ -17,7 +17,7 @@ Theo dõi lỗi và cảnh báo. **Thư mục thuần, không phải npm workspa
 | `ALERT_EMAIL_WEBHOOK`, `ALERT_EMAIL_TO`  | cảnh báo email                 |
 | `NEW_RELIC_LICENSE_KEY`                  | APM (`newrelic.js` ở gốc repo) |
 
-Chưa cấu hình thì `notify.js` chỉ log `would send` — an toàn cho dev, không im
+Chưa cấu hình thì `notify.js` chỉ log `would send` - an toàn cho dev, không im
 lặng nuốt lỗi.
 
 ## Điều kiện kích hoạt

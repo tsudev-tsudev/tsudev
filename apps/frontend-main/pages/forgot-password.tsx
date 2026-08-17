@@ -6,7 +6,7 @@ import { AuthShell, Notice } from '../components/AuthShell';
 /**
  * Quên mật khẩu.
  *
- * Màn hình xác nhận GIỐNG HỆT NHAU dù địa chỉ có tồn tại hay không — máy chủ
+ * Màn hình xác nhận GIỐNG HỆT NHAU dù địa chỉ có tồn tại hay không - máy chủ
  * cũng trả về cùng một phản hồi. Nói "không tìm thấy email này" biến form này
  * thành công cụ dò xem ai có tài khoản ở đây, và đó là bước đầu của mọi chiến
  * dịch nhắm mục tiêu.

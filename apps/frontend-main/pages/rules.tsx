@@ -10,7 +10,7 @@ const SECTIONS = [
       <>
         <p>
           tsudev là nơi lập trình viên trao đổi chuyên môn. Nội quy này tồn tại để giữ cho các cuộc
-          thảo luận có ích, tôn trọng và đáng tin cậy — không phải để hạn chế tranh luận.
+          thảo luận có ích, tôn trọng và đáng tin cậy - không phải để hạn chế tranh luận.
         </p>
         <p>
           Nguyên tắc gốc rất đơn giản: <strong>phản biện ý kiến, đừng công kích con người</strong>.
@@ -119,7 +119,7 @@ const SECTIONS = [
           </li>
         </ul>
         <p>
-          Nghiêm cấm dùng AI để giả mạo hình ảnh, giọng nói hoặc video của người khác — đây là hành
+          Nghiêm cấm dùng AI để giả mạo hình ảnh, giọng nói hoặc video của người khác - đây là hành
           vi bị cấm theo Luật An ninh mạng số 116/2025/QH15, không chỉ là vi phạm nội quy.
         </p>
       </>
@@ -133,18 +133,18 @@ const SECTIONS = [
         <p>Chúng tôi xử lý theo mức độ tăng dần, tùy tính chất và mức độ lặp lại:</p>
         <ul>
           <li>
-            <strong>Nhắc nhở</strong> — với lỗi hình thức như sai chuyên mục, thiếu định dạng mã.
+            <strong>Nhắc nhở</strong> - với lỗi hình thức như sai chuyên mục, thiếu định dạng mã.
           </li>
           <li>
-            <strong>Ẩn hoặc gỡ nội dung</strong> — với nội dung vi phạm, kèm lý do gửi tới người
+            <strong>Ẩn hoặc gỡ nội dung</strong> - với nội dung vi phạm, kèm lý do gửi tới người
             đăng.
           </li>
           <li>
-            <strong>Hạn chế tính năng</strong> — tạm khóa quyền đăng bài từ 7 đến 30 ngày khi tái
+            <strong>Hạn chế tính năng</strong> - tạm khóa quyền đăng bài từ 7 đến 30 ngày khi tái
             phạm.
           </li>
           <li>
-            <strong>Khóa tài khoản vĩnh viễn</strong> — với vi phạm nghiêm trọng: quấy rối có hệ
+            <strong>Khóa tài khoản vĩnh viễn</strong> - với vi phạm nghiêm trọng: quấy rối có hệ
             thống, lừa đảo, phát tán mã độc, vi phạm pháp luật hình sự.
           </li>
         </ul>

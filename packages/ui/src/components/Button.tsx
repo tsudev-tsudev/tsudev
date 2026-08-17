@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Mọi màu chữ trên nền đặc đều đi qua token, không cắm cứng mã hex: `teal`
-// trước đây dùng #04231f — một màu chữ TỐI, đúng cho nền teal sáng của chế độ
+// trước đây dùng #04231f - một màu chữ TỐI, đúng cho nền teal sáng của chế độ
 // tối, nhưng ở chế độ sáng thì nền teal là #0a6a5b (đậm) nên chữ tối trên nền
 // tối gần như không đọc được. Token --on-vivid đảo theo chế độ, mã hex thì không.
 const VARIANTS = {

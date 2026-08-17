@@ -8,7 +8,7 @@ import { readSecret, verifyIdentity, SECRET_ENV, MIN_SECRET_LEN } from '@tsudev/
 export type { Role };
 
 declare global {
-  // Mở rộng interface của Express BẮT BUỘC dùng namespace — đó là hình dạng mà
+  // Mở rộng interface của Express BẮT BUỘC dùng namespace - đó là hình dạng mà
   // @types/express khai. Không có cú pháp module ES2015 tương đương.
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
@@ -27,7 +27,7 @@ declare global {
     sub: string;
     preferred_username: string;
     role?: string;
-    /** Xem `IdentityClaims.sv` — đối chiếu với User.sessionVersion. */
+    /** Xem `IdentityClaims.sv` - đối chiếu với User.sessionVersion. */
     sv?: number;
   };
 }
@@ -42,7 +42,7 @@ declare global {
  * KHÔNG CÒN ĐƯỜNG TẮT NÀO. Bản trước có nhánh `AUTH_DEV_BYPASS=true` cho phép
  * khai danh tính bằng header `x-dev-user`. Nhánh đó là nguồn của một lỗi hai
  * chiều: tắt ở production nên mọi đường ghi trả 401, mà bật lên thì một dòng
- * header cấp được quyền ADMIN. Dev và production nay chạy CÙNG một đường —
+ * header cấp được quyền ADMIN. Dev và production nay chạy CÙNG một đường -
  * chính sự khác biệt giữa hai môi trường mới là thứ đã giấu lỗi đó suốt.
  *
  * `service` chỉ dùng cho tiền tố log.
@@ -51,10 +51,10 @@ export function createAuthMiddleware(service: string): RequestHandler {
   return async function authenticate(req: Request, res: Response, next: NextFunction) {
     const secret = readSecret(process.env);
     if (!secret) {
-      // Thiếu khoá = không kiểm được ai cả. Từ chối, và nói rõ ở log tại sao —
+      // Thiếu khoá = không kiểm được ai cả. Từ chối, và nói rõ ở log tại sao -
       // im lặng trả 401 ở đây từng tốn cả một phiên để chẩn đoán.
       console.error(
-        `[${service}] ${SECRET_ENV} thiếu hoặc ngắn hơn ${MIN_SECRET_LEN} ký tự — không xác thực được ai`
+        `[${service}] ${SECRET_ENV} thiếu hoặc ngắn hơn ${MIN_SECRET_LEN} ký tự - không xác thực được ai`
       );
       return res.status(503).json({ error: 'Máy chủ chưa cấu hình xác thực' });
     }
@@ -84,7 +84,7 @@ export function createAuthMiddleware(service: string): RequestHandler {
  *
  * Upsert chứ không phải findUnique: khẳng định đã qua được bước kiểm chữ ký,
  * nên người gọi là người thật, và để họ nhận 401 chỉ vì service chưa từng thấy
- * họ là sai. Vai trò mặc định là MEMBER — mức thấp nhất có danh tính, không
+ * họ là sai. Vai trò mặc định là MEMBER - mức thấp nhất có danh tính, không
  * phải mức có đặc quyền.
  */
 export async function resolveUser(req: Request): Promise<User | null> {
@@ -116,7 +116,7 @@ export async function lookupUser(req: Request): Promise<User | null> {
  * Phiên đã bị thu hồi chưa?
  *
  * `User.sessionVersion` tăng lên khi đổi mật khẩu hoặc "đăng xuất mọi thiết
- * bị". Khẳng định mang số cũ nghĩa là nó được ký từ một phiên đã bị đá ra —
+ * bị". Khẳng định mang số cũ nghĩa là nó được ký từ một phiên đã bị đá ra -
  * người dùng vẫn giữ một cookie next-auth hợp lệ, nhưng nó không còn giá trị.
  *
  * Nếu tài khoản bị chiếm thì kẻ chiếm đang giữ một phiên hợp lệ, và đổi mật
@@ -137,7 +137,7 @@ function sessionIsCurrent(req: Request, user: User): boolean {
  *
  * FAIL CLOSED, và không có biến môi trường nào tắt được. Bản trước gác sau
  * `REQUIRE_ROLE_ENFORCEMENT` mặc định TẮT, nghĩa là mọi route "được bảo vệ" đều
- * mở ở mọi môi trường — trong khi mã nguồn đọc vào thì trông như đã có bảo vệ.
+ * mở ở mọi môi trường - trong khi mã nguồn đọc vào thì trông như đã có bảo vệ.
  *
  * `role` là union `Role` (từ @tsudev/types) chứ không phải string tự do: gõ sai
  * là lỗi biên dịch, không phải một cổng lặng lẽ cho qua.

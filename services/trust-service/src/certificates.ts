@@ -58,7 +58,7 @@ function programCode(slug: unknown): string {
  * Serial dạng TSU-CV-2026-000001.
  *
  * Số thứ tự đếm theo năm và theo chương trình. Có vòng lặp thử lại vì hai đơn
- * duyệt đồng thời có thể cùng ra một số — cột serial là unique nên lần thứ hai
+ * duyệt đồng thời có thể cùng ra một số - cột serial là unique nên lần thứ hai
  * sẽ vỡ và cần cấp lại số.
  */
 async function nextSerial(
@@ -182,7 +182,7 @@ async function issueCertificate({
   throw new Error('Không cấp được serial sau nhiều lần thử')
 }
 
-/** Trạng thái hiệu lực tại thời điểm hỏi — hết hạn được suy ra, không cần cron. */
+/** Trạng thái hiệu lực tại thời điểm hỏi - hết hạn được suy ra, không cần cron. */
 function effectiveStatus(
   cert: Pick<TrustCertificate, 'status' | 'expiresAt'> | null | undefined,
   now: Date = new Date()

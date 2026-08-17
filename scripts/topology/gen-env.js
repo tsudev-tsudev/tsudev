@@ -32,13 +32,13 @@ function syncFile(file, vars, { check }) {
   const changes = [];
   const remaining = new Map(Object.entries(vars));
 
-  // Bước 0 — gỡ khối mốc ra TRƯỚC. Nếu để lại, bước 1 sẽ "tìm thấy" khoá ngay
+  // Bước 0 - gỡ khối mốc ra TRƯỚC. Nếu để lại, bước 1 sẽ "tìm thấy" khoá ngay
   // trong khối do chính mình sinh ra, `remaining` rỗng, rồi bước 2 xoá khối đi
-  // mà không dựng lại — mỗi lần chạy lại báo lệch dù không có gì đổi.
+  // mà không dựng lại - mỗi lần chạy lại báo lệch dù không có gì đổi.
   const blockRe = new RegExp(`\\n*${escapeRe(BEGIN)}[\\s\\S]*?${escapeRe(END)}\\n*`, 'g');
   const stripped = original.replace(blockRe, '\n');
 
-  // Bước 1 — thay giá trị tại chỗ cho khoá khai bên ngoài khối mốc.
+  // Bước 1 - thay giá trị tại chỗ cho khoá khai bên ngoài khối mốc.
   const lines = stripped.split(/\r?\n/).map((line) => {
     const m = line.match(/^(\s*)([A-Z0-9_]+)\s*=(.*)$/);
     if (!m) return line;
@@ -52,7 +52,7 @@ function syncFile(file, vars, { check }) {
     return `${indent}${key}=${want}`;
   });
 
-  // Bước 2 — khoá còn lại đi vào khối mốc ở cuối file.
+  // Bước 2 - khoá còn lại đi vào khối mốc ở cuối file.
   let body = lines.join('\n').replace(/\n{3,}$/, '\n');
 
   if (remaining.size) {
@@ -75,7 +75,7 @@ function syncFile(file, vars, { check }) {
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * `wrangler.jsonc` KHÔNG được sinh tự động — nó là cấu hình phát hành, có bình
+ * `wrangler.jsonc` KHÔNG được sinh tự động - nó là cấu hình phát hành, có bình
  * luận và nhiều khối không liên quan tới topology. Nhưng nó PHẢI khai đủ mọi
  * biến `internalEnv`, nếu không biến rơi về giá trị dự phòng
  * `http://localhost:<port>` trong `lib/services.ts`, và Worker gọi vào chính nó.
@@ -119,7 +119,7 @@ function main() {
   } else if (w.missing.length) {
     drifted = true;
     console.log(`✗ ${w.file} thiếu biến: ${w.missing.join(', ')}`);
-    console.log('    Thêm BẰNG TAY — tệp này không được sinh tự động.');
+    console.log('    Thêm BẰNG TAY - tệp này không được sinh tự động.');
   } else {
     console.log(`✓ ${w.file} khai đủ biến service`);
   }

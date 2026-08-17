@@ -1,7 +1,7 @@
 'use strict'
 /**
  * Vòng khoá phải chịu được việc xoay khoá: chứng chỉ ký bằng khoá cũ vẫn xác
- * minh được sau khi khoá mới lên thay. Đây là thứ hỏng âm thầm — không ai phát
+ * minh được sau khi khoá mới lên thay. Đây là thứ hỏng âm thầm - không ai phát
  * hiện cho tới ngày xoay khoá thật, lúc đó mọi chứng chỉ đã cấp cùng chết.
  *
  * signing.js đọc biến môi trường ngay khi nạp module, nên mỗi kịch bản phải
@@ -100,7 +100,7 @@ describe('vòng khoá ký', () => {
     expect(s.verify(`${parts[0]}.${forged}.${parts[2]}`).valid).toBe(false)
   })
 
-  test('từ chối alg khác EdDSA — chặn kiểu tấn công đổi thuật toán', () => {
+  test('từ chối alg khác EdDSA - chặn kiểu tấn công đổi thuật toán', () => {
     const s = loadSigning({ TRUST_SIGNING_KEY: KEY_A.privB64, TRUST_SIGNING_KEY_ID: 'key-a' })
     const header = Buffer.from(JSON.stringify({ alg: 'none', kid: 'key-a' })).toString('base64url')
     const body = Buffer.from(JSON.stringify({ serial: 'x' })).toString('base64url')

@@ -2,14 +2,14 @@
 
 Ba lớp riêng biệt, hay bị lẫn:
 
-1. **Phiên trình duyệt** — NextAuth, cookie `httpOnly` trên `.tsudev.com`.
-2. **Danh tính gửi xuống service** — khẳng định có chữ ký do BFF ký.
-3. **Phân quyền** — cột `User.role` trong DB, fail closed.
+1. **Phiên trình duyệt** - NextAuth, cookie `httpOnly` trên `.tsudev.com`.
+2. **Danh tính gửi xuống service** - khẳng định có chữ ký do BFF ký.
+3. **Phân quyền** - cột `User.role` trong DB, fail closed.
 
 Xác thực do **codebase tự quản lý**. Keycloak đã được gỡ hẳn; nếu bạn đọc thấy
 `KEYCLOAK_*` ở đâu đó thì đó là dấu vết cũ, không phải cấu hình đang chạy.
 
-## 1. Phiên trình duyệt — NextAuth
+## 1. Phiên trình duyệt - NextAuth
 
 `apps/frontend-main/pages/api/auth/[...nextauth].ts`.
 
@@ -18,17 +18,17 @@ Ba provider:
 | Provider          | Dùng khi                                             |
 | ----------------- | ---------------------------------------------------- |
 | `credentials`     | tên đăng nhập/email + mật khẩu (+ mã 2FA nếu đã bật) |
-| `passkey`         | WebAuthn — chữ ký đã được auth-service kiểm          |
+| `passkey`         | WebAuthn - chữ ký đã được auth-service kiểm          |
 | `github`/`google` | chỉ được thêm KHI ĐỦ biến môi trường                 |
 
 Provider OAuth thiếu biến thì **không được thêm vào** thay vì được dựng ra rồi
-không đăng nhập được — một nút bấm câm là lỗi khó chẩn đoán hơn một nút vắng mặt.
+không đăng nhập được - một nút bấm câm là lỗi khó chẩn đoán hơn một nút vắng mặt.
 
 - `session.strategy = 'jwt'`. Cookie `httpOnly: true` khai **tường minh**:
   next-auth gộp cấu hình cookie NÔNG ở cấp tên cookie, nên khai `sessionToken`
-  là thay thế trọn gói mặc định — kể cả `httpOnly` nằm bên trong. Bỏ dòng đó là
+  là thay thế trọn gói mặc định - kể cả `httpOnly` nằm bên trong. Bỏ dòng đó là
   cookie phiên đọc được bằng JavaScript.
-- `pages.signIn = '/login'` — trang của chính site, không phải trang mặc định.
+- `pages.signIn = '/login'` - trang của chính site, không phải trang mặc định.
 - `NEXTAUTH_COOKIE_DOMAIN` do `config/topology.json` sinh; đừng đặt tay.
 
 **Không có provider dev nào.** Đăng nhập ở local đi qua đúng đường của
@@ -41,7 +41,7 @@ production: mật khẩu Argon2id trong DB. Tài khoản dev do `npm run db:seed
 
 ## 2. Danh tính gửi xuống service
 
-`packages/identity-token` — dùng chung giữa bên ký và bên kiểm.
+`packages/identity-token` - dùng chung giữa bên ký và bên kiểm.
 
 BFF đọc phiên next-auth, ký một JWT HS256 hạn **120 giây**, gửi trong
 `Authorization: Bearer`. `packages/auth` kiểm nó. Người dùng không bao giờ giữ
@@ -51,7 +51,7 @@ Claim:
 
 | Claim  | Nghĩa                                                             |
 | ------ | ----------------------------------------------------------------- |
-| `sub`  | tên đăng nhập — service tra `User` theo giá trị này               |
+| `sub`  | tên đăng nhập - service tra `User` theo giá trị này               |
 | `role` | **CHỈ ĐỂ THAM KHẢO**, không phải nguồn phân quyền                 |
 | `sv`   | `sessionVersion` lúc đăng nhập, đối chiếu với DB để thu hồi phiên |
 
@@ -59,17 +59,17 @@ Claim:
 và Render. Lệch nhau ⇒ mọi đường ghi đã xác thực trả 401.
 
 > Bản trước gửi danh tính bằng header thuần `x-dev-user`, mà service chỉ đọc
-> header đó khi `AUTH_DEV_BYPASS=true` — biến không đặt ở production. Hệ quả là
+> header đó khi `AUTH_DEV_BYPASS=true` - biến không đặt ở production. Hệ quả là
 > hai lỗi ngược chiều: production 401 ở mọi đường ghi, còn bật cờ lên thì một
 > dòng header cấp quyền ADMIN.
 
 ### Ranh giới của từng service
 
-- `content-service`: `/api` dùng **xác thực TUỲ CHỌN** — có Bearer thì kiểm, không
+- `content-service`: `/api` dùng **xác thực TUỲ CHỌN** - có Bearer thì kiểm, không
   có thì đi tiếp. Blog/tài liệu/dự án là nội dung công khai và SSR gọi không kèm
   token. Đường ghi nằm dưới `/api/admin` và tự gọi `requireAdmin()`.
 - `storage-service`: `requireRole('MEMBER')` theo từng route.
-- `trust-service`: auth theo **nhánh** (`AUTH_PREFIXES`). Mặc định là công khai —
+- `trust-service`: auth theo **nhánh** (`AUTH_PREFIXES`). Mặc định là công khai -
   huy hiệu, trang xác minh và JWKS phải mở cho bên thứ ba.
   `test/authCoverage.test.ts` bắt mọi route mới phải chọn một bên.
 - `auth-service`: **không có endpoint công khai nào**; mọi thứ đi qua BFF.
@@ -81,7 +81,7 @@ và Render. Lệch nhau ⇒ mọi đường ghi đã xác thực trả 401.
 
 `requireRole(role)` từ `@tsudev/auth` **fail closed**, không có biến môi trường
 nào tắt được. Lỗi DB cho 503, không phải "cho qua". Claim `role` trong khẳng
-định KHÔNG nâng được quyền — có test canh.
+định KHÔNG nâng được quyền - có test canh.
 
 Muốn dùng lại vai trò từ token của nhà cung cấp bên ngoài thì phải ánh xạ sang
 `User.role` TRƯỚC. Đừng dựng hệ thứ hai chạy song song: bản trước đã có, gác sau
@@ -92,7 +92,7 @@ Muốn dùng lại vai trò từ token của nhà cung cấp bên ngoài thì ph
 Vùng Con dấu tín nhiệm chỉ mở cho `VIP` trở lên, và đường lên VIP là **đổi mã
 mời** (`POST /api/identity/invite/redeem`, xem `services/auth-service/src/invite.ts`).
 
-Nó nằm ở auth-service chứ không ở trust-service vì nó **ghi vào `User.role`** —
+Nó nằm ở auth-service chứ không ở trust-service vì nó **ghi vào `User.role`** -
 tức là thuộc ranh giới danh tính. trust-service chỉ việc gọi `requireRole('VIP')`
 và không cần biết mã mời tồn tại.
 
@@ -103,19 +103,19 @@ Bốn bất biến, cả bốn đều hỏng âm thầm nếu làm sai:
 | Trần cứng ở VIP, ghi trong MÃ           | Nếu dữ liệu nói được bậc vai trò thì ai ghi được vào bảng mã mời là tự cấp được ADMIN    |
 | Không hạ vai trò                        | ADMIN đổi mã vẫn là ADMIN                                                                |
 | Đếm lượt bằng `updateMany` có điều kiện | Đọc-rồi-ghi cho hai người cùng tiêu lượt cuối cùng                                       |
-| DB chỉ giữ SHA-256 của mã               | Cùng lý do với `AuthToken.tokenHash` — bản sao DB bị rò không thành một xấp mã dùng được |
+| DB chỉ giữ SHA-256 của mã               | Cùng lý do với `AuthToken.tokenHash` - bản sao DB bị rò không thành một xấp mã dùng được |
 
 `sessionVersion` **không** tăng khi đổi mã: nâng quyền không phải lý do đá người
 ta ra khỏi phiên đang dùng, và phiên cũ mang vai trò cũ thì chỉ có ít quyền hơn.
 
 ⚠️ **`token.role` của next-auth chỉ được ghi ở lần đăng nhập ĐẦU TIÊN.** Sau khi
 đổi mã, DB nói VIP còn phiên vẫn nói MEMBER. `POST /api/identity/session-state`
-và nhánh `trigger === 'update'` ở callback `jwt` tồn tại đúng vì chuyện đó — vai
+và nhánh `trigger === 'update'` ở callback `jwt` tồn tại đúng vì chuyện đó - vai
 trò được đọc lại **từ DB**, không bao giờ từ tham số mà client truyền vào
 `update()`. Trang nào lọc giao diện theo `session.role` mà không đi qua đường đó
 sẽ hiển thị vai trò cũ, và triệu chứng là "đổi mã xong mà không thấy gì đổi".
 
-## 4. auth-service — nơi giữ bí mật
+## 4. auth-service - nơi giữ bí mật
 
 Service DUY NHẤT đọc `User.passwordHash`. Nó tách riêng vì một ràng buộc hạ
 tầng trùng với ranh giới đúng: `frontend-main` chạy trên Cloudflare Workers,
@@ -140,33 +140,33 @@ Chữ ký WebAuthn được **trình duyệt buộc vào tên miền**. Một tr
 người dùng bị lừa hoàn toàn. Mật khẩu và TOTP đều không có tính chất đó. Bắt
 thêm một bước nữa chỉ đổi bảo mật lấy phiền phức.
 
-Passkey **vẫn** phải qua cổng khoá tài khoản — nếu không nó thành đường vòng
+Passkey **vẫn** phải qua cổng khoá tài khoản - nếu không nó thành đường vòng
 quanh chính cơ chế đó.
 
 ### Thu hồi phiên
 
 `User.sessionVersion` tăng khi đổi/đặt lại mật khẩu. Khẳng định mang số cũ bị từ
-chối ở tầng service — nơi truy vấn `User` đằng nào cũng đã xảy ra, nên phép so
+chối ở tầng service - nơi truy vấn `User` đằng nào cũng đã xảy ra, nên phép so
 sánh miễn phí. Kiểm ở BFF sẽ tốn một truy vấn Workers → Neon cho **mỗi** request.
 
 ## 5. Tài khoản không có mật khẩu
 
 Tài khoản tạo từ thời Keycloak không có `passwordHash`. Đường tự phục hồi là
-"quên mật khẩu", nhưng nó chỉ chạy khi tài khoản có email **thật** — mà
+"quên mật khẩu", nhưng nó chỉ chạy khi tài khoản có email **thật** - mà
 `resolveUser()` tạo tài khoản với `<username>@tsudev.local`, tên miền không nhận
 được thư.
 
 Cho những tài khoản đó:
 
 ```bash
-# PRODUCTION — phải xuất DATABASE_URL TRƯỚC
+# PRODUCTION - phải xuất DATABASE_URL TRƯỚC
 set -a; . <(grep '^DATABASE_URL=' backup/production-env-2026-08-16.txt); set +a
 NEW_PASSWORD='…' node services/auth-service/scripts/set-password.js <username>
 ```
 
 ⚠️ **Không xuất `DATABASE_URL` thì script nhắm DB LOCAL.** Nó nạp `.env` ở gốc
-repo, vốn trỏ cluster dev. Chạy thiếu bước đó thì nó vẫn báo "thành công" —
-thành công thật, chỉ là trên máy dev — còn cột `passwordHash` ở production vẫn
+repo, vốn trỏ cluster dev. Chạy thiếu bước đó thì nó vẫn báo "thành công" -
+thành công thật, chỉ là trên máy dev - còn cột `passwordHash` ở production vẫn
 rỗng và tài khoản vẫn không đăng nhập được. Đã xảy ra thật. Script nay **in ra
 host của database trước khi ghi**; đọc dòng đó.
 
@@ -182,5 +182,5 @@ nằm trong `ps` và trong lịch sử shell.
 | `TOTP_ENCRYPTION_KEY`      | ✔ (≥32 ký tự)         | đổi = mọi thiết bị 2FA hỏng                 |
 | `RESEND_API_KEY`           | ✔                     | thiếu ⇒ không gửi được thư đặt lại mật khẩu |
 | `NEXT_PUBLIC_MAIN_URL`     | ✔                     | liên kết trong thư và RP ID của passkey     |
-| `GITHUB_*` / `GOOGLE_*`    | —                     | thiếu ⇒ provider không xuất hiện            |
-| `INTERNAL_API_TOKEN`       | —                     | cổng chặn `/api` của content/storage/auth   |
+| `GITHUB_*` / `GOOGLE_*`    | -                     | thiếu ⇒ provider không xuất hiện            |
+| `INTERNAL_API_TOKEN`       | -                     | cổng chặn `/api` của content/storage/auth   |

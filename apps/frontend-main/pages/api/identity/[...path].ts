@@ -1,6 +1,6 @@
 // Proxy CÔNG KHAI tới auth-service.
 //
-// Khác ba proxy kia: những endpoint dưới đây phục vụ người CHƯA đăng nhập —
+// Khác ba proxy kia: những endpoint dưới đây phục vụ người CHƯA đăng nhập -
 // đăng ký, quên mật khẩu, xác minh email. Chúng không mang khẳng định danh tính
 // nào, vì chưa có danh tính nào để mang.
 //
@@ -15,7 +15,7 @@ import { catchAllSegments } from '../../../lib/identity';
 
 /**
  * Danh sách trắng, không phải danh sách đen. Thêm endpoint mới phải khai ở đây;
- * bỏ sót thì nó 404 — an toàn hơn là lỡ mở cả `/api/identity`, nơi có cả
+ * bỏ sót thì nó 404 - an toàn hơn là lỡ mở cả `/api/identity`, nơi có cả
  * `verify-credentials` (thứ chỉ NextAuth phía server được gọi).
  */
 const ALLOWED = new Set([
@@ -23,7 +23,7 @@ const ALLOWED = new Set([
   'verify-email',
   'request-password-reset',
   'reset-password',
-  // Hai bước đăng nhập bằng passkey. Công khai vì người gọi CHƯA có danh tính —
+  // Hai bước đăng nhập bằng passkey. Công khai vì người gọi CHƯA có danh tính -
   // đó chính là thứ họ đang cố chứng minh.
   //
   // `passkey/register-*` CỐ Ý KHÔNG có ở đây: đăng ký khoá mới đòi đã đăng

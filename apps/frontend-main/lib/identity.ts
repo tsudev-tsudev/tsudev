@@ -1,7 +1,7 @@
 // Suy ra danh tính người gọi từ phiên next-auth, dùng chung cho mọi BFF/proxy.
 //
 // Bốn nơi (lib/bff.ts và ba route pages/api/*/[...path].ts) trước đây mỗi nơi
-// tự chép lại cùng một đoạn này. Đó là mã quyết định "server tin bạn là ai" —
+// tự chép lại cùng một đoạn này. Đó là mã quyết định "server tin bạn là ai" -
 // đúng loại mã mà CLAUDE.md đã phải cảnh báo riêng cho ba bản authMiddleware
 // gần trùng nhau. Một bản duy nhất thì không có bản nào lệch đi trong im lặng.
 import type { JWT } from 'next-auth/jwt';
@@ -32,7 +32,7 @@ export function roleFromToken(token: JWT): string {
  * Header xác thực cho một request đi xuống service backend.
  *
  * Thay cho `x-dev-user`, thứ chỉ là một dòng chữ và chỉ được service đọc khi
- * `AUTH_DEV_BYPASS=true` — biến không đặt ở production. Hệ quả là mọi đường ghi
+ * `AUTH_DEV_BYPASS=true` - biến không đặt ở production. Hệ quả là mọi đường ghi
  * đã xác thực trả 401 ở production, còn bật cờ lên thì một header cấp được
  * quyền ADMIN. Xem @tsudev/identity-token.
  *
@@ -42,13 +42,13 @@ export function roleFromToken(token: JWT): string {
  *
  * Ném lỗi khi thiếu khoá thay vì trả header rỗng. Trả rỗng nghĩa là service từ
  * chối bằng 401, và "đăng nhập rồi mà vẫn 401" là đúng triệu chứng đã tốn cả
- * một phiên để chẩn đoán — lần này nó phải nói ra lý do.
+ * một phiên để chẩn đoán - lần này nó phải nói ra lý do.
  */
 export async function identityHeaders(token: JWT): Promise<Record<string, string>> {
   const secret = readSecret(process.env);
   if (!secret) {
     throw new Error(
-      `${SECRET_ENV} thiếu hoặc ngắn hơn ${MIN_SECRET_LEN} ký tự — không ký được khẳng định danh tính`
+      `${SECRET_ENV} thiếu hoặc ngắn hơn ${MIN_SECRET_LEN} ký tự - không ký được khẳng định danh tính`
     );
   }
   const assertion = await signIdentity(
@@ -66,7 +66,7 @@ export async function identityHeaders(token: JWT): Promise<Record<string, string
  * Đoạn đường dẫn của route catch-all.
  *
  * Next khai `req.query.path` là `string | string[] | undefined` và cả ba đều
- * xảy ra thật. Bản cũ viết `req.query.path || []` rồi `.join('/')` — với một
+ * xảy ra thật. Bản cũ viết `req.query.path || []` rồi `.join('/')` - với một
  * chuỗi đơn thì `.join` không tồn tại và route ném lỗi 500.
  */
 export function catchAllSegments(raw: string | string[] | undefined): string[] {
@@ -79,7 +79,7 @@ export function catchAllSegments(raw: string | string[] | undefined): string[] {
  *
  * `params` có thể vắng mặt, và mỗi giá trị là `string | string[]`. Bản cũ viết
  * `String(params.slug || '')`, nên khi `params` vắng mặt là TypeError ngay trong
- * SSR — trang 500 chứ không phải 404.
+ * SSR - trang 500 chứ không phải 404.
  */
 export function routeParam(
   params: Partial<Record<string, string | string[]>> | undefined,

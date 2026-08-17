@@ -3,7 +3,7 @@
 #
 # Nhóm này quan trọng hơn toàn bộ phần còn lại cộng lại, và nó có một giới hạn
 # phải hiểu rõ: .gitignore chỉ chặn thứ CHƯA được commit. Bí mật đã lọt vào
-# lịch sử thì phải XOAY KHOÁ — thêm một dòng vào đây không gỡ được nó ra.
+# lịch sử thì phải XOAY KHOÁ - thêm một dòng vào đây không gỡ được nó ra.
 #
 # Nguyên tắc: chặn theo MẶC ĐỊNH, rồi mở lại đúng những tệp công khai có chủ
 # đích. Làm ngược lại (liệt kê từng thứ cần chặn) đã suýt hỏng một lần: bản sao
@@ -11,7 +11,7 @@
 # `git add -A` sẽ nuốt gọn cả TRUST_SIGNING_KEY.
 # =============================================================================
 
-# Mọi biến thể .env — kể cả .env.bak-*, .env.local, apps/*/.env.local
+# Mọi biến thể .env - kể cả .env.bak-*, .env.local, apps/*/.env.local
 .env
 .env.*
 # ...trừ ba tệp cố ý công khai. Liệt kê theo ĐƯỜNG DẪN CHÍNH XÁC, không theo
@@ -21,7 +21,7 @@
 !apps/frontend-main/.env.production
 
 # Tệp secret của Cloudflare Workers. Trước đây CHỈ được che bởi .gitignore cấp
-# app — tạo nó ở gốc repo hay ở một app thứ hai là lọt thẳng vào commit.
+# app - tạo nó ở gốc repo hay ở một app thứ hai là lọt thẳng vào commit.
 .dev.vars
 .dev.vars.*
 
@@ -40,7 +40,7 @@ id_rsa*
 id_ecdsa*
 id_ed25519*
 
-# Trạng thái hạ tầng — chứa cả secret lẫn sơ đồ hệ thống.
+# Trạng thái hạ tầng - chứa cả secret lẫn sơ đồ hệ thống.
 *.tfstate
 *.tfstate.*
 .terraform/
@@ -58,7 +58,7 @@ backup/
 #
 # Không nhạy cảm, nhưng commit vào thì gây xung đột merge vô nghĩa và phình
 # repo. Ngoại lệ DUY NHẤT được commit có chủ đích:
-# packages/trust-crypto/pkg/trust_crypto.wasm — xem README của gói đó.
+# packages/trust-crypto/pkg/trust_crypto.wasm - xem README của gói đó.
 # =============================================================================
 node_modules
 dist
@@ -101,7 +101,7 @@ test-results/
 # Tệp .env.local được dời tạm khi deploy (scripts/deploy-frontend.js).
 .env.local.deploy-stash
 
-# Trạng thái runtime của Claude Code — riêng .claude/agents/ thì PHẢI commit.
+# Trạng thái runtime của Claude Code - riêng .claude/agents/ thì PHẢI commit.
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
 

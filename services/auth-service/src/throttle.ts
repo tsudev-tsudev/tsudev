@@ -11,7 +11,7 @@ import { prisma } from '@tsudev/db'
  *
  * Chỉ có một trong hai thì kẻ tấn công đổi trục là đi qua được. Chặn theo IP
  * riêng lẻ còn bị botnet vượt, còn khoá theo tài khoản riêng lẻ thì biến thành
- * công cụ để khoá người khác ra khỏi tài khoản của họ — nên khoá tài khoản có
+ * công cụ để khoá người khác ra khỏi tài khoản của họ - nên khoá tài khoản có
  * THỜI HẠN chứ không vĩnh viễn, và không bao giờ lộ ra ngoài rằng tài khoản đó
  * có tồn tại hay không.
  */
@@ -24,7 +24,7 @@ export const IP_WINDOW_MS = 15 * 60 * 1000
 export const ACCOUNT_MAX_FAILURES = 8
 export const ACCOUNT_LOCK_MS = 15 * 60 * 1000
 
-/** Dọn bản ghi cũ hơn ngần này — bảng chỉ phục vụ cửa sổ trượt, không phải kiểm toán. */
+/** Dọn bản ghi cũ hơn ngần này - bảng chỉ phục vụ cửa sổ trượt, không phải kiểm toán. */
 const RETENTION_MS = 24 * 60 * 60 * 1000
 
 export async function recordAttempt(identifier: string, succeeded: boolean): Promise<void> {
@@ -86,7 +86,7 @@ export async function noteAccountSuccess(userId: string): Promise<void> {
  *
  * Đọc từ `x-forwarded-for` là BẮT BUỘC ở đây: service này luôn đứng sau một
  * proxy (dev-proxy ở local, Render ở production), nên `req.ip` là địa chỉ của
- * proxy — giới hạn theo nó sẽ gộp cả thế giới vào một xô.
+ * proxy - giới hạn theo nó sẽ gộp cả thế giới vào một xô.
  *
  * Lấy phần tử ĐẦU TIÊN và chỉ khi có proxy tin cậy phía trước; client tự đặt
  * header này được, nhưng proxy của ta ghi đè phần nó thấy.

@@ -1,16 +1,16 @@
 ---
 name: frontend-web
-description: Hai app Next.js — trang, route proxy API, NextAuth, dữ liệu phía server. KHÔNG dùng để sửa component dùng chung (dùng design-system) hay logic service (dùng backend-api).
+description: Hai app Next.js - trang, route proxy API, NextAuth, dữ liệu phía server. KHÔNG dùng để sửa component dùng chung (dùng design-system) hay logic service (dùng backend-api).
 tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
-Bạn phụ trách `apps/frontend-main` (:3000) — app Next duy nhất của tsudev.
+Bạn phụ trách `apps/frontend-main` (:3000) - app Next duy nhất của tsudev.
 
 ## Nạp ngữ cảnh
 
-1. `README.md` của đúng app đang sửa — luôn đọc.
-2. `docs/architecture.md` phần "Luồng request" — khi đụng vào route proxy.
-3. `docs/auth.md` — khi đụng vào đăng nhập/phiên.
+1. `README.md` của đúng app đang sửa - luôn đọc.
+2. `docs/architecture.md` phần "Luồng request" - khi đụng vào route proxy.
+3. `docs/auth.md` - khi đụng vào đăng nhập/phiên.
 
 ## Luật của vùng này
 
@@ -25,9 +25,9 @@ Bạn phụ trách `apps/frontend-main` (:3000) — app Next duy nhất của ts
   **và** script sinh.
 - `NEXTAUTH_URL` phải khớp origin của chính app đó. Dùng chung một giá trị thì
   đăng nhập ở diễn đàn bị đá về `:3000`.
-- Ở local hai app **không** chia sẻ cookie phiên (`localhost:3000` vs `:3001`) —
+- Ở local hai app **không** chia sẻ cookie phiên (`localhost:3000` vs `:3001`) -
   đó là đúng, không phải lỗi cần sửa.
-- Giao diện có **hai chế độ**, Sáng là mặc định. Đừng cắm cứng mã màu — dùng
+- Giao diện có **hai chế độ**, Sáng là mặc định. Đừng cắm cứng mã màu - dùng
   token; `--on-vivid` đảo theo chế độ còn mã hex thì không.
 - Component dùng chung thuộc `packages/ui`. Viết trong `apps/*` chỉ khi thật sự
   chỉ một app dùng.

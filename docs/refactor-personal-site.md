@@ -8,7 +8,7 @@ Tài liệu này là **kế hoạch**. Hiện trạng vẫn là `CLAUDE.md` và
 [refactor-network-topology.md](refactor-network-topology.md).
 
 > **Ghi chú lịch sử (16/08/2026).** Tên miền production đã đổi từ `tsudev.vn`
-> (dự kiến, chưa từng đăng ký) sang **`tsudev.com`** — tên miền thật, đăng ký
+> (dự kiến, chưa từng đăng ký) sang **`tsudev.com`** - tên miền thật, đăng ký
 > tại Spaceship. Chuỗi tên miền trong tài liệu này đã được cập nhật theo. Mọi
 > nhắc tới **diễn đàn / `forum.*`** là bối cảnh của thời điểm viết: app đó đã bị
 > xoá ở PR #9, tsudev nay chỉ còn một app trên một origin.
@@ -24,7 +24,7 @@ Tài liệu này là **kế hoạch**. Hiện trạng vẫn là `CLAUDE.md` và
 | 3   | Uy tín chuyển thành **hồ sơ tổ chức gắn con dấu**, bỏ điểm uy tín thành viên |
 | 4   | **Migration mới xoá bảng**, kèm script export ra JSON trước khi xoá          |
 
-## 2. Quy mô thật — đo được, không ước lượng
+## 2. Quy mô thật - đo được, không ước lượng
 
 ### 2.1 Route: 32 trên 36 của content-service bị gỡ
 
@@ -41,13 +41,13 @@ Tài liệu này là **kế hoạch**. Hiện trạng vẫn là `CLAUDE.md` và
 
 ### 2.2 user-service còn đúng 0 route
 
-Hai route duy nhất của nó — `GET /api/users` và `GET /api/users/:username` —
+Hai route duy nhất của nó - `GET /api/users` và `GET /api/users/:username` -
 **chính là** chức năng Thành viên vừa bị bỏ. Còn lại `/health`.
 
 Đây không phải một lựa chọn kiến trúc mà là hệ quả số học: **user-service bị xoá**.
 Kéo theo:
 
-- bớt **một cổng** (4000) — đúng yêu cầu "loại bỏ các cổng port không cần thiết"
+- bớt **một cổng** (4000) - đúng yêu cầu "loại bỏ các cổng port không cần thiết"
 - bớt một mục trong `render.yaml`, một `Dockerfile`, một node trong topology
 - bớt **một trong bốn `authMiddleware.js` gần trùng nhau** mà `CLAUDE.md` cảnh báo
 
@@ -73,7 +73,7 @@ Enum bị xoá: `ReportTargetType` `ReportStatus` `ModActionType` `ListingStatus
 
 `ReportTargetType` chỉ có `THREAD` và `POST`. Năm trên chín giá trị
 `ModActionType` là hành vi diễn đàn (`PIN` `UNPIN` `LOCK` `UNLOCK` `DELETE_POST`).
-Bỏ diễn đàn thì hệ kiểm duyệt **không còn đối tượng nào để kiểm duyệt** — nó
+Bỏ diễn đàn thì hệ kiểm duyệt **không còn đối tượng nào để kiểm duyệt** - nó
 không "nên" bị bỏ, nó đã rỗng nghĩa. Trang `/admin/moderation` gỡ theo.
 
 ### 2.5 Trang
@@ -102,8 +102,8 @@ Cổng đi từ **11 xuống 7**: bỏ 3001 (frontend-forum) và 4000 (user-serv
 | Trước              | Sau    | Thành phần               |
 | ------------------ | ------ | ------------------------ |
 | 3000               | 3000   | frontend-main            |
-| ~~3001~~           | —      | ~~frontend-forum~~       |
-| ~~4000~~           | —      | ~~user-service~~         |
+| ~~3001~~           | -      | ~~frontend-forum~~       |
+| ~~4000~~           | -      | ~~user-service~~         |
 | 4001               | 4001   | content-service          |
 | 4002               | 4002   | storage-service          |
 | 4003               | 4003   | trust-service            |
@@ -118,7 +118,7 @@ Trang chủ · Dự án · Blog · Tài liệu · Con dấu
 
 Từ 8 mục xuống 5. Bỏ: Diễn đàn, Chợ, Tin nhắn, Thành viên. Thêm: Dự án.
 
-### 3.3 Mục Dự án + Bản quyền — trọng tâm mới
+### 3.3 Mục Dự án + Bản quyền - trọng tâm mới
 
 Model mới `Project`:
 
@@ -145,7 +145,7 @@ Bỏ `ReputationEvent` và `User.reputation`. "Uy tín" từ nay là thuộc tí
 - lịch sử `TrustCheck` (giám sát tên miền định kỳ)
 - thâm niên kể từ lần cấp đầu
 
-Không cần model mới cho phần này — chỉ cần một trang hồ sơ tổ chức và vài truy
+Không cần model mới cho phần này - chỉ cần một trang hồ sơ tổ chức và vài truy
 vấn tổng hợp. Đúng mục đích bạn nêu: **cấp huy hiệu cho website dùng source code
 tsudev, và chứng nhận cho website do đội ngũ tsudev thực hiện.**
 
@@ -156,45 +156,45 @@ tsudev, và chứng nhận cho website do đội ngũ tsudev thực hiện.**
 Nguyên tắc như đợt trước: mỗi giai đoạn tự đứng được, một nhánh cho cả chuỗi,
 cổng kiểm chạy ở cuối mỗi giai đoạn.
 
-### GĐ 0 — Lưới an toàn & xuất dữ liệu ✅ **xong**
+### GĐ 0 - Lưới an toàn & xuất dữ liệu ✅ **xong**
 
 - `scripts/export-legacy-data.js` xuất Diễn đàn/Chợ/Tin nhắn ra JSON trong
   `backup/` trước khi có bất kỳ lệnh DROP nào. **Đây là đường lùi duy nhất.**
 - Thay lưới an toàn cũ: E2E `cross-origin-session` mất ý nghĩa khi chỉ còn một
   app (§6.1). Viết `smoke.spec.js` thay thế: trang chủ · blog · docs · trust ·
-  đăng nhập · `/admin` — phải xanh **trước** khi gỡ gì.
+  đăng nhập · `/admin` - phải xanh **trước** khi gỡ gì.
 
-**Nghiệm thu — đã đạt:**
+**Nghiệm thu - đã đạt:**
 
 ```
 ✓ export-legacy-data.js: 15 bảng, số bản ghi khớp psql từng bảng
     category 2 · board 2 · thread 1 · forumPost 2 · user.reputation 3 · còn lại 0
 ✓ smoke.spec.js: 8/8 xanh (trang chủ · blog · docs · trust · đăng nhập · admin · điều hướng)
 ✓ negative control: cắt CONTENT_SERVICE_URL ⇒ ĐÚNG 2 test phụ thuộc nội dung đỏ,
-  6 test còn lại vẫn xanh — chứng minh test khẳng định nội dung thật, không phải HTTP 200
+  6 test còn lại vẫn xanh - chứng minh test khẳng định nội dung thật, không phải HTTP 200
 ✓ topology:check · lint · prettier · 41/41 unit test
 ```
 
 Ba điều chốt thêm khi làm:
 
-- `backup/` vào `.gitignore` **và** `.prettierignore` — bản xuất có thể chứa dữ
+- `backup/` vào `.gitignore` **và** `.prettierignore` - bản xuất có thể chứa dữ
   liệu production, tuyệt đối không commit.
 - Job CI `e2e-app` nay có **Postgres + migrate + seed**. Không có DB thì
   `getServerSideProps` nuốt lỗi, trang rỗng vẫn trả 200 và smoke xanh vô nghĩa.
 - Project Playwright đổi `session` → **`app`** (`npm run e2e:app`): tên cũ sai
   nghĩa ngay khi `frontend-forum` biến mất.
 
-### GĐ 1 — Gỡ tầng trình bày ✅ **xong**
+### GĐ 1 - Gỡ tầng trình bày ✅ **xong**
 
 `apps/frontend-forum/` (toàn bộ) · `pages/{market,messages,members}` ·
 `admin/moderation.js` · route BFF `pages/api/{market,mod}` ·
 `SiteHeader`/`SiteFooter`/`siteUrls` bỏ `forum` · trang chủ bỏ khối diễn đàn.
 
-**Nghiệm thu — đã đạt:** 55 file xoá, 34 file sửa.
+**Nghiệm thu - đã đạt:** 55 file xoá, 34 file sửa.
 
 ```
 ✓ build frontend-main: 10 trang tĩnh (trước 15)
-✓ smoke 7/7 — gồm test "điều hướng chính không có link chết"
+✓ smoke 7/7 - gồm test "điều hướng chính không có link chết"
 ✓ topology:check (72 literal cổng) · lint · prettier · 41/41 unit test
 ```
 
@@ -202,16 +202,16 @@ Ba việc phải kéo sớm hơn kế hoạch, vì để lại là hỏng ngay:
 
 - **Node `forum` khỏi `config/topology.json`** (kế hoạch xếp GĐ 3). Giữ một node
   trỏ vào app đã xoá thì `run-dev`, `verify-stack` và `playwright` đều nổ.
-- **Service `frontend-forum` khỏi `docker-compose.yml`** — Dockerfile của nó
+- **Service `frontend-forum` khỏi `docker-compose.yml`** - Dockerfile của nó
   không còn.
-- **Redirect URI của forum khỏi cả hai realm Keycloak** — để lại là mở sẵn một
+- **Redirect URI của forum khỏi cả hai realm Keycloak** - để lại là mở sẵn một
   origin không còn ai sở hữu.
 
 Gỡ theo luôn vì mất hết đối tượng: `ThreadRow` (component chỉ dùng cho diễn đàn),
-`siteUrl()` và `FORUM_URL` (một site thì link tương đối mới đúng — `MAIN_URL`
+`siteUrl()` và `FORUM_URL` (một site thì link tương đối mới đúng - `MAIN_URL`
 giữ lại cho canonical/OG), `scripts/check-session-sharing.js` và
 `cross-origin-session.spec.js` (không còn hai origin để kiểm), và
-`pages/products.js` — trang mồ côi không ai liên kết, chính là bản thô của
+`pages/products.js` - trang mồ côi không ai liên kết, chính là bản thô của
 `/projects` sẽ dựng ở GĐ 5.
 
 **Trang chủ và trang pháp lý viết lại**: khối "Hoạt động diễn đàn" + "Thành viên
@@ -219,17 +219,17 @@ tích cực" thay bằng khối "Website mang dấu tsudev" đọc từ `trust.d
 số liệu hero đổi từ _thành viên/bài viết/chủ đề_ sang _bài viết/tài liệu/website
 đã cấp dấu_; `terms` `rules` `privacy` bỏ mô tả diễn đàn/chợ/tin nhắn.
 
-**`/admin` viết lại**: nó lấy số liệu từ `/api/mod/summary` — toàn bộ là số đo
+**`/admin` viết lại**: nó lấy số liệu từ `/api/mod/summary` - toàn bộ là số đo
 diễn đàn. Nay thành cổng vào Con dấu tín nhiệm (+ ô Dự án đánh dấu "sắp có").
 
-> **Nợ ghi nhận, chưa làm:** root `package.json` còn ghim `react@18.3.1` — thứ
+> **Nợ ghi nhận, chưa làm:** root `package.json` còn ghim `react@18.3.1` - thứ
 > tồn tại **chỉ vì** frontend-forum. Gỡ được về lý thuyết, nhưng Storybook của
 > `packages/ui` khai react là peerDependency và đang lấy từ root, mà Storybook
 > **không nằm trong CI** nên gỡ mù là hỏng âm thầm. Việc dọn: chuyển
 > `react`/`react-dom` xuống devDependencies của `packages/ui` rồi kiểm
 > `build-storybook`. Ghi chú đã đặt trong `next.config.js`.
 
-### GĐ 2 — Gỡ tầng service ✅ **xong**
+### GĐ 2 - Gỡ tầng service ✅ **xong**
 
 32 route của content-service · **xoá hẳn user-service** · gỡ `awardReputation`.
 
@@ -238,13 +238,13 @@ diễn đàn. Nay thành cổng vào Con dấu tín nhiệm (+ ô Dự án đán
 - `content-service/src/index.js`: **1022 → 162 dòng**. Còn `/health` +
   `/api/{posts,posts/:slug,docs,docs/:slug}`. Gỡ theo cả `slugify`,
   `currentUser`, `requireModerator`, `logModAction`, `activeBanFor`,
-  `awardReputation` — hết đối tượng dùng.
+  `awardReputation` - hết đối tượng dùng.
 - **`services/user-service/` bị xoá cả thư mục.** Hai route của nó
   (`/api/users`, `/api/users/:username`) chính là chức năng Thành viên đã bỏ, và
-  route thứ hai còn đếm `thread`/`forumPost` — hai model sắp DROP ở GĐ 4.
+  route thứ hai còn đếm `thread`/`forumPost` - hai model sắp DROP ở GĐ 4.
 - `authorCard` bỏ `reputation`/`rank` (quyết định #3). Đã kiểm: không file nào
   trong `apps/frontend-main` hay `packages/ui` còn đọc hai trường này.
-- Xoá `apps/frontend-main/pages/profile.js` — trang mồ côi, dữ liệu cứng
+- Xoá `apps/frontend-main/pages/profile.js` - trang mồ côi, dữ liệu cứng
   `{ name: 'Guest' }`, cùng loại với `products.js` đã xoá ở GĐ 1.
 
 **Kéo GĐ 3 vào đây** (để lại là hỏng lúc chạy, không phải hỏng sau): node `user`
@@ -262,19 +262,19 @@ còn việc.**
 **Nghiệm thu (đo được):**
 
 ```
-✓ topology:check — 68 literal cổng (GĐ 1: 72), 20 file miễn trừ (GĐ 1: 22)
+✓ topology:check - 68 literal cổng (GĐ 1: 72), 20 file miễn trừ (GĐ 1: 22)
 ✓ lint · prettier --check toàn repo
 ✓ content 6 · storage 9 · trust 20 = 35/35 unit test
 ✓ build frontend-main: 22 tuyến, không tuyến nào lỗi
 ✓ e2e smoke 7/7
 ```
 
-Cổng trong topology còn **8**: 3000 · 4001 · 4002 · 4003 · 4100 · 5433 · 6379 · 9000. (Bảng ở §3.1 ghi "7" — đếm sót Redis 6379; con số đúng là 8.)
+Cổng trong topology còn **8**: 3000 · 4001 · 4002 · 4003 · 4100 · 5433 · 6379 · 9000. (Bảng ở §3.1 ghi "7" - đếm sót Redis 6379; con số đúng là 8.)
 
-### GĐ 4 — Migration xoá bảng _(cửa một chiều)_ ✅ **xong ở local**
+### GĐ 4 - Migration xoá bảng _(cửa một chiều)_ ✅ **xong ở local**
 
 `packages/db/prisma/migrations/20260812224401_drop_forum_market_messaging/`.
-Migration **mới**, không sửa file cũ nào — bốn migration trước giữ nguyên
+Migration **mới**, không sửa file cũ nào - bốn migration trước giữ nguyên
 checksum.
 
 **Con số đúng là 14 bảng, không phải 12.** §2.3 liệt kê đủ 14 model nhưng tiêu
@@ -288,32 +288,32 @@ TrustOrganization User`.
 | Cột          | Số phận | Vì sao                                                                                                           |
 | ------------ | ------- | ---------------------------------------------------------------------------------------------------------------- |
 | `reputation` | DROP    | theo kế hoạch (quyết định #3)                                                                                    |
-| `signature`  | DROP    | chữ ký chân bài diễn đàn. Không nhầm với `TrustCertificate.signature` — tên trùng, nghĩa khác hẳn                |
+| `signature`  | DROP    | chữ ký chân bài diễn đàn. Không nhầm với `TrustCertificate.signature` - tên trùng, nghĩa khác hẳn                |
 | `credits`    | **GIỮ** | `trust-service/src/index.js:588-596` thu phí nộp đơn cấp dấu bằng cột này, trong cùng transaction đổi trạng thái |
 
 `credits` là bẫy thật: nhìn tên thì đó là ví của chợ ký quỹ đã xoá, xoá theo là
-hỏng luồng nộp đơn — và test hiện có sẽ **không** bắt được, vì không test nào
+hỏng luồng nộp đơn - và test hiện có sẽ **không** bắt được, vì không test nào
 chạm đường thu phí. Đã ghi chú ngay trên trường trong `schema.prisma`.
 
 > **Cập nhật 16/08/2026:** `credits` NAY ĐÃ ĐƯỢC GỠ, cùng `feeCredits` và
-> `feeCharged` — theo quyết định đưa site thành dự án cá nhân miễn phí, không
+> `feeCharged` - theo quyết định đưa site thành dự án cá nhân miễn phí, không
 > phải vì nhầm nó với ví của chợ. Lần gỡ đó đi kèm
 > `services/trust-service/test/applicationSubmit.test.ts`, thứ mà đoạn trên nói
 > là chưa có. Xem `docs/refactor-trust-invite-access.md`.
 
 **Gỡ theo:**
 
-- `packages/types`: bỏ `REP`, `RANK_TIERS`, `rankFor` — hết nơi dùng.
+- `packages/types`: bỏ `REP`, `RANK_TIERS`, `rankFor` - hết nơi dùng.
   `hasAtLeastRole` **giữ**, trust-service gọi ở 5 chỗ.
 - `seed.js`: bỏ khối diễn đàn (65 dòng) và ba giá trị `reputation`.
-- `export-legacy-data.js`: thêm cửa vào — DB đã qua migration này thì in một
+- `export-legacy-data.js`: thêm cửa vào - DB đã qua migration này thì in một
   dòng và thoát 0, thay vì báo "15 bảng không xuất được" khiến người chạy tưởng
   hỏng.
 
 **Nghiệm thu (đo được):**
 
 ```
-✓ backup/legacy-2026-08-12/ — 10 bản ghi, 15 bảng, xuất TRƯỚC khi DROP
+✓ backup/legacy-2026-08-12/ - 10 bản ghi, 15 bảng, xuất TRƯỚC khi DROP
 ✓ migrate deploy trên DB trống: 5/5 migration, còn đúng 12 bảng
 ✓ db:seed trên DB trống: 3 user · 3 post · 2 doc · 4 chương trình dấu
 ✓ content 6 · storage 9 · trust 20 = 35/35 · lint · prettier · topology:check
@@ -321,11 +321,11 @@ chạm đường thu phí. Đã ghi chú ngay trên trường trong `schema.pris
 ```
 
 > **Chưa chạm production.** Migration mới nằm trong repo, chưa `migrate deploy`
-> lên Neon. Đó là một lần deploy riêng, cần xác nhận riêng — và cần chạy
+> lên Neon. Đó là một lần deploy riêng, cần xác nhận riêng - và cần chạy
 > `export-legacy-data.js` trỏ vào `DATABASE_URL` của production **trước**, vì
 > bản xuất hiện có chỉ là dữ liệu máy local.
 
-### GĐ 5 — Dựng mục Dự án + Bản quyền ✅ **xong**
+### GĐ 5 - Dựng mục Dự án + Bản quyền ✅ **xong**
 
 Model `Project` (migration `20260812225340_add_project_copyright`) · 6 route ·
 `/projects`, `/projects/[slug]`, `/admin/projects` · vào điều hướng và chân
@@ -338,15 +338,15 @@ cả local lẫn production. `requireAdmin` vì thế đọc vai trò **lưu tro
 Đo được: ẩn danh → 401, `alice` (MEMBER) → 403, `tsudev` (ADMIN) → 200.
 
 **`copyrightStatus=REGISTERED` bắt buộc có `copyrightNo`,** và PATCH kiểm trên
-giá trị **sau khi ghép** chứ không trên phần thân request — gửi mỗi
+giá trị **sau khi ghép** chứ không trên phần thân request - gửi mỗi
 `copyrightStatus` vẫn phải thoả. Đây là khẳng định pháp lý; để trống là công bố
 một thứ không có gì chống lưng.
 
 BFF mới `pages/api/content/[...path].js` dùng **danh sách trắng tiền tố** (chỉ
-`admin`). Đọc công khai không đi qua đây — nó chạy trong `getServerSideProps`,
+`admin`). Đọc công khai không đi qua đây - nó chạy trong `getServerSideProps`,
 phía server, nên không có CORS để vướng.
 
-### GĐ 6 — Hồ sơ uy tín tổ chức ✅ **xong**
+### GĐ 6 - Hồ sơ uy tín tổ chức ✅ **xong**
 
 `GET /api/trust/profile/:orgId` (công khai) + trang `/trust/org/[id]`; danh bạ
 liên kết sang hồ sơ; trang chương trình dấu liệt kê dự án tsudev thuộc chương
@@ -360,7 +360,7 @@ tên miền đã xác minh · năm mang dấu đầu tiên · tỉ lệ vượt 
 `checkPassRate` trả **`null`** khi chưa có lần kiểm nào, và trang in "Chưa đo"
 chứ không phải "100%". "Chưa đo" và "hoàn hảo" là hai chuyện khác nhau.
 
-Hồ sơ hiện cả **lịch sử** — chứng chỉ hết hạn, đình chỉ, thu hồi. Một hồ sơ tín
+Hồ sơ hiện cả **lịch sử** - chứng chỉ hết hạn, đình chỉ, thu hồi. Một hồ sơ tín
 nhiệm chỉ khoe phần đẹp thì không đáng tin. Đã kiểm: endpoint không lộ
 `contactEmail`, `ownerUserId` hay đơn đang chờ duyệt; org không tồn tại → 404.
 
@@ -368,27 +368,27 @@ Hàng trong danh bạ đổi từ một thẻ `<a>` bọc ngoài thành `<div>` 
 `<a>` lồng trong `<a>` là HTML không hợp lệ, trình duyệt tự gỡ và **cả hai** link
 cùng hỏng.
 
-### GĐ 7 — Tài liệu ✅ **xong**
+### GĐ 7 - Tài liệu ✅ **xong**
 
 `docs/*` · `README.md` · mọi `README.md` con · `AGENTS.md` · `.claude/agents/*`
 · `CLAUDE.md` **sau chót** (đúng luật của chính nó về cache).
 
 Ba chỗ chỉ sửa được sau khi đo lại, không suy ra được:
 
-- `CLAUDE.md` nói "5/75 route có `requireRole`" — nay là **4/46**, và route bị
+- `CLAUDE.md` nói "5/75 route có `requireRole`" - nay là **4/46**, và route bị
   403 nếu bật cưỡng chế là blog/presign/upload, không còn "danh sách thành viên".
-- `docs/architecture.md` nói 12 model — đếm thật là **13** (`Project` mới).
-- `packages/brand/README.md` nói avatar 80px/64px dùng bộ đầy đủ — grep ra chỉ
+- `docs/architecture.md` nói 12 model - đếm thật là **13** (`Project` mới).
+- `packages/brand/README.md` nói avatar 80px/64px dùng bộ đầy đủ - grep ra chỉ
   còn 22px và 32px, nghĩa là bộ đầy đủ nay **chỉ phục vụ Storybook**.
 
 **Hai file cố ý không sửa:** `refactor-network-topology.md` là biên bản của đợt
-trước (cổng ghi trong đó đúng tại thời điểm đó — sửa là làm sai lịch sử), và
+trước (cổng ghi trong đó đúng tại thời điểm đó - sửa là làm sai lịch sử), và
 `documents-tsudev.md` là **đặc tả yêu cầu**, không phải mô tả hiện trạng.
 
 ### Nghiệm thu cuối (đo được, chạy nguội)
 
 ```
-✓ topology:check — 66 literal cổng, 20 file miễn trừ
+✓ topology:check - 66 literal cổng, 20 file miễn trừ
 ✓ lint · prettier --check toàn repo
 ✓ content 6 · storage 9 · trust 20 = 35/35 unit test
 ✓ build frontend-main: 24 tuyến
@@ -398,19 +398,19 @@ trước (cổng ghi trong đó đúng tại thời điểm đó — sửa là l
 > **Bẫy khi tự chạy lại bộ E2E:** `next build` và `next dev` dùng chung thư mục
 > `.next/`. Chạy build trong lúc một `next dev` còn sống sẽ làm hỏng tiến trình
 > dev đó, và Playwright (`reuseExistingServer`) sẽ **dùng lại** nó rồi báo hàng
-> loạt trang 500 — trông y hệt lỗi mã nguồn. Dọn cổng trước khi chạy:
+> loạt trang 500 - trông y hệt lỗi mã nguồn. Dọn cổng trước khi chạy:
 > `fuser -k 8080/tcp 3000/tcp 4001/tcp 4002/tcp 4003/tcp`.
 
 ### Việc còn lại, thuộc về người vận hành
 
 1. **Chưa deploy migration DROP lên Neon.** Trước khi deploy phải chạy
-   `export-legacy-data.js` với `DATABASE_URL` của production — bản xuất hiện có
+   `export-legacy-data.js` với `DATABASE_URL` của production - bản xuất hiện có
    chỉ là dữ liệu máy local, nó **không** là đường lùi cho dữ liệu thật.
 2. **Nợ React 18** ở root `package.json` (xem GĐ 1).
 3. `.gitignore` vừa được bổ sung `.env.bak*`: script sinh ra
    `.env.bak-<timestamp>` chứa **nguyên văn** mọi secret kể cả
    `TRUST_SIGNING_KEY`, mà trước đó không khớp mẫu nào nên `git add -A` sẽ nuốt
-   gọn. File đang có trên máy vẫn còn — xoá hay giữ là tuỳ bạn.
+   gọn. File đang có trên máy vẫn còn - xoá hay giữ là tuỳ bạn.
 
 ---
 
@@ -422,7 +422,7 @@ trước (cổng ghi trong đó đúng tại thời điểm đó — sửa là l
 | Xoá `apps/frontend-forum` | git giữ lại được, nhưng dựng lại tốn công | commit riêng, dễ revert                  |
 | `TRUST_ISSUER`            | URL đã ký vào chứng chỉ (đã hạ mức 🟠)    | đã đặt `https://tsudev.com` từ đợt trước |
 
-Migration đã áp dụng **bất biến** — mọi thay đổi là migration mới.
+Migration đã áp dụng **bất biến** - mọi thay đổi là migration mới.
 
 ---
 
@@ -437,7 +437,7 @@ bằng smoke test ở GĐ 0, không phải giữ cho có.
 ### 6.2 Luận điểm mạnh nhất của dev-proxy
 
 Lý do số một khi dựng `dev-proxy` là để cookie `.tsudev.localhost` chia sẻ được
-giữa hai app — điều không kiểm chứng được ở local trước đó. **Lý do đó biến mất
+giữa hai app - điều không kiểm chứng được ở local trước đó. **Lý do đó biến mất
 cùng frontend-forum.**
 
 Proxy vẫn nên giữ, nhưng vì ba lý do còn lại, yếu hơn: subdomain `auth.` và
@@ -451,13 +451,13 @@ rút từ 11 cổng xuống 7 ở GĐ 3 là sửa một file thay vì truy lùng
 
 ## 7. Việc cố ý KHÔNG làm
 
-- **Không** đổi tên `content-service` dù nó chỉ còn blog/docs/projects — đổi tên
+- **Không** đổi tên `content-service` dù nó chỉ còn blog/docs/projects - đổi tên
   service kéo theo Dockerfile, render.yaml, topology, biến môi trường, để lấy về
   đúng một cái tên đẹp hơn.
 - **Không** đụng 8 model `Trust*`. Đó là phần được giữ và làm sâu, không phải
   phần bị dọn.
 - **Không** gộp `storage-service` vào `content-service`, dù nó nhỏ: nó có phụ
   thuộc S3 riêng và vòng đời phát hành riêng.
-- ~~**Không** bật `REQUIRE_ROLE_ENFORCEMENT`~~ — **mục này đã lỗi thời.** Cả
+- ~~**Không** bật `REQUIRE_ROLE_ENFORCEMENT`~~ - **mục này đã lỗi thời.** Cả
   nhánh phân quyền đọc claim Keycloak đã bị gỡ khỏi mã nguồn; vai trò nay đọc từ
   DB qua `@tsudev/auth`. Xem [auth.md](auth.md).

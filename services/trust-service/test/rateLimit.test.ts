@@ -8,7 +8,7 @@
 //     ngưỡng chung sẽ chặn oan tất cả.
 //  2. Không cho qua 2× ngưỡng ở ranh giới cửa sổ. Cửa sổ cố định ngây thơ cho
 //     phép gửi đủ ngưỡng ở cuối cửa sổ này rồi đủ ngưỡng nữa ngay đầu cửa sổ
-//     sau — tức là 2× trong một khoảnh khắc.
+//     sau - tức là 2× trong một khoảnh khắc.
 process.env.NODE_ENV = 'test'
 
 const express = require('express')
@@ -30,7 +30,7 @@ describe('giới hạn tần suất', () => {
     for (let i = 0; i < 3; i++) expect((await hit(app, '198.51.100.1')).status).toBe(200)
     const blocked = await hit(app, '198.51.100.1')
     expect(blocked.status).toBe(429)
-    // Retry-After cho client biết chờ bao lâu — thiếu nó thì client tử tế cũng
+    // Retry-After cho client biết chờ bao lâu - thiếu nó thì client tử tế cũng
     // chỉ biết thử lại ngay, và thành ra tự dội thêm.
     expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0)
   })

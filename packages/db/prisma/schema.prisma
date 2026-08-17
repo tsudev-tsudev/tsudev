@@ -1,4 +1,4 @@
-// tsudev — Prisma schema
+// tsudev - Prisma schema
 // Nền tảng dữ liệu chung cho toàn hệ thống (users, blog, docs, files, con dấu).
 // Provider: PostgreSQL. Local dev chạy trên cluster user-space (port 5433).
 
@@ -31,7 +31,7 @@ model User {
   /// lại (nó không tự chạy lúc boot), nên trong khoảng giữa hai bước, mã CŨ vẫn
   /// đang phục vụ. Mà `GET /api/posts` dùng `include: { author: true }` ⇒ Prisma
   /// SELECT mọi cột của User, kể cả cột này. Xoá sớm là blog và trang bài viết
-  /// 500 — và `lib/api.ts` nuốt lỗi thành [], nên triệu chứng là TRANG TRỐNG
+  /// 500 - và `lib/api.ts` nuốt lỗi thành [], nên triệu chứng là TRANG TRỐNG
   /// chứ không phải trang lỗi.
   ///
   /// Xoá ở đợt phát hành SAU, khi không còn tiến trình nào chạy schema cũ.
@@ -57,13 +57,13 @@ model User {
   /// Thu hồi phiên mà không cần bảng phiên. JWT mang số này; đổi mật khẩu hoặc
   /// "đăng xuất mọi thiết bị" thì tăng lên, và mọi token đã phát mất hiệu lực
   /// ngay. Phiên lưu DB sẽ đúng hơn về lý thuyết nhưng frontend chạy trên
-  /// Cloudflare Workers còn DB ở Neon ap-southeast-1 — nghĩa là một truy vấn
+  /// Cloudflare Workers còn DB ở Neon ap-southeast-1 - nghĩa là một truy vấn
   /// xuyên lục địa cho MỖI request.
   sessionVersion   Int       @default(0)
   /// Đếm số lần sai LIÊN TIẾP; đăng nhập thành công đặt lại về 0.
   failedLoginCount Int       @default(0)
   /// Khoá tạm sau quá nhiều lần sai. Khoá theo TÀI KHOẢN, khác với chặn theo IP
-  /// ở LoginAttempt — thiếu một trong hai thì kẻ tấn công chỉ cần đổi trục.
+  /// ở LoginAttempt - thiếu một trong hai thì kẻ tấn công chỉ cần đổi trục.
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
@@ -85,10 +85,10 @@ model OAuthAccount {
   id                String   @id @default(cuid())
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// "github" | "google" — chuỗi chứ không phải enum: thêm nhà cung cấp là dữ
+  /// "github" | "google" - chuỗi chứ không phải enum: thêm nhà cung cấp là dữ
   /// liệu, không phải migration.
   provider          String
-  /// Định danh ổn định do nhà cung cấp cấp. KHÔNG dùng email làm khoá — email
+  /// Định danh ổn định do nhà cung cấp cấp. KHÔNG dùng email làm khoá - email
   /// đổi được, và tin vào email của bên thứ ba là đường chiếm tài khoản.
   providerAccountId String
   createdAt         DateTime @default(now())
@@ -168,7 +168,7 @@ model AuthToken {
 ///
 /// Phải có TRẠNG THÁI: giao thức yêu cầu máy chủ tự nhớ challenge nó vừa phát
 /// và đối chiếu với cái quay về. Gửi challenge kèm chữ ký cho client giữ hộ sẽ
-/// phá đúng tính chất mà challenge tồn tại để bảo đảm — chống phát lại.
+/// phá đúng tính chất mà challenge tồn tại để bảo đảm - chống phát lại.
 ///
 /// `userId` NULL được: lúc đăng nhập bằng passkey khám phá được, máy chủ chưa
 /// biết đó là ai cho tới khi chữ ký được kiểm xong.
@@ -191,7 +191,7 @@ model WebAuthnChallenge {
 /// Thà chậm hơn một chút còn hơn một lớp phòng thủ chỉ tồn tại trên giấy.
 model LoginAttempt {
   id         String   @id @default(cuid())
-  /// IP hoặc tên đăng nhập — trục nào đang bị đếm.
+  /// IP hoặc tên đăng nhập - trục nào đang bị đếm.
   identifier String
   succeeded  Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -247,7 +247,7 @@ model FileObject {
 }
 
 // ---------------------------------------------------------------------------
-// Trust Seal — Nhà cung cấp Con dấu tín nhiệm
+// Trust Seal - Nhà cung cấp Con dấu tín nhiệm
 //
 // Vòng đời: tổ chức đăng ký -> xác minh sở hữu domain -> nộp đơn theo chương
 // trình -> kiểm tra tự động + admin duyệt -> cấp chứng chỉ (có serial, hạn,
@@ -292,7 +292,7 @@ enum CertificateStatus {
   EXPIRED
 }
 
-/// Cơ sở đánh giá — in trên trang xác thực để người đọc biết con dấu dựa vào
+/// Cơ sở đánh giá - in trên trang xác thực để người đọc biết con dấu dựa vào
 /// đâu. Cấp dấu pháp lý mà chỉ SELF_DECLARED là rủi ro, nên admin phải chọn.
 enum AssessmentBasis {
   SELF_DECLARED
@@ -409,7 +409,7 @@ model SealEvidence {
   @@index([applicationId])
 }
 
-/// Chứng chỉ đã cấp. `signature` là JWS Ed25519 của `payload` — bên thứ ba xác
+/// Chứng chỉ đã cấp. `signature` là JWS Ed25519 của `payload` - bên thứ ba xác
 /// minh offline được bằng khoá công khai ở /.well-known/tsudev-trust-jwks.json.
 model TrustCertificate {
   id              String            @id @default(cuid())
@@ -433,7 +433,7 @@ model TrustCertificate {
   /// Nội dung đã ký, công khai trên trang xác thực.
   payload         Json
   signature       String
-  /// `kid` của khoá đã ký — cho phép xoay khoá mà chứng chỉ cũ vẫn xác minh được.
+  /// `kid` của khoá đã ký - cho phép xoay khoá mà chứng chỉ cũ vẫn xác minh được.
   signingKeyId    String
   issuedById      String
   issuedByName    String
@@ -459,7 +459,7 @@ model TrustCheck {
   @@index([certificateId, ranAt])
 }
 
-/// Nhật ký bất biến cho mọi hành động trên hệ thống dấu — theo đúng khuôn mẫu
+/// Nhật ký bất biến cho mọi hành động trên hệ thống dấu - theo đúng khuôn mẫu
 /// ModAction của kiểm duyệt. Cần cho trách nhiệm pháp lý khi cấp dấu.
 model TrustAuditLog {
   id          String   @id @default(cuid())
@@ -481,7 +481,7 @@ model TrustAuditLog {
 //
 // Con dấu là vùng chỉ-dành-cho-khách-mời: đổi mã hợp lệ = được nâng lên
 // `Role.VIP`, và `requireRole('VIP')` ở trust-service là cổng thật. CỐ Ý dùng
-// lại `Role` thay vì thêm cột `trustAccess` riêng — một hệ phân quyền thứ hai
+// lại `Role` thay vì thêm cột `trustAccess` riêng - một hệ phân quyền thứ hai
 // chạy song song với hệ đã có đúng là thứ đã sinh ra vụ REQUIRE_ROLE_ENFORCEMENT.
 // ---------------------------------------------------------------------------
 
@@ -512,7 +512,7 @@ model TrustInvite {
   @@index([createdAt])
 }
 
-/// Ai đã đổi mã nào, lúc nào. Cần cho trách nhiệm pháp lý khi cấp dấu — cùng lý
+/// Ai đã đổi mã nào, lúc nào. Cần cho trách nhiệm pháp lý khi cấp dấu - cùng lý
 /// do TrustAuditLog tồn tại.
 model TrustInviteRedemption {
   id        String      @id @default(cuid())
@@ -528,7 +528,7 @@ model TrustInviteRedemption {
 }
 
 // ---------------------------------------------------------------------------
-// Dự án & bản quyền — trọng tâm mới của website
+// Dự án & bản quyền - trọng tâm mới của website
 //
 // Mỗi dòng là một dự án/tool/phần mềm do tsudev phát triển. Ba nhóm trường:
 // giới thiệu, phát hành, và bản quyền. Nhóm bản quyền là cầu nối sang Con dấu

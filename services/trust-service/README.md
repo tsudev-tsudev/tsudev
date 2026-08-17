@@ -9,7 +9,7 @@ npm --workspace services/trust-service test
 ```
 
 **Vận hành (xoay khoá, giám sát, seed demo):**
-[../../docs/trust-seal.md](../../docs/trust-seal.md) — đọc trước khi đụng vào
+[../../docs/trust-seal.md](../../docs/trust-seal.md) - đọc trước khi đụng vào
 service này.
 
 ## Cấu trúc
@@ -42,12 +42,12 @@ và **không có gì báo lỗi**.
 ## Ba luật cứng (test khoá lại, đừng phá)
 
 1. **Một lần kiểm trượt không hạ dấu.** DNS chập chờn hay site bảo trì không
-   phải lỗi của chủ site — phải trượt liên tiếp `TRUST_RECHECK_GRACE_FAILURES`
+   phải lỗi của chủ site - phải trượt liên tiếp `TRUST_RECHECK_GRACE_FAILURES`
    lần.
 2. **Tự đình chỉ, không tự thu hồi.** Đình chỉ đảo ngược được, thu hồi thì không.
    Máy chỉ được làm việc đảo ngược được.
 3. **Chỉ tự khôi phục thứ chính mình đã đình chỉ.** Kiểm duyệt viên đình chỉ vì
-   lý do nội dung thì máy không được bật lại — đó là lật quyết định của con
+   lý do nội dung thì máy không được bật lại - đó là lật quyết định của con
    người. Nguồn phân biệt là nhật ký kiểm toán.
 
 `test/recheck.test.js` giữ ba luật này, `test/signing.test.js` giữ hợp đồng xoay

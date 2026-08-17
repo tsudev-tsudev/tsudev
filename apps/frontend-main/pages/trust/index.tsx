@@ -27,7 +27,7 @@ const STEPS = [
   },
 ];
 
-/** Số liệu tổng quan hiển thị ở đầu trang. Luôn có — getServerSideProps dựng đủ. */
+/** Số liệu tổng quan hiển thị ở đầu trang. Luôn có - getServerSideProps dựng đủ. */
 type TrustStats = { active: number | string; programs: number | string; domains: number | string };
 
 type TrustLandingProps = { programs: TrustProgram[]; stats: TrustStats };
@@ -161,7 +161,7 @@ export default function TrustLanding({ programs, stats }: TrustLandingProps) {
               {' '}
               thư mục công khai
             </a>{' '}
-            — huy hiệu nào không tra ra chứng chỉ tương ứng thì không có giá trị.
+            - huy hiệu nào không tra ra chứng chỉ tương ứng thì không có giá trị.
           </p>
         </section>
       </div>

@@ -4,7 +4,7 @@
  *
  * Chứng chỉ được ký bằng Ed25519 và phát hành dưới dạng JWS compact, kèm `kid`.
  * Khoá công khai công bố ở /.well-known/tsudev-trust-jwks.json để bên thứ ba tự
- * xác minh offline — không cần tin vào API của tsudev.
+ * xác minh offline - không cần tin vào API của tsudev.
  *
  * Khoá riêng nạp từ biến môi trường TRUST_SIGNING_KEY: nội dung là PEM PKCS#8
  * ĐÃ base64 hoá, vì PEM nhiều dòng rất dễ hỏng khi đi qua .env / CI secret.
@@ -14,14 +14,14 @@
  * Lộ khoá này đồng nghĩa giả được mọi chứng chỉ, nên production BẮT BUỘC phải
  * có biến môi trường; service từ chối khởi động nếu thiếu.
  *
- * XOAY KHOÁ. Chứng chỉ sống hàng năm, còn khoá thì phải thay được — kể cả khẩn
+ * XOAY KHOÁ. Chứng chỉ sống hàng năm, còn khoá thì phải thay được - kể cả khẩn
  * cấp khi nghi lộ. Vì vậy service giữ một VÒNG KHOÁ: một khoá đang ký, cộng các
  * khoá đã nghỉ chỉ dùng để xác minh, khai báo ở TRUST_SIGNING_KEYS_RETIRED dạng
  *
  *   kid:<base64 PEM>,kid2:<base64 PEM>
  *
  * PEM ở đây nên là khoá CÔNG KHAI (khoá riêng cũng nhận, service tự rút phần
- * công khai) — đã nghỉ thì không có lý do gì còn giữ khoá riêng trên máy chủ.
+ * công khai) - đã nghỉ thì không có lý do gì còn giữ khoá riêng trên máy chủ.
  * Cả vòng khoá được công bố trong JWKS, nên chứng chỉ cấp trước lúc xoay vẫn
  * xác minh được, kể cả bởi bên thứ ba không gọi API tsudev.
  */
@@ -41,7 +41,7 @@ export type VerifyResult =
 /**
  * Khoá đang ký. Giữ nguyên văn PEM chứ không giữ đối tượng khoá đã phân giải:
  * việc phân giải nằm bên trong WASM, nơi hạt giống được xoá ngay sau khi dùng.
- * Đây cũng là lý do KHÔNG truyền 32 byte hạt giống qua ranh giới — làm thế sẽ
+ * Đây cũng là lý do KHÔNG truyền 32 byte hạt giống qua ranh giới - làm thế sẽ
  * vật chất hoá khoá thô thành một Buffer trong heap JS, tệ hơn hiện trạng.
  */
 type LoadedKey = { pem: string; kid: string; dev: boolean }
@@ -59,7 +59,7 @@ function devPrivatePem(): string {
   return `-----BEGIN PRIVATE KEY-----\n${der.toString('base64')}\n-----END PRIVATE KEY-----\n`
 }
 
-/** Chấp nhận PEM thô hoặc PEM đã base64 hoá — .env nào cũng chở được một dòng. */
+/** Chấp nhận PEM thô hoặc PEM đã base64 hoá - .env nào cũng chở được một dòng. */
 function decodePem(raw: string | undefined | null): string | null {
   const s = String(raw || '').trim()
   if (!s) return null
@@ -76,7 +76,7 @@ function assertEd25519Private(pem: string, label: string): Uint8Array {
   try {
     return publicKeyFromPrivatePem(pem)
   } catch (e) {
-    throw new Error(`${label} phải là khoá Ed25519 — ${e instanceof Error ? e.message : e}`)
+    throw new Error(`${label} phải là khoá Ed25519 - ${e instanceof Error ? e.message : e}`)
   }
 }
 
@@ -87,7 +87,7 @@ function loadPrivateKey(): LoadedKey {
     return { pem, kid: process.env.TRUST_SIGNING_KEY_ID || 'default', dev: false }
   }
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('Thiếu TRUST_SIGNING_KEY — không thể cấp chứng chỉ ở môi trường production.')
+    throw new Error('Thiếu TRUST_SIGNING_KEY - không thể cấp chứng chỉ ở môi trường production.')
   }
   console.warn(
     '[trust] CẢNH BÁO: chưa đặt TRUST_SIGNING_KEY, đang dùng khoá dev công khai.\n' +
@@ -130,7 +130,7 @@ function loadRetiredKeys(): Map<string, Uint8Array> {
       ring.set(kid, pub)
     } catch (e) {
       console.warn(
-        `[trust] TRUST_SIGNING_KEYS_RETIRED: bỏ qua khoá ${kid} — ${
+        `[trust] TRUST_SIGNING_KEYS_RETIRED: bỏ qua khoá ${kid} - ${
           e instanceof Error ? e.message : String(e)
         }`
       )
@@ -165,7 +165,7 @@ function sign(payload: unknown): string {
 }
 
 /**
- * Xác minh JWS. Trả { valid, payload, reason } — không ném lỗi, để trang xác
+ * Xác minh JWS. Trả { valid, payload, reason } - không ném lỗi, để trang xác
  * thực hiển thị được lý do hỏng thay vì trả 500.
  */
 function verify(jws: string | null | undefined, keyForKid?: Uint8Array): VerifyResult {
@@ -174,7 +174,7 @@ function verify(jws: string | null | undefined, keyForKid?: Uint8Array): VerifyR
     //
     // Khác biệt này quan trọng: một JWS tấn công kiểu đổi thuật toán thường có
     // phần chữ ký RỖNG ("header.payload."). Loại nó ở đây vì "sai định dạng" sẽ
-    // che mất lý do thật, và lý do thật — thuật toán không được chấp nhận — mới
+    // che mất lý do thật, và lý do thật - thuật toán không được chấp nhận - mới
     // là thứ trang xác minh cần nói ra. Kiểm alg phải được chạy TRƯỚC.
     const parts = String(jws || '').split('.')
     const headerB64 = parts[0]
@@ -216,12 +216,12 @@ function verify(jws: string | null | undefined, keyForKid?: Uint8Array): VerifyR
 }
 
 /**
- * JWKS công khai — chỉ chứa khoá công khai, an toàn để phát tán. Khoá đang ký
+ * JWKS công khai - chỉ chứa khoá công khai, an toàn để phát tán. Khoá đang ký
  * đứng đầu để client nào chỉ lấy phần tử thứ nhất vẫn dùng đúng.
  */
 function jwks(): { keys: Array<Record<string, unknown>> } {
   // Dựng JWK tay từ 32 byte thô. Ed25519 chỉ có đúng một hình dạng JWK, và làm
-  // vậy thì không phụ thuộc vào bất kỳ API xuất khoá nào của runtime — cùng mã
+  // vậy thì không phụ thuộc vào bất kỳ API xuất khoá nào của runtime - cùng mã
   // này chạy được ở edge.
   const toJwk = (pub: Uint8Array, keyId: string) => ({
     kty: 'OKP',

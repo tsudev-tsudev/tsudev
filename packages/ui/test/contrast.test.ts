@@ -59,14 +59,14 @@ export function contrast(a: string, b: string): number {
 
 /** Cặp [chữ, nền, ngưỡng, mô tả] phải đúng ở CẢ HAI chế độ. */
 const PAIRS: Array<[string, string, number, string]> = [
-  // Chữ thường trên ba tầng bề mặt — 4.5:1.
+  // Chữ thường trên ba tầng bề mặt - 4.5:1.
   ['--ink', '--surface', 4.5, 'chữ chính trên nền trang'],
   ['--ink', '--panel', 4.5, 'chữ chính trên card'],
   ['--ink', '--panel-2', 4.5, 'chữ chính trên khối lồng'],
   ['--ink-soft', '--surface', 4.5, 'chữ phụ trên nền trang'],
   ['--ink-soft', '--panel', 4.5, 'chữ phụ trên card'],
   ['--ink-soft', '--panel-2', 4.5, 'chữ phụ trên khối lồng'],
-  // `muted` dùng cho nhãn và chú thích — vẫn là chữ thường, vẫn 4.5:1.
+  // `muted` dùng cho nhãn và chú thích - vẫn là chữ thường, vẫn 4.5:1.
   // Đây là token dễ trượt nhất và cũng là token bị dùng nhiều nhất.
   ['--muted', '--surface', 4.5, 'chữ mờ trên nền trang'],
   ['--muted', '--panel', 4.5, 'chữ mờ trên card'],
@@ -96,7 +96,7 @@ const PAIRS: Array<[string, string, number, string]> = [
   ['--icon-info', '--panel', 4.5, 'icon thông tin trên card'],
   ['--icon-trust', '--surface', 4.5, 'icon con dấu trên nền trang'],
   ['--icon-trust', '--panel', 4.5, 'icon con dấu trên card'],
-  // Thành phần giao diện và viền — 3:1 theo WCAG 1.4.11.
+  // Thành phần giao diện và viền - 3:1 theo WCAG 1.4.11.
   ['--border-strong', '--surface', 3, 'viền đậm trên nền trang'],
   ['--border-strong', '--panel', 3, 'viền đậm trên card'],
   ['--primary', '--surface', 3, 'viền/nền nút trên nền trang'],
@@ -106,7 +106,7 @@ const PAIRS: Array<[string, string, number, string]> = [
 describe.each([
   ['sáng (mặc định)', ':root'],
   ['tối', ":root[data-theme='dark']"],
-])('tương phản — chế độ %s', (_label, selector) => {
+])('tương phản - chế độ %s', (_label, selector) => {
   const t = tokensIn(selector);
 
   test.each(PAIRS)('%s trên %s ≥ %s:1 (%s)', (fg, bg, min) => {
@@ -124,7 +124,7 @@ describe.each([
   });
 
   // Màu icon phải phân biệt được VỚI NHAU. Sáu màu cùng đạt tương phản với nền
-  // mà lại gần giống nhau thì chúng không còn là mã cho chức năng nữa — người
+  // mà lại gần giống nhau thì chúng không còn là mã cho chức năng nữa - người
   // dùng không đọc ra nhóm, và cả hệ thống chỉ còn là trang trí.
   test('sáu màu icon phân biệt được với nhau', () => {
     const names = [

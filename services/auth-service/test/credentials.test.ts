@@ -1,7 +1,7 @@
 // Bất biến của đường đăng nhập. Ba thứ được khoá lại ở đây, và cả ba đều là
 // loại lỗi KHÔNG có triệu chứng nhìn thấy được nếu hỏng:
 //
-//  1. Không liệt kê được tài khoản — "không có user này" và "sai mật khẩu"
+//  1. Không liệt kê được tài khoản - "không có user này" và "sai mật khẩu"
 //     phải không phân biệt được từ bên ngoài.
 //  2. Khoá tài khoản thực sự đếm và thực sự khoá.
 //  3. Đăng nhập đúng thì đặt lại bộ đếm, chứ không tích luỹ tới lúc khoá oan
@@ -77,7 +77,7 @@ describe('kiểm thông tin đăng nhập', () => {
     for (let i = 0; i < ACCOUNT_MAX_FAILURES; i++) {
       await login(USER, `sai-lan-thu-${i}-that-dai`)
     }
-    // Tới đây mật khẩu ĐÚNG cũng không vào được nữa — và chỉ ở nhánh này service
+    // Tới đây mật khẩu ĐÚNG cũng không vào được nữa - và chỉ ở nhánh này service
     // mới nói ra chuyện khoá, vì người gọi đã chứng minh họ biết mật khẩu.
     const res = await login(USER, PASSWORD)
     expect(res.status).toBe(423)
@@ -97,7 +97,7 @@ describe('kiểm thông tin đăng nhập', () => {
 })
 
 // Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
-// script toàn cục, và biến top-level của các tệp test khác nhau đụng tên nhau —
+// script toàn cục, và biến top-level của các tệp test khác nhau đụng tên nhau -
 // `login` ở đây và `login` ở tệp kia có chữ ký khác nhau, nên CI đỏ với
 // "Expected 1 arguments, but got 2" ở một tệp mà không ai vừa sửa.
 export {}

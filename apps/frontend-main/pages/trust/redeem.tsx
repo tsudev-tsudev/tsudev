@@ -9,7 +9,7 @@ import { Notice } from '../../components/AuthShell';
  * Đổi mã mời lấy quyền vào vùng Con dấu tín nhiệm.
  *
  * Trang này CỐ Ý không nói mã hợp lệ trông như thế nào, không đếm số ký tự cho
- * người gõ, và không phân biệt "mã sai" với "mã hết hạn" — auth-service đã gộp
+ * người gõ, và không phân biệt "mã sai" với "mã hết hạn" - auth-service đã gộp
  * ba trường hợp đó làm một, và mô tả kỹ hơn ở đây sẽ phá đúng thứ nó bảo vệ.
  *
  * Cổng thật KHÔNG nằm ở trang này. Nó nằm ở `requireRole('VIP')` phía service,
@@ -41,12 +41,12 @@ export default function RedeemInvitePage() {
   if (status !== 'authenticated') {
     return (
       <Layout active="/trust">
-        <Seo title="Nhập mã mời — tsudev" path="/trust/redeem" noindex />
+        <Seo title="Nhập mã mời - tsudev" path="/trust/redeem" noindex />
         <div className="mx-auto max-w-md">
           <h1 className="text-2xl font-bold text-ink">Nhập mã mời</h1>
           <p className="mt-3 text-sm text-muted leading-relaxed">
             Mã mời gắn với một tài khoản, nên phải đăng nhập trước khi đổi. Chưa có tài khoản thì
-            đăng ký trước — mã vẫn dùng được sau đó.
+            đăng ký trước - mã vẫn dùng được sau đó.
           </p>
           <Button as="a" href="/login?callbackUrl=/trust/redeem" className="mt-5 w-full">
             Đăng nhập
@@ -76,7 +76,7 @@ export default function RedeemInvitePage() {
       setMsg({ kind: 'ok', text: 'Xong. Tài khoản của bạn đã được mở quyền vào vùng Con dấu.' });
       // Vai trò nằm trong JWT của next-auth, nên nó chỉ đổi ở lần làm mới token
       // kế tiếp. Không gọi update() thì điều hướng vẫn giấu mục Con dấu cho tới
-      // lần tải trang sau — trông y hệt như việc đổi mã không có tác dụng.
+      // lần tải trang sau - trông y hệt như việc đổi mã không có tác dụng.
       await update?.();
     } catch {
       setMsg({ kind: 'error', text: 'Không kết nối được máy chủ.' });
@@ -90,7 +90,7 @@ export default function RedeemInvitePage() {
 
   return (
     <Layout active="/trust">
-      <Seo title="Nhập mã mời — tsudev" path="/trust/redeem" noindex />
+      <Seo title="Nhập mã mời - tsudev" path="/trust/redeem" noindex />
       <div className="mx-auto max-w-md">
         <h1 className="text-2xl font-bold text-ink">Nhập mã mời</h1>
         <p className="mt-3 text-sm text-muted leading-relaxed">
@@ -132,7 +132,7 @@ export default function RedeemInvitePage() {
         </form>
 
         <p className="mt-6 text-xs text-muted leading-relaxed border-t border-hairline pt-4">
-          Chưa có mã? Con dấu được cấp cho đối tác và khách hàng của tsudev — hãy liên hệ trực tiếp
+          Chưa có mã? Con dấu được cấp cho đối tác và khách hàng của tsudev - hãy liên hệ trực tiếp
           với tsudev để trao đổi.
         </p>
       </div>

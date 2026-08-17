@@ -7,7 +7,7 @@
  *   node services/trust-service/scripts/seed-demo.js --reset  # xoá sạch rồi tạo lại
  *
  * CỐ Ý TÁCH KHỎI packages/db/prisma/seed.js. Seed chính thức chỉ chứa dữ liệu
- * tham chiếu (bốn chương trình cấp dấu) — thứ mà mọi môi trường, kể cả
+ * tham chiếu (bốn chương trình cấp dấu) - thứ mà mọi môi trường, kể cả
  * production, đều cần. Còn tổ chức và chứng chỉ ở đây là hàng giả để xem giao
  * diện; nếu nhét vào seed chính thì một ngày nào đó chúng sẽ mọc lên trong
  * production và thư mục công khai sẽ liệt kê những website không tồn tại.
@@ -25,7 +25,7 @@ const crypto = require('crypto')
 const { prisma } = require('@tsudev/db')
 // dist/ chứ không phải src/: service đã sang TypeScript và chạy từ bản biên
 // dịch (xem "main" trong package.json). Script này là .js thuần nên require
-// thẳng src/*.ts sẽ MODULE_NOT_FOUND — cần `npm run build:services` trước.
+// thẳng src/*.ts sẽ MODULE_NOT_FOUND - cần `npm run build:services` trước.
 const signing = require('../dist/signing')
 const { nextSerial, buildPayload } = require('../dist/certificates')
 
@@ -101,12 +101,12 @@ async function issuerUser() {
 async function createOne(spec, issuer, now) {
   const existing = await prisma.trustDomain.findUnique({ where: { hostname: spec.hostname } })
   if (existing) {
-    console.log(`  bỏ qua ${spec.hostname} — đã có`)
+    console.log(`  bỏ qua ${spec.hostname} - đã có`)
     return null
   }
 
   const program = await prisma.sealProgram.findUnique({ where: { slug: spec.program } })
-  if (!program) throw new Error(`Thiếu chương trình ${spec.program} — chạy npm run db:seed trước`)
+  if (!program) throw new Error(`Thiếu chương trình ${spec.program} - chạy npm run db:seed trước`)
 
   const org = await prisma.trustOrganization.create({
     data: {
@@ -190,7 +190,7 @@ async function main() {
   console.log('Tạo dữ liệu trình diễn:')
   for (const spec of ORGS) await createOne(spec, issuer, now)
   console.log(
-    `\nKý bằng khoá: ${signing.kid}${signing.usingDevKey ? ' (DEV — không có giá trị)' : ''}`
+    `\nKý bằng khoá: ${signing.kid}${signing.usingDevKey ? ' (DEV - không có giá trị)' : ''}`
   )
   console.log('Xem thư mục công khai tại /trust/directory')
 }

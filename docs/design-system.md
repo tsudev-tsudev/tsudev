@@ -9,7 +9,7 @@ component riêng trong `apps/*` chỉ được phép khi nó thật sự chỉ d
 mặc định**: `:root` mang bảng màu sáng, `:root[data-theme='dark']` ghi đè.
 
 **Không dùng `prefers-color-scheme`.** Lựa chọn hiển thị là một quyết định của
-sản phẩm — một site đổi diện mạo theo cài đặt hệ điều hành thì hai người mở cùng
+sản phẩm - một site đổi diện mạo theo cài đặt hệ điều hành thì hai người mở cùng
 một đường link sẽ thấy hai thứ khác nhau mà không ai chọn gì cả. Người dùng bật
 chế độ tối bằng nút trên header (`ThemeToggle`), lựa chọn ghi vào localStorage
 và được áp **trước khi vẽ** bởi script nội tuyến trong `pages/_document.tsx`.
@@ -48,7 +48,7 @@ không bắt được cái vừa-đủ-trượt.
   đảm nhiệm. Đừng thêm `box-shadow` để tạo chiều sâu.
 - **Chữ trên màu ngữ nghĩa luôn là `--on-vivid`**, đừng cắm cứng mã hex.
   `--on-vivid` là màu TỐI ở chế độ tối (các sắc ngữ nghĩa sáng) và màu TRẮNG ở
-  chế độ sáng (các sắc ngữ nghĩa đậm) — một mã hex cắm cứng đúng ở một chế độ và
+  chế độ sáng (các sắc ngữ nghĩa đậm) - một mã hex cắm cứng đúng ở một chế độ và
   gần như không đọc được ở chế độ kia.
 - **Đừng khai lại bảng màu song song.** `tailwind.config.js` từng có một thang
   `primary` 50→900 cắm cứng bên cạnh bảng token; thang đó không đổi theo chế độ,
@@ -56,7 +56,7 @@ không bắt được cái vừa-đủ-trượt.
 
 ## Icon
 
-`Icon` (`packages/ui/src/components/Icon.tsx`) — màu **đi theo chức năng**, gắn
+`Icon` (`packages/ui/src/components/Icon.tsx`) - màu **đi theo chức năng**, gắn
 cứng với tên icon và không cho truyền từ nơi gọi:
 
 | Vai trò  | Màu        | Dùng cho                         |
@@ -70,7 +70,7 @@ cứng với tên icon và không cho truyền từ nơi gọi:
 
 Khi mỗi trang tự chọn màu thì cùng một hành động "xoá" sẽ đỏ ở trang này và xám
 ở trang kia, và người dùng mất khả năng đọc màu như một tín hiệu. Cần một sắc
-khác nghĩa là cần một **chức năng** khác — thêm vào bảng, đừng ghi đè tại chỗ gọi.
+khác nghĩa là cần một **chức năng** khác - thêm vào bảng, đừng ghi đè tại chỗ gọi.
 
 Icon không có prop `label` sẽ bị `aria-hidden`: icon trang trí mà lọt vào cây
 a11y sẽ được đọc thành một "graphic" vô nghĩa xen giữa câu chữ.
@@ -78,7 +78,7 @@ a11y sẽ được đọc thành một "graphic" vô nghĩa xen giữa câu ch�
 ## Mục lục
 
 `TableOfContents` dùng chung cho blog, tài liệu và ba trang pháp lý. Nó có nền
-và viền riêng vì mục lục là **điều hướng**, không phải nội dung — không tách ra
+và viền riêng vì mục lục là **điều hướng**, không phải nội dung - không tách ra
 khỏi thân bài bằng một bề mặt riêng thì ở chế độ sáng nó đọc như một danh sách
 gạch đầu dòng nằm giữa bài.
 
@@ -94,7 +94,7 @@ apps/*/next.config.js       →  transpilePackages: ['@tsudev/ui']
 apps/*/tailwind.config.js   →  màu Tailwind trỏ vào các biến CSS trên
 ```
 
-`@tsudev/ui` **không** được build sẵn (`main` trỏ thẳng `src/index.tsx`) — vì
+`@tsudev/ui` **không** được build sẵn (`main` trỏ thẳng `src/index.tsx`) - vì
 thế `transpilePackages` là bắt buộc. Thêm app mới thì phải khai cả ba dòng trên,
 thiếu một dòng là giao diện thô hoặc build đỏ.
 
@@ -106,18 +106,18 @@ Export từ `packages/ui/src/index.tsx`:
 `Input` · `Card` · `Modal` · `Toast` · `Badge` · `Avatar` · `Logo` ·
 `SectionHeading` · `Stat` · `Article` · `ThreadRow` · `Upload`
 
-Kèm `MAIN_URL` — gốc tuyệt đối cho canonical/OG. Điều hướng trong site dùng
+Kèm `MAIN_URL` - gốc tuyệt đối cho canonical/OG. Điều hướng trong site dùng
 href tương đối: tsudev chỉ còn MỘT origin.
 
 ### Ràng buộc khi viết component
 
 - Component chỉ còn phải chạy trên Next 15 / React 19. Ràng buộc "cả React 18"
   đã nghỉ hưu cùng `frontend-forum`. Root `package.json` **vẫn** ghim
-  `react@18.3.1` cho Storybook — nợ đã ghi, xem `next.config.js`.
+  `react@18.3.1` cho Storybook - nợ đã ghi, xem `next.config.js`.
 - Điều hướng trong site dùng href tương đối. `MAIN_URL` chỉ dành cho URL tuyệt
   đối thật sự cần (canonical, OG, mã nhúng huy hiệu cho bên thứ ba).
 - `Avatar` chọn biến thể theo băm FNV-1a của username và **tự đổi bộ ảnh theo
-  `size`** (ngưỡng 48px). Đừng ép đường dẫn ảnh bằng tay — chi tiết ở
+  `size`** (ngưỡng 48px). Đừng ép đường dẫn ảnh bằng tay - chi tiết ở
   [../packages/brand/README.md](../packages/brand/README.md).
 
 ## Storybook
@@ -128,7 +128,7 @@ npm --workspace packages/ui run build-storybook
 ```
 
 Đã có story cho: Article, Button, Card, Header, Input, Layout, Modal, Toast,
-Upload. Thêm component mới thì thêm story — đó là nơi duy nhất xem được component
+Upload. Thêm component mới thì thêm story - đó là nơi duy nhất xem được component
 tách khỏi trang.
 
 ## Khả năng truy cập
@@ -142,5 +142,5 @@ Khi thêm component: dùng HTML ngữ nghĩa, giữ điều hướng bằng bàn
 ## Ảnh & thương hiệu
 
 Logo, favicon, avatar mặc định được **sinh tự động** từ `packages/brand/source/`.
-Đừng sửa file trong `apps/*/public/` — lần chạy script sau sẽ ghi đè. Quy trình:
+Đừng sửa file trong `apps/*/public/` - lần chạy script sau sẽ ghi đè. Quy trình:
 [../packages/brand/README.md](../packages/brand/README.md).

@@ -6,13 +6,13 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express'
  * VÌ SAO Ở ĐÂY MÀ KHÔNG PHẢI Ở DB
  *
  * Khác với đường đăng nhập (auth-service, bộ đếm nằm ở bảng `LoginAttempt`),
- * các endpoint này được gọi bởi trình duyệt của khách trên site BÊN THỨ BA —
+ * các endpoint này được gọi bởi trình duyệt của khách trên site BÊN THỨ BA -
  * mỗi lượt xem một trang có gắn huy hiệu là một request. Ghi một dòng DB cho
  * mỗi lượt xem đó là biến bộ đếm chống lạm dụng thành chính nguồn tải.
  *
  * Bộ đếm nằm trong bộ nhớ tiến trình. Giả định: production chạy ĐÚNG MỘT tiến
  * trình (`services/backend-bundle`, xem render.yaml). Giả định đó ghi ra đây vì
- * nó VỠ nếu sau này chạy nhiều bản — lúc đó mỗi bản có xô riêng và ngưỡng thực
+ * nó VỠ nếu sau này chạy nhiều bản - lúc đó mỗi bản có xô riêng và ngưỡng thực
  * tế nhân lên theo số bản.
  *
  * Thuật toán là cửa sổ trượt xấp xỉ bằng hai xô: đơn giản hơn token bucket,
@@ -26,7 +26,7 @@ type Bucket = { windowStart: number; count: number; prevCount: number }
  *
  * Không có nó thì chính bộ giới hạn trở thành lỗ hổng: kẻ tấn công gửi request
  * từ các IP giả khác nhau và bảng lớn tới lúc hết bộ nhớ. Chạm trần thì xoá
- * sạch — thà mất bộ đếm một nhịp còn hơn chết vì hết RAM.
+ * sạch - thà mất bộ đếm một nhịp còn hơn chết vì hết RAM.
  */
 const MAX_KEYS = 20_000
 
@@ -51,7 +51,7 @@ export function createRateLimit(opts: {
 
     const elapsed = now - b.windowStart
     if (elapsed >= opts.windowMs) {
-      // Cửa sổ mới. Giữ lại số đếm của cửa sổ trước để nội suy — nếu không thì
+      // Cửa sổ mới. Giữ lại số đếm của cửa sổ trước để nội suy - nếu không thì
       // đúng lúc chuyển cửa sổ, một kẻ tấn công gửi được 2× ngưỡng liền nhau.
       b.prevCount = elapsed >= opts.windowMs * 2 ? 0 : b.count
       b.count = 0
@@ -76,7 +76,7 @@ export function createRateLimit(opts: {
  * IP của người gọi.
  *
  * Đọc `x-forwarded-for` là bắt buộc: service luôn đứng sau proxy (dev-proxy ở
- * local, Render ở production), nên `req.ip` là địa chỉ của proxy — giới hạn
+ * local, Render ở production), nên `req.ip` là địa chỉ của proxy - giới hạn
  * theo nó sẽ gộp cả thế giới vào một xô.
  */
 function callerIp(req: Request): string {

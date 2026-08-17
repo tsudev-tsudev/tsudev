@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // CommonJS có chủ đích, giống ba service kia — xem chú thích ở
+    // CommonJS có chủ đích, giống ba service kia - xem chú thích ở
     // services/storage-service/tsconfig.json.
     "module": "commonjs",
     "moduleResolution": "node",

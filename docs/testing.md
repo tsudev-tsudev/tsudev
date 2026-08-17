@@ -2,7 +2,7 @@
 
 ## Test đơn vị (service)
 
-Mỗi service tự chạy test của mình — **không** có lệnh test ở gốc repo.
+Mỗi service tự chạy test của mình - **không** có lệnh test ở gốc repo.
 
 ```bash
 npm --workspace services/content-service test
@@ -19,7 +19,7 @@ Hiện có:
 | `trust-service/test/signing.test.js`          | vòng khoá ký, quy trình xoay khoá     |
 | `trust-service/test/recheck.test.js`          | ba luật giám sát tên miền             |
 
-Test service chạy **không cần DB** — đó là chủ đích, giữ chúng chạy được trong
+Test service chạy **không cần DB** - đó là chủ đích, giữ chúng chạy được trong
 CI mà không phải dựng Postgres. Cần chạm DB thì viết test tích hợp, đừng làm hỏng
 tính chất này.
 
@@ -34,7 +34,7 @@ npx playwright install --with-deps chromium   # lần đầu
 npm --prefix e2e test
 ```
 
-URL lấy từ `config/topology.json` — không đặt tay. Playwright **tự dựng** hai
+URL lấy từ `config/topology.json` - không đặt tay. Playwright **tự dựng** hai
 frontend và `dev-proxy` (mục `webServer`), nên không cần chạy `npm run dev:local`
 trước; đang chạy sẵn thì nó dùng lại.
 
@@ -49,7 +49,7 @@ Hai project, tách theo thứ chúng cần:
 bấm link điều hướng, phải sang đúng trang và **còn phiên**. Bản không cần trình
 duyệt: `node scripts/check-session-sharing.js`.
 
-Kịch bản duy nhất hiện có: `e2e/tests/sso-upload.spec.js` — đăng nhập, presign,
+Kịch bản duy nhất hiện có: `e2e/tests/sso-upload.spec.js` - đăng nhập, presign,
 upload.
 
 ## Presign + upload: hai đường và cách chọn
@@ -84,10 +84,10 @@ Mã liên quan: `e2e/tests/upload.spec.js` (project `full-stack`), và
 `.github/workflows/ci.yml` chạy ba job trên mọi PR và trên push vào
 `main` / `feat/**`:
 
-1. **Lint & format** — `npm run format:check` + `npm run lint`.
-2. **Migrate & test services** — dựng Postgres 16, `db:generate`, `db:migrate`
+1. **Lint & format** - `npm run format:check` + `npm run lint`.
+2. **Migrate & test services** - dựng Postgres 16, `db:generate`, `db:migrate`
    (`prisma migrate deploy`), rồi test cả ba service.
-3. **Build frontends** — `db:generate` rồi build cả hai app Next.
+3. **Build frontends** - `db:generate` rồi build cả hai app Next.
 
 Ba lỗi CI hay gặp và nguyên nhân thật:
 
@@ -105,7 +105,7 @@ E2E chia làm hai project, và chỉ MỘT trong hai chạy trong CI:
 | `app`        | `smoke.spec.js`, `invite.spec.js` | Postgres + 4 service | ✅ (job `e2e-app`) |
 | `full-stack` | `upload.spec.js`                  | thêm MinIO           | ❌ chạy tay        |
 
-Thêm tệp spec mới thì phải khai vào `testMatch` của một project — Playwright
+Thêm tệp spec mới thì phải khai vào `testMatch` của một project - Playwright
 **không** tự nhặt. Quên là spec đó im lặng không bao giờ chạy, và triệu chứng
 duy nhất là số test không tăng.
 

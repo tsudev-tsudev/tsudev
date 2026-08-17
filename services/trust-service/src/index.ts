@@ -1,7 +1,7 @@
 'use strict'
 require('source-map-support').install()
 require('dotenv').config()
-// npm workspace đặt cwd ở thư mục service, nơi không có .env — nạp thêm .env ở
+// npm workspace đặt cwd ở thư mục service, nơi không có .env - nạp thêm .env ở
 // gốc repo để service chạy được cả khi khởi động ngoài `npm run dev:local`.
 if (!process.env.DATABASE_URL) {
   require('dotenv').config({ path: require('path').join(__dirname, '../../../.env') })
@@ -25,26 +25,26 @@ const errStack = (e: unknown): string => (e instanceof Error ? e.stack || e.mess
  * Thông điệp lỗi trả cho CLIENT.
  *
  * Ở production luôn là chuỗi chung: `err.message` của Node hay mang theo đường
- * dẫn tệp trên máy chủ, tên bảng, hoặc cả chuỗi kết nối — thứ giúp người dò tìm
+ * dẫn tệp trên máy chủ, tên bảng, hoặc cả chuỗi kết nối - thứ giúp người dò tìm
  * dựng bản đồ hệ thống. Chi tiết vẫn được ghi đầy đủ vào log phía máy chủ.
  */
 const clientError = (e: unknown): string =>
   process.env.NODE_ENV === 'production' ? 'internal error' : errMsg(e) || 'internal error'
 
-/** Tham số truy vấn có thể là mảng hoặc object lồng — chỉ nhận chuỗi. */
+/** Tham số truy vấn có thể là mảng hoặc object lồng - chỉ nhận chuỗi. */
 const qStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
 
 /**
  * Chứng chỉ KÈM quan hệ. `GetPayload` suy ra kiểu từ chính mệnh đề `include`,
  * nên nếu sau này bỏ một quan hệ khỏi truy vấn thì mọi nơi đọc quan hệ đó thành
- * lỗi biên dịch — thay vì `undefined` lặng lẽ chảy ra JSON trả về.
+ * lỗi biên dịch - thay vì `undefined` lặng lẽ chảy ra JSON trả về.
  */
 type CertWithRelations = Prisma.TrustCertificateGetPayload<{
   include: { domain: true; program: true }
 }> & {
   /**
    * CÓ ở các endpoint công khai (verify, directory), KHÔNG CÓ khi chứng chỉ được
-   * nạp lồng dưới một org — ở đó truy vấn chỉ include domain + program, vì tổ
+   * nạp lồng dưới một org - ở đó truy vấn chỉ include domain + program, vì tổ
    * chức đã là ngữ cảnh của chính trang đó.
    *
    * Vì thế `certCard` trả `organization: undefined` ở hồ sơ tổ chức. Đó là hành
@@ -95,7 +95,7 @@ app.use((_req, res, next) => {
 })
 
 const port = process.env.PORT || process.env.PORT_TRUST_SERVICE || 4003
-// Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
+// Mặc định 0.0.0.0 - đừng đổi: bind loopback bên trong container là tự cắt liên
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
@@ -105,13 +105,13 @@ const auth = createAuthMiddleware('trust')
 
 // Khác content-service (gắn auth cho cả /api): ở đây auth chỉ gắn cho các nhánh
 // cần danh tính. Huy hiệu, trang xác thực, thư mục và danh sách chương trình
-// BẮT BUỘC công khai — huy hiệu được trình duyệt của khách truy cập site bên
+// BẮT BUỘC công khai - huy hiệu được trình duyệt của khách truy cập site bên
 // thứ ba tải về, không hề có token nào đi kèm.
 /**
  * Nhánh BẮT BUỘC có danh tính. Xuất ra để test kiểm được độ phủ.
  *
  * trust-service gắn auth theo NHÁNH chứ không cho cả `/api` như hai service kia,
- * vì huy hiệu SVG, trang xác minh, thư mục và JWKS phải công khai — chúng được
+ * vì huy hiệu SVG, trang xác minh, thư mục và JWKS phải công khai - chúng được
  * trình duyệt của khách trên site BÊN THỨ BA tải về, không hề có token nào.
  *
  * Cái giá của lựa chọn đó: mặc định là công khai. Thêm một nhánh riêng tư mà
@@ -135,7 +135,7 @@ for (const p of AUTH_PREFIXES) {
  *
  * Đây là mặt tiếp xúc rộng nhất của toàn hệ thống: không cần token, và huy hiệu
  * SVG được trình duyệt của khách trên site BÊN THỨ BA gọi ở mỗi lượt xem trang.
- * Trước đợt này nó không có bất kỳ giới hạn nào — HANDOFF gọi đó là món nợ bảo
+ * Trước đợt này nó không có bất kỳ giới hạn nào - HANDOFF gọi đó là món nợ bảo
  * mật lớn nhất còn lại.
  *
  * Ngưỡng rộng tay có chủ đích: một website khách đông người đọc sẽ tạo ra nhiều
@@ -149,7 +149,7 @@ for (const p of AUTH_PREFIXES) {
 app.use('/api/trust', createRateLimit({ name: 'trust-public', windowMs: 60_000, max: 240 }))
 
 // Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
-// được error handler của Express — request treo cho tới khi client bỏ cuộc.
+// được error handler của Express - request treo cho tới khi client bỏ cuộc.
 const asyncHandler =
   (fn: (req: Request, res: Response, next: NextFunction) => unknown): RequestHandler =>
   (req, res, next) =>
@@ -204,7 +204,7 @@ function audit(
  * tsudev và bị chính cơ chế ràng buộc tên miền chấm là "sai tên miền".
  *
  * Miễn trừ này KHÔNG mở đường lách: kẻ nhúng huy hiệu trên site của họ vẫn gửi
- * Referer của site đó. Cố ý không dùng tham số kiểu ?preview=1 — thứ đó ai cũng
+ * Referer của site đó. Cố ý không dùng tham số kiểu ?preview=1 - thứ đó ai cũng
  * thêm được và sẽ vô hiệu hoá ràng buộc.
  */
 const OWN_HOSTS = new Set(['localhost', '127.0.0.1'])
@@ -314,7 +314,7 @@ app.get(
       signature: {
         valid: sig.valid,
         // `reason` CHỈ tồn tại ở nhánh thất bại của VerifyResult. Bản cũ đọc
-        // thẳng nên khi chữ ký hợp lệ nó trả undefined — vô hại, nhưng cùng lối
+        // thẳng nên khi chữ ký hợp lệ nó trả undefined - vô hại, nhưng cùng lối
         // truy cập đó ở nhánh khác lại là đọc payload chưa xác minh.
         reason: sig.valid ? null : sig.reason,
         keyId: cert.signingKeyId,
@@ -327,7 +327,7 @@ app.get(
   })
 )
 
-/** Thư mục công khai các site đang có dấu — vừa minh bạch vừa tốt cho SEO. */
+/** Thư mục công khai các site đang có dấu - vừa minh bạch vừa tốt cho SEO. */
 app.get(
   '/api/trust/directory',
   asyncHandler(async (req, res) => {
@@ -351,7 +351,7 @@ app.get(
 )
 
 /**
- * Hồ sơ uy tín của một tổ chức — CÔNG KHAI.
+ * Hồ sơ uy tín của một tổ chức - CÔNG KHAI.
  *
  * "Uy tín" ở tsudev không còn là điểm số cộng dồn theo hoạt động (cơ chế cũ của
  * diễn đàn, đã bỏ cùng ReputationEvent). Nó được DẪN RA từ dữ liệu cấp dấu đã
@@ -408,7 +408,7 @@ app.get(
         revokedCertificates: revoked.length,
         verifiedDomains: org.domains.length,
         firstIssuedAt: firstIssued,
-        // null chứ không phải 100 khi chưa có lần kiểm nào — "chưa đo" và "hoàn
+        // null chứ không phải 100 khi chưa có lần kiểm nào - "chưa đo" và "hoàn
         // hảo" là hai chuyện khác nhau, và trang phải nói được sự khác nhau đó.
         checksTotal: checks.length,
         checksPassed: passed,
@@ -432,7 +432,7 @@ app.get(
  * <img> trên site khách chỉ hiện ảnh vỡ, chủ site không biết vì sao.
  *
  * Ràng buộc tên miền dựa vào Referer. Trình duyệt có thể lược bỏ header này nên
- * KHÔNG coi việc thiếu Referer là vi phạm — chỉ chặn khi có Referer và sai tên
+ * KHÔNG coi việc thiếu Referer là vi phạm - chỉ chặn khi có Referer và sai tên
  * miền. Đây là rào cản, không phải cơ chế bảo mật: nguồn chân lý là trang xác
  * thực mà huy hiệu trỏ tới.
  */
@@ -730,7 +730,7 @@ app.post(
 /**
  * Nộp đơn.
  *
- * KHÔNG THU PHÍ. Cơ chế tín dụng đã bị gỡ khỏi dự án — mọi chương trình dấu đều
+ * KHÔNG THU PHÍ. Cơ chế tín dụng đã bị gỡ khỏi dự án - mọi chương trình dấu đều
  * miễn phí. Trước đây chỗ này trừ `User.credits` trong cùng transaction với việc
  * đổi trạng thái, và chỉ thu ở lần nộp đầu.
  */
@@ -750,7 +750,7 @@ app.post(
     if (a.domain.status !== 'VERIFIED')
       return res.status(400).json({ error: 'Tên miền chưa được xác minh sở hữu' })
 
-    // `evidenceSpec` là cột Json, nên Prisma khai nó là JsonValue — có thể là
+    // `evidenceSpec` là cột Json, nên Prisma khai nó là JsonValue - có thể là
     // số, chuỗi, object… Kiểm là mảng TRƯỚC khi coi như mảng, thay vì tin vào
     // `|| []` (chỉ đỡ được null/undefined, không đỡ được `evidenceSpec: 5`).
     const spec: EvidenceSpecItem[] = Array.isArray(a.program.evidenceSpec)
@@ -874,8 +874,8 @@ app.get(
       serial: c.serial,
       sealUrl,
       verifyUrl,
-      html: `<a href="${verifyUrl}" target="_blank" rel="noopener noreferrer">\n  <img src="${sealUrl}" alt="Con dấu tín nhiệm tsudev — ${c.program.name}" width="188" height="62" loading="lazy">\n</a>`,
-      note: 'Huy hiệu được tsudev phục vụ tại thời điểm hiển thị. Không tự lưu ảnh về host riêng — làm vậy huy hiệu sẽ không phản ánh được khi chứng chỉ bị thu hồi.',
+      html: `<a href="${verifyUrl}" target="_blank" rel="noopener noreferrer">\n  <img src="${sealUrl}" alt="Con dấu tín nhiệm tsudev - ${c.program.name}" width="188" height="62" loading="lazy">\n</a>`,
+      note: 'Huy hiệu được tsudev phục vụ tại thời điểm hiển thị. Không tự lưu ảnh về host riêng - làm vậy huy hiệu sẽ không phản ánh được khi chứng chỉ bị thu hồi.',
     })
   })
 )
@@ -954,7 +954,7 @@ app.post(
     if (!['SUBMITTED', 'IN_REVIEW', 'NEEDS_INFO'].includes(a.status))
       return res.status(400).json({ error: `Không duyệt được đơn ở trạng thái ${a.status}` })
     if (a.domain.status !== 'VERIFIED')
-      return res.status(400).json({ error: 'Tên miền chưa xác minh — không thể cấp dấu' })
+      return res.status(400).json({ error: 'Tên miền chưa xác minh - không thể cấp dấu' })
 
     const basis = ['SELF_DECLARED', 'EVIDENCE_REVIEWED', 'AUDITED'].includes(
       req.body && req.body.basis
@@ -982,7 +982,7 @@ app.post(
       'TrustCertificate',
       cert.id,
       cert.serial,
-      `${a.program.slug} @ ${a.domain.hostname} — cơ sở: ${basis}`
+      `${a.program.slug} @ ${a.domain.hostname} - cơ sở: ${basis}`
     )
     res.status(201).json(certCard({ ...cert, domain: a.domain, org: a.org, program: a.program }))
   })
@@ -1121,7 +1121,7 @@ app.get(
 
 /**
  * Chạy một vòng giám sát ngay. Cùng đường code với bộ hẹn giờ tự động, kể cả
- * phần ân hạn và tự đình chỉ — nút bấm thủ công không được có luật riêng, nếu
+ * phần ân hạn và tự đình chỉ - nút bấm thủ công không được có luật riêng, nếu
  * không kiểm duyệt viên sẽ thấy kết quả khác với thứ hệ thống tự làm ban đêm.
  *
  * `all=true` bỏ qua điều kiện "đã cũ" để kiểm duyệt viên soát lại toàn bộ.
@@ -1149,7 +1149,7 @@ app.post(
   })
 )
 
-/** Cấu hình giám sát đang hiệu lực — để trang quản trị nói được chu kỳ thật. */
+/** Cấu hình giám sát đang hiệu lực - để trang quản trị nói được chu kỳ thật. */
 app.get(
   '/api/trust/admin/recheck/config',
   asyncHandler(async (req, res) => {
@@ -1178,7 +1178,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 app.use(errorHandler)
 
 /** Chuẩn bị trước khi phục vụ. Chạy ở CẢ hai chế độ: tiến trình riêng và nhúng
- *  trong services/backend-bundle. Bộ giám sát định kỳ phải sống ở cả hai —
+ *  trong services/backend-bundle. Bộ giám sát định kỳ phải sống ở cả hai -
  *  quên gọi init() ở chế độ gộp thì chứng chỉ hết hạn không ai kiểm lại, và
  *  không có gì báo lỗi. */
 async function init() {
@@ -1189,7 +1189,7 @@ async function startServer() {
   app.listen(Number(port), bindHost, () =>
     console.log(
       `trust-service listening on ${bindHost}:${port} (signing key: ${signing.kid}${
-        signing.usingDevKey ? ', DEV — không dùng cho production' : ''
+        signing.usingDevKey ? ', DEV - không dùng cho production' : ''
       })`
     )
   )

@@ -3,11 +3,11 @@
 // Mã mời là một đường LEO THANG ĐẶC QUYỀN: đổi mã đúng thì `User.role` được ghi
 // lại. Mọi thứ khoá ở đây đều là cách đường đó hỏng mà site vẫn chạy bình thường:
 //
-//  1. Trần cứng ở VIP. Dữ liệu KHÔNG được quyết định bậc vai trò — nếu nó quyết
+//  1. Trần cứng ở VIP. Dữ liệu KHÔNG được quyết định bậc vai trò - nếu nó quyết
 //     định được thì ai ghi được vào bảng mã mời là tự cấp được ADMIN.
 //  2. Không hạ vai trò. ADMIN đổi mã vẫn là ADMIN.
 //  3. Lượt dùng đếm ĐÚNG. Đổi hai lần không cộng thêm lượt, vượt maxUses bị
-//     chặn — đọc-rồi-ghi sẽ cho hai người cùng tiêu lượt cuối cùng.
+//     chặn - đọc-rồi-ghi sẽ cho hai người cùng tiêu lượt cuối cùng.
 //  4. Mã hết hạn / đã thu hồi bị từ chối, và bị từ chối GIỐNG HỆT mã không tồn
 //     tại: phân biệt chúng biến ô nhập mã thành công cụ dò.
 //  5. Cấp/liệt kê/thu hồi là việc của ADMIN, và `codeHash` không bao giờ ra
@@ -41,7 +41,7 @@ const post = async (path: string, sub: string, body: Record<string, unknown> = {
     .set('x-forwarded-for', IP)
     .send(body)
 
-/** Cấp mã trực tiếp qua DB — tách phần dựng dữ liệu khỏi phần đang kiểm. */
+/** Cấp mã trực tiếp qua DB - tách phần dựng dữ liệu khỏi phần đang kiểm. */
 const seedInvite = async (code: string, over: Record<string, unknown> = {}) =>
   prisma.trustInvite.create({
     data: {
@@ -105,7 +105,7 @@ describe('đổi mã mời', () => {
   }, 20000)
 
   // Bất biến quan trọng nhất của tệp này. Trần vai trò nằm trong MÃ, nên không
-  // đầu vào nào — thân request hay claim trong khẳng định danh tính — nâng được
+  // đầu vào nào - thân request hay claim trong khẳng định danh tính - nâng được
   // quá VIP. Claim `role` CHỈ ĐỂ THAM KHẢO; xem gotcha REQUIRE_ROLE_ENFORCEMENT.
   test('mã mời KHÔNG BAO GIỜ nâng quá VIP, kể cả khi đầu vào cố tình khai ADMIN', async () => {
     await seedInvite('TSU-AAAAA-BBBBB-CCCCC', { label: 'Mã test leo thang', maxUses: 5 })
@@ -217,7 +217,7 @@ describe('quản lý mã mời', () => {
     expect(res.body.code).toMatch(/^TSU(-[A-Z2-7]{5}){3}$/)
     expect(res.body.invite.codeHash).toBeUndefined()
 
-    // Mã vừa cấp phải đổi được — chứng minh cái được băm và cái được in ra khớp.
+    // Mã vừa cấp phải đổi được - chứng minh cái được băm và cái được in ra khớp.
     expect((await post('redeem', MEMBER, { code: res.body.code })).status).toBe(200)
 
     const list = await post('list', ADMIN)
@@ -240,7 +240,7 @@ describe('quản lý mã mời', () => {
     expect((await post('redeem', MEMBER, { code: created.body.code })).status).toBe(400)
   }, 20000)
 
-  test('nhãn rỗng bị từ chối — nhãn là thứ duy nhất người vận hành nhận ra mã', async () => {
+  test('nhãn rỗng bị từ chối - nhãn là thứ duy nhất người vận hành nhận ra mã', async () => {
     expect((await post('create', ADMIN, { label: '   ' })).status).toBe(400)
   }, 20000)
 })

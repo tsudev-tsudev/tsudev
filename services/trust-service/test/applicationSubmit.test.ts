@@ -7,10 +7,10 @@
 // Ba bất biến được khoá lại, và cả ba đều là cách luồng này hỏng ÂM THẦM:
 //
 //  1. Nộp đơn thành công mà không cần bất kỳ số dư nào.
-//  2. Nộp lại sau NEEDS_INFO vẫn chạy — trước đây nhánh "nộp lại" phụ thuộc
+//  2. Nộp lại sau NEEDS_INFO vẫn chạy - trước đây nhánh "nộp lại" phụ thuộc
 //     `feeCharged > 0` để biết đã thu tiền chưa; cột đó nay không còn.
 //  3. Các cổng chặn KHÁC (chưa xác minh tên miền, thiếu bằng chứng, không phải
-//     chủ sở hữu) vẫn giữ nguyên — gỡ phí không được nới lỏng thứ gì khác.
+//     chủ sở hữu) vẫn giữ nguyên - gỡ phí không được nới lỏng thứ gì khác.
 process.env.NODE_ENV = 'test'
 process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 delete process.env.INTERNAL_API_TOKEN
@@ -52,7 +52,7 @@ beforeAll(async () => {
   await prisma.user.create({
     data: { username: OTHER, email: `${OTHER}@tsudev.local`, displayName: OTHER, role: 'MEMBER' },
   })
-  // Chương trình KHÔNG khai phí — trường đó đã bị gỡ khỏi schema.
+  // Chương trình KHÔNG khai phí - trường đó đã bị gỡ khỏi schema.
   const program = await prisma.sealProgram.create({
     data: {
       slug: 'test-submit-program',
@@ -100,7 +100,7 @@ const makeApplication = async (status: 'DRAFT' | 'NEEDS_INFO' = 'DRAFT') => {
   return a
 }
 
-describe('nộp đơn — không còn thu phí', () => {
+describe('nộp đơn - không còn thu phí', () => {
   test('nộp thành công mà không cần số dư nào', async () => {
     const a = await makeApplication()
     const res = await request(app)

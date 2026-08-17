@@ -1,7 +1,7 @@
 // Proxy tới trust-service. Một đường duy nhất /api/trust/* phục vụ hai loại:
 //
 //   CÔNG KHAI  programs, verify, directory, seal
-//              Không yêu cầu đăng nhập — huy hiệu do trình duyệt của khách trên
+//              Không yêu cầu đăng nhập - huy hiệu do trình duyệt của khách trên
 //              site BÊN THỨ BA tải về, không hề có phiên nào. Trang xác thực
 //              cũng phải mở cho bất kỳ ai kiểm chứng.
 //
@@ -9,7 +9,7 @@
 //              Bắt buộc có phiên next-auth; danh tính được tiêm vào header cho
 //              service, trình duyệt không bao giờ nói chuyện trực tiếp với 4003.
 //
-// Gộp vào một đường để mã nhúng của khách trỏ vào MỘT domain duy nhất — hạ tầng
+// Gộp vào một đường để mã nhúng của khách trỏ vào MỘT domain duy nhất - hạ tầng
 // bên trong đổi thì khách không phải sửa gì.
 import { getToken } from 'next-auth/jwt';
 
@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     Object.assign(headers, await identityHeaders(token));
     headers['Content-Type'] = 'application/json';
   } else {
-    // Chuyển tiếp Referer/Origin nguyên vẹn — trust-service dựa vào đó để phát
+    // Chuyển tiếp Referer/Origin nguyên vẹn - trust-service dựa vào đó để phát
     // hiện huy hiệu bị gắn sai tên miền. Mất header này là mất luôn ràng buộc.
     if (req.headers.referer) headers['referer'] = req.headers.referer;
     if (req.headers.origin) headers['origin'] = req.headers.origin;

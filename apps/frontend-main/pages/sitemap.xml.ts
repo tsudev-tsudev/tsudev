@@ -56,7 +56,7 @@ const urlTag = ({ path, lastmod, priority = '0.6', changefreq = 'weekly' }: UrlE
 
 export async function getServerSideProps({ res }: GetServerSidePropsContext) {
   // Mỗi lời gọi tự nuốt lỗi thành [] (lib/api.js, lib/trust.js). Nghĩa là một
-  // service chết chỉ làm sitemap thiếu phần đó, không làm cả sitemap 500 —
+  // service chết chỉ làm sitemap thiếu phần đó, không làm cả sitemap 500 -
   // đúng đánh đổi cho một file mà bot đọc chứ người không đọc.
   const [posts, docs, projects, programs, directory] = await Promise.all([
     api.posts(50),

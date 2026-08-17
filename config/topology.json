@@ -36,7 +36,7 @@
       "port": 4002,
       "public": false,
       "internalEnv": "STORAGE_SERVICE_URL",
-      "note": "Trình duyệt hiện vẫn gọi thẳng cổng này — giai đoạn 4 bọc lại bằng BFF."
+      "note": "Trình duyệt hiện vẫn gọi thẳng cổng này - giai đoạn 4 bọc lại bằng BFF."
     },
     {
       "id": "trust",

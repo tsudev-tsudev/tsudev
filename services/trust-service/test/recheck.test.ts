@@ -1,15 +1,15 @@
 'use strict'
 /**
- * Luật giám sát, kiểm bằng prisma giả — không cần DB.
+ * Luật giám sát, kiểm bằng prisma giả - không cần DB.
  *
  * Ba luật đáng kiểm nhất đều là luật "không làm gì": không hạ dấu vì một lần
  * trượt, không tự thu hồi, không lật quyết định của người. Sai ở đây thì hoặc
- * hệ thống hạ dấu oan của khách, hoặc để dấu treo trên site đã mất quyền — cả
+ * hệ thống hạ dấu oan của khách, hoặc để dấu treo trên site đã mất quyền - cả
  * hai đều chỉ lộ ra khi đã muộn.
  */
 
 // jest.mock được kéo lên đầu file, nên mọi biến factory chạm tới phải mang tiền
-// tố `mock` — đó là quy ước Jest dùng để biết biến đã sẵn sàng.
+// tố `mock` - đó là quy ước Jest dùng để biết biến đã sẵn sàng.
 // Mảng rỗng không có chú thích kiểu sẽ được suy ra là `never[]`, và mọi
 // `.push()` sau đó là lỗi. Khai kiểu lỏng nhưng tường minh cho bộ giả.
 type AnyRecord = Record<string, unknown>
@@ -101,7 +101,7 @@ describe('giám sát tên miền', () => {
     expect(audits).toHaveLength(0)
   })
 
-  test('trượt lần đầu KHÔNG đình chỉ — DNS chập chờn không phải lỗi của khách', async () => {
+  test('trượt lần đầu KHÔNG đình chỉ - DNS chập chờn không phải lỗi của khách', async () => {
     mockState.verifyResult = { ok: false, detail: 'Không tìm thấy bản ghi TXT' }
     mockState.checkHistory = [{ passed: false }] // chính lần vừa ghi
     const s = await run(cert())

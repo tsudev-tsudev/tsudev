@@ -2,7 +2,7 @@ const { defineConfig } = require('@playwright/test');
 const path = require('path');
 const { loadTopology, publicUrl, internalUrl, node } = require('../scripts/topology/load');
 
-// Cổng và URL lấy từ config/topology.json — giai đoạn 3 đổi hình trạng mạng thì
+// Cổng và URL lấy từ config/topology.json - giai đoạn 3 đổi hình trạng mạng thì
 // bộ test đi theo mà không phải sửa dòng nào. Xem docs/refactor-network-topology.md.
 const topo = loadTopology();
 const MAIN = process.env.E2E_MAIN_URL || publicUrl(topo, 'main');
@@ -11,7 +11,7 @@ const ROOT = path.resolve(__dirname, '..');
 // Chạy trong docker-compose thì frontend đã có sẵn, đừng để Playwright dựng lại.
 const reuseExisting = process.env.E2E_NO_WEBSERVER === '1';
 
-// Next dev khởi động lần đầu phải biên dịch cả app — 10-20s là bình thường,
+// Next dev khởi động lần đầu phải biên dịch cả app - 10-20s là bình thường,
 // nên timeout rộng tay.
 //
 // KHÔNG còn E2E_BYPASS_KEYCLOAK. Bộ test nay đăng nhập bằng ĐÚNG luồng của
@@ -33,7 +33,7 @@ const webServerEnv = {
 // Tái dùng server đang chạy là OPT-IN, không phải mặc định.
 //
 // Với `reuseExistingServer: true`, một tiến trình cũ còn giữ cổng sẽ được dùng
-// lại IM LẶNG — kể cả khi nó chạy mã từ trước thay đổi đang được kiểm. Triệu
+// lại IM LẶNG - kể cả khi nó chạy mã từ trước thay đổi đang được kiểm. Triệu
 // chứng là test đỏ ở chỗ không liên quan, và cách duy nhất phát hiện là đi soi
 // `ss -ltnp`. Chuyện đó đã xảy ra hai lần trong một phiên.
 //
@@ -44,7 +44,7 @@ const reuseServers = process.env.E2E_REUSE_SERVER === '1';
 const useProxy = topo.dev.mode === 'proxy';
 
 // Ở chế độ proxy, URL công khai do dev-proxy phục vụ chứ không phải Next, nên
-// phải chờ đúng cổng NỘI BỘ của từng app — chờ URL công khai sẽ treo cho tới khi
+// phải chờ đúng cổng NỘI BỘ của từng app - chờ URL công khai sẽ treo cho tới khi
 // proxy lên, mà proxy lại chờ app. NEXTAUTH_URL thì ngược lại: luôn là URL công
 // khai, vì next-auth dựng callback từ đó.
 const server = (id) => ({
@@ -65,7 +65,7 @@ const proxyServer = () => ({
 });
 
 // Service backend phải chạy thì blog/docs/trust mới có nội dung THẬT. Không có
-// chúng, getServerSideProps nuốt lỗi và trả mảng rỗng — trang vẫn 200 nên test
+// chúng, getServerSideProps nuốt lỗi và trả mảng rỗng - trang vẫn 200 nên test
 // vẫn xanh mà chẳng chứng minh được gì.
 const backend = (id) => ({
   command: `node ${node(topo, id).workspace}/dist/index.js`,

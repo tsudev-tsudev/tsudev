@@ -10,7 +10,7 @@ import { AuthShell, Notice } from '../components/AuthShell';
  * người ta đoán rồi báo lỗi là cách chắc chắn nhất để họ chọn mật khẩu vừa đủ
  * qua cửa.
  *
- * Máy chủ vẫn kiểm lại toàn bộ. Kiểm ở client chỉ để đỡ một vòng mạng — nó
+ * Máy chủ vẫn kiểm lại toàn bộ. Kiểm ở client chỉ để đỡ một vòng mạng - nó
  * KHÔNG phải một lớp bảo vệ, vì bất kỳ ai cũng gọi thẳng API được.
  */
 

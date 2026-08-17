@@ -1,7 +1,7 @@
 // Bất biến của bước hai. Thứ được khoá lại ở đây là những chỗ 2FA hay bị cài
 // sai theo cách vẫn "chạy được":
 //
-//  1. Bí mật đã tạo nhưng CHƯA xác nhận không được coi là đã bật — nếu không,
+//  1. Bí mật đã tạo nhưng CHƯA xác nhận không được coi là đã bật - nếu không,
 //     người quét mã QR rồi bỏ dở sẽ tự khoá mình ra khỏi tài khoản.
 //  2. Mật khẩu đúng + thiếu mã ⇒ KHÔNG được coi là đăng nhập thành công.
 //  3. Mã dự phòng dùng được ĐÚNG MỘT LẦN.
@@ -118,14 +118,14 @@ describe('mã dự phòng', () => {
     expect(second.status).toBe(401)
     expect(second.body.error).toBe('totp_invalid')
 
-    // Mã còn lại vẫn dùng được — dùng một mã không được làm hỏng các mã kia.
+    // Mã còn lại vẫn dùng được - dùng một mã không được làm hỏng các mã kia.
     const third = await login({ totp: codes[1] })
     expect(third.status).toBe(200)
   }, 60000)
 })
 
 // Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
-// script toàn cục, và biến top-level của các tệp test khác nhau đụng tên nhau —
+// script toàn cục, và biến top-level của các tệp test khác nhau đụng tên nhau -
 // `login` ở đây và `login` ở tệp kia có chữ ký khác nhau, nên CI đỏ với
 // "Expected 1 arguments, but got 2" ở một tệp mà không ai vừa sửa.
 export {}

@@ -13,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 # một mặt tiếp xúc chuỗi cung ứng nữa cho thứ ký ra chứng chỉ.
 ed25519-dalek = { version = "2", default-features = false, features = ["zeroize"] }
 zeroize = { version = "1", default-features = false }
-# base64 hằng thời gian của RustCrypto — dùng để giải mã PEM chứa khoá RIÊNG.
+# base64 hằng thời gian của RustCrypto - dùng để giải mã PEM chứa khoá RIÊNG.
 base64ct = { version = "1", default-features = false, features = ["alloc"] }
 
 [profile.release]

@@ -1,7 +1,7 @@
-/* tsudev design tokens — HAI chế độ.
+/* tsudev design tokens - HAI chế độ.
  *
  * Sáng là MẶC ĐỊNH: `:root` mang bảng màu sáng, và `[data-theme='dark']` ghi
- * đè. Không dùng `prefers-color-scheme` để chọn giúp người dùng — lựa chọn
+ * đè. Không dùng `prefers-color-scheme` để chọn giúp người dùng - lựa chọn
  * hiển thị ở đây là một quyết định của sản phẩm, và một site đổi diện mạo tuỳ
  * theo cài đặt hệ điều hành thì hai người nhìn cùng một đường link sẽ thấy hai
  * thứ khác nhau. Người dùng bật chế độ tối bằng nút trên header; lựa chọn được
@@ -18,7 +18,7 @@
      surface (nền trang, xanh rất nhạt) < panel (card & modal, trắng)
      < panel-2 (hover và khối lồng nhau: code, badge, footer).
 
-     Ở chế độ sáng thứ tự độ sáng ĐẢO LẠI so với chế độ tối — card SÁNG hơn nền
+     Ở chế độ sáng thứ tự độ sáng ĐẢO LẠI so với chế độ tối - card SÁNG hơn nền
      trang. Giữ nguyên chiều "panel sáng hơn surface" của chế độ tối sẽ cho ra
      card xám trên nền trắng, tức là card trông như bị vô hiệu hoá. */
   --surface: #eef3fa;
@@ -38,7 +38,7 @@
   --primary-contrast: #ffffff;
   --accent: #0a6a5b;
 
-  /* Ngữ nghĩa — sắc ĐẬM để nổi trên nền sáng; chữ đặt trên các màu này là
+  /* Ngữ nghĩa - sắc ĐẬM để nổi trên nền sáng; chữ đặt trên các màu này là
      màu trắng (xem --on-vivid), ngược với chế độ tối. */
   --success: #146c37;
   --warning: #7a4d00;
@@ -46,7 +46,7 @@
   --on-vivid: #ffffff;
 
   /* Màu icon theo CHỨC NĂNG.
-     Mỗi nhóm hành động một sắc riêng để mắt nhận ra nhóm trước khi đọc nhãn —
+     Mỗi nhóm hành động một sắc riêng để mắt nhận ra nhóm trước khi đọc nhãn -
      đó là điều một hàng icon cùng màu xám không làm được. Sáu sắc, không nhiều
      hơn: quá bảy màu thì chúng thôi là mã và trở thành nhiễu.
 
@@ -67,14 +67,14 @@
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas,
     monospace;
 
-  /* Bo góc nhỏ, vuông vắn — hình ngôn ngữ của giao diện sản phẩm chuyên nghiệp.
+  /* Bo góc nhỏ, vuông vắn - hình ngôn ngữ của giao diện sản phẩm chuyên nghiệp.
      Bo tròn nhiều đọc như trang tiếp thị, không như công cụ. */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
 }
 
-/* Chế độ tối — bảng màu "developer console" nguyên bản: nền đen tuyền, điểm
+/* Chế độ tối - bảng màu "developer console" nguyên bản: nền đen tuyền, điểm
    nhấn Electric Blue & Teal. */
 :root[data-theme='dark'] {
   color-scheme: dark;

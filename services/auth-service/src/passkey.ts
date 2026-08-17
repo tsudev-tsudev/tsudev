@@ -15,7 +15,7 @@ import { prisma } from '@tsudev/db'
  * nghe hiện đại": chữ ký được buộc vào TÊN MIỀN bởi chính trình duyệt. Một
  * trang giả mạo ở tsudev-login.example không lấy được chữ ký dùng cho
  * tsudev.com, kể cả khi người dùng bị lừa hoàn toàn. Mật khẩu và TOTP đều
- * không có tính chất đó — cả hai đều gõ lại được vào một trang giả.
+ * không có tính chất đó - cả hai đều gõ lại được vào một trang giả.
  *
  * Mật khẩu VẪN GIỮ làm đường dự phòng. Passkey gắn với thiết bị, và mất thiết
  * bị mà không còn đường nào khác là mất tài khoản.
@@ -57,7 +57,7 @@ async function storeChallenge(
  * Lấy challenge ra và XOÁ trong cùng một thao tác.
  *
  * `deleteMany` trả về số dòng đã xoá, nên hai request đến cùng lúc chỉ một cái
- * đếm được 1. Đọc rồi mới xoá sẽ để cả hai đi qua với cùng một challenge —
+ * đếm được 1. Đọc rồi mới xoá sẽ để cả hai đi qua với cùng một challenge -
  * đúng thứ challenge sinh ra để ngăn.
  */
 async function takeChallenge(
@@ -169,7 +169,7 @@ export async function loginVerify(
   if (!result?.verified) return null
 
   // Bộ đếm chống PHÁT LẠI: giá trị mới phải lớn hơn giá trị đã lưu. Một số khoá
-  // (nhất là passkey đồng bộ qua đám mây) luôn báo 0 — với chúng thì phép so
+  // (nhất là passkey đồng bộ qua đám mây) luôn báo 0 - với chúng thì phép so
   // sánh này không nói lên gì, nên chỉ từ chối khi bộ đếm THỰC SỰ đi lùi.
   const next = result.authenticationInfo.newCounter
   if (cred.counter > 0 && next <= cred.counter) return null

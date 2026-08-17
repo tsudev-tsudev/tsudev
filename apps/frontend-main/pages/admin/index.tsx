@@ -4,7 +4,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { Layout, Card, Button, SectionHeading, Badge } from '@tsudev/ui';
 
 // Bảng điều khiển quản trị. Trước đây trang này lấy số liệu từ /api/mod/summary
-// (báo cáo chờ, tài khoản bị cấm, bài đã gỡ, chủ đề bị khoá) — toàn bộ là số đo
+// (báo cáo chờ, tài khoản bị cấm, bài đã gỡ, chủ đề bị khoá) - toàn bộ là số đo
 // của diễn đàn. Diễn đàn không còn nên hệ kiểm duyệt cũng không còn đối tượng;
 // trang chuyển thành cổng vào các khu quản trị đang có.
 const AREAS = [

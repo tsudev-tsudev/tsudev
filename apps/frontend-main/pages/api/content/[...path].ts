@@ -4,7 +4,7 @@
 //
 // Vì sao vẫn phải có proxy: trình duyệt KHÔNG được gọi thẳng cổng 4001 (CORS
 // chặn, và cổng service không lộ ra ngoài ở production). Danh tính người dùng
-// được lấy từ phiên next-auth rồi tiêm vào header cho service — trình duyệt
+// được lấy từ phiên next-auth rồi tiêm vào header cho service - trình duyệt
 // không tự khai được vai trò của mình.
 import { getToken } from 'next-auth/jwt';
 
@@ -14,7 +14,7 @@ import { CONTENT, internalHeaders } from '../../../lib/services';
 import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
 
 // Danh sách trắng, không phải danh sách đen: thêm nhánh mới phải khai ở đây.
-// Bỏ sót một nhánh thì nó 404 — an toàn hơn là lỡ mở cả /api.
+// Bỏ sót một nhánh thì nó 404 - an toàn hơn là lỡ mở cả /api.
 const ALLOWED_PREFIXES = new Set(['admin']);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

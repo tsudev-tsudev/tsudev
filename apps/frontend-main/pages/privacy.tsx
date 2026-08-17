@@ -282,8 +282,8 @@ const SECTIONS = [
           hoặc thông báo trong sản phẩm, và xin lại sự đồng ý nếu pháp luật yêu cầu.
         </p>
         <p>
-          Đầu mối bảo vệ dữ liệu cá nhân: <strong>{OPERATOR.privacyEmail}</strong> — điện thoại{' '}
-          {OPERATOR.phone} — địa chỉ {OPERATOR.address}.
+          Đầu mối bảo vệ dữ liệu cá nhân: <strong>{OPERATOR.privacyEmail}</strong> - điện thoại{' '}
+          {OPERATOR.phone} - địa chỉ {OPERATOR.address}.
         </p>
         <p>
           Nếu cho rằng quyền của mình bị xâm phạm, bạn có quyền khiếu nại trực tiếp với chúng tôi,
@@ -294,7 +294,7 @@ const SECTIONS = [
         <ul>
           {LEGAL_BASIS.map((l) => (
             <li key={l.title}>
-              <strong>{l.title}</strong> — {l.note}
+              <strong>{l.title}</strong> - {l.note}
             </li>
           ))}
         </ul>

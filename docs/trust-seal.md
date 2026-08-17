@@ -1,4 +1,4 @@
-# Con dấu tín nhiệm — vận hành
+# Con dấu tín nhiệm - vận hành
 
 tsudev đóng vai cơ quan cấp dấu: website bên thứ ba nộp hồ sơ, tsudev thẩm định
 rồi cấp một chứng chỉ đã ký, và họ nhúng huy hiệu lên trang của mình. Ai cũng
@@ -18,7 +18,7 @@ nguồn (`services/trust-service/src/*`), phần đầu mỗi tệp giải thíc
 | Xác thực & thư mục          | `/trust/verify/<serial>`, `/trust/directory` | công khai, không cần đăng nhập |
 | Hồ sơ uy tín tổ chức        | `/trust/org/<id>`                            | công khai, không cần đăng nhập |
 
-Service chạy ở `:4003`. Trình duyệt **không bao giờ** gọi thẳng cổng này — mọi
+Service chạy ở `:4003`. Trình duyệt **không bao giờ** gọi thẳng cổng này - mọi
 thứ đi qua proxy `/api/trust/*` của `frontend-main`, nên mã nhúng của khách chỉ
 trỏ tới một domain duy nhất và hạ tầng bên trong đổi được mà không phiền họ.
 
@@ -27,7 +27,7 @@ chốt (16/08/2026) rằng mọi trang Con dấu chỉ mở cho tài khoản đ�
 bề mặt là đợt 3 của [`refactor-trust-invite-access.md`](refactor-trust-invite-access.md)
 và **chưa làm**; khi làm xong thì bảng này phải đổi theo.
 
-## Mã mời — cách cấp và cách thu hồi
+## Mã mời - cách cấp và cách thu hồi
 
 Vùng Con dấu mở cho `VIP` trở lên. Đường lên VIP là đổi mã mời do ADMIN cấp.
 
@@ -38,15 +38,15 @@ Vùng Con dấu mở cho `VIP` trở lên. Đường lên VIP là đổi mã m�
 | Thu hồi | `/admin/trust`, nút **Thu hồi** trên từng mã                |
 | Nhật ký | cùng bảng `TrustAuditLog` với mọi hành động khác của hệ dấu |
 
-Cấp mã cần một **nhãn** (chỉ người vận hành thấy — người đổi mã không bao giờ
+Cấp mã cần một **nhãn** (chỉ người vận hành thấy - người đổi mã không bao giờ
 thấy nó), số lượt, và số ngày hết hạn (để trống = không hết hạn).
 
 ⚠️ **Mã thô hiện ĐÚNG MỘT LẦN, ngay sau khi cấp.** DB chỉ giữ SHA-256, nên không
-có đường nào đọc lại. Mất mã thì thu hồi rồi cấp mã mới — không có gì hỏng, chỉ
+có đường nào đọc lại. Mất mã thì thu hồi rồi cấp mã mới - không có gì hỏng, chỉ
 tốn một dòng trong nhật ký.
 
 Thu hồi **đặt mốc thời gian chứ không xoá dòng**: lịch sử ai đã đổi mã nào vẫn
-phải tra được sau đó. Thu hồi KHÔNG hạ vai trò của người đã đổi — họ vẫn là VIP.
+phải tra được sau đó. Thu hồi KHÔNG hạ vai trò của người đã đổi - họ vẫn là VIP.
 Muốn rút quyền của một người cụ thể thì phải sửa `User.role` trực tiếp; đó là
 việc riêng, cố ý không gắn vào nút thu hồi.
 
@@ -55,7 +55,7 @@ Chi tiết bất biến kỹ thuật (trần cứng VIP, đếm lượt, chống
 ## Khoá ký và cách xoay khoá
 
 Chứng chỉ được ký Ed25519, phát hành dạng JWS compact. Khoá công khai công bố ở
-`/.well-known/tsudev-trust-jwks.json` để bên thứ ba tự xác minh **offline** —
+`/.well-known/tsudev-trust-jwks.json` để bên thứ ba tự xác minh **offline** -
 không cần tin API của tsudev.
 
 ```bash
@@ -64,7 +64,7 @@ node services/trust-service/scripts/genkey.js
 
 Lệnh này in ra `TRUST_SIGNING_KEY` (PEM PKCS#8 đã base64 hoá) và
 `TRUST_SIGNING_KEY_ID`. Production thiếu `TRUST_SIGNING_KEY` thì service **từ
-chối khởi động** — cố ý, để không bao giờ có chuyện chạy thật bằng khoá dev.
+chối khởi động** - cố ý, để không bao giờ có chuyện chạy thật bằng khoá dev.
 
 ### Quy trình xoay khoá
 
@@ -82,7 +82,7 @@ chối khởi động** — cố ý, để không bao giờ có chuyện chạy 
 minh để chứng chỉ cũ trong DB dev không báo hỏng oan sau khi lập trình viên đặt
 khoá thật. Production không bao giờ nạp khoá này.
 
-## `TRUST_ISSUER` — đặt đúng trước lần cấp đầu tiên
+## `TRUST_ISSUER` - đặt đúng trước lần cấp đầu tiên
 
 Giá trị này được **ký vào** payload chứng chỉ và dựng nên URL trong mã nhúng.
 Đổi nó sau khi đã cấp chứng chỉ thì chứng chỉ cũ vẫn mang URL cũ, vì payload đã
@@ -91,7 +91,7 @@ ký rồi. Đặt đúng domain thật trước khi cấp chứng chỉ đầu t
 ## Giám sát tên miền
 
 Con dấu không phải cấp một lần rồi thôi: chủ site có thể gỡ bản ghi xác minh,
-bán tên miền, hoặc để nó hết hạn — huy hiệu vẫn hiện, người dùng vẫn tin. Service
+bán tên miền, hoặc để nó hết hạn - huy hiệu vẫn hiện, người dùng vẫn tin. Service
 tự kiểm lại định kỳ.
 
 | Biến                           | Mặc định | Ý nghĩa                                          |
@@ -105,7 +105,7 @@ tự kiểm lại định kỳ.
 Ba luật cứng, đều là luật "không làm gì":
 
 - **Một lần trượt không hạ dấu.** DNS chập chờn, site bảo trì, mạng của chính
-  tsudev lỗi — đều làm kiểm tra trượt mà chủ site không có lỗi gì.
+  tsudev lỗi - đều làm kiểm tra trượt mà chủ site không có lỗi gì.
 - **Tự đình chỉ, không tự thu hồi.** Đình chỉ đảo ngược được; thu hồi thì không.
   Máy chỉ được làm việc đảo ngược được.
 - **Chỉ tự khôi phục thứ chính mình đã đình chỉ.** Kiểm duyệt viên đình chỉ vì lý
@@ -113,7 +113,7 @@ Ba luật cứng, đều là luật "không làm gì":
   nó vừa lật quyết định của con người. Nguồn phân biệt là nhật ký kiểm toán.
 
 **Chạy nhiều bản service** thì đặt `TRUST_RECHECK_ENABLED=false` và gọi
-`POST /api/trust/admin/recheck` từ một cron bên ngoài — bộ hẹn giờ nằm trong tiến
+`POST /api/trust/admin/recheck` từ một cron bên ngoài - bộ hẹn giờ nằm trong tiến
 trình, không có khoá phân tán, nên mọi bản sẽ cùng kiểm một tập chứng chỉ.
 
 Kiểm duyệt viên chạy tay được ở `/admin/trust`. Nút bấm dùng **đúng** đường code
@@ -121,9 +121,9 @@ với bộ hẹn giờ, kể cả phần ân hạn và tự đình chỉ.
 
 ## Dữ liệu
 
-- `npm run db:seed` — dữ liệu tham chiếu: bốn chương trình cấp dấu. Chạy được ở
+- `npm run db:seed` - dữ liệu tham chiếu: bốn chương trình cấp dấu. Chạy được ở
   mọi môi trường.
-- `node services/trust-service/scripts/seed-demo.js [--reset]` — tổ chức, tên
+- `node services/trust-service/scripts/seed-demo.js [--reset]` - tổ chức, tên
   miền và chứng chỉ **giả** để xem giao diện. Cố ý tách khỏi seed chính: nhét vào
   đó thì một ngày nào đó thư mục công khai ở production sẽ liệt kê những website
   không tồn tại. `--reset` từ chối chạy khi `NODE_ENV=production`.

@@ -9,17 +9,17 @@ const { loadTopology, publicUrl } = require('../../scripts/topology/load');
 //
 // Test này phải xanh TRƯỚC khi gỡ bất cứ thứ gì, và xanh lại sau mỗi giai đoạn.
 // Nó cố ý khẳng định NỘI DUNG THẬT (tiêu đề bài viết lấy từ DB), không chỉ
-// "trang trả về 200" — trang rỗng vẫn trả 200.
+// "trang trả về 200" - trang rỗng vẫn trả 200.
 
 const MAIN = process.env.E2E_MAIN_URL || publicUrl(loadTopology(), 'main');
 
-// Đăng nhập bằng ĐÚNG luồng của người dùng thật — mật khẩu Argon2id trong DB,
+// Đăng nhập bằng ĐÚNG luồng của người dùng thật - mật khẩu Argon2id trong DB,
 // kiểm bởi auth-service. Không còn provider `e2e-dev` nhận mọi username với
 // `devpass`. Tài khoản do `npm run db:seed:dev` đặt.
 const DEV_PASSWORD = process.env.DEV_SEED_PASSWORD || 'tsudev-dev-2026!';
 
 const signIn = async (page, user = 'tsudev') => {
-  // Qua chính trang /login của site, không phải trang mặc định của next-auth —
+  // Qua chính trang /login của site, không phải trang mặc định của next-auth -
   // đó là màn hình người dùng thật nhìn thấy, nên đó là màn hình phải được kiểm.
   await page.goto(`${MAIN}/login`, { waitUntil: 'networkidle' });
   await page.fill('input[name="identifier"]', user);
@@ -43,7 +43,7 @@ test('blog: danh sách có bài thật và mở được bài chi tiết', async
   const first = page.locator('a[href^="/blog/"]').first();
   await expect(first).toBeVisible();
 
-  // Khẳng định ĐÚNG tiêu đề lấy từ DB, không phải "có một thẻ h1 nào đó" —
+  // Khẳng định ĐÚNG tiêu đề lấy từ DB, không phải "có một thẻ h1 nào đó" -
   // trang lỗi vẫn có h1. (Bài viết render markdown nên có nhiều h1, lấy cái đầu.)
   await page.goto(`${MAIN}/blog/welcome-to-tsudev`, { waitUntil: 'networkidle' });
   await expect(page.locator('h1').first()).toHaveText('Chào mừng đến với tsudev');
@@ -74,7 +74,7 @@ test('đăng nhập dev hoạt động', async ({ page }) => {
 test('khu vực quản trị mở được sau khi đăng nhập bằng tsudev', async ({ page }) => {
   await signIn(page);
   await page.goto(`${MAIN}/admin`, { waitUntil: 'networkidle' });
-  // Chưa đăng nhập thì trang hiện lời mời đăng nhập — thấy nút đó nghĩa là hỏng.
+  // Chưa đăng nhập thì trang hiện lời mời đăng nhập - thấy nút đó nghĩa là hỏng.
   await expect(page.locator('button:has-text("Đăng nhập")')).toHaveCount(0);
 });
 
@@ -95,7 +95,7 @@ test('dự án: danh sách có dự án thật và mở được trang chi tiế
 
   await page.goto(`${MAIN}/projects/tsudev-trust-seal`, { waitUntil: 'networkidle' });
   await expect(page.locator('h1')).toHaveText('Con dấu tín nhiệm tsudev');
-  // Dự án này seed ở trạng thái REGISTERED — số giấy chứng nhận PHẢI hiện ra.
+  // Dự án này seed ở trạng thái REGISTERED - số giấy chứng nhận PHẢI hiện ra.
   // Đây là khẳng định trung tâm của mục bản quyền, không phải trang trí.
   await expect(page.getByText('TSD-2026-0001')).toBeVisible();
 });
@@ -118,7 +118,7 @@ test('quản trị dự án mở được và thấy danh sách', async ({ page 
 });
 
 // PHỤ THUỘC DỮ LIỆU: cần `services/trust-service/scripts/seed-demo.js` đã chạy.
-// `db:seed` chỉ tạo chương trình dấu, không tạo chứng chỉ nào — mà danh bạ chỉ
+// `db:seed` chỉ tạo chương trình dấu, không tạo chứng chỉ nào - mà danh bạ chỉ
 // hiện chứng chỉ ACTIVE còn hạn. Thiếu bước đó thì test này đỏ ở CI dù mã đúng
 // (đã xảy ra một lần); xem bước seed trong .github/workflows/ci.yml.
 test('hồ sơ uy tín tổ chức mở được từ danh bạ', async ({ page }) => {
@@ -128,7 +128,7 @@ test('hồ sơ uy tín tổ chức mở được từ danh bạ', async ({ page 
   await orgLink.click();
   await page.waitForLoadState('networkidle');
 
-  // Bốn chỉ số thô là nội dung chính của hồ sơ — không phải một "điểm uy tín".
+  // Bốn chỉ số thô là nội dung chính của hồ sơ - không phải một "điểm uy tín".
   await expect(page.getByText('Chứng chỉ hiệu lực')).toBeVisible();
   await expect(page.getByText('Vượt kiểm định kỳ')).toBeVisible();
   // "Tên miền đã xác minh" xuất hiện hai lần (nhãn chỉ số + tiêu đề khối bên

@@ -7,7 +7,7 @@
  * hiệu trên site khách đổi ngay trong vòng một chu kỳ cache.
  *
  * Lưu ý về mức độ bảo đảm: không cơ chế nhúng nào ngăn được việc ai đó chụp ảnh
- * huy hiệu rồi tự host. Nguồn chân lý là trang xác thực mà huy hiệu trỏ tới —
+ * huy hiệu rồi tự host. Nguồn chân lý là trang xác thực mà huy hiệu trỏ tới -
  * đó mới là thứ chống giả mạo, không phải bản thân tấm ảnh.
  */
 
@@ -52,7 +52,7 @@ const ESCAPES: Record<string, string> = {
 }
 
 // Huy hiệu là SVG nhúng được trên site của bên thứ ba, nên đây là ranh giới
-// thoát ký tự thật sự — `?? c` giữ nguyên ký tự nếu bảng thiếu, thay vì chèn
+// thoát ký tự thật sự - `?? c` giữ nguyên ký tự nếu bảng thiếu, thay vì chèn
 // "undefined" vào giữa văn bản SVG.
 const esc = (s: unknown): string =>
   String(s == null ? '' : s).replace(/[<>&"']/g, (c) => ESCAPES[c] ?? c)
@@ -92,7 +92,7 @@ function renderBadge({
   const W = 188
   const H = 62
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Con dấu tín nhiệm tsudev — ${topLine}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Con dấu tín nhiệm tsudev - ${topLine}">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#161616"/><stop offset="100%" stop-color="#0d0d0d"/>

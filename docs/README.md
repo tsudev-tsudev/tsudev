@@ -1,4 +1,4 @@
-# Tài liệu tsudev — mục lục định tuyến
+# Tài liệu tsudev - mục lục định tuyến
 
 Đọc **chọn lọc** theo vùng công việc. Không nạp cả thư mục: mỗi file thừa là
 token trả tiền mà không dùng đến.
@@ -15,13 +15,14 @@ token trả tiền mà không dùng đến.
 | Vì sao repo mất Diễn đàn/Chợ/Tin nhắn         | [refactor-personal-site.md](refactor-personal-site.md)             |
 | Vì sao chỉ còn một cổng vào ở dev             | [refactor-network-topology.md](refactor-network-topology.md)       |
 | Kế hoạch: Con dấu về chế độ mời, gỡ tín dụng  | [refactor-trust-invite-access.md](refactor-trust-invite-access.md) |
+| Kế hoạch: Toà soạn Agent AI (Newsroom)        | [refactor-newsroom-agents.md](refactor-newsroom-agents.md)         |
 | Logo, favicon, avatar                         | [../packages/brand/README.md](../packages/brand/README.md)         |
 | Hạ tầng Cloudflare/giám sát (kế hoạch)        | [../infrastructure/README.md](../infrastructure/README.md)         |
 
 ## Đặc tả gốc
 
 [`documents-tsudev.md`](../documents-tsudev.md) ở thư mục gốc là **đặc tả kỹ
-thuật (TSD)** do chủ dự án ban hành — tài liệu **yêu cầu**, không phải mô tả
+thuật (TSD)** do chủ dự án ban hành - tài liệu **yêu cầu**, không phải mô tả
 hiện trạng. Khi TSD và mã nguồn mâu thuẫn, mã nguồn là hiện trạng còn TSD là
 đích đến; chênh lệch đáng kể được ghi ngay trong file đó.
 

@@ -3,7 +3,7 @@
 // Đây là HỢP ĐỒNG ĐỌC, không phải bản sao schema Prisma: chỉ khai những trường
 // app thực sự dùng tới. Service thêm trường mới thì file này không cần đổi;
 // service ĐỔI hoặc BỎ một trường đang được khai ở đây thì trang dùng nó thành
-// lỗi biên dịch — đúng lúc cần biết.
+// lỗi biên dịch - đúng lúc cần biết.
 //
 // Trước đây mọi thứ đi qua `getJSON()` đều là `any`, nên một lần đổi tên trường
 // ở service chỉ lộ ra dưới dạng "undefined" hiện trên trang thật.
@@ -127,7 +127,7 @@ export type TrustDomainInfo = {
  * Hồ sơ uy tín công khai của một tổ chức.
  *
  * Hình dạng này chép đúng theo phần `res.json({...})` của
- * GET /api/trust/profile/:orgId trong trust-service — PHẲNG, không bọc trong
+ * GET /api/trust/profile/:orgId trong trust-service - PHẲNG, không bọc trong
  * `organization`. Lần đầu viết file này tôi đã đoán sai theo hướng bọc, và
  * chính trình biên dịch chỉ ra sai lệch đó.
  */
@@ -145,7 +145,7 @@ export type TrustProfile = {
     firstIssuedAt?: string | null;
     checksTotal: number;
     checksPassed: number;
-    /** null khi CHƯA CÓ lần kiểm nào — khác hẳn với 0%. */
+    /** null khi CHƯA CÓ lần kiểm nào - khác hẳn với 0%. */
     checkPassRate: number | null;
     lastCheckedAt?: string | null;
   };
@@ -157,7 +157,7 @@ export type TrustProfile = {
   history: CertificateCard[];
 };
 
-/** Kết quả tra cứu chứng chỉ. Ba trạng thái, không phải hai — xem lib/trust.ts. */
+/** Kết quả tra cứu chứng chỉ. Ba trạng thái, không phải hai - xem lib/trust.ts. */
 export type VerifyOutcome =
   | { state: 'found'; certificate: CertificateDetail }
   | { state: 'missing' }
@@ -204,7 +204,7 @@ export type ProgramCriterion = { key?: string; label: string; detail?: string | 
  * Đơn kèm quan hệ, trả về khi mở CHI TIẾT một đơn.
  *
  * `organization` ở đây là OBJECT, còn ở danh sách đơn (AdminApplication) nó là
- * CHUỖI — hai endpoint dựng hai hình dạng khác nhau cho cùng một tên trường.
+ * CHUỖI - hai endpoint dựng hai hình dạng khác nhau cho cùng một tên trường.
  * `Omit` làm sự khác biệt đó hiện ra thay vì để nó chờ gây "undefined" trên
  * giao diện. Thống nhất lại hai endpoint là việc của backend, không phải chỗ này.
  */
@@ -275,7 +275,7 @@ export type OwnerOrg = {
   domains?: TrustDomainInfo[];
 };
 
-/** Hướng dẫn xác minh tên miền — ba phương thức cho ba hình dạng khác nhau. */
+/** Hướng dẫn xác minh tên miền - ba phương thức cho ba hình dạng khác nhau. */
 export type DomainInstructions = {
   title: string;
   note?: string;
@@ -287,7 +287,7 @@ export type DomainInstructions = {
   path?: string;
 };
 
-/** Tổ chức trong cổng khách hàng — kèm cả tên miền lẫn chứng chỉ đã cấp. */
+/** Tổ chức trong cổng khách hàng - kèm cả tên miền lẫn chứng chỉ đã cấp. */
 export type PortalOrg = OwnerOrg & {
   certificates?: CertificateCard[];
 };

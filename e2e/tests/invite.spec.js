@@ -5,7 +5,7 @@ const { loadTopology, publicUrl } = require('../../scripts/topology/load');
 //
 // Cái được chứng minh ở đây mà test đơn vị không chứng minh được: mã in ra trên
 // trang quản trị là mã đổi được ở trang đổi mã. Giữa hai đầu đó có bốn lớp có
-// thể lệch nhau trong im lặng — dạng hiển thị `TSU-XXXXX-…`, phép chuẩn hoá lúc
+// thể lệch nhau trong im lặng - dạng hiển thị `TSU-XXXXX-…`, phép chuẩn hoá lúc
 // nhận, danh sách trắng của proxy CÓ PHIÊN, và bảng tiền tố của backend-bundle.
 // Lệch bất kỳ lớp nào thì cả hai phía vẫn "chạy", chỉ là mã không bao giờ khớp.
 
@@ -32,7 +32,7 @@ test('mã cấp ở trang quản trị đổi được ở trang đổi mã', as
   await page.fill('#invite-uses', '1');
   await page.click('button:has-text("Cấp mã")');
 
-  // Mã thô hiện ĐÚNG MỘT LẦN. Không đọc lại được từ đâu — DB chỉ giữ SHA-256.
+  // Mã thô hiện ĐÚNG MỘT LẦN. Không đọc lại được từ đâu - DB chỉ giữ SHA-256.
   const code = await page.locator('p.select-all').first().textContent({ timeout: 15000 });
   expect(code).toMatch(/^TSU(-[A-Z2-7]{5}){3}$/);
 

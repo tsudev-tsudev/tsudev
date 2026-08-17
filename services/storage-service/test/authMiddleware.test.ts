@@ -1,7 +1,7 @@
 // Phân quyền của storage-service, kiểm trên cơ chế THẬT.
 //
 // Bản trước của tệp này đặt REQUIRE_ROLE_ENFORCEMENT=true rồi tự tiêm vai trò
-// qua header `x-dev-roles`. Nó xanh — nhưng chỉ chứng minh rằng nếu client tự
+// qua header `x-dev-roles`. Nó xanh - nhưng chỉ chứng minh rằng nếu client tự
 // khai vai trò thì server tin. Ở production không realm nào phát vai trò nào,
 // nên nhánh đó không bao giờ chạy, và cờ kia thì mặc định tắt: bốn route "được
 // bảo vệ" thực chất mở toang.
@@ -18,7 +18,7 @@ const { app } = require('../src/index')
 
 const { signIdentity } = require('@tsudev/identity-token')
 
-/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+/** Header Authorization như BFF sẽ gửi - thay cho header `x-dev-user` đã gỡ. */
 const asUser = async (sub: string) => ({
   Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
 })
@@ -53,7 +53,7 @@ describe('storage-service: vai trò đọc từ DB, không phải từ claim c�
     expect(res.status).toBe(200)
   })
 
-  test('GUEST bị từ chối — vai trò trong DB thấp hơn ngưỡng', async () => {
+  test('GUEST bị từ chối - vai trò trong DB thấp hơn ngưỡng', async () => {
     const res = await request(app)
       .get('/api/presign')
       .set(await asUser(GUEST))

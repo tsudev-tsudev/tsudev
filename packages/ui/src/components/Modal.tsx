@@ -17,11 +17,11 @@ type ModalProps = {
 //   - Đưa con trỏ vào hộp thoại khi mở, trả về chỗ cũ khi đóng.
 //
 // Lớp phủ giữ onClick nhưng đánh aria-hidden: nó là nền trang trí, và đường
-// thoát bằng bàn phím đã có Escape lẫn nút Close — không cần biến nó thành một
+// thoát bằng bàn phím đã có Escape lẫn nút Close - không cần biến nó thành một
 // điểm dừng tab thứ ba.
 export const Modal = ({ open, onClose, title, children }: ModalProps) => {
   const panelRef = useRef<HTMLDivElement | null>(null);
-  // document.activeElement trả Element, không phải HTMLElement — chỉ HTMLElement
+  // document.activeElement trả Element, không phải HTMLElement - chỉ HTMLElement
   // mới có focus(). Thu hẹp ngay tại chỗ gán thay vì đoán ở chỗ dùng.
   const restoreRef = useRef<HTMLElement | null>(null);
 

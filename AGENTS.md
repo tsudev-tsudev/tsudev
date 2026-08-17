@@ -1,7 +1,7 @@
-# Phân vai agent — tsudev
+# Phân vai agent - tsudev
 
 Repo này định nghĩa **8 agent chuyên trách** trong `.claude/agents/`. Mỗi agent
-sở hữu một vùng đường dẫn tách rời nhau — **quyền sở hữu theo đường dẫn là cơ chế
+sở hữu một vùng đường dẫn tách rời nhau - **quyền sở hữu theo đường dẫn là cơ chế
 tránh xung đột, không cần file khoá**.
 
 Lưu ý phạm vi: quyền sở hữu đường dẫn tránh được việc **hai agent sửa cùng một
@@ -23,11 +23,11 @@ song](#chạy-song-song) bên dưới.
 | `docs-curator`  | `docs/`, mọi `README.md`, `AGENTS.md`                                                                     | giữ tài liệu đúng và gọn                     |
 
 > **`services/backend-bundle/` là vùng giáp ranh nguy hiểm.** Nó không chứa
-> logic nghiệp vụ nào — chỉ mount bốn app Express của `backend-api` và
+> logic nghiệp vụ nào - chỉ mount bốn app Express của `backend-api` và
 > `trust-seal` vào một tiến trình, điều phối theo **bảng tiền tố đường dẫn**.
 > Thêm route mới có tiền tố chưa nằm trong bảng đó ⇒ route sống khi chạy service
 > riêng, nhưng **404 ở production** (nơi chạy chế độ gộp). Sửa route thì sửa
-> bảng, và test của bundle sẽ bắt phần lớn — nhưng không bắt được tiền tố hoàn
+> bảng, và test của bundle sẽ bắt phần lớn - nhưng không bắt được tiền tố hoàn
 > toàn mới.
 
 ## Gọi agent thế nào
@@ -35,28 +35,28 @@ song](#chạy-song-song) bên dưới.
 Gõ `/agents` để xem danh sách đã đăng ký. Hai cách gọi, khác nhau ở **chỗ tiêu
 tốn context**:
 
-**Cách 1 — giao cho subagent (tiết kiệm context nhất).** Trong phiên đang mở:
+**Cách 1 - giao cho subagent (tiết kiệm context nhất).** Trong phiên đang mở:
 
 ```
 Dùng subagent backend-api để thêm endpoint GET /api/users/:username/badges
 ```
 
 Subagent chạy trong **context window riêng**. Việc `grep`, đọc file, chạy test
-của nó không đổ vào phiên của bạn — chỉ báo cáo cuối cùng quay về. Một task đọc
+của nó không đổ vào phiên của bạn - chỉ báo cáo cuối cùng quay về. Một task đọc
 20 file mà phiên chính chỉ nhận về vài đoạn kết luận.
 
 Không nêu tên cũng được, Claude tự khớp theo trường `description` của agent. Nêu
 tên rõ khi ở vùng giáp ranh (`trust-seal` và `backend-api` đều là service
 Express, nhưng luật khác hẳn nhau).
 
-**Cách 2 — cả terminal đóng một vai.** Mở terminal mới, câu đầu tiên:
+**Cách 2 - cả terminal đóng một vai.** Mở terminal mới, câu đầu tiên:
 
 ```
 Đọc .claude/agents/frontend-web.md và tuân theo suốt phiên này.
 Việc: sửa route proxy /api/market để trả kèm pagination.
 ```
 
-Hợp khi cần **lặp nhiều vòng có trao đổi** trong cùng một vùng — subagent chạy
+Hợp khi cần **lặp nhiều vòng có trao đổi** trong cùng một vùng - subagent chạy
 một mạch rồi trả kết quả, khó chen ngang giữa chừng. Đánh đổi: mọi thứ nó đọc
 đều nằm trong context của bạn.
 
@@ -86,7 +86,7 @@ luôn cả phần kia".
 
 **3. Một nhánh git cho một chuỗi việc.** `main` không có branch protection phía
 server; chỉ có hook `.husky/pre-push` chặn. Nhiều agent cùng commit vào một nhánh
-thì `git add <file cụ thể>`, **không** `git add -A` — `-A` sẽ nuốt cả thay đổi
+thì `git add <file cụ thể>`, **không** `git add -A` - `-A` sẽ nuốt cả thay đổi
 dang dở của agent khác vào commit của bạn.
 
 ## Chạy song song
@@ -95,7 +95,7 @@ Quyền sở hữu đường dẫn giải quyết xung đột **sửa file**. N�
 thứ dùng chung khác: một working tree, một nhánh git đang checkout, và một dải
 cổng local. Ba lựa chọn, xếp theo mức an toàn:
 
-### Tuần tự — mặc định
+### Tuần tự - mặc định
 
 Một terminal một lúc, xong pha này mới mở pha sau. Không có gì để hỏng. Đủ dùng
 cho hầu hết việc, kể cả việc chạm nhiều vùng.
@@ -112,7 +112,7 @@ cho hầu hết việc, kể cả việc chạm nhiều vùng.
 Không hợp cho việc đổi nhánh: `git checkout` ở terminal này đổi luôn file dưới
 chân terminal kia.
 
-### Git worktree — song song thật
+### Git worktree - song song thật
 
 Mỗi agent một thư mục, một nhánh, không giẫm chân gì cả:
 
@@ -124,9 +124,9 @@ git worktree add ../tsudev-frontend -b feat/frontend-market
 Rồi mở `claude` trong từng thư mục. Đánh đổi:
 
 - Mỗi worktree cần `npm install` riêng (và `npm run db:generate` nếu đụng
-  Prisma) — `node_modules/` không dùng chung được.
+  Prisma) - `node_modules/` không dùng chung được.
 - Dùng chung **một** database local (:5433). Hai worktree cùng chạy migration
-  khác nhau sẽ đá nhau — chỉ một worktree được sở hữu DB tại một thời điểm, hoặc
+  khác nhau sẽ đá nhau - chỉ một worktree được sở hữu DB tại một thời điểm, hoặc
   tách bằng `TSUDEV_PGDATA` + `TSUDEV_PGPORT` riêng.
 - Vẫn phải chỉ một worktree chạy `dev:local`, trừ khi đổi cổng.
 - Cuối cùng phải merge nhiều nhánh.
@@ -140,14 +140,14 @@ git worktree list                        # kiểm còn sót không
 
 Đáng dùng khi hai chuỗi việc **dài và độc lập thật sự** (ví dụ `design-system`
 làm lại token, `infra-deploy` đổi đường deploy). Việc ngắn thì chi phí
-dựng worktree lớn hơn lợi ích — làm tuần tự.
+dựng worktree lớn hơn lợi ích - làm tuần tự.
 
 ## Kỷ luật token (áp dụng cho mọi agent)
 
 Ngân sách ngữ cảnh là tài nguyên chung. Bốn luật, xếp theo mức tiết kiệm:
 
 **1. Định vị trước, đọc sau.** `grep -n` để tìm dòng, rồi `sed -n 'X,Yp'` đọc
-đúng đoạn. `content-service/src/index.js` hơn 1000 dòng — đọc cả file là đốt
+đúng đoạn. `content-service/src/index.js` hơn 1000 dòng - đọc cả file là đốt
 ngân sách cho 95% thứ không dùng.
 
 **2. Đọc theo bảng định tuyến, không đọc cả `docs/`.** Mỗi agent đã liệt kê sẵn
@@ -163,12 +163,12 @@ là một lần trả tiền cho **toàn bộ** ngữ cảnh đã tích luỹ.
 
 Kèm theo:
 
-- Đừng đọc lại file vừa sửa để "kiểm tra" — công cụ đã báo lỗi nếu sửa hỏng.
+- Đừng đọc lại file vừa sửa để "kiểm tra" - công cụ đã báo lỗi nếu sửa hỏng.
 - Sửa hàng loạt theo khuôn mẫu ⇒ viết script biến đổi, chạy thử rồi mới áp dụng;
   đừng sửa tay từng file.
 - Chạy cổng kiểm tra **một lần ở cuối** cụm thay đổi, không chạy sau mỗi file.
 - Đừng tóm tắt lại việc vừa làm ở mỗi lượt; báo cáo khi xong một pha.
-- Phiên dài thì đóng terminal mở phiên mới thay vì kéo dài — ngữ cảnh cũ là chi
+- Phiên dài thì đóng terminal mở phiên mới thay vì kéo dài - ngữ cảnh cũ là chi
   phí chết ở mọi lượt sau. Tri thức đáng giữ thì ghi vào `docs/`.
 
 ## Cổng an toàn

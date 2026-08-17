@@ -7,8 +7,8 @@ import { AuthShell, Notice } from '../components/AuthShell';
 /**
  * Xác minh email.
  *
- * Gọi API MỘT LẦN duy nhất. Token dùng một lần, nên một lần gọi thừa — React
- * StrictMode ở dev chạy effect hai lượt — sẽ tiêu token ở lượt đầu rồi báo "liên
+ * Gọi API MỘT LẦN duy nhất. Token dùng một lần, nên một lần gọi thừa - React
+ * StrictMode ở dev chạy effect hai lượt - sẽ tiêu token ở lượt đầu rồi báo "liên
  * kết đã dùng" ở lượt sau, cho người dùng thấy lỗi trong khi mọi thứ đã thành
  * công. `useRef` chặn lượt thứ hai.
  */

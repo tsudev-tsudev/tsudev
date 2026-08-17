@@ -4,13 +4,13 @@ import { MAIN_URL } from '@tsudev/ui';
 
 // Thẻ meta dùng chung cho mọi trang công khai. Gom về một chỗ vì ba lý do:
 //
-// 1. Thẻ canonical BẮT BUỘC là URL tuyệt đối — đây là một trong số ít chỗ thật
+// 1. Thẻ canonical BẮT BUỘC là URL tuyệt đối - đây là một trong số ít chỗ thật
 //    sự cần MAIN_URL (xem packages/ui/src/lib/siteUrls.js). Rải rác ra từng
 //    trang thì sớm muộn có trang quên, và Google gộp nhầm hai URL thành một.
 // 2. NEXT_PUBLIC_MAIN_URL được Next nội suy LÚC BUILD. Bản dựng production lấy
 //    giá trị từ apps/frontend-main/.env.production (sinh từ config/topology.json).
 //    Thiếu file đó thì mọi canonical trỏ về tsudev.localhost.
-// 3. Ảnh og:image phải là URL tuyệt đối — đường dẫn tương đối bị các trình đọc
+// 3. Ảnh og:image phải là URL tuyệt đối - đường dẫn tương đối bị các trình đọc
 //    link bỏ qua trong im lặng, và không có cách nào biết ngoài việc đi thử.
 
 const SITE_NAME = 'tsudev';
@@ -24,7 +24,7 @@ type SeoProps = {
   path?: string;
   image?: string;
   type?: string;
-  /** Chỉ trang bài viết mới có. TUỲ CHỌN — mọi trang tĩnh đều gọi Seo mà không truyền. */
+  /** Chỉ trang bài viết mới có. TUỲ CHỌN - mọi trang tĩnh đều gọi Seo mà không truyền. */
   publishedAt?: string | null;
   noindex?: boolean;
 };
@@ -39,8 +39,8 @@ export default function Seo({
   noindex = false,
 }: SeoProps) {
   const fullTitle = title
-    ? `${title} — ${SITE_NAME}`
-    : `${SITE_NAME} — Dự án, bản quyền và con dấu tín nhiệm`;
+    ? `${title} - ${SITE_NAME}`
+    : `${SITE_NAME} - Dự án, bản quyền và con dấu tín nhiệm`;
   const canonical = `${MAIN_URL}${path === '/' ? '' : path}`;
   const imageUrl = /^https?:\/\//.test(image) ? image : `${MAIN_URL}${image}`;
 

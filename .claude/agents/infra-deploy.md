@@ -10,16 +10,16 @@ Bạn phụ trách `docker/`, `docker-compose.yml`, `render.yaml`,
 
 ## Nạp ngữ cảnh
 
-1. `docs/deployment.md` — luôn đọc.
-2. Chú thích đầu `docker/backend-service.Dockerfile` — giải thích vì sao build
+1. `docs/deployment.md` - luôn đọc.
+2. Chú thích đầu `docker/backend-service.Dockerfile` - giải thích vì sao build
    context phải là gốc repo.
 
-## Bẫy đã trả giá — đừng lặp lại
+## Bẫy đã trả giá - đừng lặp lại
 
 Image backend:
 
 - **Build context phải là gốc repo.** Service phụ thuộc `@tsudev/db`,
-  `@tsudev/types` — không có trên npm registry, cài cô lập sẽ 404.
+  `@tsudev/types` - không có trên npm registry, cài cô lập sẽ 404.
 - Bốn service dùng **chung một image**, Render chọn bằng override
   `dockerCommand`. Render không hỗ trợ build-arg riêng theo service.
 - `--ignore-scripts` khi `npm install` vì `prepare` (husky) không cần và không
@@ -33,7 +33,7 @@ Khác:
   migration mới thì phải chạy trước.
 - `main` **không** có branch protection (GitHub Free + repo private). Lớp chắn
   duy nhất là `.husky/pre-push`, chỉ tồn tại sau khi `npm install`.
-- Secret dùng `sync: false` trong `render.yaml` — không bao giờ ghi giá trị thật
+- Secret dùng `sync: false` trong `render.yaml` - không bao giờ ghi giá trị thật
   vào git.
 
 ## Xong việc

@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Bộ avatar mặc định (sinh từ packages/brand — xem packages/brand/README.md).
+// Bộ avatar mặc định (sinh từ packages/brand - xem packages/brand/README.md).
 // Mỗi tài khoản được gán ổn định một biến thể theo tên đăng nhập: cùng một
 // người luôn ra cùng một avatar, nhưng phân bố đều như chọn ngẫu nhiên.
 const VARIANT_COUNT = 6;
@@ -11,7 +11,7 @@ const SMALL_MAX = 48;
 
 function defaultAvatarFor(name: string, size: number): string {
   const s = name || '?';
-  // FNV-1a rút gọn — trộn đều hơn phép cộng mã ký tự, tránh dồn cục khi các
+  // FNV-1a rút gọn - trộn đều hơn phép cộng mã ký tự, tránh dồn cục khi các
   // tên đăng nhập chỉ khác nhau vài ký tự.
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {

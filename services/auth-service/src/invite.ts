@@ -10,13 +10,13 @@ import { constantTimeEqual } from './tokens'
  * Mã mời vào Con dấu tín nhiệm.
  *
  * Con dấu là vùng chỉ-dành-cho-khách-mời. Đổi một mã hợp lệ = được nâng lên
- * `Role.VIP`, và cổng thật là `requireRole('VIP')` ở trust-service — thứ đọc
+ * `Role.VIP`, và cổng thật là `requireRole('VIP')` ở trust-service - thứ đọc
  * `User.role` từ DB và fail closed. Ở đây KHÔNG dựng hệ phân quyền thứ hai;
  * xem gotcha REQUIRE_ROLE_ENFORCEMENT ở CLAUDE.md.
  *
  * Ba bất biến của tệp này, cả ba đều hỏng ÂM THẦM nếu làm sai:
  *
- *  1. DB chỉ giữ SHA-256 của mã. Cùng lý do với AuthToken.tokenHash — một bản
+ *  1. DB chỉ giữ SHA-256 của mã. Cùng lý do với AuthToken.tokenHash - một bản
  *     sao DB bị rò không được phép thành một xấp mã dùng được.
  *  2. Đếm lượt bằng MỘT câu lệnh có điều kiện. Đọc-rồi-ghi cho hai người cùng
  *     tiêu lượt cuối cùng, và không có gì báo lỗi.
@@ -25,10 +25,10 @@ import { constantTimeEqual } from './tokens'
  *     ghi được vào bảng đó là ghi được cho mình quyền ADMIN.
  */
 
-/** Trần cứng. Không bao giờ đọc từ dữ liệu — xem bất biến 3. */
+/** Trần cứng. Không bao giờ đọc từ dữ liệu - xem bất biến 3. */
 export const INVITE_GRANTS_ROLE: Role = 'VIP'
 
-/** Không có I, L, O, 0, 1 — B32 của RFC 4648 vốn đã bỏ chúng. Đọc qua điện thoại được. */
+/** Không có I, L, O, 0, 1 - B32 của RFC 4648 vốn đã bỏ chúng. Đọc qua điện thoại được. */
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
 /** Ba nhóm 5 ký tự = 75 bit entropy. Đủ để dò là vô vọng, ngắn để đọc được. */
@@ -44,7 +44,7 @@ export const hashInviteCode = (raw: string): string =>
 /**
  * Chuẩn hoá mã người dùng gõ vào: bỏ khoảng trắng/gạch, viết hoa, bỏ tiền tố.
  *
- * Trả về chuỗi rỗng nếu không đúng hình dạng — người gọi coi đó là "không khớp"
+ * Trả về chuỗi rỗng nếu không đúng hình dạng - người gọi coi đó là "không khớp"
  * chứ không phải lỗi riêng, để không tiết lộ mã hợp lệ trông như thế nào.
  */
 export function normalizeInviteCode(supplied: string): string {
@@ -78,7 +78,7 @@ export type RedeemOutcome =
  * Đổi mã lấy vai trò VIP.
  *
  * `reason` cố ý chỉ có HAI giá trị. "Mã không tồn tại", "mã hết hạn" và "mã đã
- * thu hồi" đều trả `invalid` — phân biệt chúng biến ô nhập mã thành công cụ dò
+ * thu hồi" đều trả `invalid` - phân biệt chúng biến ô nhập mã thành công cụ dò
  * xem mã nào từng tồn tại.
  */
 export async function redeemInvite(
@@ -136,7 +136,7 @@ export async function redeemInvite(
       await tx.trustInviteRedemption.create({ data: { inviteId: invite.id, userId: user.id } })
 
       // KHÔNG hạ vai trò: một ADMIN đổi mã vẫn là ADMIN. `promotedRole` lo phần
-      // đó, và `sessionVersion` KHÔNG tăng — nâng quyền không phải lý do để đá
+      // đó, và `sessionVersion` KHÔNG tăng - nâng quyền không phải lý do để đá
       // người ta ra khỏi phiên đang dùng, và phiên cũ mang vai trò cũ chỉ có
       // ít quyền hơn chứ không nhiều hơn.
       if (nextRole !== user.role) {

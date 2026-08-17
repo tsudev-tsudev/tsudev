@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     // CommonJS có chủ đích. Chuyển sang ESM sẽ đổi ngữ nghĩa require() và kéo
-    // theo bảng tiền tố của backend-bundle — rủi ro không mua lại được gì.
+    // theo bảng tiền tố của backend-bundle - rủi ro không mua lại được gì.
     "module": "commonjs",
     "moduleResolution": "node",
     "rootDir": "src",

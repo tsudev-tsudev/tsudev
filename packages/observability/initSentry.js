@@ -2,7 +2,7 @@
 function initServer(opts = {}) {
   const service = opts.service || process.env.SERVICE_NAME || 'unknown-service';
   if (!process.env.SENTRY_DSN) {
-    console.log('[observability] SENTRY_DSN not set — skipping Sentry server init');
+    console.log('[observability] SENTRY_DSN not set - skipping Sentry server init');
     return;
   }
   try {
@@ -41,7 +41,7 @@ async function initBrowser() {
     });
     console.log('[observability] Sentry (browser) initialized');
   } catch (e) {
-    // Import may fail if @sentry/browser is not installed — that's acceptable in skeleton mode
+    // Import may fail if @sentry/browser is not installed - that's acceptable in skeleton mode
     console.warn(
       '[observability] @sentry/browser not installed or failed to init:',
       e && e.message ? e.message : e

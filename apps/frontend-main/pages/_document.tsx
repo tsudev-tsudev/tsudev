@@ -10,7 +10,7 @@ const DARK_SURFACE = '#000000';
  * Áp chế độ hiển thị TRƯỚC KHI TRANG ĐƯỢC VẼ.
  *
  * Phải là script đồng bộ, nội tuyến, đặt trong <head>. Bất cứ thứ gì chạy sau
- * lần vẽ đầu — useEffect, script defer, next/script — đều cho ra một khung hình
+ * lần vẽ đầu - useEffect, script defer, next/script - đều cho ra một khung hình
  * sáng trắng trước khi chuyển sang tối. Trên nền đen tuyền của chế độ tối thì
  * cú nháy đó chói mắt, và nó xuất hiện ở MỌI lần tải trang.
  *

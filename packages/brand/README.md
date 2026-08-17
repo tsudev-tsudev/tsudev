@@ -1,7 +1,7 @@
-# @tsudev/brand — tài nguyên thương hiệu
+# @tsudev/brand - tài nguyên thương hiệu
 
 Nơi lưu **nguồn duy nhất** của logo, avatar mặc định và favicon. Mọi file phục vụ
-web trong `apps/*/public/` đều được **sinh tự động** từ thư mục này — đừng sửa
+web trong `apps/*/public/` đều được **sinh tự động** từ thư mục này - đừng sửa
 trực tiếp trong `public/`, vì lần chạy lại script sẽ ghi đè.
 
 ## Cấu trúc
@@ -31,7 +31,7 @@ Script ghi vào `public/` của `frontend-main`. Muốn thêm app, bổ sung và
 | File                                                            | Nguồn                        | Ghi chú                                         |
 | --------------------------------------------------------------- | ---------------------------- | ----------------------------------------------- |
 | `brand/logo-full.png`                                           | `logo.jpeg`                  | logo đầy đủ, nền trong suốt                     |
-| `brand/logo-mark.png`                                           | `logo.jpeg`                  | chỉ biểu tượng cú — dùng ở `SiteHeader`         |
+| `brand/logo-mark.png`                                           | `logo.jpeg`                  | chỉ biểu tượng cú - dùng ở `SiteHeader`         |
 | `brand/logo-wordmark.png`                                       | `logo.jpeg`                  | chỉ phần chữ                                    |
 | `avatars/default-0N.webp`                                       | vẽ bằng vector trong script  | 6 tông, 256×256, 3 kinh + 5 vĩ                  |
 | `avatars/sm/default-0N.webp`                                    | vẽ bằng vector trong script  | 6 tông, 128×128, 2 kinh + 3 vĩ                  |
@@ -53,7 +53,7 @@ viền bộ não.
 ngưỡng màu toàn cục, chỉ áp dụng cho dải chữ bên dưới.
 
 **Avatar vẽ bằng vector.** `source/avatar.png` có dòng chữ "tsudev\_" đè lên vùng
-xích đạo của quả cầu lưới, nên phần lưới nằm dưới chữ đã mất hẳn dữ liệu — mọi
+xích đạo của quả cầu lưới, nên phần lưới nằm dưới chữ đã mất hẳn dữ liệu - mọi
 cách vá (lấp từ bản xoay 90°, nội suy theo hàng) đều để lại vệt rõ. Vì vậy quả
 cầu được dựng lại bằng SVG ngay trong script: sạch tuyệt đối ở mọi kích thước,
 file dưới 11 kB, và đổi màu chính xác theo từng biến thể thay vì xoay hue gần
@@ -62,19 +62,19 @@ file dưới 11 kB, và đổi màu chính xác theo từng biến thể thay v�
 `packages/ui/src/components/Avatar.jsx` gán biến thể theo hàm băm FNV-1a của tên
 đăng nhập: ổn định theo từng tài khoản nhưng phân bố đều.
 
-**Hai mức chi tiết.** Ở 32–40px — cỡ chiếm gần hết số lần dùng — bản đầy đủ
+**Hai mức chi tiết.** Ở 32–40px - cỡ chiếm gần hết số lần dùng - bản đầy đủ
 3 kinh + 5 vĩ bị rối nét. Bộ `avatars/sm/` rút còn 2 kinh + 3 vĩ, ít nút hơn và
 tăng bề dày nét tương đối (`strokeScale`) để vẫn rõ khi thu nhỏ; file nhẹ hơn
 khoảng 60%. `Avatar.jsx` tự chọn bộ theo prop `size`, ngưỡng 48px (`SMALL_MAX`).
-Sau khi gỡ Diễn đàn/Chợ, **không trang nào còn dùng avatar trên 48px** — nghĩa
+Sau khi gỡ Diễn đàn/Chợ, **không trang nào còn dùng avatar trên 48px** - nghĩa
 là bộ đầy đủ hiện chỉ phục vụ Storybook. Đừng xoá: thêm một trang hồ sơ cỡ lớn
 là cần lại ngay, và bộ này sinh từ ảnh gốc chứ không chép tay.
 
 **Xoá nền favicon.** Bộ gốc bị nung sẵn nền trắng (0% pixel trong suốt). Script
-tách nền trên bản 512 rồi thu nhỏ xuống các cỡ còn lại — hạ cỡ từ ảnh đã có alpha
+tách nền trên bản 512 rồi thu nhỏ xuống các cỡ còn lại - hạ cỡ từ ảnh đã có alpha
 cho biên mượt hơn nhiều so với tách nền trực tiếp trên ảnh 16px.
 
 **favicon.ico.** File `.ico` trong bộ gốc thực chất là PNG đổi đuôi (không phải
 container ICO). Script dựng lại ICO thật chứa 3 độ phân giải, nên bộ gốc đã được
-lược bỏ file đó để tránh nhầm lẫn — bản lưu trữ đầy đủ vẫn nằm trong
+lược bỏ file đó để tránh nhầm lẫn - bản lưu trữ đầy đủ vẫn nằm trong
 `favicons.zip`.

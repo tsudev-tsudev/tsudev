@@ -28,7 +28,7 @@ type LoginProps = {
  * Thông điệp lỗi.
  *
  * next-auth trả về mã lỗi qua query `?error=`. Mọi mã liên quan tới thông tin
- * đăng nhập đều gộp về MỘT câu — không phân biệt "không có tài khoản" với "sai
+ * đăng nhập đều gộp về MỘT câu - không phân biệt "không có tài khoản" với "sai
  * mật khẩu", vì phân biệt được nghĩa là dò được ai có tài khoản ở đây.
  */
 const ERROR_TEXT: Record<string, string> = {
@@ -79,8 +79,8 @@ export default function LoginPage({ oauth }: LoginProps) {
   const totpRef = useRef<HTMLInputElement>(null);
 
   // Chuyển tiêu điểm sang ô mã KHI VÀ CHỈ KHI bước hai vừa xuất hiện. Dùng
-  // `autoFocus` sẽ giành tiêu điểm ở mọi lần vẽ lại — kể cả khi người dùng đang
-  // gõ ở ô khác — và quy tắc a11y chặn nó vì đúng lý do đó.
+  // `autoFocus` sẽ giành tiêu điểm ở mọi lần vẽ lại - kể cả khi người dùng đang
+  // gõ ở ô khác - và quy tắc a11y chặn nó vì đúng lý do đó.
   useEffect(() => {
     if (needTotp) totpRef.current?.focus();
   }, [needTotp]);
@@ -88,7 +88,7 @@ export default function LoginPage({ oauth }: LoginProps) {
   const rawNext = typeof router.query.callbackUrl === 'string' ? router.query.callbackUrl : '/';
   // CHỈ chấp nhận đường dẫn tương đối trong site. `callbackUrl` đến từ URL, nên
   // một giá trị như `https://ke-tan-cong.example` biến trang đăng nhập thành
-  // bàn đạp chuyển hướng mở — người dùng thấy tên miền tsudev.com trong thanh
+  // bàn đạp chuyển hướng mở - người dùng thấy tên miền tsudev.com trong thanh
   // địa chỉ rồi bị đẩy sang nơi khác ngay sau khi đăng nhập.
   const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
 
@@ -282,12 +282,12 @@ export default function LoginPage({ oauth }: LoginProps) {
  * Danh sách provider lấy phía SERVER.
  *
  * `getProviders()` ở client cũng làm được, nhưng khi đó nút OAuth xuất hiện trễ
- * một nhịp sau khi form đã hiện — người dùng bấm "Đăng nhập" trước khi thấy nút
+ * một nhịp sau khi form đã hiện - người dùng bấm "Đăng nhập" trước khi thấy nút
  * "Tiếp tục với GitHub" mà họ vẫn dùng.
  */
 export const getServerSideProps: GetServerSideProps<LoginProps> = async () => {
   // getProviders() khai kiểu trả về là Record<string, ClientSafeProvider> | null,
-  // nhưng Object.values trên đó ra `unknown[]` với cấu hình strict của repo —
+  // nhưng Object.values trên đó ra `unknown[]` với cấu hình strict của repo -
   // nên nói rõ hình dạng thay vì rải `any`.
   const providers = ((await getProviders()) ?? {}) as Record<
     string,

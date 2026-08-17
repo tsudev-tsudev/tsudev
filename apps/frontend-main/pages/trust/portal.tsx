@@ -145,7 +145,7 @@ export default function TrustPortal() {
           {embed && (
             <div className="mt-6 rounded-lg bg-panel2 p-4">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <span className="font-semibold text-ink text-sm">Mã nhúng — {embed.serial}</span>
+                <span className="font-semibold text-ink text-sm">Mã nhúng - {embed.serial}</span>
                 <button
                   onClick={() => setEmbed(null)}
                   className="text-muted hover:text-ink text-sm"
@@ -205,7 +205,7 @@ export default function TrustPortal() {
                       {a.status === 'NEEDS_INFO' && (
                         <>
                           {' '}
-                          —{' '}
+                          -{' '}
                           <a className="underline" href="/trust/apply">
                             bổ sung và nộp lại
                           </a>{' '}

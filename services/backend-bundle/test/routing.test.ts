@@ -2,7 +2,7 @@
 //
 // Nếu ai đó "đơn giản hoá" src/index.js thành `root.use(app)` ba lần, request
 // /api/trust/* sẽ đi vào app content trước và dính cổng chặn INTERNAL_API_TOKEN
-// của nó. Huy hiệu SVG mà site khách nhúng sẽ im lặng trả 401 — không có ngoại
+// của nó. Huy hiệu SVG mà site khách nhúng sẽ im lặng trả 401 - không có ngoại
 // lệ nào ném ra, không log nào đỏ, chỉ là huy hiệu biến mất trên site người ta.
 //
 // Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
@@ -13,7 +13,7 @@ const { app, SERVICES } = require('../src/index')
 
 const { signIdentity } = require('@tsudev/identity-token')
 
-/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+/** Header Authorization như BFF sẽ gửi - thay cho header `x-dev-user` đã gỡ. */
 const asUser = async (sub: string) => ({
   Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
 })
@@ -22,7 +22,7 @@ afterAll(() => {
   delete process.env.INTERNAL_API_TOKEN
 })
 
-describe('backend-bundle — endpoint công khai của trust không bị cổng chặn của content nuốt', () => {
+describe('backend-bundle - endpoint công khai của trust không bị cổng chặn của content nuốt', () => {
   test('huy hiệu SVG trả 200 dù INTERNAL_API_TOKEN đang bật', async () => {
     const res = await request(app).get('/api/trust/seal/khong-co-serial-nay.svg')
     expect(res.status).toBe(200)
@@ -40,7 +40,7 @@ describe('backend-bundle — endpoint công khai của trust không bị cổng 
   })
 })
 
-describe('backend-bundle — cổng chặn của content và storage vẫn nguyên vẹn', () => {
+describe('backend-bundle - cổng chặn của content và storage vẫn nguyên vẹn', () => {
   test('/api/posts thiếu x-internal-token ⇒ 401', async () => {
     const res = await request(app)
       .get('/api/posts')
@@ -62,7 +62,7 @@ describe('backend-bundle — cổng chặn của content và storage vẫn nguy�
   })
 })
 
-describe('backend-bundle — điều phối và health', () => {
+describe('backend-bundle - điều phối và health', () => {
   test('/health trả 200 và kể tên đủ bốn service', async () => {
     const res = await request(app).get('/health')
     expect(res.status).toBe(200)

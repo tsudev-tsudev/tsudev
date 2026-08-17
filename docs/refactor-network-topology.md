@@ -8,7 +8,7 @@ Tài liệu này là **kế hoạch**, chưa phải hiện trạng. Hiện trạ
 trong `CLAUDE.md`.
 
 > **Ghi chú lịch sử (16/08/2026).** Tên miền production đã đổi từ `tsudev.vn`
-> (dự kiến, chưa từng đăng ký) sang **`tsudev.com`** — tên miền thật, đăng ký
+> (dự kiến, chưa từng đăng ký) sang **`tsudev.com`** - tên miền thật, đăng ký
 > tại Spaceship. Chuỗi tên miền trong tài liệu này đã được cập nhật theo. Mọi
 > nhắc tới **diễn đàn / `forum.*`** là bối cảnh của thời điểm viết: app đó đã bị
 > xoá ở PR #9, tsudev nay chỉ còn một app trên một origin.
@@ -39,12 +39,12 @@ Mười một dòng, bảy nguồn khai báo, không nguồn nào là nguồn s�
 
 17 vị trí có giá trị mặc định cứng, mỗi vị trí là một cơ hội lệch:
 
-- `packages/ui/src/lib/siteUrls.js:10-11` — `:3000` / `:3001`
+- `packages/ui/src/lib/siteUrls.js:10-11` - `:3000` / `:3001`
 - `apps/frontend-main/lib/api.js:3-4`, `lib/bff.js:6`, `lib/trust.js:8`
 - `apps/frontend-main/pages/api/trust/[...path].js:16`, `pages/api/trust/jwks.js:4`, `pages/api/mod/[...path].js:6`
 - `apps/frontend-forum/lib/api.js:2-3`, `pages/api/forum/[...path].js:5`
-- Bốn `services/*/src/authMiddleware.js:4` — `http://localhost:8080/realms/tsudev-local`
-- Bốn `services/*/Dockerfile:7` — HEALTHCHECK
+- Bốn `services/*/src/authMiddleware.js:4` - `http://localhost:8080/realms/tsudev-local`
+- Bốn `services/*/Dockerfile:7` - HEALTHCHECK
 - `scripts/verify-stack.js:70-77`, `scripts/keycloak-*.js`, `scripts/test-presign.js`, `e2e/playwright.config.js:8`
 
 ### 1.3 Bảy khiếm khuyết phát hiện kèm theo
@@ -53,11 +53,11 @@ Mười một dòng, bảy nguồn khai báo, không nguồn nào là nguồn s�
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --- |
 | 1   | ✅ _(đã khai vào `render.yaml`)_ **Production không có `KEYCLOAK_ISSUER`.** Bốn service rơi về mặc định `http://localhost:8080/...` ⇒ `createRemoteJWKSet` trỏ vào hư vô ⇒ mọi JWT thật bị 401.                                                                                                                             | `render.yaml` không khai biến này cho service nào; `services/*/src/authMiddleware.js:4`                                      | 🔴  |
 | 2   | **Production không có `REQUIRE_ROLE_ENFORCEMENT`** ⇒ `requireRole()` là no-op trên production, đúng như cảnh báo trong `CLAUDE.md` nhưng chưa ai đặt biến.                                                                                                                                                                  | `render.yaml`; `services/*/src/authMiddleware.js:75-79`                                                                      | 🔴  |
-| 3   | 🟠 _(hạ mức — xem §5.1)_ **`TRUST_ISSUER` có ba giá trị khác nhau** và nó **được ký vào chứng chỉ**: `.env` = `http://localhost:3000`, `render.yaml` = `...workers.dev`, mặc định trong mã = `https://tsudev.com`. Không có cơ chế "issuer đã nghỉ hưu" (khác với khoá ký).                                                 | `.env`; `render.yaml`; `services/trust-service/src/certificates.js:7`                                                        | 🔴  |
+| 3   | 🟠 _(hạ mức - xem §5.1)_ **`TRUST_ISSUER` có ba giá trị khác nhau** và nó **được ký vào chứng chỉ**: `.env` = `http://localhost:3000`, `render.yaml` = `...workers.dev`, mặc định trong mã = `https://tsudev.com`. Không có cơ chế "issuer đã nghỉ hưu" (khác với khoá ký).                                                 | `.env`; `render.yaml`; `services/trust-service/src/certificates.js:7`                                                        | 🔴  |
 | 4   | **Realm dev chỉ cho phép redirect về hostname Docker** (`http://frontend-main:3000`) ⇒ đăng nhập Keycloak thật từ `localhost:3000` không bao giờ chạy; đó là lý do tồn tại `E2E_BYPASS_KEYCLOAK`. Realm prod **không có** redirect URI nào cho forum.                                                                       | `apps/sso-auth/keycloak/realm-export.json:8-10`, `realm-export.prod.json:8-10`                                               | 🟠  |
 | 5   | **`storage-service` là service duy nhất trình duyệt gọi thẳng, và nó bật `cors()` mở toàn bộ.** Không có route BFF `/api/storage/*` ở app nào.                                                                                                                                                                              | `services/storage-service/src/index.js:37`; `apps/*/pages/api/` không có `storage`                                           | 🟠  |
 | 6   | ✅ _(đã xử lý)_ **Một biến môi trường chết**: `NEXT_PUBLIC_STORAGE_URL` và `STORAGE_SERVICE_URL` được khai ở `.env.example`, `.env.production.example`, `docker-compose.yml` nhưng **không dòng mã nào đọc**.                                                                                                               | `grep` toàn repo: 0 lượt đọc                                                                                                 | 🟡  |
-| 8   | ✅ _(đã xử lý — xem §1.5)_ **Toàn bộ bộ E2E không chạy được ở đâu.** `e2e/` không nằm trong `workspaces`, `@playwright/test` chưa từng được cài, không có trình duyệt Playwright, và CI không có job E2E. `e2e/tests/sso-upload.spec.js` sẽ ném lỗi ngay ở dòng `require`.                                                  | `package.json` (`workspaces`); `node -e "require.resolve('@playwright/test')"` → lỗi; `~/.cache/ms-playwright` không tồn tại | 🟠  |
+| 8   | ✅ _(đã xử lý - xem §1.5)_ **Toàn bộ bộ E2E không chạy được ở đâu.** `e2e/` không nằm trong `workspaces`, `@playwright/test` chưa từng được cài, không có trình duyệt Playwright, và CI không có job E2E. `e2e/tests/sso-upload.spec.js` sẽ ném lỗi ngay ở dòng `require`.                                                  | `package.json` (`workspaces`); `node -e "require.resolve('@playwright/test')"` → lỗi; `~/.cache/ms-playwright` không tồn tại | 🟠  |
 | 9   | ✅ _(đã xử lý)_ **`.prettierignore` thiếu `.open-next`** ⇒ sau khi build frontend-main, `npm run format:check` cục bộ đỏ 70 file build output. CI không thấy vì checkout sạch.                                                                                                                                              | `.prettierignore`; `apps/frontend-main/.gitignore:2`                                                                         | 🟡  |
 | 10  | **Hai realm Keycloak không khai một vai trò nào.** `realm-export.json` và `realm-export.prod.json` chỉ có client `tsudev-frontend`, không có `roles`. Nhưng mã lại đòi `content:read`, `user:read`, `storage:presign`, `storage:upload`. Bật `REQUIRE_ROLE_ENFORCEMENT=true` ⇒ 5 route đó **403 với mọi người, vĩnh viễn**. | `grep '"name"' apps/sso-auth/keycloak/realm-export*.json` → chỉ ra `tsudev-frontend`                                         | 🔴  |
 | 7   | ✅ _(đã xử lý)_ **Postgres ba giá trị cổng** (5433 local / 5432 compose / 5432 CI) trong khi `CLAUDE.md` khẳng định "5433, **không** phải 5432".                                                                                                                                                                            | `.env`; `docker-compose.yml`; `.github/workflows/ci.yml:37`                                                                  | 🟡  |
@@ -71,7 +71,7 @@ chuỗi việc.
 
 `packages/ui/src/lib/siteUrls.js` tồn tại **chỉ để** bắc cầu hai origin. Nhưng
 hai app hồi đó nằm trên cùng host `localhost` khác cổng nên **dùng chung kho
-cookie** (cookie không phân biệt cổng), còn hai subdomain thật thì **không** — chúng cần
+cookie** (cookie không phân biệt cổng), còn hai subdomain thật thì **không** - chúng cần
 `NEXTAUTH_COOKIE_DOMAIN=.tsudev.com`. Nghĩa là:
 
 > Lớp chia sẻ phiên đăng nhập giữa hai app **không thể kiểm chứng ở dev** với
@@ -85,13 +85,13 @@ cookie** (cookie không phân biệt cổng), còn hai subdomain thật thì **k
 
 | Giai đoạn                      | Trạng thái                                                      |
 | ------------------------------ | --------------------------------------------------------------- |
-| 0 — Lưới an toàn               | ✅ xong                                                         |
-| 1 — Nguồn sự thật              | ✅ xong                                                         |
-| 2 — Dọn nợ môi trường          | ⬜ chưa bắt đầu                                                 |
-| 3 — Dev-proxy + subdomain      | ⬜ chưa bắt đầu                                                 |
-| 4 — Đóng đường tắt trình duyệt | ✅ xong                                                         |
-| 5 — Hình trạng production      | 🟡 phần mã xong; phần dashboard Cloudflare/Render chưa làm được |
-| 6 — Tài liệu                   | ✅ xong                                                         |
+| 0 - Lưới an toàn               | ✅ xong                                                         |
+| 1 - Nguồn sự thật              | ✅ xong                                                         |
+| 2 - Dọn nợ môi trường          | ⬜ chưa bắt đầu                                                 |
+| 3 - Dev-proxy + subdomain      | ⬜ chưa bắt đầu                                                 |
+| 4 - Đóng đường tắt trình duyệt | ✅ xong                                                         |
+| 5 - Hình trạng production      | 🟡 phần mã xong; phần dashboard Cloudflare/Render chưa làm được |
+| 6 - Tài liệu                   | ✅ xong                                                         |
 
 **Đã thêm ở giai đoạn 3:**
 
@@ -104,7 +104,7 @@ Keycloak chuyển 8080 → **4100**; `config/topology.json` đặt `dev.mode = "
 `write-env-local.js`, `e2e/playwright.config.js`, ba script `keycloak-*.js` đọc
 topology; realm dev nhận thêm hai origin mới mà **vẫn giữ** hostname Docker.
 
-**Kết quả spike 3a — ĐẠT, không cần phương án B:**
+**Kết quả spike 3a - ĐẠT, không cần phương án B:**
 
 | Trình duyệt | cookie có `Domain=.tsudev.localhost` | cookie host-only |
 | ----------- | ------------------------------------ | ---------------- |
@@ -121,7 +121,7 @@ còn `localhost:3000`/`:3001`.
 ✓ Set-Cookie: next-auth.session-token=…; Domain=.tsudev.localhost; Path=/
 ✓ check-session-sharing qua proxy: main → forum giữ nguyên phiên (tsudev)
 ✓ e2e:session qua proxy: 1 passed
-✓ WebSocket upgrade (/_next/webpack-hmr): 101 qua proxy — HMR còn sống
+✓ WebSocket upgrade (/_next/webpack-hmr): 101 qua proxy - HMR còn sống
 ✓ host lạ → 404 kèm danh sách địa chỉ hợp lệ; upstream chết → 502 nêu rõ node
 ```
 
@@ -157,8 +157,8 @@ còn `localhost:3000`/`:3001`.
 | `scripts/topology/load.js`               | dẫn xuất URL ba tầng từ topology                   |
 | `scripts/topology/gen-env.js`            | đồng bộ `.env` + `.env.example`, có `--check`      |
 | `scripts/topology/check.js`              | cổng chặn hồi quy (3 quy tắc)                      |
-| `scripts/check-session-sharing.js`       | lưới an toàn — phiên xuyên origin, tầng HTTP       |
-| `e2e/tests/cross-origin-session.spec.js` | lưới an toàn — bản trình duyệt, chạy được trong CI |
+| `scripts/check-session-sharing.js`       | lưới an toàn - phiên xuyên origin, tầng HTTP       |
+| `e2e/tests/cross-origin-session.spec.js` | lưới an toàn - bản trình duyệt, chạy được trong CI |
 
 `scripts/verify-stack.js` và `e2e/playwright.config.js` đã chuyển sang đọc
 topology (hết hardcode). `npm run topology:check` đã gắn vào job `lint` của CI và
@@ -174,29 +174,29 @@ và tách làm hai project:
 | `full-stack` | `sso-upload.spec`           | + MinIO, Keycloak | ❌   |
 
 Chạy: `npm run e2e:session` (lưới an toàn) hoặc `npm run e2e` (tất cả).
-Job CI `e2e-session` chạy mọi push — chỉ cài chromium, không cần Postgres.
+Job CI `e2e-session` chạy mọi push - chỉ cài chromium, không cần Postgres.
 
 **Kết quả đo được:**
 
 ```
-✓ topology:check — 59 literal cổng, tất cả khớp topology (30 file miễn trừ)
+✓ topology:check - 59 literal cổng, tất cả khớp topology (30 file miễn trừ)
 ✓ .env / .env.example khớp topology
 ✓ check-session-sharing: main → forum giữ nguyên phiên (tsudev)
-✓ e2e:session — 1 passed (bấm link "Diễn đàn", sang đúng origin, còn phiên)
+✓ e2e:session - 1 passed (bấm link "Diễn đàn", sang đúng origin, còn phiên)
 ✓ 4 bộ test service: 29/29 (đã thử với REQUIRE_ROLE_ENFORCEMENT=true)
 ✓ npm run lint · npx prettier --check .
 ```
 
 `gen-env` chỉ **thêm** ba khoá vào `.env`/`.env.example`
 (`USER_SERVICE_URL`, `CONTENT_SERVICE_URL`, `STORAGE_SERVICE_URL`, giá trị trùng
-đúng fallback đang có trong mã) — **không giá trị nào bị đổi**. Giai đoạn 1 giữ
+đúng fallback đang có trong mã) - **không giá trị nào bị đổi**. Giai đoạn 1 giữ
 đúng cam kết không đổi hành vi.
 
 ---
 
 ## 2. Kiến trúc đích
 
-### 2.1 Ba tầng URL — đặt tên tách bạch
+### 2.1 Ba tầng URL - đặt tên tách bạch
 
 Nguyên nhân lẫn lộn hiện nay là ba khái niệm khác nhau dùng chung một kiểu tên
 biến. Tách rõ:
@@ -205,11 +205,11 @@ biến. Tách rõ:
 | ------------ | --------------------------- | --------------------------------- | --------------------------- | ----------------------- |
 | **PUBLIC**   | trình duyệt                 | `http://tsudev.localhost:8080`    | `https://tsudev.com`        | có, nhưng cần đổi realm |
 | **INTERNAL** | SSR / BFF / service↔service | `http://127.0.0.1:4001`           | `https://tsudev-content...` | tự do                   |
-| **IDENTITY** | ký vào token/chứng chỉ      | `TRUST_ISSUER`, `KEYCLOAK_ISSUER` | —                           | **cửa một chiều** (§5)  |
+| **IDENTITY** | ký vào token/chứng chỉ      | `TRUST_ISSUER`, `KEYCLOAK_ISSUER` | -                           | **cửa một chiều** (§5)  |
 
 Quy tắc bất di bất dịch sau tái cấu trúc:
 
-- Mã phía **server** không bao giờ gọi hostname công khai — luôn dùng tầng
+- Mã phía **server** không bao giờ gọi hostname công khai - luôn dùng tầng
   INTERNAL (`127.0.0.1:<port>`). Gọi vòng qua proxy là tự thêm một điểm hỏng.
 - Mã phía **trình duyệt** không bao giờ thấy tầng INTERNAL. Không có ngoại lệ
   cho `storage-service` (xem giai đoạn 4).
@@ -230,13 +230,13 @@ tsudev.        forum.        auth.         cdn.          (không có
 localhost      tsudev.       tsudev.       tsudev.        subdomain)
     │          localhost      localhost     localhost          │
 127.0.0.1:3000  :3001        :4100         :9000       (4000-4003)
-frontend-main  frontend-     Keycloak      MinIO        4 service —
+frontend-main  frontend-     Keycloak      MinIO        4 service -
                forum                                    chỉ SSR/BFF gọi
 ```
 
 **Vì sao `*.localhost` chứ không sửa `/etc/hosts`:** `localhost` không nằm trong
 Public Suffix List, nên trình duyệt coi `tsudev.localhost` là một registrable
-domain — cookie `.tsudev.localhost` chia sẻ được giữa các subdomain, **đúng
+domain - cookie `.tsudev.localhost` chia sẻ được giữa các subdomain, **đúng
 hành vi của `.tsudev.com` trên production**. Và không máy nào phải sửa file hệ
 thống.
 
@@ -260,16 +260,16 @@ Nguyên tắc: **cổng công khai giảm từ 5 xuống 1**; các cổng còn l
 
 | Thành phần      | Cổng cũ   | Cổng mới | Đổi?       | Lý do                                                                                               |
 | --------------- | --------- | -------- | ---------- | --------------------------------------------------------------------------------------------------- |
-| **dev-proxy**   | —         | **8080** | mới        | cổng vào duy nhất; 8080 không cần quyền root                                                        |
+| **dev-proxy**   | -         | **8080** | mới        | cổng vào duy nhất; 8080 không cần quyền root                                                        |
 | frontend-main   | 3000      | 3000     | giữ        | ổn định, đã ăn vào thói quen                                                                        |
-| frontend-forum  | 3001      | 3001     | giữ        | —                                                                                                   |
-| user-service    | 4000      | 4000     | giữ        | —                                                                                                   |
-| content-service | 4001      | 4001     | giữ        | —                                                                                                   |
-| storage-service | 4002      | 4002     | giữ        | —                                                                                                   |
-| trust-service   | 4003      | 4003     | giữ        | —                                                                                                   |
+| frontend-forum  | 3001      | 3001     | giữ        | -                                                                                                   |
+| user-service    | 4000      | 4000     | giữ        | -                                                                                                   |
+| content-service | 4001      | 4001     | giữ        | -                                                                                                   |
+| storage-service | 4002      | 4002     | giữ        | -                                                                                                   |
+| trust-service   | 4003      | 4003     | giữ        | -                                                                                                   |
 | **Keycloak**    | 8080      | **4100** | ĐỔI        | nhường 8080 cho proxy ⇒ **không cần `sudo`**. 8080 cũng là cổng bị va chạm nhiều nhất trên máy dev. |
 | PostgreSQL      | 5433/5432 | **5433** | thống nhất | khớp `CLAUDE.md`; sửa compose + CI                                                                  |
-| Redis           | 6379      | 6379     | giữ        | —                                                                                                   |
+| Redis           | 6379      | 6379     | giữ        | -                                                                                                   |
 | MinIO           | 9000      | 9000     | giữ        | ra ngoài qua `cdn.tsudev.localhost`                                                                 |
 
 Chỉ **một** thành phần đổi số cổng. Đây là chủ ý: tái cấu trúc này thắng nhờ
@@ -277,7 +277,7 @@ _bỏ được việc gõ cổng_, không nhờ đánh số lại.
 
 > Muốn URL sạch không có `:8080`? Đặt `DEV_PROXY_PORT=80` và cấp quyền một lần:
 > `sudo setcap cap_net_bind_service=+ep $(readlink -f $(which node))`. Mặc định
-> **không** làm điều này — 8080 chạy được ngay, zero-friction.
+> **không** làm điều này - 8080 chạy được ngay, zero-friction.
 
 ### 2.4 Hình trạng production
 
@@ -289,14 +289,14 @@ _bỏ được việc gõ cổng_, không nhờ đánh số lại.
 | `cdn.tsudev.com`    | R2 public bucket  | Cloudflare R2      | 📋 kế hoạch          |
 | _(không công khai)_ | 4 service backend | Render             | ⚠️ hiện đang public  |
 
-**Về việc "giấu" 4 service:** không thể chuyển sang Render private service —
+**Về việc "giấu" 4 service:** không thể chuyển sang Render private service -
 `frontend-main` chạy trên Cloudflare Workers, **nằm ngoài mạng nội bộ Render**,
 nên SSR/BFF của nó bắt buộc gọi qua Internet công cộng. Phương án thực tế:
 
-1. Giữ URL Render, **thêm cổng chặn `INTERNAL_API_TOKEN`** — middleware từ chối
+1. Giữ URL Render, **thêm cổng chặn `INTERNAL_API_TOKEN`** - middleware từ chối
    request không mang header đúng. Rẻ, làm được ngay. → giai đoạn 5.
 2. _(Tuỳ chọn, sau)_ Gộp về một `api.tsudev.com` bằng một Worker router định
-   tuyến theo tiền tố đường dẫn. Đẹp hơn, nhưng thêm một tầng phải bảo trì —
+   tuyến theo tiền tố đường dẫn. Đẹp hơn, nhưng thêm một tầng phải bảo trì -
    **không** nằm trong phạm vi kế hoạch này.
 
 ---
@@ -338,8 +338,8 @@ Một file mô tả toàn bộ hình trạng mạng, cho cả ba môi trường:
 | ----------------------------- | ------------------------------------------------------- | ------------------------------ |
 | Khối biến mạng trong `.env`   | `scripts/topology/gen-env.js`                           | gõ tay `.env` + `.env.example` |
 | `apps/*/.env.local`           | `scripts/write-env-local.js` (viết lại để đọc topology) | logic `NEXTAUTH_URL` hiện tại  |
-| Bảng định tuyến của dev-proxy | `scripts/dev-proxy.js`                                  | — (mới)                        |
-| Cổng kiểm tra CI              | `scripts/topology/check.js`                             | — (mới)                        |
+| Bảng định tuyến của dev-proxy | `scripts/dev-proxy.js`                                  | - (mới)                        |
+| Cổng kiểm tra CI              | `scripts/topology/check.js`                             | - (mới)                        |
 
 `gen-env.js` ghi vào `.env` **giữa hai dấu mốc**, không đụng phần người dùng tự
 sửa:
@@ -351,7 +351,7 @@ NEXT_PUBLIC_MAIN_URL=http://tsudev.localhost:8080
 # <<< topology <<<
 ```
 
-### 3.3 `topology:check` — cổng chặn hồi quy
+### 3.3 `topology:check` - cổng chặn hồi quy
 
 Chạy trong job `lint` của CI và trong `.husky/pre-push`. Ba khẳng định:
 
@@ -370,7 +370,7 @@ Không có cổng chặn này thì cả kế hoạch chỉ mua được vài th�
 Mỗi giai đoạn tự đứng được: dừng ở bất kỳ ranh giới nào cũng để lại hệ thống
 chạy được. Một nhánh git cho một giai đoạn (giao thức 3 của `AGENTS.md`).
 
-### Giai đoạn 0 — Lưới an toàn (trước khi đụng gì)
+### Giai đoạn 0 - Lưới an toàn (trước khi đụng gì)
 
 **Agent chủ trì:** `qa-test`
 
@@ -389,7 +389,7 @@ Refactor này dễ làm gãy nhất đúng thứ **chưa có test nào phủ**: 
 
 ---
 
-### Giai đoạn 1 — Dựng nguồn sự thật (chưa đổi giá trị nào)
+### Giai đoạn 1 - Dựng nguồn sự thật (chưa đổi giá trị nào)
 
 **Agent chủ trì:** `infra-deploy`
 
@@ -398,7 +398,7 @@ Refactor này dễ làm gãy nhất đúng thứ **chưa có test nào phủ**: 
 - Thêm `scripts/topology/{load,gen-env,check}.js`, script npm
   `topology:gen` / `topology:check`.
 - Gắn `topology:check` vào CI job `lint` và `.husky/pre-push`.
-- Nạp `config/topology.allow` bằng đúng 17 vị trí hardcode hiện có — mỗi dòng
+- Nạp `config/topology.allow` bằng đúng 17 vị trí hardcode hiện có - mỗi dòng
   một chú thích "sẽ gỡ ở giai đoạn N".
 
 **Nghiệm thu:** `npm run dev:local` hành vi **không đổi**; `topology:check`
@@ -408,11 +408,11 @@ xanh; thử thêm một cổng không có trong topology vào mã ⇒ check ph�
 
 ---
 
-### Giai đoạn 2 — Dọn nợ môi trường
+### Giai đoạn 2 - Dọn nợ môi trường
 
 **Agent chủ trì:** `infra-deploy`, phối hợp `backend-api` + `qa-test`
 
-Sửa khiếm khuyết 1, 2, 6, 7 ở §1.3 — độc lập với việc đổi cổng, làm trước để
+Sửa khiếm khuyết 1, 2, 6, 7 ở §1.3 - độc lập với việc đổi cổng, làm trước để
 giai đoạn sau không phải gánh:
 
 - Xoá `NEXT_PUBLIC_STORAGE_URL` (chết) khỏi `.env.example`,
@@ -427,9 +427,9 @@ giai đoạn sau không phải gánh:
 **Nghiệm thu phần A:** `grep -r NEXT_PUBLIC_STORAGE_URL` = 0 lượt; `topology:check`
 xanh với override `docker` đã gỡ; 4 bộ test service xanh (29/29).
 
-### 2B — `REQUIRE_ROLE_ENFORCEMENT=true`: **KHÔNG bật, đang bị chặn** 🔴
+### 2B - `REQUIRE_ROLE_ENFORCEMENT=true`: **KHÔNG bật, đang bị chặn** 🔴
 
-> **Đã giải quyết theo hướng khác — mục này giữ làm biên bản, đừng làm theo.**
+> **Đã giải quyết theo hướng khác - mục này giữ làm biên bản, đừng làm theo.**
 > Thay vì gỡ vướng để bật cờ, cả nhánh đọc claim Keycloak đã bị gỡ bỏ; phân
 > quyền nay chỉ đọc `User.role` từ DB qua `@tsudev/auth` và fail closed.
 > Xem [auth.md](auth.md).
@@ -437,40 +437,40 @@ xanh với override `docker` đã gỡ; 4 bộ test service xanh (29/29).
 Kế hoạch ban đầu định bật cờ này cho production. **Khảo sát cho thấy làm vậy sẽ
 gây mất dịch vụ, không phải siết bảo mật.** Bằng chứng:
 
-Chỉ **5 trên 75** route có `requireRole` — phần còn lại chưa từng được gác:
+Chỉ **5 trên 75** route có `requireRole` - phần còn lại chưa từng được gác:
 
 | Service | Route có `requireRole`                            | Vai trò đòi hỏi                     |
 | ------- | ------------------------------------------------- | ----------------------------------- |
 | content | `GET /api/posts` (1/38)                           | `content:read`                      |
 | user    | `GET /api/users` (1/3)                            | `user:read`                         |
 | storage | `GET/POST /api/presign`, `POST /api/upload` (3/5) | `storage:presign`, `storage:upload` |
-| trust   | — (0/29)                                          | —                                   |
+| trust   | - (0/29)                                          | -                                   |
 
 Và **không realm nào khai một vai trò nào** (khiếm khuyết #10). Nên bật cờ lên
-thì năm route đó trả **403 cho mọi người, vĩnh viễn** — kể cả quản trị viên,
+thì năm route đó trả **403 cho mọi người, vĩnh viễn** - kể cả quản trị viên,
 vì không ai có cách nào lấy được vai trò không tồn tại. Cụ thể là mất: danh sách
 bài blog, danh sách thành viên, và toàn bộ luồng tải tệp.
 
 Thêm nữa, hai route đầu là **đọc công khai**. Gác `GET /api/posts` sau một vai
 trò Keycloak là sai về thiết kế cho một trang blog công khai, độc lập với chuyện
-vai trò có tồn tại hay không — nó cho thấy ba lời gọi `requireRole` này là giàn
+vai trò có tồn tại hay không - nó cho thấy ba lời gọi `requireRole` này là giàn
 giáo mẫu, chưa phải chính sách thật.
 
 **Điều kiện tiên quyết trước khi bật:**
 
-1. Quyết định route nào công khai / cần đăng nhập / cần vai trò — hiện chưa có
+1. Quyết định route nào công khai / cần đăng nhập / cần vai trò - hiện chưa có
    tài liệu nào nói.
 2. Khai vai trò tương ứng vào `realm-export.json` **và** `realm-export.prod.json`,
    gán vào group/user mặc định.
 3. Gỡ `requireRole` khỏi các route đọc công khai.
 4. Chỉ khi đó mới đặt `REQUIRE_ROLE_ENFORCEMENT=true`.
 
-Đây là việc **thiết kế chính sách xác thực**, không phải việc cổng/tên miền —
+Đây là việc **thiết kế chính sách xác thực**, không phải việc cổng/tên miền -
 nên tách khỏi kế hoạch này thành hạng mục riêng.
 
 ---
 
-### Giai đoạn 3 — Dev-proxy + subdomain _(giai đoạn trọng tâm)_
+### Giai đoạn 3 - Dev-proxy + subdomain _(giai đoạn trọng tâm)_
 
 **Agent chủ trì:** `infra-deploy` → `frontend-web`
 
@@ -496,7 +496,7 @@ Firefox**.
 
 Node thuần (`node:http` + `undici`), không thêm dependency nặng. Định tuyến theo
 `Host`, upstream ghi `127.0.0.1:<port>`, chuyển tiếp cả WebSocket (HMR của Next
-dùng WS — **bỏ sót là mất hot-reload**, triệu chứng dễ chẩn nhầm thành lỗi
+dùng WS - **bỏ sót là mất hot-reload**, triệu chứng dễ chẩn nhầm thành lỗi
 Next).
 
 **3d. `run-dev.js` + `write-env-local.js`**
@@ -521,7 +521,7 @@ lại** hostname Docker (`http://frontend-main:3000`) cho compose và E2E.
 
 ---
 
-### Giai đoạn 4 — Đóng đường tắt trình duyệt → service
+### Giai đoạn 4 - Đóng đường tắt trình duyệt → service
 
 **Agent chủ trì:** `backend-api` → `frontend-web` _(đúng thứ tự chuỗi xuyên vùng
 của `AGENTS.md`)_
@@ -541,7 +541,7 @@ quy tắc "trình duyệt không gọi thẳng cổng service".
 
 ---
 
-### Giai đoạn 5 — Hình trạng production
+### Giai đoạn 5 - Hình trạng production
 
 **Agent chủ trì:** `infra-deploy`, phối hợp `trust-seal`
 
@@ -553,10 +553,10 @@ quy tắc "trình duyệt không gọi thẳng cổng service".
 - `realm-export.prod.json`: thêm redirect URI cho **forum** (hiện chưa có dòng
   nào) và cho domain thật.
 - `INTERNAL_API_TOKEN` chặn bốn service Render.
-- Đường deploy `frontend-forum` — **hạng mục lớn riêng**: forum ở Next 13, main ở
+- Đường deploy `frontend-forum` - **hạng mục lớn riêng**: forum ở Next 13, main ở
   Next 15; `@opennextjs/cloudflare` hỗ trợ theo phiên bản Next. Hai lựa chọn:
   nâng forum lên Next 15 rồi dùng chung đường Workers, hoặc deploy forum lên
-  Render bằng Docker. **Quyết định này nên tách thành một kế hoạch riêng** — nó
+  Render bằng Docker. **Quyết định này nên tách thành một kế hoạch riêng** - nó
   không phải việc về cổng/tên miền.
 
 **Nghiệm thu:** đăng nhập ở `tsudev.com` → sang `forum.tsudev.com` còn phiên;
@@ -565,7 +565,7 @@ quy tắc "trình duyệt không gọi thẳng cổng service".
 
 ---
 
-### Giai đoạn 6 — Tài liệu
+### Giai đoạn 6 - Tài liệu
 
 **Agent chủ trì:** `docs-curator`
 
@@ -573,12 +573,12 @@ quy tắc "trình duyệt không gọi thẳng cổng service".
 `infrastructure/README.md`, `README.md`, và **cuối cùng** bảng cổng trong
 `CLAUDE.md`.
 
-`CLAUDE.md` sửa **sau chót, ở cuối phiên** — chính file đó dặn rằng sửa nó giữa
+`CLAUDE.md` sửa **sau chót, ở cuối phiên** - chính file đó dặn rằng sửa nó giữa
 phiên là bust cache toàn bộ phần sau.
 
 ---
 
-## 5. Cửa một chiều — đọc trước khi bước qua
+## 5. Cửa một chiều - đọc trước khi bước qua
 
 ### 5.1 `TRUST_ISSUER` 🔴
 
@@ -591,12 +591,12 @@ theo **`kid`**, không đối chiếu `iss`. Nghĩa là đổi `TRUST_ISSUER` **
 hỏng việc xác minh chứng chỉ cũ.
 
 Cái thật sự vĩnh viễn là **URL nằm trong payload đã ký**: chứng chỉ cũ mãi mang
-`iss` và `verify: <domain cũ>/trust/verify/<serial>`. Hệ quả là _link rot_ —
+`iss` và `verify: <domain cũ>/trust/verify/<serial>`. Hệ quả là _link rot_ -
 huy hiệu đã phát hành trỏ về domain cũ. Cách vá là **giữ domain cũ redirect**,
 chứ không phải sửa cấu hình. Vẫn nên đặt đúng trước lần cấp đầu tiên, nhưng đây
 là 🟠 chứ không phải 🔴.
 
-Hiện production đang đặt `https://tsudev.dev-nguyentrangtinhsu.workers.dev` —
+Hiện production đang đặt `https://tsudev.dev-nguyentrangtinhsu.workers.dev` -
 một URL tạm, gần như chắc chắn không phải đích cuối.
 
 **Bắt buộc, theo thứ tự:**
@@ -609,7 +609,7 @@ một URL tạm, gần như chắc chắn không phải đích cuối.
 
 **Đã làm:** `render.yaml` đặt `TRUST_ISSUER=https://tsudev.com` (thay URL
 `*.workers.dev` tạm). DB local có **0** chứng chỉ. ⚠️ **Chưa kiểm được DB
-production (Neon)** — người có quyền truy cập phải chạy
+production (Neon)** - người có quyền truy cập phải chạy
 `SELECT count(*) FROM "TrustCertificate"` trên đó trước khi phát hành lần tới.
 
 ### 5.2 Realm Keycloak
@@ -620,7 +620,7 @@ lúc build. Cập nhật realm **trước** khi chuyển DNS.
 ### 5.3 Migration Prisma
 
 Kế hoạch này **không đụng** `packages/db`. Nếu phát sinh nhu cầu, migration đã
-áp dụng là bất biến — tạo migration mới.
+áp dụng là bất biến - tạo migration mới.
 
 ---
 
@@ -632,7 +632,7 @@ Kế hoạch này **không đụng** `packages/db`. Nếu phát sinh nhu cầu, 
 | Proxy nuốt WebSocket ⇒ mất hot-reload                     | cao        | trung bình         | tiêu chí nghiệm thu riêng ở 3d                          |
 | `*.localhost` ra `::1` gây vòng lặp proxy                 | trung bình | cao                | upstream ghi `127.0.0.1` tường minh (§2.2)              |
 | `REQUIRE_ROLE_ENFORCEMENT=true` khoá nhầm route đang dùng | trung bình | cao                | tách PR riêng; 4 bộ test bật cờ                         |
-| Đổi `TRUST_ISSUER` sau khi đã cấp chứng chỉ               | thấp       | **không hồi phục** | §5.1 — đếm trước, đổi sau                               |
+| Đổi `TRUST_ISSUER` sau khi đã cấp chứng chỉ               | thấp       | **không hồi phục** | §5.1 - đếm trước, đổi sau                               |
 | Kéo dài nửa chừng, repo mang hai hình trạng cùng lúc      | cao        | trung bình         | mỗi giai đoạn tự đứng được; cờ `DEV_PROXY=0`            |
 
 ---
@@ -655,7 +655,7 @@ Kế hoạch này **không đụng** `packages/db`. Nếu phát sinh nhu cầu, 
 
 ---
 
-## 7.5 Còn lại — cần quyền truy cập mà tôi không có
+## 7.5 Còn lại - cần quyền truy cập mà tôi không có
 
 Phần mã của giai đoạn 5 đã xong. Phần dưới đây cần dashboard/tài khoản:
 
@@ -684,4 +684,4 @@ mới) mới chỉ được kiểm bằng parse YAML, chưa chạy thật.
   phiên bản framework, chỉ **giao thoa** với đường deploy chứ không thuộc phạm vi
   cổng/tên miền.
 - **Không** ép HTTPS ở dev. Cookie `Secure` cần HTTPS, nhưng `.localhost` là
-  secure context sẵn theo chuẩn — dựng CA nội bộ là chi phí không cần thiết.
+  secure context sẵn theo chuẩn - dựng CA nội bộ là chi phí không cần thiết.

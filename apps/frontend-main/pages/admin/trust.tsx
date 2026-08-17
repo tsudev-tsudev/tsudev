@@ -26,7 +26,7 @@ const labelCls = 'block text-sm font-medium text-inksoft mb-1.5';
 export default function AdminTrust() {
   const { data: session, status } = useSession();
   // useState KHÔNG có tham số kiểu sẽ suy ra `never[]` cho `[]` và `null` cho
-  // `null` — nghĩa là mọi trường đọc từ dữ liệu API đều báo lỗi "không tồn tại".
+  // `null` - nghĩa là mọi trường đọc từ dữ liệu API đều báo lỗi "không tồn tại".
   // Khai kiểu ở đây là chỗ duy nhất mô tả hợp đồng giữa trang này và
   // /api/trust/admin/*.
   const [denied, setDenied] = useState(false);
@@ -38,7 +38,7 @@ export default function AdminTrust() {
   const [detail, setDetail] = useState<AdminApplicationDetail | null>(null);
   const [invites, setInvites] = useState<TrustInvite[]>([]);
   // Mã thô hiện ĐÚNG MỘT LẦN, ngay sau khi cấp. Nó không nằm trong `invites`
-  // và không đọc lại được từ đâu — DB chỉ giữ SHA-256.
+  // và không đọc lại được từ đâu - DB chỉ giữ SHA-256.
   const [freshCode, setFreshCode] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({ label: '', maxUses: '1', expiresInDays: '' });
   const [form, setForm] = useState({ basis: 'EVIDENCE_REVIEWED', note: '', scope: '' });
@@ -65,7 +65,7 @@ export default function AdminTrust() {
     setCerts(c);
     setAudit(a);
     setRecheck(cfg);
-    // Mã mời do auth-service quản, không phải trust-service — đổi mã ghi vào
+    // Mã mời do auth-service quản, không phải trust-service - đổi mã ghi vào
     // User.role nên nó thuộc ranh giới danh tính. Đường đi cũng khác: proxy CÓ
     // PHIÊN /api/account/*, không phải /api/trust/*.
     const inv = await fetch('/api/account/invite/list', { method: 'POST' });
@@ -105,7 +105,7 @@ export default function AdminTrust() {
         setErr(d.error || `Lỗi ${r.status}`);
         return;
       }
-      // okMsg có thể là hàm để đọc kết quả trả về — tái kiểm cần báo con số thật.
+      // okMsg có thể là hàm để đọc kết quả trả về - tái kiểm cần báo con số thật.
       setMsg(typeof okMsg === 'function' ? okMsg(d) : okMsg);
       setDetail(null);
       await load();
@@ -249,7 +249,7 @@ export default function AdminTrust() {
               </div>
               <div className="sm:col-span-2">
                 <dt className="text-muted">Phạm vi khách khai</dt>
-                <dd className="text-ink">{detail.scope || '—'}</dd>
+                <dd className="text-ink">{detail.scope || '-'}</dd>
               </div>
             </dl>
 
@@ -447,14 +447,14 @@ export default function AdminTrust() {
                 Hệ thống tự kiểm mỗi {recheck.intervalMin} phút, mỗi lượt tối đa {recheck.batch}{' '}
                 chứng chỉ, chỉ kiểm lại chứng chỉ đã cũ hơn {Math.round(recheck.staleAfterMin / 60)}{' '}
                 giờ. Chứng chỉ trượt {recheck.graceFailures} lần{' '}
-                <strong className="text-inksoft">liên tiếp</strong> sẽ tự bị đình chỉ — tự đình chỉ,
+                <strong className="text-inksoft">liên tiếp</strong> sẽ tự bị đình chỉ - tự đình chỉ,
                 không bao giờ tự thu hồi. Xác minh lại được thì hệ thống tự bỏ đình chỉ, nhưng chỉ
                 với những chứng chỉ do chính nó đình chỉ.
               </>
             ) : recheck ? (
               <>
                 Bộ hẹn giờ trong tiến trình đang{' '}
-                <strong className="text-[var(--warning)]">tắt</strong> — tái kiểm phải do cron bên
+                <strong className="text-[var(--warning)]">tắt</strong> - tái kiểm phải do cron bên
                 ngoài hoặc nút dưới đây kích hoạt.
               </>
             ) : (
@@ -499,7 +499,7 @@ export default function AdminTrust() {
         <section className="mb-14">
           <h2 className="text-lg font-semibold text-ink mb-1">Mã mời</h2>
           <p className="text-sm text-muted mb-4 max-w-2xl leading-relaxed">
-            Đổi mã hợp lệ nâng tài khoản lên <span className="font-mono text-xs">VIP</span> — mức
+            Đổi mã hợp lệ nâng tài khoản lên <span className="font-mono text-xs">VIP</span> - mức
             tối đa mà mã mời cấp được, và trần đó nằm trong mã nguồn chứ không trong dữ liệu. Mã thô
             chỉ hiện một lần ngay sau khi cấp; hệ thống chỉ lưu bản băm.
           </p>
@@ -507,7 +507,7 @@ export default function AdminTrust() {
           {freshCode && (
             <div className="mb-4 rounded-md border border-hairstrong bg-panel p-4">
               <p className="text-sm text-inksoft">
-                Mã vừa cấp — chép lại ngay, nó không hiện lại lần nào nữa:
+                Mã vừa cấp - chép lại ngay, nó không hiện lại lần nào nữa:
               </p>
               <p className="mt-2 font-mono text-lg font-bold tracking-wider text-ink select-all">
                 {freshCode}

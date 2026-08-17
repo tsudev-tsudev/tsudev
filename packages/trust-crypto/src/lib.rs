@@ -2,7 +2,7 @@
 //!
 //! # Vì sao module này tồn tại
 //!
-//! Bản TypeScript dùng `node:crypto`, tức là OpenSSL — một bản cài đặt đã qua
+//! Bản TypeScript dùng `node:crypto`, tức là OpenSSL - một bản cài đặt đã qua
 //! kiểm toán. Module này **không** làm thuật toán an toàn hơn. Ba thứ nó mua
 //! được, và chỉ ba thứ đó:
 //!
@@ -18,7 +18,7 @@
 //! 3. **Dùng lại được ở edge.** Cùng một artifact chạy trên Node lẫn Cloudflare
 //!    Workers, nơi `node:crypto` không có.
 //!
-//! Chuỗi PEM vẫn nằm trong `process.env.TRUST_SIGNING_KEY` ở cả hai thiết kế —
+//! Chuỗi PEM vẫn nằm trong `process.env.TRUST_SIGNING_KEY` ở cả hai thiết kế -
 //! điều đó module này không sửa được, và đừng ai tưởng là nó sửa được.
 //!
 //! # Giao diện
@@ -35,7 +35,7 @@ use std::alloc::{alloc as sys_alloc, dealloc as sys_dealloc, Layout};
 use zeroize::Zeroize;
 
 /// PKCS#8 của Ed25519 có tiền tố DER cố định, rồi tới đúng 32 byte hạt giống.
-/// Cùng hằng số này đã có trong `signing.ts` — Ed25519 không có tham số nào để
+/// Cùng hằng số này đã có trong `signing.ts` - Ed25519 không có tham số nào để
 /// thương lượng, nên đây là toàn bộ việc "phân giải".
 const PKCS8_PREFIX: [u8; 16] = [
     0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20,
@@ -55,7 +55,7 @@ pub const ERR_BAD_SIGNATURE_LEN: i32 = -4;
 pub const ERR_NULL_POINTER: i32 = -5;
 
 // ---------------------------------------------------------------------------
-// Cấp phát bộ nhớ — phía JS gọi `alloc`, ghi dữ liệu vào, gọi hàm, rồi `dealloc`.
+// Cấp phát bộ nhớ - phía JS gọi `alloc`, ghi dữ liệu vào, gọi hàm, rồi `dealloc`.
 // ---------------------------------------------------------------------------
 
 /// # Safety
@@ -91,7 +91,7 @@ pub unsafe extern "C" fn dealloc(ptr: *mut u8, len: usize) {
 // ---------------------------------------------------------------------------
 
 /// Bóc vỏ PEM và giải mã base64. Bộ đệm trung gian được xoá trước khi trả về
-/// nếu có lỗi — PEM khoá riêng không được phép nằm lại trong bộ nhớ đã giải phóng.
+/// nếu có lỗi - PEM khoá riêng không được phép nằm lại trong bộ nhớ đã giải phóng.
 fn der_from_pem(pem: &str) -> Result<Vec<u8>, i32> {
     let mut body = String::with_capacity(pem.len());
     for line in pem.lines() {
@@ -282,7 +282,7 @@ pub unsafe extern "C" fn verify(
 mod tests {
     use super::*;
 
-    /// Cùng hạt giống với khoá dev trong `signing.ts` — đúng 32 byte, công khai
+    /// Cùng hạt giống với khoá dev trong `signing.ts` - đúng 32 byte, công khai
     /// có chủ đích, không bao giờ dùng ngoài môi trường phát triển.
     const DEV_SEED: &[u8; 32] = b"tsudev-trust-dev-key-do-not-use!";
 
