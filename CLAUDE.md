@@ -8,13 +8,19 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** — sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-🔴 **Đọc [`HANDOFF.md`](HANDOFF.md) §0.5 TRƯỚC KHI LÀM BẤT CỨ VIỆC GÌ.**
-Đợt TypeScript/Rust + xác thực tự quản lý + tái cấu trúc giao diện đã phát hành
-lên production. Nhưng **tài khoản ADMIN duy nhất trên production chưa có mật
-khẩu**, nên hiện KHÔNG đăng nhập được và không nghiệm thu được gì. Đó là việc
-chặn. Phiếu đó cũng liệt kê việc còn dở (rà giao diện bằng mắt, đổi mật khẩu
-trong ứng dụng, ping giữ ấm, `npm audit`, CSP thật). Xong hết thì xoá file và
-xoá cả đoạn này.
+⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay** — mục "Bắt đầu từ đâu"
+cho thứ tự việc còn dở. Không còn việc chặn nào; production đang chạy và đăng
+nhập được.
+
+Đang dở giữa chừng: **kế hoạch ba đợt cho Con dấu tín nhiệm**
+([`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md)).
+Đợt 1 (gỡ tín dụng) đã phát hành; còn đợt 2 (mã mời) và đợt 3 (gác bề mặt).
+⚠️ Hai đợt migration chạy NGƯỢC chiều nhau — đọc kế hoạch trước khi viết mã.
+
+`HANDOFF.md` §0.7 ghi bốn kỹ thuật đã trả giá để học (dấu hiệu bản mới đã lên
+sóng, bẫy `--shadow-database-url`, cách khảo sát bằng grep, và
+`wrangler.jsonc` không được sinh tự động). Xong hết §1 thì xoá file và xoá cả
+đoạn này.
 
 ## Bản đồ
 
