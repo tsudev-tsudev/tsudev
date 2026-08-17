@@ -204,6 +204,11 @@ Nhánh **`feat/minio-user-space`** (MinIO user-space cho dev: `scripts/start-min
 `docs/development.md`) **không phải của phiên 3**. Nó xuất hiện trong cây làm
 việc giữa phiên và đã suýt bị `git add -A` quét vào PR #12.
 
+⚠️ **Nhánh đó CHƯA được đẩy lên remote** — commit `2776c15` chỉ tồn tại trên máy
+này, không có upstream. Nó không phải việc của phiên 3 nên phiên 3 không đẩy hộ,
+nhưng phiên sau cần biết: xoá nhánh hay dựng lại máy là mất hẳn. Hỏi chủ dự án
+trước khi đụng vào.
+
 Bài học dùng lại được: **trước khi commit, đối chiếu danh sách staged với danh
 sách tệp mình thực sự sửa.** `git status --short` trước và sau khi làm việc,
 hoặc đơn giản là `ls -l --time-style=+%H:%M` để xem mtime — tệp của người khác
