@@ -269,7 +269,6 @@ app.get(
         criteria: p.criteria,
         evidenceSpec: p.evidenceSpec,
         validityDays: p.validityDays,
-        feeCredits: p.feeCredits,
         badgeVariant: p.badgeVariant,
       }))
     )
@@ -291,7 +290,6 @@ app.get(
       criteria: p.criteria,
       evidenceSpec: p.evidenceSpec,
       validityDays: p.validityDays,
-      feeCredits: p.feeCredits,
       badgeVariant: p.badgeVariant,
       issuedCount: issued,
     })
@@ -697,7 +695,7 @@ app.post(
       appRec.id,
       `${program.slug} @ ${domain.hostname}`
     )
-    res.status(201).json({ id: appRec.id, status: appRec.status, feeCredits: program.feeCredits })
+    res.status(201).json({ id: appRec.id, status: appRec.status })
   })
 )
 
@@ -729,7 +727,13 @@ app.post(
   })
 )
 
-/** Nộp đơn — trừ credits ở đây, trong cùng transaction với việc đổi trạng thái. */
+/**
+ * Nộp đơn.
+ *
+ * KHÔNG THU PHÍ. Cơ chế tín dụng đã bị gỡ khỏi dự án — mọi chương trình dấu đều
+ * miễn phí. Trước đây chỗ này trừ `User.credits` trong cùng transaction với việc
+ * đổi trạng thái, và chỉ thu ở lần nộp đầu.
+ */
 app.post(
   '/api/trust/applications/:id/submit',
   asyncHandler(async (req, res) => {
@@ -762,34 +766,21 @@ app.post(
       })
     }
 
-    // Chỉ thu phí ở lần nộp đầu; nộp lại sau NEEDS_INFO không tính tiền tiếp.
-    const fee = a.feeCharged > 0 ? 0 : a.program.feeCredits || 0
-    if (fee > 0) {
-      const fresh = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { credits: true },
-      })
-      if (!fresh || fresh.credits < fee)
-        return res.status(400).json({ error: `Không đủ tín dụng — cần ${fee}` })
-    }
-
-    const updated = await prisma.$transaction(async (tx) => {
-      if (fee > 0)
-        await tx.user.update({ where: { id: user.id }, data: { credits: { decrement: fee } } })
-      return tx.sealApplication.update({
-        where: { id: a.id },
-        data: { status: 'SUBMITTED', submittedAt: new Date(), feeCharged: { increment: fee } },
-      })
+    // Không còn transaction: trước đây cần nó để trừ tín dụng và đổi trạng thái
+    // NGUYÊN TỬ với nhau. Nay chỉ còn một phép ghi, nên `$transaction` quanh nó
+    // không bảo đảm thêm điều gì mà chỉ làm người đọc tưởng có bất biến nào đó.
+    const updated = await prisma.sealApplication.update({
+      where: { id: a.id },
+      data: { status: 'SUBMITTED', submittedAt: new Date() },
     })
     await audit(
       user,
       'APPLICATION_SUBMIT',
       'SealApplication',
       a.id,
-      `${a.program.slug} @ ${a.domain.hostname}`,
-      fee ? `Thu ${fee} credits` : 'Nộp lại, không thu phí'
+      `${a.program.slug} @ ${a.domain.hostname}`
     )
-    res.json({ status: updated.status, feeCharged: fee })
+    res.json({ status: updated.status })
   })
 )
 
@@ -811,7 +802,6 @@ app.get(
         reviewNote: a.reviewNote,
         program: { slug: a.program.slug, name: a.program.name },
         hostname: a.domain.hostname,
-        feeCharged: a.feeCharged,
         submittedAt: a.submittedAt,
         decidedAt: a.decidedAt,
         createdAt: a.createdAt,
@@ -855,7 +845,6 @@ app.get(
         verifiedAt: a.domain.verifiedAt,
       },
       evidence: a.evidence,
-      feeCharged: a.feeCharged,
       submittedAt: a.submittedAt,
       decidedAt: a.decidedAt,
       createdAt: a.createdAt,
@@ -941,7 +930,6 @@ app.get(
         organization: a.org.name,
         contactEmail: a.org.contactEmail,
         evidenceCount: a.evidence.length,
-        feeCharged: a.feeCharged,
         submittedAt: a.submittedAt,
         createdAt: a.createdAt,
       }))

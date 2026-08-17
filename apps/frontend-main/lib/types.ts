@@ -69,7 +69,6 @@ export type TrustProgram = {
   descriptionMd?: string | null;
   badgeVariant?: string | null;
   validityDays?: number | null;
-  feeCredits?: number | null;
   evidenceSpec?: EvidenceSpecItem[] | null;
   criteria?: ProgramCriterion[] | null;
   /** Số chứng chỉ đã cấp theo chương trình này. */
@@ -187,7 +186,6 @@ export type AdminApplication = {
   organization?: string;
   contactEmail?: string | null;
   evidenceCount?: number;
-  feeCharged?: number;
   submittedAt?: string | null;
   createdAt?: string | null;
 };
@@ -282,7 +280,6 @@ export type PortalApplication = {
   scope?: string | null;
   note?: string | null;
   reviewNote?: string | null;
-  feeCharged?: number;
   hostname?: string;
   program?: { slug: string; name: string } | null;
   /** Có khi đơn đã được duyệt và cấp chứng chỉ. */

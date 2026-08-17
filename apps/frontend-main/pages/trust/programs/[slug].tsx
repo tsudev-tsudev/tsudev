@@ -29,8 +29,9 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
 
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-3xl md:text-4xl font-bold text-ink">{program.name}</h1>
-          <Badge tone="neutral" mono>
-            {(program.feeCredits ?? 0) > 0 ? `${program.feeCredits} tín dụng` : 'miễn phí'}
+          {/* Mọi chương trình dấu đều miễn phí — cơ chế tín dụng đã được gỡ. */}
+          <Badge tone="success" mono>
+            miễn phí
           </Badge>
         </div>
         <p className="mt-3 text-lg text-inksoft leading-relaxed">{program.summary}</p>

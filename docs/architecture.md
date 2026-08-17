@@ -101,10 +101,11 @@ microservice về mặt tiến trình, không phải về mặt dữ liệu.
 
 ## Điểm lệch cần biết
 
-- **`User.credits` KHÔNG phải di sản của chợ ký quỹ.** Trust-service thu phí nộp
-  đơn cấp dấu bằng cột này, trong cùng transaction với việc đổi trạng thái đơn.
-  Xoá theo vì tưởng là ví của chợ thì hỏng luồng nộp đơn, và **không test nào
-  bắt được**.
+- **Tín dụng đã bị gỡ (16/08/2026).** `User.credits`, `SealProgram.feeCredits`,
+  `SealApplication.feeCharged` không còn; mọi chương trình dấu miễn phí. Trước
+  đó `credits` là bẫy: tên gợi ý ví của chợ ký quỹ đã xoá, nhưng trust-service
+  dùng nó để thu phí nộp đơn. Đường nộp đơn nay có test riêng
+  (`applicationSubmit.test.ts`) nên bẫy đó không tái diễn.
 - **Uy tín không phải điểm số.** `ReputationEvent` và `User.reputation` đã bị
   xoá. "Uy tín" nay là hồ sơ tổ chức (`/trust/org/<id>`), dẫn ra từ dữ liệu cấp
   dấu đã có: chứng chỉ hiệu lực, tên miền đã xác minh, thâm niên, tỉ lệ vượt

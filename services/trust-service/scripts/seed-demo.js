@@ -142,7 +142,6 @@ async function createOne(spec, issuer, now) {
       decidedAt: now,
       reviewerId: issuer.id,
       reviewerName: issuer.displayName || issuer.username,
-      feeCharged: program.feeCredits || 0,
     },
   })
 

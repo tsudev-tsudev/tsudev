@@ -42,9 +42,6 @@ model User {
   avatarUrl   String?
   bio         String?
   role        Role     @default(MEMBER)
-  /// Đơn vị thu phí khi nộp đơn xin cấp dấu — trust-service trừ trong cùng
-  /// transaction với việc đổi trạng thái đơn. KHÔNG phải tiền tệ của chợ cũ.
-  credits     Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -355,8 +352,6 @@ model SealProgram {
   /// Loại bằng chứng bắt buộc, dạng [{ kind, label, required }].
   evidenceSpec Json
   validityDays Int     @default(365)
-  /// Phí nộp đơn tính bằng credits (User.credits).
-  feeCredits   Int     @default(0)
   /// Biến thể huy hiệu: quyết định màu/nhãn khi render SVG.
   badgeVariant String  @default("default")
   active       Boolean @default(true)
@@ -381,7 +376,6 @@ model SealApplication {
   scope        String?
   /// Câu trả lời của khách cho từng tiêu chí, dạng { [criteriaKey]: value }.
   answers      Json?
-  feeCharged   Int                   @default(0)
   submittedAt  DateTime?
   reviewerId   String?
   reviewerName String?

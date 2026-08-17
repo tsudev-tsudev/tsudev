@@ -295,6 +295,12 @@ TrustOrganization User`.
 hỏng luồng nộp đơn — và test hiện có sẽ **không** bắt được, vì không test nào
 chạm đường thu phí. Đã ghi chú ngay trên trường trong `schema.prisma`.
 
+> **Cập nhật 16/08/2026:** `credits` NAY ĐÃ ĐƯỢC GỠ, cùng `feeCredits` và
+> `feeCharged` — theo quyết định đưa site thành dự án cá nhân miễn phí, không
+> phải vì nhầm nó với ví của chợ. Lần gỡ đó đi kèm
+> `services/trust-service/test/applicationSubmit.test.ts`, thứ mà đoạn trên nói
+> là chưa có. Xem `docs/refactor-trust-invite-access.md`.
+
 **Gỡ theo:**
 
 - `packages/types`: bỏ `REP`, `RANK_TIERS`, `rankFor` — hết nơi dùng.

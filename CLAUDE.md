@@ -186,9 +186,13 @@ nguồn là hiện trạng; TSD là đích đến.
   `currentUser`) cũng vậy — và hai bản cục bộ chính là hai nơi phép so sánh
   `sessionVersion` bị bỏ sót, nên thu hồi phiên không có tác dụng ở đó. Đừng
   dựng lại bản cục bộ trong service.
-- **`User.credits` KHÔNG phải di sản của chợ ký quỹ** — trust-service thu phí
-  nộp đơn cấp dấu bằng cột này. Xoá theo là hỏng luồng nộp đơn, **không test nào
-  bắt được**.
+- **Tín dụng ĐÃ BỊ GỠ. Đừng dựng lại.** `User.credits`, `SealProgram.feeCredits`
+  và `SealApplication.feeCharged` đã bị xoá — mọi chương trình dấu nay miễn phí,
+  theo quyết định "dự án cá nhân miễn phí". Trước đây `credits` là bẫy thật:
+  nhìn tên tưởng là ví của chợ ký quỹ đã xoá, nhưng trust-service dùng nó để thu
+  phí nộp đơn, và **không test nào bắt được** nếu xoá nhầm. Nay đường nộp đơn
+  được canh bởi `services/trust-service/test/applicationSubmit.test.ts` — thêm
+  lại cơ chế thu phí thì phải sửa test đó trước, không sửa lén được.
 - **`main` không có branch protection** (GitHub Free + repo private). Lớp chắn
   duy nhất là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
   `ALLOW_MAIN_FORCE=1 git push`.

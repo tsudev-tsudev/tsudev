@@ -191,9 +191,6 @@ export default function TrustPortal() {
                         {a.serial}
                       </a>
                     )}
-                    <span className="ml-auto text-xs text-muted">
-                      {(a.feeCharged ?? 0) > 0 ? `${a.feeCharged} tín dụng` : 'miễn phí'}
-                    </span>
                   </div>
                   {a.scope && <p className="mt-1.5 text-sm text-muted">{a.scope}</p>}
                   {a.reviewNote && (
