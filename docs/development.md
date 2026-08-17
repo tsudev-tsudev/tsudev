@@ -10,8 +10,8 @@ cp .env.example .env
 npm run dev:full   # dựng DB + generate + migrate + seed + chạy 6 tiến trình
 ```
 
-`dev:full` là đường chạy chuẩn. Nó gọi lần lượt: `db:up` → `db:generate` →
-`db:migrate` → `db:seed` → `dev:local`.
+`dev:full` là đường chạy chuẩn. Nó gọi lần lượt: `db:up` → `minio:up` →
+`db:generate` → `db:migrate` → `db:seed` → `dev:local`.
 
 ## Những lần sau
 
@@ -59,6 +59,37 @@ npm run db:reset                     # xoá sạch + migrate + seed lại
 
 Không cài Postgres hệ thống: script tự dò binary trong
 `/usr/lib/postgresql/*/bin`.
+
+## MinIO user-space
+
+`npm run minio:up` chạy `scripts/start-minio.sh`: bật MinIO tại
+`~/.tsudev/minio-data` (đổi bằng `TSUDEV_MINIO_DATA`), cổng lấy từ
+`config/topology.json`, rồi tạo bucket `tsudev` nếu chưa có. Idempotent như
+`db:up`.
+
+Binary nằm ở `~/.tsudev/bin/minio` (đổi bằng `TSUDEV_MINIO_BIN`), **không** cài
+qua npm và **không** commit vào repo. Máy mới thì tải về:
+
+```bash
+mkdir -p ~/.tsudev/bin
+curl -fSL -o ~/.tsudev/bin/minio https://dl.min.io/server/minio/release/linux-amd64/minio
+chmod +x ~/.tsudev/bin/minio
+```
+
+```bash
+pkill -f 'minio server'              # dừng
+tail -f ~/.tsudev/minio.log          # log
+```
+
+MinIO chỉ tồn tại để đường ký URL presign có thứ để nói chuyện khi bấm thử
+upload ở local — **production dùng Cloudflare R2**, MinIO không được deploy đi
+đâu cả. Test cũng không cần nó: `storage-service` stub sẵn presign khi
+`NODE_ENV=test`. Hệ quả là MinIO chết thì chỉ upload hỏng, mọi thứ khác vẫn
+chạy — và CI vẫn xanh, nên đừng trông vào CI để biết nó hỏng.
+
+⚠️ MinIO chấp nhận một số chữ ký mà R2 từ chối, nên "upload chạy ở local" chưa
+chứng minh được nó chạy ở production. Đây là lý do `S3_PUBLIC_ENDPOINT` không
+bao giờ được trỏ vào tên miền tuỳ chỉnh của R2 — xem `docs/deployment.md`.
 
 ## Đăng nhập khi dev
 
@@ -116,10 +147,10 @@ npm --workspace services/<tên> test    # service nào sửa thì chạy service
 
 ## Docker (tuỳ chọn)
 
-`docker-compose.yml` ở gốc dựng full stack gồm MinIO, Redis. Chỉ cần
-khi kiểm thử luồng SSO thật hoặc presign trực tiếp lên MinIO; công việc thường
-ngày không cần. Chạy riêng hạ tầng:
+`docker-compose.yml` ở gốc dựng full stack gồm MinIO, Redis. Từ khi có
+`npm run minio:up` thì **không cần Docker cho MinIO nữa**; phần compose còn lại
+chỉ dùng khi kiểm thử Redis. Chạy riêng hạ tầng:
 
 ```bash
-docker compose up minio redis
+docker compose up redis
 ```
