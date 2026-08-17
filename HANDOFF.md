@@ -514,10 +514,10 @@ phải do blog · tài liệu · dự án gánh. Với Con dấu, việc SEO duy
 
 ---
 
-### 1.10 Dọn service Render trùng `tsudev-backend-rqkz` — 🟠 CHƯA LÀM
+### 1.10 Dọn service Render trùng `tsudev-backend-rqkz` - 🟠 CHƯA LÀM
 
 Mỗi lần deploy, hộp thư nhận `deploy failed for tsudev-backend-rqkz`. **Đó không
-phải sự cố production** — nó là một service THỨ HAI chưa bao giờ khởi động nổi vì
+phải sự cố production** - nó là một service THỨ HAI chưa bao giờ khởi động nổi vì
 không có secret nào (`render.yaml` khai `NODE_ENV: production` bằng giá trị
 literal, còn 11 biến kia là `sync: false`), nên nó chết ngay lúc nạp module ở
 `services/trust-service/src/signing.ts`.
@@ -528,7 +528,7 @@ service tồn tại trong tài khoản.
 
 ⚠️ **Thứ tự khi dọn: xoá Blueprint instance TRƯỚC, rồi mới xoá service.** Xoá mỗi
 service mà để blueprint lại thì lần push sau nó dựng lại y nguyên. Và sau khi gỡ
-blueprint phải xác nhận `tsudev-backend` còn bật Auto-Deploy — nếu đường deploy
+blueprint phải xác nhận `tsudev-backend` còn bật Auto-Deploy - nếu đường deploy
 tự động lâu nay do blueprint kéo thì gỡ xong sẽ thành "đã gộp PR rồi mà
 production vẫn chạy mã cũ".
 

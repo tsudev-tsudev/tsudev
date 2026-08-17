@@ -82,14 +82,14 @@ tail -f ~/.tsudev/minio.log          # log
 ```
 
 MinIO chỉ tồn tại để đường ký URL presign có thứ để nói chuyện khi bấm thử
-upload ở local — **production dùng Cloudflare R2**, MinIO không được deploy đi
+upload ở local - **production dùng Cloudflare R2**, MinIO không được deploy đi
 đâu cả. Test cũng không cần nó: `storage-service` stub sẵn presign khi
 `NODE_ENV=test`. Hệ quả là MinIO chết thì chỉ upload hỏng, mọi thứ khác vẫn
-chạy — và CI vẫn xanh, nên đừng trông vào CI để biết nó hỏng.
+chạy - và CI vẫn xanh, nên đừng trông vào CI để biết nó hỏng.
 
 ⚠️ MinIO chấp nhận một số chữ ký mà R2 từ chối, nên "upload chạy ở local" chưa
 chứng minh được nó chạy ở production. Đây là lý do `S3_PUBLIC_ENDPOINT` không
-bao giờ được trỏ vào tên miền tuỳ chỉnh của R2 — xem `docs/deployment.md`.
+bao giờ được trỏ vào tên miền tuỳ chỉnh của R2 - xem `docs/deployment.md`.
 
 ## Đăng nhập khi dev
 

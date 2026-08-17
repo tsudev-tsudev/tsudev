@@ -146,10 +146,10 @@ Tính tới 16/08/2026 chưa có thiệt hại: 0 chứng chỉ, 0 đơn, 0 tổ
 Nếu mất quyền vào tài khoản cũ, đường thay thế là **xoay mật khẩu Neon** - đổi
 mật khẩu role rồi cập nhật `DATABASE_URL` của `tsudev-backend`. Có gián đoạn ngắn.
 
-## `tsudev-backend-rqkz` — service trùng, mỗi lần push gửi một mail "deploy failed"
+## `tsudev-backend-rqkz` - service trùng, mỗi lần push gửi một mail "deploy failed"
 
 Triệu chứng: mỗi lần deploy, hộp thư nhận `deploy failed for tsudev-backend-rqkz`.
-**Production không hề hấn gì** — mail đến từ một service THỨ HAI chưa bao giờ
+**Production không hề hấn gì** - mail đến từ một service THỨ HAI chưa bao giờ
 khởi động nổi.
 
 ### Đã đo (18/08/2026)
@@ -165,7 +165,7 @@ tsudev-backend-rqkz.onrender.com/health  → không phản hồi (timeout)
 ```
 
 `backup/production-env-2026-08-16.txt` ghi tiêu đề khối secret là
-`RENDER — service "tsudev-backend"`: **secret chỉ được điền cho service không có
+`RENDER - service "tsudev-backend"`: **secret chỉ được điền cho service không có
 hậu tố.**
 
 ### Vì sao nó chết, và chết ở đúng một dòng
@@ -177,7 +177,7 @@ khởi động với `NODE_ENV=production` mà **không có secret nào**, rồi
 
 ```ts
 if (process.env.NODE_ENV === 'production') {
-  throw new Error('Thiếu TRUST_SIGNING_KEY — không thể cấp chứng chỉ ở môi trường production.');
+  throw new Error('Thiếu TRUST_SIGNING_KEY - không thể cấp chứng chỉ ở môi trường production.');
 }
 ```
 
@@ -186,14 +186,14 @@ trước cả `startServer()`. Tiến trình thoát mã 1 ⇒ health check `/hea
 bao giờ xanh ⇒ Render đánh dấu thất bại ⇒ gửi mail. (`DATABASE_URL` thiếu cũng
 đủ chết, nhưng cái trên chết sớm hơn.)
 
-Cơ chế đang chạy **đúng như thiết kế** — "thà chết ồn ào còn hơn ký bằng khoá
+Cơ chế đang chạy **đúng như thiết kế** - "thà chết ồn ào còn hơn ký bằng khoá
 dev". Nó chỉ đang la ở nhầm service.
 
 ### Hậu tố `-rqkz` đến từ đâu (SUY LUẬN, chưa xác nhận trên dashboard)
 
 Render gắn hậu tố ngẫu nhiên khi tên service được yêu cầu **đã bị chiếm** trong
 tài khoản. Nghĩa là có thứ gì đó xin tạo service tên `tsudev-backend` SAU khi
-cái thật đã tồn tại — gần như chắc chắn là một **Blueprint instance** đọc
+cái thật đã tồn tại - gần như chắc chắn là một **Blueprint instance** đọc
 `render.yaml`. Blueprint nối vào `main` thì mỗi lần push là một lần tự đồng bộ
 và deploy lại, nên mail đến đều đặn.
 
@@ -209,10 +209,10 @@ an toàn. Nhưng:
 2. Nếu nó được cấp `TRUST_SIGNING_KEY` **khác**, lặp lại đúng sự cố ở mục trên:
    chứng chỉ ký bằng khoá không có trong vòng khoá của bản kia ⇒
    `tsudev.com/trust` không xác minh nổi, **không có gì báo lỗi**.
-3. Mail thất bại đều đặn làm người vận hành quen bỏ qua — nên lần deploy hỏng
+3. Mail thất bại đều đặn làm người vận hành quen bỏ qua - nên lần deploy hỏng
    THẬT cũng sẽ bị bỏ qua.
 
-### Cách dọn — thứ tự quan trọng
+### Cách dọn - thứ tự quan trọng
 
 1. Xem `tsudev-backend-rqkz` thuộc Blueprint nào (tab _Blueprints_). Có thì
    **xoá Blueprint instance TRƯỚC**. Xoá mỗi service mà để blueprint lại thì lần
@@ -220,12 +220,12 @@ an toàn. Nhưng:
 2. Rồi xoá service `tsudev-backend-rqkz`.
 3. Xác nhận `tsudev-backend` vẫn bật **Auto-Deploy** trên `main`. Nếu đường
    deploy tự động lâu nay do blueprint kéo thì gỡ blueprint xong phải bật lại ở
-   service thật — không thì lần sau push mà backend **không cập nhật**, và triệu
+   service thật - không thì lần sau push mà backend **không cập nhật**, và triệu
    chứng là "đã gộp PR rồi mà production vẫn chạy mã cũ".
 
 ⚠️ **Đừng làm ngược lại** (xoá `tsudev-backend` để blueprint tiếp quản):
 hostname sẽ đổi, kéo theo `*_SERVICE_URL` trong `wrangler.jsonc`, và
-`region: singapore` là bất biến — dựng lại có thể rơi về Oregon (+140ms mỗi lượt
+`region: singapore` là bất biến - dựng lại có thể rơi về Oregon (+140ms mỗi lượt
 gọi SSR).
 
 ⚠️ Mail gửi tới `devnguyentrangtinhsu@gmail.com`, **khác** địa chỉ tài khoản chủ

@@ -4,13 +4,13 @@
 //
 // Dùng chính @aws-sdk/client-s3 mà storage-service dùng thay vì thêm binary
 // `mc`: một phụ thuộc ít hơn phải cài và nhớ cập nhật, và nếu SDK nói chuyện
-// được với MinIO thì service cũng vậy — bước này thành phép thử luôn.
+// được với MinIO thì service cũng vậy - bước này thành phép thử luôn.
 
 const { S3Client, CreateBucketCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
 
 const { loadTopology, port } = require('./topology/load');
 
-// Cổng lấy từ config/topology.json chứ không cắm cứng — `topology:check`
+// Cổng lấy từ config/topology.json chứ không cắm cứng - `topology:check`
 // chặn hardcode, và đổi cổng đáng lẽ chỉ phải sửa một chỗ.
 const endpoint = process.env.S3_ENDPOINT || `http://127.0.0.1:${port(loadTopology(), 'cdn')}`;
 const bucket = process.env.S3_BUCKET || 'tsudev';

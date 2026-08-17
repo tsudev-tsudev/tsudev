@@ -2,7 +2,7 @@
 # Khởi động MinIO user-space cho local dev (không cần Docker/sudo).
 # Idempotent: bỏ qua nếu đã chạy, tạo bucket nếu chưa có.
 #
-# MinIO ở đây KHÔNG phải kho lưu trữ của production — production dùng
+# MinIO ở đây KHÔNG phải kho lưu trữ của production - production dùng
 # Cloudflare R2. Nó chỉ tồn tại để đường ký URL presign có thứ để nói chuyện
 # khi bấm thử upload ở local. Test không cần nó: storage-service stub sẵn
 # presign khi NODE_ENV=test.
@@ -46,7 +46,7 @@ else
     sleep 0.5
   done
   if ! curl -sf --max-time 2 "http://127.0.0.1:$MINIO_PORT/minio/health/live" >/dev/null 2>&1; then
-    echo "[minio] không lên được — xem $MINIO_LOG" >&2
+    echo "[minio] không lên được - xem $MINIO_LOG" >&2
     exit 1
   fi
 fi
