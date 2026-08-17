@@ -14,7 +14,6 @@ async function main() {
       email: 'devnguyentrangtinhsu@gmail.com',
       displayName: 'Nguyễn Trang Tình Sử',
       role: 'ADMIN',
-      credits: 500,
       bio: 'Founder của tsudev — Decoding the Future, One Commit at a Time.',
     },
   })
@@ -26,7 +25,6 @@ async function main() {
       email: 'alice@tsudev.com',
       displayName: 'Alice',
       role: 'MEMBER',
-      credits: 20,
     },
   })
   await prisma.user.upsert({
@@ -37,7 +35,6 @@ async function main() {
       email: 'bob@tsudev.com',
       displayName: 'Bob',
       role: 'VIP',
-      credits: 75,
     },
   })
 
@@ -107,7 +104,6 @@ async function main() {
       name: 'Xác minh bản quyền',
       summary: 'Website sử dụng nội dung của tsudev đúng giấy phép và ghi nguồn đầy đủ.',
       validityDays: 365,
-      feeCredits: 50,
       badgeVariant: 'copyright',
       sortOrder: 1,
       criteria: [
@@ -126,7 +122,6 @@ async function main() {
       name: 'Chứng nhận sở hữu',
       summary: 'tsudev xác nhận sở hữu một phần hoặc toàn bộ website được nêu.',
       validityDays: 730,
-      feeCredits: 0,
       badgeVariant: 'ownership',
       sortOrder: 2,
       criteria: [
@@ -144,7 +139,6 @@ async function main() {
       name: 'Chứng chỉ bảo mật',
       summary: 'Website đáp ứng bộ yêu cầu bảo mật tối thiểu của tsudev.',
       validityDays: 180,
-      feeCredits: 120,
       badgeVariant: 'security',
       sortOrder: 3,
       criteria: [
@@ -164,7 +158,6 @@ async function main() {
       name: 'Tuân thủ bảo vệ dữ liệu',
       summary: 'Website có cơ chế bảo vệ dữ liệu cá nhân theo tiêu chí tsudev công bố.',
       validityDays: 365,
-      feeCredits: 120,
       badgeVariant: 'privacy',
       sortOrder: 4,
       criteria: [

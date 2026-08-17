@@ -1,6 +1,6 @@
 import React from 'react';
 import Seo from '../../components/Seo';
-import { Layout, Button, SectionHeading, Badge } from '@tsudev/ui';
+import { Layout, Button, SectionHeading } from '@tsudev/ui';
 import { trust } from '../../lib/trust';
 import type { TrustProgram } from '../../lib/types';
 
@@ -95,9 +95,6 @@ export default function TrustLanding({ programs, stats }: TrustLandingProps) {
                   <h3 className="font-semibold text-ink text-lg group-hover:text-brandink transition-colors">
                     {p.name}
                   </h3>
-                  <Badge tone="neutral" mono>
-                    {(p.feeCredits ?? 0) > 0 ? `${p.feeCredits} tín dụng` : 'miễn phí'}
-                  </Badge>
                 </div>
                 <p className="mt-2 text-sm text-muted leading-relaxed">{p.summary}</p>
                 <p className="mt-3 font-mono text-xs text-muted">

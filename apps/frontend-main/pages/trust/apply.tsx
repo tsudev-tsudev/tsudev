@@ -446,7 +446,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                   <option value="">— chọn —</option>
                   {programs.map((p) => (
                     <option key={p.slug} value={p.slug}>
-                      {p.name} ({(p.feeCredits ?? 0) > 0 ? `${p.feeCredits} tín dụng` : 'miễn phí'})
+                      {p.name}
                     </option>
                   ))}
                 </select>
@@ -491,9 +491,8 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                   </div>
 
                   <p className="text-sm text-muted">
-                    Nộp hồ sơ sẽ trừ{' '}
-                    <span className="text-ink font-medium">{program.feeCredits} tín dụng</span> từ
-                    ví của bạn. Nếu tsudev yêu cầu bổ sung, lần nộp lại không tính phí thêm.
+                    Nộp hồ sơ miễn phí. Nếu tsudev yêu cầu bổ sung thông tin, bạn nộp lại mà không
+                    mất thêm bước nào.
                   </p>
                 </>
               )}
