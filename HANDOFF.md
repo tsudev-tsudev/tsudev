@@ -8,27 +8,24 @@
 > [`docs/design-system.md`](docs/design-system.md). Phiếu này chỉ liệt kê **việc
 > còn dở**, không lặp lại kiến thức đã nằm trong `docs/` hay `CLAUDE.md`.
 
-## 🔴 Đọc §0.5 TRƯỚC TIÊN
+## Bắt đầu từ đâu
 
-**Production hiện KHÔNG đăng nhập được** — tài khoản ADMIN duy nhất chưa có mật
-khẩu. Đó là việc chặn, và nó chặn cả việc nghiệm thu mọi thứ vừa phát hành. Mọi
-mục khác trong §1 đều đợi được.
+**Không còn việc chặn nào.** Production đã đăng nhập được (§0.5 đã xong 17/08).
 
-Thứ tự đề nghị cho phiên mới:
+Thứ tự đề nghị:
 
-1. §0.5 — đặt mật khẩu production, đăng nhập, mở `/admin/projects`.
-   Chưa xong bước này thì không nghiệm thu được gì, kể cả các mục dưới.
-2. §1.7 **đợt A** — dựng trang quản lý tài khoản (`/settings/profile` + đổi mật
-   khẩu + ảnh đại diện). Đây là khoảng trống LỚN NHẤT về mặt sản phẩm: hiện
-   không có route nào cho người dùng sửa hồ sơ của chính mình, và ba cột
-   `displayName` / `avatarUrl` / `bio` không có đường ghi nào.
-3. §1.5 — rà giao diện bằng mắt ở cả hai chế độ (chưa ai nhìn). Làm sau §1.7 thì
-   rà được luôn các trang mới thay vì rà hai lần.
-4. §1.9 — đưa Con dấu về chế độ mời + gỡ tín dụng. Đợt LỚN, kế hoạch đã CHỐT ở
-   `docs/refactor-trust-invite-access.md`, làm được ngay. Chia **ba lần phát
-   hành riêng** vì hai đợt migration chạy ngược chiều nhau.
-5. Còn lại theo mức độ: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá
-   cột · §1.7 **đợt B** (đổi email, xoá tài khoản — cần test đầy đủ).
+1. **§1.9 đợt 2 — mã mời.** Đang giữa chừng một kế hoạch ba đợt; đợt 1 đã phát
+   hành. Kế hoạch đầy đủ ở
+   [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).
+   ⚠️ Đợt này là **thêm bảng** ⇒ migration đi **TRƯỚC** code, ngược với đợt 1.
+2. **§1.9 đợt 3 — gác bề mặt Con dấu + SEO + điều hướng.** Làm cuối vì đó là đợt
+   duy nhất có thể khoá nhầm chính mình ra ngoài.
+3. **§1.7 đợt A — trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
+   không có route nào cho người dùng sửa hồ sơ của chính mình.
+4. **§1.5 — rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 và §1.9 thì rà
+   một lần cho cả trang mới.
+5. Còn lại: §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột
+   `keycloakId` · §1.7 đợt B · §1.8.
 
 ## Đang chạy
 
@@ -93,92 +90,86 @@ toàn**, trong khi `/api/auth/providers` vẫn trả về đúng nên nhìn qua 
 mã thoát 1 khi thiếu biến). **Thêm service mới ⇒ vẫn phải khai biến ở
 `wrangler.jsonc` bằng tay**, chỉ khác là nay quên sẽ bị chặn.
 
-## 0.5 🔴 VIỆC ĐẦU TIÊN CỦA PHIÊN MỚI — production KHÔNG đăng nhập được
+## 0.5 ~~Production không đăng nhập được~~ — ✅ XONG 17/08
 
-**Tài khoản ADMIN duy nhất trên production chưa có mật khẩu.** Đã kiểm trực tiếp
-trên Neon:
+Đã kiểm trực tiếp trên Neon: `tsudev` có `passwordHash`, `lastLoginAt` =
+2026-08-17T13:33:18Z. Chủ dự án đã đặt mật khẩu và đăng nhập thành công.
 
-```
-username: tsudev · email: devnguyentrangtinhsu@gmail.com · vai trò: ADMIN
-passwordHash: RỖNG          ← nguyên nhân
-lastLoginAt : chưa bao giờ
-failedLoginCount: 0
-```
+`emailVerifiedAt` vẫn rỗng — không chặn gì, nhưng luồng "quên mật khẩu" sẽ xác
+minh luôn nếu chạy qua nó một lần.
 
-### Triệu chứng và cách đọc nó
+### Bài học giữ lại (đây là lý do mục này không bị xoá hẳn)
 
-Đăng nhập ở https://tsudev.com/login báo **"Tên đăng nhập hoặc mật khẩu không
-đúng"** — dù tên đăng nhập và mật khẩu đều đúng ý người dùng. Vì
-`verify-credentials` rơi vào nhánh:
+Sự cố gốc: `set-password.js` nạp `DATABASE_URL` từ `.env` ở gốc repo (trỏ DB
+dev) và **không in ra đang ghi vào đâu**, nên nó báo "thành công" trong khi
+production vẫn rỗng.
 
-```ts
-if (!user || !user.passwordHash) { await burnTiming(password); ... return 401 'invalid_credentials' }
-```
+Hai dấu hiệu chẩn đoán, dùng lại được cho mọi sự cố đăng nhập:
 
-Thông điệp **cố ý giống hệt** trường hợp sai mật khẩu (chống dò tài khoản). Ở
-đây nó quay lại chống chính chủ tài khoản: nó giấu mất nguyên nhân thật.
+- **`failedLoginCount` vẫn 0** sau nhiều lần thử ⇒ đang rơi vào nhánh "tài khoản
+  không có mật khẩu", KHÔNG phải nhánh sai mật khẩu. Nhánh đó không gọi
+  `noteAccountFailure()`.
+- Thông điệp trên màn hình **cố ý không phân biệt** ba trường hợp (không có tài
+  khoản / sai mật khẩu / chưa đặt mật khẩu) để chống dò tài khoản. Đừng chẩn
+  đoán từ nó.
 
-**Dấu hiệu phân biệt hai nhánh:** `failedLoginCount` vẫn **0** sau nhiều lần
-thử. Nhánh "không có mật khẩu" KHÔNG gọi `noteAccountFailure()`; nếu mật khẩu
-sai thật thì bộ đếm đã tăng. Dùng dấu hiệu này để chẩn đoán, đừng đoán từ
-thông điệp trên màn hình.
-
-### Vì sao xảy ra
-
-Chủ dự án đã chạy `set-password.js` và thấy báo "thành công" — **thành công
-thật, nhưng trên DB LOCAL**. Script nạp `DATABASE_URL` từ `.env` ở gốc repo,
-vốn trỏ cluster dev `localhost:5433`, và bản đầu **không in ra đang ghi vào đâu**.
-
-Đã vá hai lần trong phiên trước (xem "Thay đổi chưa commit" bên dưới):
-script nay in host của database trước khi ghi, và nhận mật khẩu qua **stdin**
-thay vì biến môi trường.
-
-Lần vá thứ hai vì lý do riêng: mật khẩu của chủ dự án chứa dấu nháy đơn, nên
-`NEW_PASSWORD='…'` đóng chuỗi sớm và bash rơi vào dấu nhắc `>`.
-
-### Cách sửa
-
-Chạy trên máy có `backup/production-env-2026-08-16.txt` (dán cả ba dòng):
-
-```bash
-set -a && . <(grep '^DATABASE_URL=' backup/production-env-2026-08-16.txt) && set +a && node services/auth-service/scripts/set-password.js tsudev <<'MK'
-mật khẩu ở đây, gõ nguyên văn, KHÔNG thêm dấu nháy
-MK
-```
-
-`<<'MK'` có nháy quanh `MK` là phần quan trọng — nó tắt mọi phép diễn giải của
-shell bên trong khối, nên dấu nháy đơn/`$`/backtick trong mật khẩu đều an toàn.
-Đã kiểm chứng vòng tròn: pipe vào rồi `verifyPassword()` đọc ra khớp nguyên văn,
-và bản thiếu 1 ký tự bị từ chối.
-
-**Đọc dòng `Database:` nó in ra** — phải là host `...neon.tech`. Thấy
-`localhost:5433` là phần export chưa chạy.
-
-Đường thay thế, không cần shell: **https://tsudev.com/forgot-password**. Email
-của tài khoản là địa chỉ thật và Resend đã cấu hình, nên đường này chạy được và
-xác minh luôn email (hiện `emailVerifiedAt` đang rỗng).
-
-### Nghiệm thu sau khi sửa
-
-```bash
-# phải trả 200 và Set-Cookie phiên
-curl -s -o /dev/null -w '%{http_code}\n' https://tsudev.com/api/auth/session
-```
-
-Rồi đăng nhập thật và mở `/admin/projects` — đó là đường đã im lặng trả 401 suốt
-thời gian dài và là thứ đợt vừa rồi vá.
-
----
+Script nay in host của database trước khi ghi, và nhận mật khẩu qua stdin
+(heredoc) nên dấu nháy đơn trong mật khẩu không làm hỏng lệnh. Cách chạy nhắm
+production: `docs/auth.md` §5.
 
 ## 0.6 Trạng thái repo khi bàn giao
 
 - `main` = `origin/main`, **cây làm việc sạch**, không còn nhánh tạm nào.
-- Bốn PR đã gộp: #1 (đợt lớn) · #2 (`AUTH_SERVICE_URL` cho Worker) · #3 (bàn
-  giao) · #4 (vá `set-password.js`).
-- Cả bốn cổng gốc và 195 test JS + 9 test Rust + 11 E2E đều xanh ở lần chạy cuối.
-- Production đang chạy mã của `main`. Neon đã áp dụng 8 migration.
+- **10 PR đã gộp.** Gần nhất: #9 (gỡ tín dụng) và #10 (ghi tiến độ).
+- Bốn cổng gốc xanh · **202 test JS** · 9 test Rust · 11 E2E.
+- Production đang chạy mã của `main`. Neon đã áp dụng **9 migration**.
 
-**KHÔNG có thay đổi nào đang treo ở cây làm việc.** Mọi thứ đã ở trên remote.
+**KHÔNG có thay đổi nào đang treo.** Mọi thứ đã ở trên remote.
+
+---
+
+## 0.7 Kỹ thuật rút ra từ phiên trước — dùng lại được
+
+Bốn thứ đã trả giá để học, ghi lại để khỏi học lần nữa.
+
+### Dấu hiệu "bản mới đã lên sóng" phải là thứ THAY ĐỔI giữa hai bản
+
+`/health` của backend không đổi giữa các lần phát hành, nên nó chỉ nói "còn
+sống", không nói "đã mới". Chọn một trường thật sự khác nhau:
+
+- Đợt gỡ tín dụng: `/api/trust/programs` — mã cũ trả `feeCredits`, mã mới không.
+  Chờ nó biến mất (mất ~80 giây) rồi mới chạy migration `DROP`.
+- Đợt thêm auth-service: `/health` trả `bundled` có `identity` hay chưa.
+
+Chạy bước phá huỷ trước khi có dấu hiệu này là tự tạo cửa sổ hỏng.
+
+### ⚠️ Đừng truyền DATABASE_URL thật vào `--shadow-database-url`
+
+`prisma migrate diff --shadow-database-url "$DATABASE_URL"` dùng DB đó theo cách
+**PHÁ HUỶ** — nó xoá bảng `_prisma_migrations`, và lần `migrate deploy` sau đó
+chết với `P3005`. Đã xảy ra với DB dev (dựng lại được bằng `migrate reset`);
+nếu lỡ tay trỏ vào production thì hậu quả khác hẳn.
+
+`prisma migrate dev --create-only` từ chối chạy khi không có TTY nếu thay đổi
+làm **mất dữ liệu** (`DROP COLUMN`) — đó là lý do phải dùng `migrate diff`. Cách
+an toàn: so hai TỆP schema (`--from-schema-datamodel` cũ lấy từ git,
+`--to-schema-datamodel` mới), không cần DB nào cả.
+
+### Grep theo TỪ KHOÁ trên cả cây, đừng grep trong danh sách tệp đoán trước
+
+Khảo sát cho đợt gỡ tín dụng đếm "3 trang frontend" vì chỉ quét ba tệp đã biết
+tên. Thực tế là 4 — `trust/portal.tsx` lọt lưới. Hai đợt còn lại của §1.9 khảo
+sát theo đúng kiểu đó, nên rất dễ lặp lại.
+
+### `wrangler.jsonc` KHÔNG được `topology:gen` sinh ra
+
+Thêm service vào `config/topology.json` **không** kéo theo biến cho Worker. Quên
+là biến rơi về `http://localhost:<port>` và Worker gọi vào chính nó. Đã xảy ra
+với `AUTH_SERVICE_URL` (đăng nhập hỏng hoàn toàn, trong khi
+`/api/auth/providers` vẫn trả đúng nên nhìn qua tưởng xong).
+
+`topology:check` nay canh tệp đó — nhưng nó chỉ kiểm SỰ CÓ MẶT, không kiểm giá
+trị. Giá trị vẫn phải điền tay.
 
 ---
 
@@ -328,8 +319,9 @@ thêm nhầm nhánh là mở một route đáng lẽ phải đăng nhập.
 
 #### Thứ tự
 
-Làm SAU §0.5. Chưa đăng nhập được vào production thì không thử được bất kỳ trang
-tài khoản nào — mà đây đúng là loại tính năng chỉ lộ lỗi khi bấm thật.
+§0.5 đã xong nên không còn chặn. Nhưng đây là loại tính năng **chỉ lộ lỗi khi
+bấm thật**, nên nghiệm thu phải là đăng nhập vào production rồi thao tác, không
+phải chỉ chạy test.
 
 ### 1.8 Cân nhắc: đường chẩn đoán cho tài khoản không có mật khẩu — 🟡
 
