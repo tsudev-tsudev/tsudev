@@ -22,6 +22,36 @@ Service chạy ở `:4003`. Trình duyệt **không bao giờ** gọi thẳng c�
 thứ đi qua proxy `/api/trust/*` của `frontend-main`, nên mã nhúng của khách chỉ
 trỏ tới một domain duy nhất và hạ tầng bên trong đổi được mà không phiền họ.
 
+⚠️ Cột "Ai dùng" ở trên là **hiện trạng, không phải đích đến**. Chủ dự án đã
+chốt (16/08/2026) rằng mọi trang Con dấu chỉ mở cho tài khoản được mời. Đợt gác
+bề mặt là đợt 3 của [`refactor-trust-invite-access.md`](refactor-trust-invite-access.md)
+và **chưa làm**; khi làm xong thì bảng này phải đổi theo.
+
+## Mã mời — cách cấp và cách thu hồi
+
+Vùng Con dấu mở cho `VIP` trở lên. Đường lên VIP là đổi mã mời do ADMIN cấp.
+
+| Việc    | Ở đâu                                                       |
+| ------- | ----------------------------------------------------------- |
+| Cấp mã  | `/admin/trust`, khối **Mã mời**                             |
+| Đổi mã  | `/trust/redeem` (người đổi phải đăng nhập trước)            |
+| Thu hồi | `/admin/trust`, nút **Thu hồi** trên từng mã                |
+| Nhật ký | cùng bảng `TrustAuditLog` với mọi hành động khác của hệ dấu |
+
+Cấp mã cần một **nhãn** (chỉ người vận hành thấy — người đổi mã không bao giờ
+thấy nó), số lượt, và số ngày hết hạn (để trống = không hết hạn).
+
+⚠️ **Mã thô hiện ĐÚNG MỘT LẦN, ngay sau khi cấp.** DB chỉ giữ SHA-256, nên không
+có đường nào đọc lại. Mất mã thì thu hồi rồi cấp mã mới — không có gì hỏng, chỉ
+tốn một dòng trong nhật ký.
+
+Thu hồi **đặt mốc thời gian chứ không xoá dòng**: lịch sử ai đã đổi mã nào vẫn
+phải tra được sau đó. Thu hồi KHÔNG hạ vai trò của người đã đổi — họ vẫn là VIP.
+Muốn rút quyền của một người cụ thể thì phải sửa `User.role` trực tiếp; đó là
+việc riêng, cố ý không gắn vào nút thu hồi.
+
+Chi tiết bất biến kỹ thuật (trần cứng VIP, đếm lượt, chống dò): `docs/auth.md` §3.
+
 ## Khoá ký và cách xoay khoá
 
 Chứng chỉ được ký Ed25519, phát hành dạng JWS compact. Khoá công khai công bố ở
@@ -105,6 +135,12 @@ ký thật chứ không phải kiểm một chuỗi bịa.
 
 ```bash
 npm --workspace services/trust-service test
+```
+
+Mã mời thuộc auth-service, không phải trust-service:
+
+```bash
+npm --workspace services/auth-service test -- invite
 ```
 
 `test/signing.test.ts` giữ hợp đồng xoay khoá; `test/wasmCompat.test.ts` giữ hợp

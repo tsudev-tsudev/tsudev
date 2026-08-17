@@ -29,6 +29,7 @@ import {
   verifyTotp,
 } from './totp'
 import { sendMail, verifyEmailHtml, resetPasswordHtml } from './mailer'
+import { INVITE_GRANTS_ROLE, generateInviteCode, hashInviteCode, redeemInvite } from './invite'
 import {
   accountIsLocked,
   callerIp,
@@ -534,6 +535,223 @@ app.post(
     return res.json({ ok: gone.count === 1 })
   })
 )
+
+// ---------------------------------------------------------------------------
+// Trạng thái phiên — cần đăng nhập
+// ---------------------------------------------------------------------------
+app.use('/api/identity/session-state', auth)
+
+/**
+ * Vai trò và sessionVersion HIỆN TẠI, đọc từ DB.
+ *
+ * Tồn tại vì `token.role` của next-auth chỉ được ghi ở lần đăng nhập ĐẦU TIÊN.
+ * Sau khi đổi mã mời, DB nói VIP còn phiên vẫn nói MEMBER, nên điều hướng tiếp
+ * tục giấu mục Con dấu — trông y hệt như việc đổi mã không có tác dụng, và
+ * không có lỗi nào để lần theo.
+ *
+ * Chỉ trả về ba trường. Đây là đường mà callback `jwt` gọi, và bất cứ thứ gì
+ * trả về ở đây đều đi thẳng vào JWT của người dùng.
+ */
+app.post(
+  '/api/identity/session-state',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    return res.json({
+      username: user.username,
+      role: user.role,
+      sessionVersion: user.sessionVersion,
+    })
+  })
+)
+
+// ---------------------------------------------------------------------------
+// Mã mời vào Con dấu tín nhiệm — cần đăng nhập
+//
+// Đổi mã GHI VÀO `User.role`, tức là nó thuộc ranh giới danh tính, không phải
+// của trust-service. trust-service chỉ việc gọi requireRole('VIP') và không cần
+// biết mã mời tồn tại.
+//
+// Cả bốn route gắn auth theo NHÁNH. Chúng đi qua proxy CÓ PHIÊN
+// pages/api/account/[...path].ts, không phải proxy công khai của /api/identity.
+// ---------------------------------------------------------------------------
+app.use('/api/identity/invite', auth)
+
+/** Chỉ ADMIN mới cấp/liệt kê/thu hồi được mã. Đổi mã thì ai đăng nhập cũng được. */
+const requireAdmin = async (req: Request, res: Response) => {
+  const user = await lookupUser(req)
+  if (!user) {
+    res.status(401).json({ error: 'unauthenticated' })
+    return null
+  }
+  // Đọc vai trò từ DB, không từ claim. Claim `role` trong khẳng định danh tính
+  // CHỈ ĐỂ THAM KHẢO — xem gotcha REQUIRE_ROLE_ENFORCEMENT ở CLAUDE.md.
+  if (user.role !== 'ADMIN') {
+    res.status(403).json({ error: 'forbidden' })
+    return null
+  }
+  return user
+}
+
+/** Nhật ký bất biến, cùng bảng với mọi hành động khác của hệ dấu. */
+const auditInvite = (
+  actor: { id: string; displayName: string | null; username: string },
+  action: string,
+  targetId: string,
+  targetLabel: string,
+  note?: string
+) =>
+  prisma.trustAuditLog.create({
+    data: {
+      actorId: actor.id,
+      actorName: actor.displayName || actor.username,
+      action,
+      targetType: 'TrustInvite',
+      targetId,
+      targetLabel,
+      note: note || null,
+    },
+  })
+
+/**
+ * Đổi mã lấy quyền vào vùng Con dấu.
+ *
+ * PHẢI đăng nhập trước (auth theo nhánh ở trên). Cho đổi mã ẩn danh nghĩa là mã
+ * trở thành một URL chia sẻ được, và không có ai để gắn quyền vào.
+ */
+app.post(
+  '/api/identity/invite/redeem',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    // Giới hạn theo IP dùng CHUNG bộ đếm với đường đăng nhập: mã mời là một bí
+    // mật đoán được như mật khẩu, nên nó phải đóng góp vào cùng một ngân sách
+    // thử. Bộ đếm riêng cho phép kẻ dò tiêu hết hạn mức của trục này rồi quay
+    // sang trục kia.
+    const ip = callerIp(req.headers as Record<string, unknown>, req.ip || '0.0.0.0')
+    if (await ipIsThrottled(ip)) return res.status(429).json({ error: 'rate_limited' })
+
+    const outcome = await redeemInvite(user, str(req.body?.code, 60))
+    if (!outcome.ok) {
+      await recordAttempt(ip, false)
+      // 'exhausted' nói ra được vì tới đó thì mã đã được chứng minh là có thật
+      // và người gọi đã đăng nhập — không còn gì để dò.
+      return res.status(outcome.reason === 'exhausted' ? 409 : 400).json({
+        error: outcome.reason === 'exhausted' ? 'invite_exhausted' : 'invite_invalid',
+      })
+    }
+
+    await recordAttempt(ip, true)
+    if (!outcome.alreadyVip) {
+      await auditInvite(user, 'invite.redeem', outcome.invite.id, outcome.invite.label)
+    }
+    // Vai trò mới nằm trong phiên next-auth, nên nó chỉ đổi ở lần làm mới token
+    // kế tiếp. Trả `role` về đây để giao diện nói đúng ngay lập tức.
+    return res.json({ ok: true, role: outcome.role })
+  })
+)
+
+/** ADMIN: sinh mã mới. Mã thô trả về ĐÚNG MỘT LẦN — DB chỉ giữ SHA-256. */
+app.post(
+  '/api/identity/invite/create',
+  asyncHandler(async (req, res) => {
+    const actor = await requireAdmin(req, res)
+    if (!actor) return
+
+    const label = str(req.body?.label, 120).trim()
+    if (!label) return res.status(400).json({ error: 'invalid_label' })
+
+    const maxUses = Math.min(Math.max(Math.trunc(Number(req.body?.maxUses) || 1), 1), 500)
+    const days = Math.trunc(Number(req.body?.expiresInDays) || 0)
+    const expiresAt = days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null
+
+    const { body, display } = generateInviteCode()
+    const invite = await prisma.trustInvite.create({
+      data: {
+        codeHash: hashInviteCode(body),
+        label,
+        maxUses,
+        expiresAt,
+        createdById: actor.id,
+      },
+    })
+    await auditInvite(actor, 'invite.create', invite.id, label, `maxUses=${maxUses}`)
+
+    return res.json({
+      ok: true,
+      code: display,
+      invite: publicInvite({ ...invite, _count: { redemptions: 0 } }),
+    })
+  })
+)
+
+/** ADMIN: liệt kê. KHÔNG bao giờ trả `codeHash` — nó là bí mật đã băm, không phải id. */
+app.post(
+  '/api/identity/invite/list',
+  asyncHandler(async (req, res) => {
+    const actor = await requireAdmin(req, res)
+    if (!actor) return
+
+    const rows = await prisma.trustInvite.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: { _count: { select: { redemptions: true } } },
+    })
+    return res.json(rows.map(publicInvite))
+  })
+)
+
+/** ADMIN: thu hồi. Đặt mốc thời gian chứ không xoá — lịch sử đổi mã phải còn. */
+app.post(
+  '/api/identity/invite/revoke',
+  asyncHandler(async (req, res) => {
+    const actor = await requireAdmin(req, res)
+    if (!actor) return
+
+    const id = str(req.body?.id, 60)
+    // updateMany có điều kiện `revokedAt: null`: thu hồi hai lần không dời mốc
+    // thời gian đã ghi.
+    const gone = await prisma.trustInvite.updateMany({
+      where: { id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    })
+    if (gone.count !== 1) return res.status(404).json({ error: 'not_found' })
+
+    const invite = await prisma.trustInvite.findUnique({ where: { id } })
+    await auditInvite(actor, 'invite.revoke', id, invite?.label || id)
+    return res.json({ ok: true })
+  })
+)
+
+/**
+ * Hình dạng an toàn để trả ra ngoài.
+ *
+ * Khai TƯỜNG MINH từng trường thay vì trải `...invite`: thêm một cột bí mật vào
+ * model sau này sẽ tự động lọt ra ngoài nếu ở đây dùng phép trải.
+ */
+function publicInvite(row: {
+  id: string
+  label: string
+  maxUses: number
+  usedCount: number
+  expiresAt: Date | null
+  createdAt: Date
+  revokedAt: Date | null
+  _count?: { redemptions: number }
+}) {
+  return {
+    id: row.id,
+    label: row.label,
+    maxUses: row.maxUses,
+    usedCount: row.usedCount,
+    redemptions: row._count?.redemptions ?? 0,
+    expiresAt: row.expiresAt,
+    createdAt: row.createdAt,
+    revokedAt: row.revokedAt,
+    grantsRole: INVITE_GRANTS_ROLE,
+  }
+}
 
 /**
  * URL công khai của site, dùng để dựng liên kết trong thư.

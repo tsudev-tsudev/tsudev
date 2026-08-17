@@ -14,12 +14,15 @@
 
 Thứ tự đề nghị:
 
-1. **§1.9 đợt 2 — mã mời.** Đang giữa chừng một kế hoạch ba đợt; đợt 1 đã phát
-   hành. Kế hoạch đầy đủ ở
-   [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).
-   ⚠️ Đợt này là **thêm bảng** ⇒ migration đi **TRƯỚC** code, ngược với đợt 1.
+1. **PHÁT HÀNH đợt 2 (mã mời).** Mã đã xong và xanh hết cổng kiểm nhưng **chưa
+   lên sóng**. Thứ tự: `prisma migrate deploy` lên Neon (thuần tính cộng, hai
+   `CREATE TABLE`) → gộp PR (Render dựng lại) → `npm --workspace
+apps/frontend-main run deploy`. Dấu hiệu bản mới đã lên sóng:
+   `POST /api/identity/invite/redeem` không kèm khẳng định danh tính trả **401**
+   ở bản mới, **404** ở bản cũ.
 2. **§1.9 đợt 3 — gác bề mặt Con dấu + SEO + điều hướng.** Làm cuối vì đó là đợt
-   duy nhất có thể khoá nhầm chính mình ra ngoài.
+   duy nhất có thể khoá nhầm chính mình ra ngoài — và giờ đã có đường vào lại
+   (cấp mã ở `/admin/trust`, đổi ở `/trust/redeem`).
 3. **§1.7 đợt A — trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
    không có route nào cho người dùng sửa hồ sơ của chính mình.
 4. **§1.5 — rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 và §1.9 thì rà
@@ -120,12 +123,13 @@ production: `docs/auth.md` §5.
 
 ## 0.6 Trạng thái repo khi bàn giao
 
-- `main` = `origin/main`, **cây làm việc sạch**, không còn nhánh tạm nào.
-- **10 PR đã gộp.** Gần nhất: #9 (gỡ tín dụng) và #10 (ghi tiến độ).
-- Bốn cổng gốc xanh · **202 test JS** · 9 test Rust · 11 E2E.
+- **11 PR đã gộp.** Gần nhất: #10 (ghi tiến độ) và #11 (bàn giao phiên 2).
+- Bốn cổng gốc xanh · **219 test JS** · 9 test Rust · **13 E2E**.
 - Production đang chạy mã của `main`. Neon đã áp dụng **9 migration**.
 
-**KHÔNG có thay đổi nào đang treo.** Mọi thứ đã ở trên remote.
+⚠️ **CÓ thay đổi đang treo (phiên 3):** đợt 2 của §1.9 (mã mời) đã xong ở cây
+làm việc — 6 tệp mã, 1 migration, 2 tệp test, 4 tệp tài liệu. **Chưa commit,
+chưa phát hành.** Neon chưa có migration `20260817172916_trust_invite`.
 
 ---
 
@@ -339,16 +343,29 @@ KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai
 
 ---
 
-### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟡 ĐANG LÀM (1/3 đợt xong)
+### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟡 ĐANG LÀM (2/3 đợt xong)
 
 > **Đợt 1 (gỡ tín dụng) đã XONG và đã phát hành 17/08/2026.** Ba cột
 > `User.credits`, `SealProgram.feeCredits`, `SealApplication.feeCharged` không
 > còn ở cả mã lẫn Neon. Mọi chương trình dấu miễn phí.
 >
-> **Còn đợt 2 (mã mời) và đợt 3 (gác bề mặt + SEO).** Nhớ: hai đợt migration
-> chạy NGƯỢC chiều nhau — đợt 2 là thêm bảng nên migration đi TRƯỚC code.
+> **Đợt 2 (mã mời) đã XONG 18/08/2026 nhưng CHƯA PHÁT HÀNH.** Bảng
+> `TrustInvite` + `TrustInviteRedemption`, bốn route
+> `/api/identity/invite/{redeem,create,list,revoke}`, trang `/trust/redeem`,
+> khối quản lý mã ở `/admin/trust`. 17 test đơn vị + 2 E2E mới, tất cả xanh.
+> Migration thuần tính cộng nên chạy trước khi phát hành code là an toàn.
 >
-> Bài học từ đợt 1, áp dụng cho hai đợt sau: kế hoạch ước lượng "3 trang
+> Một bổ sung ngoài kế hoạch, **đợt 3 phụ thuộc vào nó**: `token.role` của
+> next-auth CHỈ được ghi ở lần đăng nhập đầu, nên đổi mã xong thì DB nói VIP còn
+> phiên vẫn nói MEMBER — điều hướng tiếp tục giấu mục Con dấu, trông y hệt như
+> đổi mã không có tác dụng. Đã thêm `POST /api/identity/session-state` và nhánh
+> `trigger === 'update'` ở callback `jwt` để đọc lại vai trò TỪ DB (không bao
+> giờ từ tham số client truyền vào). Đợt 3 lọc điều hướng theo `session.role`
+> nên nó dựa thẳng lên chỗ này.
+>
+> **Còn đợt 3 (gác bề mặt + SEO).** Đợt đó chỉ có code, không migration.
+>
+> Bài học từ đợt 1, áp dụng cho đợt còn lại: kế hoạch ước lượng "3 trang
 > frontend" nhưng thực tế là 4 — `trust/portal.tsx` lọt lưới vì lần khảo sát đầu
 > grep trong danh sách tệp đoán trước thay vì grep từ khoá trên cả cây.
 
@@ -369,6 +386,8 @@ Bốn điều phải biết trước khi mở kế hoạch:
 1. **BA LẦN PHÁT HÀNH RIÊNG, không gộp.** Hai đợt migration chạy NGƯỢC chiều
    nhau: gỡ `credits` là `DROP` ⇒ code trước, migration sau. Mã mời là thêm bảng
    ⇒ migration trước, code sau. Gộp vào một lần là trang trống ở production.
+   (Cả hai đã làm đúng thứ tự; đợt 3 không có migration nên ràng buộc này hết
+   hiệu lực sau khi đợt 2 lên sóng.)
 2. **Phần A (gác bề mặt) làm CUỐI CÙNG** — đó là đợt duy nhất có thể khoá nhầm
    chính mình ra ngoài. Làm sau thì mã mời đã chạy và có đường vào lại.
 3. **`credits` KHÔNG phải cột chết** (gotcha riêng ở `CLAUDE.md`) — gỡ nó là gỡ

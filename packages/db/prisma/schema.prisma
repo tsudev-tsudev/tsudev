@@ -75,6 +75,8 @@ model User {
   totp          TotpCredential?
   backupCodes   BackupCode[]
   authTokens    AuthToken[]
+
+  trustInviteRedemptions TrustInviteRedemption[]
 }
 
 /// Tài khoản bên thứ ba đã liên kết (GitHub, Google). Một User có thể liên kết
@@ -472,6 +474,57 @@ model TrustAuditLog {
 
   @@index([createdAt])
   @@index([targetType, targetId])
+}
+
+// ---------------------------------------------------------------------------
+// Mã mời vào Con dấu tín nhiệm
+//
+// Con dấu là vùng chỉ-dành-cho-khách-mời: đổi mã hợp lệ = được nâng lên
+// `Role.VIP`, và `requireRole('VIP')` ở trust-service là cổng thật. CỐ Ý dùng
+// lại `Role` thay vì thêm cột `trustAccess` riêng — một hệ phân quyền thứ hai
+// chạy song song với hệ đã có đúng là thứ đã sinh ra vụ REQUIRE_ROLE_ENFORCEMENT.
+// ---------------------------------------------------------------------------
+
+model TrustInvite {
+  id String @id @default(cuid())
+  /// CHỈ lưu SHA-256. Cùng lý do với AuthToken.tokenHash và BackupCode.codeHash:
+  /// một bản sao DB bị rò không được phép biến thành một xấp mã mời dùng được.
+  ///
+  /// SHA-256 chứ không phải Argon2id, và đó là đúng: mã do CSPRNG sinh, entropy
+  /// cao, không có gì để dò. Argon2 chỉ cần khi đầu vào là thứ người tự đặt.
+  codeHash String @unique
+  /// Nhãn cho người vận hành: "Đối tác ABC", "Hội thảo 09/2026". Không bao giờ
+  /// hiện ra cho người đổi mã.
+  label String
+  /// Mã dùng nhiều lần (một đối tác) hay một lần (một người).
+  maxUses   Int @default(1)
+  usedCount Int @default(0)
+  /// NULL = không hết hạn.
+  expiresAt   DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  /// Thu hồi là đặt mốc thời gian, không phải xoá dòng: lịch sử đổi mã phải còn
+  /// tra được sau khi mã bị thu hồi.
+  revokedAt DateTime?
+
+  redemptions TrustInviteRedemption[]
+
+  @@index([createdAt])
+}
+
+/// Ai đã đổi mã nào, lúc nào. Cần cho trách nhiệm pháp lý khi cấp dấu — cùng lý
+/// do TrustAuditLog tồn tại.
+model TrustInviteRedemption {
+  id        String      @id @default(cuid())
+  inviteId  String
+  invite    TrustInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+
+  /// Chặn một người đổi CÙNG một mã nhiều lần để đốt lượt của người khác.
+  @@unique([inviteId, userId])
+  @@index([userId])
 }
 
 // ---------------------------------------------------------------------------

@@ -237,6 +237,25 @@ export type AuditEntry = {
   createdAt: string;
 };
 
+/**
+ * Mã mời vào vùng Con dấu, hình dạng auth-service trả ra.
+ *
+ * KHÔNG có `codeHash` và không bao giờ được có: DB chỉ giữ SHA-256 của mã, và
+ * hash đó vẫn là dẫn xuất của một bí mật chứ không phải một định danh. `code`
+ * chỉ xuất hiện đúng một lần, trong phản hồi của lệnh cấp.
+ */
+export type TrustInvite = {
+  id: string;
+  label: string;
+  maxUses: number;
+  usedCount: number;
+  redemptions: number;
+  expiresAt: string | null;
+  createdAt: string;
+  revokedAt: string | null;
+  grantsRole: string;
+};
+
 export type RecheckConfig = {
   enabled: boolean;
   intervalMin: number;

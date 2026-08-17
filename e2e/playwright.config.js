@@ -96,8 +96,10 @@ module.exports = defineConfig({
   projects: [
     {
       // Lưới an toàn: chạy được trong CI mà không phải dựng cả compose.
+      // invite.spec.js nằm ở đây chứ không ở full-stack: nó chỉ cần Postgres và
+      // bốn service, không cần MinIO.
       name: 'app',
-      testMatch: /smoke\.spec\.js/,
+      testMatch: /(smoke|invite)\.spec\.js/,
     },
     {
       // Cần MinIO + storage-service ⇒ chỉ chạy khi có full stack
