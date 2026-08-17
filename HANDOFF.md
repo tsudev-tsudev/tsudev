@@ -346,7 +346,18 @@ KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai
 
 ---
 
-### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟠 CHƯA LÀM, KẾ HOẠCH ĐÃ CHỐT
+### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟡 ĐANG LÀM (1/3 đợt xong)
+
+> **Đợt 1 (gỡ tín dụng) đã XONG và đã phát hành 17/08/2026.** Ba cột
+> `User.credits`, `SealProgram.feeCredits`, `SealApplication.feeCharged` không
+> còn ở cả mã lẫn Neon. Mọi chương trình dấu miễn phí.
+>
+> **Còn đợt 2 (mã mời) và đợt 3 (gác bề mặt + SEO).** Nhớ: hai đợt migration
+> chạy NGƯỢC chiều nhau — đợt 2 là thêm bảng nên migration đi TRƯỚC code.
+>
+> Bài học từ đợt 1, áp dụng cho hai đợt sau: kế hoạch ước lượng "3 trang
+> frontend" nhưng thực tế là 4 — `trust/portal.tsx` lọt lưới vì lần khảo sát đầu
+> grep trong danh sách tệp đoán trước thay vì grep từ khoá trên cả cây.
 
 **Kế hoạch đầy đủ: [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).**
 Phạm vi đã được chủ dự án chốt 16/08/2026 — **không còn câu nào phải hỏi trước
