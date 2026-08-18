@@ -175,11 +175,44 @@ status` nhắm production). Backend khởi động được **không** chứng m
 
 ### Việc 2 - Worker cron của Toà soạn có thể đã làm xong §1.1
 
-`infrastructure/newsroom-cron` khai `"crons": ["*/5 * * * *"]` và chú thích đầu
-`src/index.ts` nói rõ: mỗi 5 phút gõ cửa Render **kiêm luôn bộ ping giữ ấm**.
-Đúng thứ §1.1 cần. **Chưa đo trong phiên này** đã deploy hay chưa - kiểm bằng
+`infrastructure/newsroom-cron` giữ ấm Render bằng nhịp 5 phút - đúng thứ §1.1
+cần. **Chưa đo trong phiên này** đã deploy hay chưa; kiểm bằng
 `npx wrangler deployments list` trong thư mục đó. Nếu đã deploy thì đóng §1.1;
 nếu chưa, deploy nó rẻ hơn dựng UptimeRobot.
+
+⚠️ **Nếu đã deploy bản cũ thì PHẢI deploy lại** (`npm run cron:deploy`): phiên 4
+tách Worker này thành **hai nhịp** vì một hạn mức chưa ai tính tới. Xem mục
+ngay dưới.
+
+### Việc 4 - hạn mức Neon là chỗ chật nhất, và cron cũ sẽ phá nó
+
+Neon free cho **100 CU-giờ/tháng** và tự ngủ sau ~5 phút không có truy vấn. Cron
+cũ gọi `POST /api/newsroom/tick` (có truy vấn database) đúng **mỗi 5 phút** -
+tức đánh thức lại ngay trước mỗi lần Neon định ngủ. Compute thức 24/7 ở 0,25 CU
+là `0,25 × 744 = 186` CU-giờ/tháng, **gần gấp đôi hạn mức**. Vượt là Neon treo
+compute tới đầu tháng sau và **cả site chết**, không riêng toà soạn.
+
+Đã vá trong phiên 4: Worker cron nay phân nhánh theo `event.cron`.
+
+| Nhịp          | Gọi gì                    | Chạm DB? | Việc          |
+| ------------- | ------------------------- | -------- | ------------- |
+| `*/5 * * * *` | `GET /health`             | Không    | giữ ấm Render |
+| `7 * * * *`   | `POST /api/newsroom/tick` | **Có**   | nhịp toà soạn |
+
+Ngân sách chật thứ hai, **chưa vá vì là đánh đổi sản phẩm**: giữ ấm 24/7 tiêu
+744 trên 750 giờ instance của Render trong tháng 31 ngày - biên còn 6 giờ, và
+hạn mức đó tính cho CẢ workspace. Thêm bất kỳ service free thứ hai chạy vài giờ
+là Render tạm dừng **mọi** service free tới đầu tháng sau. Cách nới duy nhất là
+ngừng giữ ấm trong một khung giờ đêm (~150 giờ/tháng), đổi lấy cold start ~50
+giây cho người truy cập đầu tiên sau khung đó.
+
+Toàn bộ hạn mức của bảy dịch vụ, các van chi phí và danh sách cấm:
+[`docs/free-tier.md`](docs/free-tier.md) (mới, phiên 4).
+
+Cũng trong phiên 4: `render.yaml` **thiếu toàn bộ biến của nhánh newsroom** -
+blueprint mô tả một service không còn giống service đang chạy. Đã bổ sung bảy
+biến, trong đó `NEWSROOM_ENABLED: 'false'` để literal chứ không `sync: false`:
+mặc định của một service dựng lại từ blueprint phải là "không tiêu gì".
 
 ### Việc 3 - `noindex` ở nhánh CHƯA ĐĂNG NHẬP (phiên 4 đã làm)
 
