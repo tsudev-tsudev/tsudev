@@ -1,9 +1,28 @@
 name: CI
 
+# ⚠️ `push` CỐ Ý chỉ nghe `main`. Thêm 'feat/**' vào đây là mỗi lần đẩy một nhánh
+# đang có PR sẽ sinh HAI lần chạy y hệt nhau, cách nhau vài giây - một cho `push`,
+# một cho `pull_request`. Đó chính là hình cũ của tệp này, và nó đã đốt khoảng 20
+# lượt chạy thừa chỉ trong tháng 8/2026 (~360 phút, ~18% hạn mức tháng).
+#
+# Vì sao đây là chuyện lớn ở repo này: repo private được 2.000 phút Actions/tháng,
+# hết phút thì job BỊ CHẶN chứ không sinh hoá đơn - tức là triệu chứng sẽ là "CI
+# không chạy nữa" ngay giữa một đợt phát hành, không phải một dòng tiền.
+#
+# Nhánh chưa mở PR vì thế không có CI. Đó là đánh đổi có chủ đích: `.husky/pre-push`
+# đã chạy bốn cổng gốc ở máy trước khi đẩy, và mở PR là lúc cần bằng chứng cho
+# người khác đọc.
 on:
   push:
-    branches: [main, master, 'feat/**']
+    branches: [main]
   pull_request: {}
+
+# Đẩy tiếp lên cùng một nhánh thì huỷ lượt đang chạy dở - kết quả của nó không ai
+# đọc nữa. KHÔNG áp cho `main`: ở đó mỗi commit là một trạng thái đã phát hành,
+# huỷ lượt kiểm của nó là mất bằng chứng.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   lint:
