@@ -537,6 +537,136 @@ app.post(
 )
 
 // ---------------------------------------------------------------------------
+// Hồ sơ của chính mình - cần đăng nhập
+//
+// Trước đợt này KHÔNG có route nào cho người dùng sửa hồ sơ của chính họ: mọi
+// `prisma.user.update` trong repo đều thuộc về đặt lại mật khẩu, bộ đếm đăng
+// nhập, hoặc quản trị. `displayName` được đặt một lần lúc đăng ký rồi không có
+// đường nào đổi - mà nó lại là thứ hiển thị công khai dưới mỗi bài viết.
+//
+// Cả hai nhánh đi qua proxy CÓ PHIÊN pages/api/account/[...path].ts, không phải
+// proxy công khai của /api/identity.
+// ---------------------------------------------------------------------------
+app.use('/api/identity/profile', auth)
+app.use('/api/identity/password', auth)
+
+/** Giới hạn độ dài. Cắt ở service chứ không tin giao diện đã cắt hộ. */
+const MAX_DISPLAY_NAME = 60
+const MAX_BIO = 500
+
+/**
+ * Chuẩn hoá một trường tuỳ chọn: chuỗi rỗng ⇒ NULL, không phải chuỗi rỗng.
+ *
+ * Phân biệt này có thật ở tầng dưới: `authorCard` của content-service rơi về
+ * `username` khi `displayName` là NULL, còn chuỗi rỗng thì nó hiển thị ra một
+ * khoảng trắng dưới bài viết. Để giao diện gửi '' mà lưu nguyên là tạo một
+ * trạng thái không ai gõ được lần thứ hai.
+ */
+const optional = (v: unknown, max: number): string | null => {
+  const t = str(v, max).trim()
+  return t.length ? t : null
+}
+
+/** Hồ sơ hiện tại. POST (không phải GET) để đi chung một khuôn với proxy. */
+app.post(
+  '/api/identity/profile/get',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    return res.json({
+      username: user.username,
+      email: user.email,
+      displayName: user.displayName,
+      bio: user.bio,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      hasPassword: Boolean(user.passwordHash),
+      emailVerified: Boolean(user.emailVerifiedAt),
+    })
+  })
+)
+
+/**
+ * Sửa hồ sơ. CHỈ ba trường, và danh sách đó là cố ý đóng.
+ *
+ * `username`, `email` và `role` KHÔNG nằm ở đây: đổi email là đường chiếm tài
+ * khoản nếu không xác minh địa chỉ mới trước (§1.7 đợt B), còn `role` chỉ đổi
+ * được bằng mã mời - để nó lọt vào một route "sửa hồ sơ" nghĩa là ai cũng tự
+ * cấp được VIP bằng một dòng JSON.
+ */
+app.post(
+  '/api/identity/profile/update',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    const displayName = optional(req.body?.displayName, MAX_DISPLAY_NAME)
+    const bio = optional(req.body?.bio, MAX_BIO)
+
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { displayName, bio },
+      select: { displayName: true, bio: true },
+    })
+    return res.json({ ok: true, ...updated })
+  })
+)
+
+/**
+ * Đổi mật khẩu - ĐÒI MẬT KHẨU HIỆN TẠI.
+ *
+ * Cookie phiên bị đánh cắp KHÔNG được phép đủ để đổi mật khẩu. Không có phép
+ * kiểm này thì một phiên bị chiếm là mất hẳn tài khoản, vì kẻ chiếm đổi mật
+ * khẩu xong là chính chủ không vào lại được.
+ *
+ * `sessionVersion` tăng lên để đá MỌI phiên khác ra - cùng lý do với
+ * reset-password. Phiên đang thao tác cũng bị đá theo, nên trả `sessionVersion`
+ * mới về để client gọi `update()` của useSession và tự nâng phiên của mình lên;
+ * không có bước đó thì người vừa đổi mật khẩu thành công bị đăng xuất ngay lập
+ * tức và trông y hệt như đổi mật khẩu đã hỏng.
+ *
+ * Tài khoản chỉ đăng nhập bằng passkey thì KHÔNG có `passwordHash`. Nó cần
+ * "quên mật khẩu" chứ không phải route này - nói rõ ra, vì thông điệp
+ * `invalid_credentials` ở đó sẽ khiến người dùng thử đi thử lại một thứ không
+ * bao giờ đúng.
+ */
+app.post(
+  '/api/identity/password/change',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    const current = str(req.body?.currentPassword, 400)
+    const next = str(req.body?.newPassword, 400)
+
+    if (!user.passwordHash) {
+      // Đốt thời gian như nhánh sai mật khẩu: hai nhánh này phải tốn thời gian
+      // gần nhau, nếu không thì đo thời lượng là biết tài khoản nào có mật khẩu.
+      await burnTiming(current)
+      return res.status(409).json({ error: 'no_password_set' })
+    }
+    if (!(await verifyPassword(user.passwordHash, current))) {
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+
+    const problem = checkPasswordPolicy(next)
+    if (problem) return res.status(400).json({ error: 'weak_password', detail: problem })
+
+    const saved = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: await hashPassword(next),
+        sessionVersion: { increment: 1 },
+        failedLoginCount: 0,
+        lockedUntil: null,
+      },
+      select: { sessionVersion: true },
+    })
+    return res.json({ ok: true, sessionVersion: saved.sessionVersion })
+  })
+)
+
+// ---------------------------------------------------------------------------
 // Trạng thái phiên - cần đăng nhập
 // ---------------------------------------------------------------------------
 app.use('/api/identity/session-state', auth)

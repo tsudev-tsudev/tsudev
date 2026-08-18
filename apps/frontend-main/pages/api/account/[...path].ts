@@ -13,6 +13,12 @@ import { IDENTITY, internalHeaders } from '../../../lib/services';
 import { catchAllSegments, identityHeaders } from '../../../lib/identity';
 
 const ALLOWED = new Set([
+  // Hồ sơ của chính mình. `profile/get` là POST chứ không phải GET để đi chung
+  // một khuôn với cả tệp này - proxy chỉ nhận POST, và mở thêm một phương thức
+  // nữa ở đây là mở thêm một nhánh phải nhớ kiểm.
+  'profile/get',
+  'profile/update',
+  'password/change',
   'totp/setup',
   'totp/confirm',
   'totp/disable',
