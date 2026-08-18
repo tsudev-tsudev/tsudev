@@ -15,6 +15,12 @@ const AREAS = [
     ready: true,
   },
   {
+    href: '/admin/newsroom',
+    title: 'Toà soạn Agent AI',
+    desc: 'Sàn làm việc của đội ngũ AI, luồng sản xuất bài viết, nhật ký kiểm toán và mức tự chủ theo chuyên mục.',
+    ready: true,
+  },
+  {
     href: '/admin/projects',
     title: 'Dự án & bản quyền',
     desc: 'Quản lý dự án, phiên bản phát hành, giấy phép và trạng thái đăng ký bản quyền.',

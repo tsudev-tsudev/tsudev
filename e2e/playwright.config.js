@@ -99,7 +99,7 @@ module.exports = defineConfig({
       // invite.spec.js nằm ở đây chứ không ở full-stack: nó chỉ cần Postgres và
       // bốn service, không cần MinIO.
       name: 'app',
-      testMatch: /(smoke|invite)\.spec\.js/,
+      testMatch: /(smoke|invite|newsroom)\.spec\.js/,
     },
     {
       // Cần MinIO + storage-service ⇒ chỉ chạy khi có full stack
