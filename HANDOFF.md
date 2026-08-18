@@ -28,16 +28,22 @@ bài trên /blog: 3 · mục trên /docs: 2 · dự án trên /projects: 4
 ### Còn lại đúng MỘT việc cần tay chủ dự án: bật Toà soạn Agent AI
 
 Mọi thứ làm được bằng mã đã xong. Dữ liệu tham chiếu **đã seed lên Neon**
-(4 agent · 4 chuyên mục · 9 nguồn), Worker cron đã chạy, bảng đã có. Chỉ còn năm
-biến ở **Render → `tsudev-backend` → Environment**:
+(4 agent · 4 chuyên mục · 9 nguồn), Worker cron đã chạy, bảng đã có, và
+`NEWSROOM_TICK_TOKEN` đã được đặt. Còn ba biến ở
+**Render → `tsudev-backend` → Environment**:
 
-| Biến                  | Giá trị                                                                |
-| --------------------- | ---------------------------------------------------------------------- |
-| `NEWSROOM_ENABLED`    | `true` - công tắc tổng; để `false` thì dispatcher trả về ngay dòng đầu |
-| `NEWSROOM_TICK_TOKEN` | **chuỗi bạn đã nhập lúc chạy `npm run cron:secret`** - phải TRÙNG      |
-| `CF_ACCOUNT_ID`       | `9541f44e84433a32b013ec31bae14848`                                     |
-| `CF_AI_TOKEN`         | token mới, quyền **Workers AI** (403 thì nâng Read → Edit)             |
-| `GEMINI_API_KEY`      | _(tuỳ chọn)_ dự phòng khi cạn Neuron; **project KHÔNG bật billing**    |
+| Biến                  | Trạng thái 19/08                                                    |
+| --------------------- | ------------------------------------------------------------------- |
+| `NEWSROOM_TICK_TOKEN` | ✅ **đã đặt** - đo được vì tick trả 401 chứ không còn 503           |
+| `NEWSROOM_ENABLED`    | 🟠 đặt `true`; để `false` thì dispatcher trả về ngay dòng đầu       |
+| `CF_ACCOUNT_ID`       | 🟠 `9541f44e84433a32b013ec31bae14848`                               |
+| `CF_AI_TOKEN`         | 🟠 token mới, quyền **Workers AI** (403 thì nâng Read → Edit)       |
+| `GEMINI_API_KEY`      | _(tuỳ chọn)_ dự phòng khi cạn Neuron; **project KHÔNG bật billing** |
+
+⚠️ **401 chỉ chứng minh biến CÓ, không chứng minh nó KHỚP** với secret của Worker
+cron. Lệch nhau thì mỗi nhịp giờ đều 401 và toà soạn đứng yên trong im lặng -
+không có gì đỏ lên. Phép thử duy nhất là gọi tick bằng chính chuỗi đã nhập cho
+Worker: ra **202** là khớp, ra **401** là lệch.
 
 Tạo `CF_AI_TOKEN`: dash.cloudflare.com → My Profile → API Tokens → Create Token
 → Custom token → Permissions: **Account · Workers AI**. `wrangler` không tạo
