@@ -145,11 +145,13 @@ nguồn là hiện trạng; TSD là đích đến.
   định công khai - quên khai một nhánh riêng tư là nó lặng lẽ mở; nay quên khai
   một miễn trừ chỉ làm route đó đóng lại, tức hỏng ồn ào.
   `test/authCoverage.test.ts` canh cả bảng định tuyến lẫn phản hồi thật.
-  **Đổi bề mặt này phải sửa BA chỗ trong cùng một commit**: hằng ở
+  **Đổi bề mặt này phải sửa BỐN chỗ trong cùng một commit**: hằng ở
   `services/trust-service/src/index.ts`, `ALLOWED_PREFIXES` của proxy
-  `apps/frontend-main/pages/api/trust/[...path].ts`, và `authCoverage.test.ts`.
-  Lệch một nhịp là hoặc route riêng tư lộ ra, hoặc trang chết - cả hai đều im
-  lặng. Trang `/trust` và `/trust/redeem` CỐ Ý không bị gác: một cái là đích của
+  `apps/frontend-main/pages/api/trust/[...path].ts`, `authCoverage.test.ts`, và
+  `services/backend-bundle/test/routing.test.ts` - chỗ thứ tư này nằm ở workspace
+  KHÁC nên dễ lọt lưới, và nó đã lọt: bản đầu của đợt gác bề mặt xanh cả bốn cổng
+  gốc ở local mà đỏ CI. Lệch một nhịp là hoặc route riêng tư lộ ra, hoặc trang
+  chết - cả hai đều im lặng. Trang `/trust` và `/trust/redeem` CỐ Ý không bị gác: một cái là đích của
   mọi chuyển hướng, cái kia là đường vào lại.
 - **`TRUST_ISSUER` được ký vào chứng chỉ**; `TRUST_SIGNING_KEY` thiếu ở
   production ⇒ service từ chối khởi động (cố ý). Xoay khoá phải chuyển khoá cũ
