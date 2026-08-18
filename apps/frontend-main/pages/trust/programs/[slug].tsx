@@ -2,6 +2,7 @@ import React from 'react';
 import Seo from '../../../components/Seo';
 import { Layout, Button, Badge } from '@tsudev/ui';
 import { trust } from '../../../lib/trust';
+import { withTrustAccess } from '../../../lib/trustGate';
 import { api } from '../../../lib/api';
 import { KIND_LABEL, copyrightMeta } from '../../../lib/projectLabels';
 import type { GetServerSidePropsContext } from 'next';
@@ -17,6 +18,7 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
         title={program.name}
         path={`/trust/programs/${slug}`}
         description={program.summary ?? undefined}
+        noindex
       />
       <div className="max-w-3xl mx-auto px-4 py-12">
         <nav className="text-sm text-muted mb-5">
@@ -135,13 +137,15 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
   );
 }
 
-export async function getServerSideProps({ params }: GetServerSidePropsContext) {
-  const slug = routeParam(params, 'slug');
-  const program = await trust.program(slug);
-  if (!program) return { notFound: true };
-  // Lọc phía server chứ không thêm tham số truy vấn cho /api/projects: số dự án
-  // nhỏ, và mỗi tham số lọc mới là một mặt tiếp xúc phải kiểm chứng.
-  const all = await api.projects(100);
-  const projects = all.filter((p) => p.trustProgramSlug === slug);
-  return { props: { program, projects, slug } };
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return withTrustAccess(ctx, async (access) => {
+    const slug = routeParam(ctx.params, 'slug');
+    const program = await trust.program(slug, access.headers);
+    if (!program) return { notFound: true };
+    // Lọc phía server chứ không thêm tham số truy vấn cho /api/projects: số dự án
+    // nhỏ, và mỗi tham số lọc mới là một mặt tiếp xúc phải kiểm chứng.
+    const all = await api.projects(100);
+    const projects = all.filter((p) => p.trustProgramSlug === slug);
+    return { props: { program, projects, slug } };
+  });
 }

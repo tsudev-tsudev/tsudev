@@ -5,6 +5,8 @@ import { useSession, signIn } from 'next-auth/react';
 import { Layout, Button, Badge, SectionHeading } from '@tsudev/ui';
 import type { BadgeTone } from '@tsudev/ui';
 import { statusMeta, fmtDate } from '../../lib/trust';
+import { withTrustAccess } from '../../lib/trustGate';
+import type { GetServerSidePropsContext } from 'next';
 import type { PortalApplication, PortalOrg, SealEmbed } from '../../lib/types';
 
 // Nhãn trạng thái hồ sơ. `tone` khai đúng union của Badge để một tông sai chính
@@ -265,4 +267,11 @@ export default function TrustPortal() {
       </div>
     </Layout>
   );
+}
+
+// Cổng khách hàng: dữ liệu do trang tự gọi ở phía client qua /api/trust/*, nên
+// cổng thật nằm ở proxy và ở trust-service. Gác thêm ở đây để người chưa đủ
+// quyền không nhìn thấy một trang rỗng rồi tự hỏi mình làm sai gì.
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return withTrustAccess(ctx, async () => ({ props: {} }));
 }

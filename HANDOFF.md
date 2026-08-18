@@ -12,38 +12,38 @@
 
 **Không còn việc chặn nào.** Production đã đăng nhập được (§0.5 đã xong 17/08).
 
-➡️ **Phiên mới: đọc [§0.8 Bàn giao phiên 3](#08-bàn-giao-phiên-3-18082026--đọc-trước)
-trước tiên.** Có hai PR chưa gộp (#12, #13) và chính tệp này nằm trong cả hai -
-bản trên `main` đã cũ.
+➡️ **Phiên mới: đọc [§0.10 Bàn giao phiên 5](#010-bàn-giao-phiên-5-18082026--đọc-trước)
+rồi [§0.9](#09-bàn-giao-phiên-4-18082026) trước tiên.** Ba PR của phiên 3 (#12,
+#13, #14) đã gộp; §0.8 giữ lại làm lịch sử nhưng **dấu hiệu phát hành ghi trong
+đó nay đã SAI** - §0.9 nói rõ vì sao.
 
 Thứ tự đề nghị:
 
-1. **Gộp #12 + #13, rồi PHÁT HÀNH đợt 2 (mã mời).** Mã đã xong và xanh hết cổng kiểm nhưng **chưa
-   lên sóng**. Thứ tự: `prisma migrate deploy` lên Neon (thuần tính cộng, hai
-   `CREATE TABLE`) → gộp PR (Render dựng lại) → `npm --workspace
-apps/frontend-main run deploy`. Dấu hiệu bản mới đã lên sóng:
-   `POST /api/identity/invite/redeem` không kèm khẳng định danh tính trả **401**
-   ở bản mới, **404** ở bản cũ.
-2. **§1.9 đợt 3 - gác bề mặt Con dấu + SEO + điều hướng.** Làm cuối vì đó là đợt
-   duy nhất có thể khoá nhầm chính mình ra ngoài - và giờ đã có đường vào lại
-   (cấp mã ở `/admin/trust`, đổi ở `/trust/redeem`).
+1. **PHÁT HÀNH frontend Worker cho đợt 2 (mã mời).** Đo 18/08: backend Render đã
+   chạy mã mới (`/health` có `newsroom`) nhưng Worker vẫn là bản CŨ -
+   `/trust/redeem` và `/admin/newsroom` trả **404** trên `tsudev.com`. Chi tiết
+   và thứ tự: §0.9.
+2. **RỒI MỚI phát hành đợt 3** (gác bề mặt Con dấu), nay đã xong ở cây làm việc -
+   §0.10. Thứ tự này không được đảo: đợt 3 khoá bề mặt Con dấu lại, và đường vào
+   lại duy nhất là `/trust/redeem` của đợt 2.
 3. **§1.7 đợt A - trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
    không có route nào cho người dùng sửa hồ sơ của chính mình.
-4. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 và §1.9 thì rà
-   một lần cho cả trang mới.
+4. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 thì rà một lần
+   cho cả trang mới - trong đó có trang mời `/trust` vừa dựng ở phiên 5.
 5. Còn lại: §1.10 dọn service Render trùng (10 phút, làm lúc nào cũng được) ·
-   §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột `keycloakId` ·
-   §1.7 đợt B · §1.8.
+   §1.1 ping giữ ấm (§0.9 ghi chú: Worker cron của Toà soạn có thể đã gánh việc
+   này) · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột `keycloakId` · §1.7 đợt B ·
+   §1.8.
 
 ## Đang chạy
 
 `https://tsudev.com` đã lên sóng.
 
-| Thành phần       | Ở đâu                   | Ghi chú                                      |
-| ---------------- | ----------------------- | -------------------------------------------- |
-| `frontend-main`  | Cloudflare Workers      | `tsudev.com` + `www.tsudev.com`              |
-| `tsudev-backend` | Render **singapore**    | gộp content + storage + trust + **identity** |
-| PostgreSQL       | Neon **ap-southeast-1** | DB `neondb`                                  |
+| Thành phần       | Ở đâu                   | Ghi chú                                                 |
+| ---------------- | ----------------------- | ------------------------------------------------------- |
+| `frontend-main`  | Cloudflare Workers      | `tsudev.com` + `www.tsudev.com`                         |
+| `tsudev-backend` | Render **singapore**    | gộp content + storage + trust + identity + **newsroom** |
+| PostgreSQL       | Neon **ap-southeast-1** | DB `neondb`                                             |
 
 Biến môi trường/secret production: **`backup/production-env-2026-08-16.txt`**
 (đã gitignore VÀ dockerignore, không commit).
@@ -127,32 +127,240 @@ production: `docs/auth.md` §5.
 
 ## 0.6 Trạng thái repo khi bàn giao
 
-- **11 PR đã gộp.** Gần nhất: #10 (ghi tiến độ) và #11 (bàn giao phiên 2).
-- Bốn cổng gốc xanh · **219 test JS** · 9 test Rust · **13 E2E**.
-- Production đang chạy mã của `main`. Neon đã áp dụng **9 migration**.
+- **14 PR đã gộp.** Gần nhất: #12 (mã mời), #13 (service Render trùng), #14
+  (Toà soạn Agent AI).
+- Bốn cổng gốc xanh. Số test **chưa đếm lại** kể từ phiên 3 (lúc đó: 219 test JS
+  · 9 test Rust · 13 E2E) - Toà soạn thêm test riêng, con số cũ đã thấp hơn thật.
+- ⚠️ **"Production đang chạy mã của `main`" nay chỉ đúng một nửa**: backend
+  Render thì đúng, frontend Worker thì chưa (§0.9). Số migration Neon cũng chưa
+  đo lại.
 
 ---
 
-## 0.8 Bàn giao phiên 3 (18/08/2026) - ĐỌC TRƯỚC
+## 0.10 Bàn giao phiên 5 (18/08/2026) - ĐỌC TRƯỚC
 
-### ⚠️ Nếu bạn đang đọc bản này trên `main` thì nó đã CŨ
+### Đã làm: §1.9 đợt 3 - gác bề mặt Con dấu + SEO + điều hướng
 
-Phiên 3 để lại **hai PR chưa gộp**, và chính tệp này được sửa trong cả hai. Bản
-trên `main` nói "đợt 2 chưa làm" - **sai**. Đợt 2 đã xong.
+Nhánh **`feat/trust-surface-gating`** (chưa push, chưa có PR). Nó nằm CHỒNG lên
+`fix/admin-noindex-unauth` của phiên 4, nhánh cũng chưa push - nên PR của nhánh
+này sẽ mang theo cả hai đợt công việc.
+
+Con dấu nay chạy ở chế độ mời thật sự:
+
+| Tầng                 | Trước                                                  | Sau                                                                                                        |
+| -------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `trust-service`      | mặc định CÔNG KHAI, `AUTH_PREFIXES` khai 5 nhánh riêng | mặc định ĐÓNG: `rateLimit → auth → requireRole('VIP')` cho cả `/api/trust`, miễn trừ đúng `/health` + JWKS |
+| proxy `/api/trust/*` | `PUBLIC_PREFIXES` 5 nhánh mở                           | không còn nhánh mở; `ALLOWED_PREFIXES` mặc-định-đóng                                                       |
+| 7 trang `/trust/*`   | 4 trang không kiểm phiên                               | gác ở `getServerSideProps` qua `lib/trustGate.ts`                                                          |
+| `/trust`             | trang giới thiệu công khai                             | trang MỜI cho khách · nội dung thật cho VIP                                                                |
+| điều hướng           | luôn hiện                                              | `SiteHeader` 1 mục + `SiteFooter` 3 mục lọc theo vai trò                                                   |
+| `sitemap.xml`        | 5 nhóm `/trust/*`                                      | không còn dòng nào                                                                                         |
+| `robots.txt`         | `Disallow` /admin, /trust/apply, /trust/portal         | chỉ còn `Disallow: /api/` (xem §0.9 việc 3)                                                                |
+
+**Thứ hai chỗ kế hoạch không lường trước, cả hai tìm ra bằng cách grep cả cây
+thay vì đọc danh sách tệp đoán trước** - đúng bài học §0.7:
+
+1. **Trang chủ** (`pages/index.tsx`) gọi `trust.directory()` và hiển thị nguyên
+   một khối "Website mang dấu tsudev" + chỉ số "Website đã cấp dấu". Kế hoạch
+   chỉ liệt kê các trang `/trust/*`. Đã gỡ khối đó, gỡ lời gọi, và đổi CTA
+   "Đăng ký cấp dấu" thành "Tìm hiểu con dấu".
+2. **`applicationSubmit.test.ts`** tạo người nộp đơn ở vai trò `MEMBER`, nên
+   5 test đỏ ngay khi cổng VIP dựng lên. Đã nâng lên `VIP` và **thêm một test
+   ngược lại**: MEMBER nộp đơn phải nhận 403, đơn phải còn ở DRAFT.
+
+Bốn thứ đã cân nhắc và cố ý làm:
+
+- **Rate limit chuyển lên TRƯỚC cổng danh tính.** `requireRole` đọc `User.role`
+  bằng một truy vấn Postgres, nên đặt sau nó nghĩa là mỗi request rác không có
+  token vẫn tạo một truy vấn - Neon free tính tiền bằng CU-giờ (§0.9 việc 4).
+- **Mã nhúng huy hiệu nay nói thẳng** rằng khách vãng lai sẽ thấy ảnh hỏng, vì
+  `/api/trust/seal/*.svg` đã nằm sau cổng. Đây là hệ quả đã chốt (0 chứng chỉ
+  đang chạy), không phải lỗi - nhưng đưa mã nhúng mà không nói là để khách hàng
+  tự phát hiện bằng cách hỏng trên site của họ.
+- **`Referer`/`Origin` không còn được chuyển tiếp** ở proxy. Cơ chế phát hiện
+  huy hiệu gắn sai tên miền dựa vào chúng nay vô nghĩa (chỉ người đã đăng nhập
+  mới tải được huy hiệu); để lại là để một lớp phòng thủ giả nằm trong mã.
+- **`/trust` và `/trust/redeem` KHÔNG bị gác.** `/trust` là đích của mọi chuyển
+  hướng nên nó phải trả lời được "vì sao tôi không vào được"; `/trust/redeem` là
+  đường vào lại. Gác một trong hai là tự khoá mình ra ngoài.
+
+### Bẫy vai trò cũ đã được vá thêm một lớp
+
+`token.role` chỉ ghi ở lần đăng nhập đầu, nên người vừa đổi mã mời vẫn bị coi là
+MEMBER cho tới khi phiên làm mới. `/trust/redeem` đã gọi `update()` từ đợt 2;
+phiên 5 thêm: trang mời `/trust` **tự gọi `update()` một lần** rồi tải lại trang
+nếu vai trò đổi. Không có lớp này thì người tới `/trust` bằng liên kết cũ sau khi
+đổi mã sẽ thấy đúng màn hình "bạn cần mã mời" - trông y hệt như mã không có tác
+dụng.
+
+### Cổng kiểm đã chạy ở cuối phiên 5
+
+| Cổng                                                     | Kết quả                                     |
+| -------------------------------------------------------- | ------------------------------------------- |
+| `format:check` · `lint` · `typecheck` · `topology:check` | xanh cả bốn                                 |
+| `npm --workspace services/trust-service test`            | **57 test xanh** (thêm 12 so với trước)     |
+| `npm --workspace packages/ui test`                       | 68 xanh                                     |
+| `npm --workspace apps/frontend-main test`                | 19 xanh                                     |
+| **E2E `--project=app`**                                  | **20 xanh**, chạy thật với stack dev đầy đủ |
+
+E2E thêm bốn khẳng định mới trong `smoke.spec.js`: khách chỉ thấy trang mời và
+thẻ `noindex` · ba trang khác chuyển hướng về `/login` · tài khoản MEMBER bị đá
+về `/trust` · VIP (`bob`) thấy nội dung thật · `sitemap.xml` không còn `/trust/`.
+
+⚠️ Test MEMBER **tự đăng ký một tài khoản mới** thay vì dùng `alice`:
+`invite.spec.js` nâng alice lên VIP khi nó chạy, và hai tệp spec không có thứ tự
+đảm bảo. Một test chỉ xanh khi tệp khác chưa chạy là một test nói dối.
+
+### Trạng thái máy dev khi bàn giao
+
+- **Postgres user-space đang CHẠY ở 5433** (phiên 5 khởi động bằng `npm run
+db:up`). MinIO không chạy - E2E `full-stack` vì thế chưa chạy được.
+- DB dev đã dọn sau E2E: `alice` trả về `MEMBER`, tài khoản `e2e-member-*` và
+  mã mời nhãn `E2E …` đã xoá. Dữ liệu demo con dấu (`seed-demo.js`) vẫn còn -
+  test danh bạ cần nó.
+- Bốn nhánh cục bộ chưa push: `feat/trust-surface-gating` (phiên 5),
+  `fix/admin-noindex-unauth` (phiên 4), `feat/minio-user-space`,
+  `fix/dev-canonical-host`. `main` cục bộ vẫn đứng sau `origin/main` 19 commit.
+
+### Việc kế tiếp cần chủ dự án
+
+1. Duyệt và push nhánh này (chưa push theo quy ước "xin xác nhận trước khi
+   push").
+2. Phát hành theo đúng thứ tự ở mục "Bắt đầu từ đâu": Worker mang đợt 2 lên
+   trước, cấp + đổi thử một mã mời, RỒI mới đợt 3.
+3. Sau khi đợt 3 lên sóng, nghiệm thu bằng lệnh trong
+   `docs/refactor-trust-invite-access.md` §Phần D: `sitemap.xml` không còn
+   `/trust/`, và `/trust/directory` với khách chưa đăng nhập phải là chuyển
+   hướng chứ không phải 200.
+
+---
+
+## 0.9 Bàn giao phiên 4 (18/08/2026)
+
+### Production đang lệch nhịp: backend MỚI, Worker CŨ
+
+Đo trực tiếp 18/08, không suy đoán:
+
+| Phép đo                              | Kết quả                                                | Nghĩa là           |
+| ------------------------------------ | ------------------------------------------------------ | ------------------ |
+| `tsudev-backend.onrender.com/health` | `bundled: content, storage, trust, identity, newsroom` | Render chạy mã mới |
+| `tsudev.com/trust`                   | 200                                                    | site vẫn sống      |
+| `tsudev.com/trust/redeem`            | **404**                                                | Worker chạy mã CŨ  |
+| `tsudev.com/admin/newsroom`          | **404**                                                | Worker chạy mã CŨ  |
+
+Nghĩa là **mã mời (đợt 2) và toàn bộ Toà soạn Agent AI đã có ở backend nhưng
+chưa có bề mặt** - người dùng không với tới được. Đây là trạng thái nửa vời:
+không hỏng cái gì đang chạy, nhưng mọi nghiệm thu "bấm thật" của hai đợt đó đều
+chưa làm được.
+
+**Dấu hiệu phát hành đúng cho đợt này** (thứ THAY ĐỔI giữa hai bản - xem §0.7):
+
+```
+GET https://tsudev.com/trust/redeem   → 404 ở bản cũ · 200 ở bản mới
+```
+
+### Việc 1 - phát hành frontend Worker
+
+1. **Kiểm Neon đã áp migration của đợt 2 + Toà soạn chưa** (`prisma migrate
+status` nhắm production). Backend khởi động được **không** chứng minh điều đó:
+   nó chỉ nạp module, chưa route nào chạm vào bảng mới. Worker mới lên là người
+   dùng chạm ngay.
+2. `npm --workspace apps/frontend-main run deploy` - **đừng** gọi thẳng
+   `opennextjs-cloudflare deploy` (lý do ở `CLAUDE.md`: `.env.local` thắng
+   `.env.production`).
+3. Nghiệm thu: `/trust/redeem` trả 200 · đăng nhập `tsudev` · cấp mã ở
+   `/admin/trust` · đổi mã bằng tài khoản khác · mở `/admin/newsroom`.
+
+### Việc 2 - Worker cron của Toà soạn có thể đã làm xong §1.1
+
+`infrastructure/newsroom-cron` giữ ấm Render bằng nhịp 5 phút - đúng thứ §1.1
+cần. **Chưa đo trong phiên này** đã deploy hay chưa; kiểm bằng
+`npx wrangler deployments list` trong thư mục đó. Nếu đã deploy thì đóng §1.1;
+nếu chưa, deploy nó rẻ hơn dựng UptimeRobot.
+
+⚠️ **Nếu đã deploy bản cũ thì PHẢI deploy lại** (`npm run cron:deploy`): phiên 4
+tách Worker này thành **hai nhịp** vì một hạn mức chưa ai tính tới. Xem mục
+ngay dưới.
+
+### Việc 4 - hạn mức Neon là chỗ chật nhất, và cron cũ sẽ phá nó
+
+Neon free cho **100 CU-giờ/tháng** và tự ngủ sau ~5 phút không có truy vấn. Cron
+cũ gọi `POST /api/newsroom/tick` (có truy vấn database) đúng **mỗi 5 phút** -
+tức đánh thức lại ngay trước mỗi lần Neon định ngủ. Compute thức 24/7 ở 0,25 CU
+là `0,25 × 744 = 186` CU-giờ/tháng, **gần gấp đôi hạn mức**. Vượt là Neon treo
+compute tới đầu tháng sau và **cả site chết**, không riêng toà soạn.
+
+Đã vá trong phiên 4: Worker cron nay phân nhánh theo `event.cron`.
+
+| Nhịp          | Gọi gì                    | Chạm DB? | Việc          |
+| ------------- | ------------------------- | -------- | ------------- |
+| `*/5 * * * *` | `GET /health`             | Không    | giữ ấm Render |
+| `7 * * * *`   | `POST /api/newsroom/tick` | **Có**   | nhịp toà soạn |
+
+Ngân sách chật thứ hai, **chưa vá vì là đánh đổi sản phẩm**: giữ ấm 24/7 tiêu
+744 trên 750 giờ instance của Render trong tháng 31 ngày - biên còn 6 giờ, và
+hạn mức đó tính cho CẢ workspace. Thêm bất kỳ service free thứ hai chạy vài giờ
+là Render tạm dừng **mọi** service free tới đầu tháng sau. Cách nới duy nhất là
+ngừng giữ ấm trong một khung giờ đêm (~150 giờ/tháng), đổi lấy cold start ~50
+giây cho người truy cập đầu tiên sau khung đó.
+
+Toàn bộ hạn mức của bảy dịch vụ, các van chi phí và danh sách cấm:
+[`docs/free-tier.md`](docs/free-tier.md) (mới, phiên 4).
+
+Cũng trong phiên 4: `render.yaml` **thiếu toàn bộ biến của nhánh newsroom** -
+blueprint mô tả một service không còn giống service đang chạy. Đã bổ sung bảy
+biến, trong đó `NEWSROOM_ENABLED: 'false'` để literal chứ không `sync: false`:
+mặc định của một service dựng lại từ blueprint phải là "không tiêu gì".
+
+### Việc 3 - `noindex` ở nhánh CHƯA ĐĂNG NHẬP (phiên 4 đã làm)
+
+Nhánh `fix/admin-noindex-unauth`, 5 trang. Lỗi gốc: thẻ `Seo … noindex` chỉ được
+đặt ở nhánh **đã** đăng nhập, mà trình thu thập thì KHÔNG BAO GIỜ có phiên - nên
+thẻ nằm đúng chỗ không ai đọc. Ba trang `/admin/*` đã vá từ trước; phiên 4 quét
+cả cây và tìm thêm hai trang cùng lỗi ở nhánh `status === 'loading'`:
+`settings/security.tsx` và `trust/redeem.tsx`. Tiện tay sửa hai lỗi nhỏ trong
+chính thẻ đó: tiêu đề lặp hậu tố (`Seo` tự nối `- tsudev`) và
+`settings/security` thiếu `path` nên `canonical` trỏ về trang chủ.
+
+E2E canh việc này: `e2e/tests/newsroom.spec.js` → `trang không được lập chỉ mục`.
+
+✅ **Đã quyết ở phiên 5 (18/08):** chọn **cho thu thập + `noindex`**.
+`pages/robots.txt.ts` nay chỉ còn `Disallow: /api/`; mọi khu vực riêng tư dựa
+hẳn vào thẻ `noindex`. Hệ quả bắt buộc, ghi ngay đầu tệp đó: trang riêng tư phải
+có `<Seo … noindex />` ở TẤT CẢ các nhánh render (kể cả `loading` và chưa đăng
+nhập) - trình thu thập không bao giờ có phiên.
+
+### Trạng thái máy dev khi bàn giao
+
+- **Không có gì đang chạy**: 3000/8080/4001/4004 trống, Postgres 5433 và MinIO
+  9000 cũng không. Muốn chạy E2E phải `npm run dev:full` trước.
+- `main` cục bộ **đứng sau `origin/main` 19 commit** - chưa fast-forward.
+- Nhánh `fix/admin-noindex-unauth` mang theo commit `91c45ca`
+  (`fix(dev): hợp nhất địa chỉ local về một host`) **chưa có ở `origin/main`**,
+  nên PR của nhánh này sẽ gồm cả nó. Cùng commit đó cũng nằm trên hai nhánh cục
+  bộ `feat/newsroom` và `fix/dev-canonical-host`.
+- Cổng kiểm chạy ở cuối phiên 4: `format:check` · `lint` · `typecheck` ·
+  `topology:check` - **xanh cả bốn**. E2E chưa chạy (không có stack).
+
+---
+
+## 0.8 Bàn giao phiên 3 (18/08/2026) - LỊCH SỬ, đã gộp hết
+
+### ✅ Ba PR của phiên 3 đã gộp
 
 | PR                                                     | Nhánh                           | Nội dung                                       |
 | ------------------------------------------------------ | ------------------------------- | ---------------------------------------------- |
 | [#12](https://github.com/tsudev-tsudev/tsudev/pull/12) | `feat/trust-invite-codes`       | §1.9 đợt 2 - mã mời. 19 tệp, +1370/−28         |
 | [#13](https://github.com/tsudev-tsudev/tsudev/pull/13) | `docs/render-duplicate-service` | §1.10 + chẩn đoán `tsudev-backend-rqkz`. 2 tệp |
+| [#14](https://github.com/tsudev-tsudev/tsudev/pull/14) | `feat/newsroom`                 | Toà soạn Agent AI, 5 đợt                       |
 
-Cả hai `MERGEABLE`; `git merge-tree` khô cho **0 xung đột** nên gộp thứ tự nào
-cũng được. **Việc đầu tiên của phiên mới là gộp chúng**, nếu không mọi thứ đọc
-được từ `main` đều lệch một nhịp.
+`origin/main` = `e4bed3f`. Nhánh `feat/minio-user-space` cũng đã vào `main` -
+cảnh báo "chưa có upstream" ở bản trước **không còn hiệu lực**.
 
-### Việc 1 - PHÁT HÀNH đợt 2 (mã mời)
+### Việc 1 - PHÁT HÀNH đợt 2 (mã mời) - ĐÃ GỘP, CHƯA LÊN WORKER
 
-Mã đã xong, xanh hết cổng kiểm, **chưa lên sóng**. Neon **chưa** có migration
-`20260817172916_trust_invite`.
+Mã đã ở trên `main` và backend Render đã dựng lại. Frontend Worker thì **chưa** -
+xem §0.9 để biết cách đo và thứ tự phát hành còn lại.
 
 ⚠️ Thứ tự đợt này **NGƯỢC** với đợt 1 (đợt 1 là `DROP COLUMN` nên code đi trước;
 đợt này là thêm bảng nên migration đi trước):
@@ -162,13 +370,13 @@ Mã đã xong, xanh hết cổng kiểm, **chưa lên sóng**. Neon **chưa** c�
 2. Gộp #12 ⇒ Render dựng lại `tsudev-backend` (~160s).
 3. `npm --workspace apps/frontend-main run deploy`.
 
-Dấu hiệu bản mới đã lên sóng - phải là thứ THAY ĐỔI giữa hai bản, `/health` thì
-không (xem §0.7):
-
-```
-POST /api/identity/invite/redeem   không kèm khẳng định danh tính
-  → 401 ở bản mới · 404 ở bản cũ
-```
+> ⚠️ **Dấu hiệu phát hành ghi ở bản trước đã SAI, đừng dùng lại.** Bản trước nói
+> `POST /api/identity/invite/redeem` trả 401 ở mã mới và 404 ở mã cũ. Trong mã
+> đã gộp, `invite/*` **không** nằm trong `ALLOWED` của proxy công khai
+> `pages/api/identity/[...path].ts` - nó nằm ở proxy CÓ PHIÊN
+> `pages/api/account/[...path].ts` (đúng thiết kế: đổi mã đòi đã đăng nhập). Nên
+> đường `/api/identity/invite/redeem` trả **404 ở CẢ hai bản** và không phân
+> biệt được gì. Dấu hiệu đúng: xem §0.9.
 
 Nghiệm thu sau khi lên sóng: đăng nhập bằng `tsudev`, cấp một mã ở
 `/admin/trust`, đổi nó ở `/trust/redeem` bằng một tài khoản khác. Đây là loại
@@ -200,15 +408,10 @@ Kế hoạch đầy đủ + danh sách cổng kiểm bắt buộc:
 
 ### Có người khác đang làm song song - ĐỪNG quét chung vào commit của mình
 
-Nhánh **`feat/minio-user-space`** (MinIO user-space cho dev: `scripts/start-minio.sh`,
-`scripts/ensure-bucket.js`, `minio:up` trong `package.json`, mục mới ở
-`docs/development.md`) **không phải của phiên 3**. Nó xuất hiện trong cây làm
-việc giữa phiên và đã suýt bị `git add -A` quét vào PR #12.
-
-⚠️ **Nhánh đó CHƯA được đẩy lên remote** - commit `2776c15` chỉ tồn tại trên máy
-này, không có upstream. Nó không phải việc của phiên 3 nên phiên 3 không đẩy hộ,
-nhưng phiên sau cần biết: xoá nhánh hay dựng lại máy là mất hẳn. Hỏi chủ dự án
-trước khi đụng vào.
+Nhánh **`feat/minio-user-space`** (MinIO user-space cho dev) không phải của phiên
+3, xuất hiện trong cây làm việc giữa phiên và đã suýt bị `git add -A` quét vào
+PR #12. **Nay đã vào `main`** (`2776c15` là tổ tiên của `origin/main`), nên không
+còn rủi ro mất mã.
 
 Bài học dùng lại được: **trước khi commit, đối chiếu danh sách staged với danh
 sách tệp mình thực sự sửa.** `git status --short` trước và sau khi làm việc,
@@ -284,7 +487,11 @@ trị. Giá trị vẫn phải điền tay.
 
 ## 1. Việc còn dở
 
-### 1.1 Dựng bộ ping giữ ấm - 🟠 CHƯA LÀM
+### 1.1 Dựng bộ ping giữ ấm - 🟡 CÓ THỂ ĐÃ XONG, cần kiểm
+
+⚠️ Đọc §0.9 việc 2 trước: `infrastructure/newsroom-cron` chạy `*/5 * * * *` và
+**cố ý kiêm luôn việc giữ ấm**. Nếu Worker đó đã deploy thì mục này đóng lại,
+khỏi dựng UptimeRobot. Phần dưới giữ nguyên làm bối cảnh.
 
 Free tier cấp 750 giờ instance/tháng cho **cả tài khoản**; một service chạy liên
 tục tiêu 720 giờ. Nay chỉ còn MỘT service (`tsudev-backend`) nên toàn bộ ngân
@@ -447,13 +654,15 @@ KHÔNG sửa bằng cách nới thông điệp ra - đó là đánh đổi sai. 
 
 ---
 
-### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng - 🟡 ĐANG LÀM (2/3 đợt xong)
+### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng - 🟢 XONG Ở MÃ (3/3 đợt), chờ phát hành
 
 > **Đợt 1 (gỡ tín dụng) đã XONG và đã phát hành 17/08/2026.** Ba cột
 > `User.credits`, `SealProgram.feeCredits`, `SealApplication.feeCharged` không
 > còn ở cả mã lẫn Neon. Mọi chương trình dấu miễn phí.
 >
-> **Đợt 2 (mã mời) đã XONG 18/08/2026 nhưng CHƯA PHÁT HÀNH.** Bảng
+> **Đợt 2 (mã mời) đã XONG và đã GỘP vào `main` (PR #12), nhưng mới lên tới
+> backend Render - frontend Worker vẫn là bản cũ, nên `/trust/redeem` còn 404
+> trên production (§0.9).** Bảng
 > `TrustInvite` + `TrustInviteRedemption`, bốn route
 > `/api/identity/invite/{redeem,create,list,revoke}`, trang `/trust/redeem`,
 > khối quản lý mã ở `/admin/trust`. 17 test đơn vị + 2 E2E mới, tất cả xanh.
@@ -467,7 +676,10 @@ KHÔNG sửa bằng cách nới thông điệp ra - đó là đánh đổi sai. 
 > giờ từ tham số client truyền vào). Đợt 3 lọc điều hướng theo `session.role`
 > nên nó dựa thẳng lên chỗ này.
 >
-> **Còn đợt 3 (gác bề mặt + SEO).** Đợt đó chỉ có code, không migration.
+> **Đợt 3 (gác bề mặt + SEO) đã XONG ở cây làm việc** (phiên 5, nhánh
+> `feat/trust-surface-gating`) - chi tiết ở §0.10. Chỉ có code, không migration,
+> nhưng **phải phát hành SAU đợt 2**: nó khoá bề mặt Con dấu lại và đường vào
+> lại duy nhất là `/trust/redeem` của đợt 2.
 >
 > Bài học từ đợt 1, áp dụng cho đợt còn lại: kế hoạch ước lượng "3 trang
 > frontend" nhưng thực tế là 4 - `trust/portal.tsx` lọt lưới vì lần khảo sát đầu

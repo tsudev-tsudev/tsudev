@@ -230,9 +230,14 @@ export default function NewsroomPage() {
     }
   };
 
+  // `noindex` phải có ở CẢ hai nhánh chưa-đăng-nhập, không chỉ ở nhánh đã vào
+  // được. Trình thu thập của công cụ tìm kiếm KHÔNG BAO GIỜ có phiên, nên trạng
+  // thái duy nhất nó nhìn thấy chính là hai nhánh này - đặt thẻ ở nhánh đã đăng
+  // nhập là đặt đúng chỗ không ai đọc.
   if (authStatus === 'loading')
     return (
       <Layout>
+        <Seo title="Toà soạn Agent AI" path="/admin/newsroom" noindex />
         <Card className="p-8 text-center text-muted">Đang tải…</Card>
       </Layout>
     );
@@ -240,6 +245,7 @@ export default function NewsroomPage() {
   if (!session)
     return (
       <Layout>
+        <Seo title="Toà soạn Agent AI" path="/admin/newsroom" noindex />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold text-ink mb-2">Toà soạn Agent AI</h1>
           <p className="text-muted mb-4">Khu vực quản trị — cần đăng nhập.</p>

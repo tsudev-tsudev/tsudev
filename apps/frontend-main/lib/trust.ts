@@ -6,14 +6,22 @@
 // tìm thấy / không tồn tại / không kiểm tra được.
 
 // Không gửi x-internal-token: trust-service cố ý đứng ngoài cổng chặn đó vì
-// nhiều endpoint của nó phải công khai cho bên thứ ba (huy hiệu SVG, trang
-// xác minh, JWKS). Xem docs/trust-seal.md.
+// endpoint JWKS của nó phải công khai cho bên thứ ba. Xem docs/trust-seal.md.
+//
+// ⚠️ MỌI hàm ở đây nay BẮT BUỘC nhận `auth` - khẳng định danh tính của người
+// đang xem, do `trustAccess()` ký. Từ đợt chế độ mời, `/api/trust/*` đòi vai trò
+// VIP đọc từ DB, nên một lời gọi SSR không mang danh tính chỉ nhận 401 và rơi về
+// giá trị mặc định. Tham số bắt buộc (không phải tuỳ chọn) chính là để chỗ gọi
+// quên nó thành lỗi BIÊN DỊCH thay vì một trang trống ở production.
 import { TRUST } from './services';
 import type { CertificateCard, TrustProfile, TrustProgram, VerifyOutcome } from './types';
 
-async function getJSON<T>(path: string, fallback: T): Promise<T> {
+/** Header danh tính do `lib/trustGate.ts` dựng. */
+export type TrustAuth = Record<string, string>;
+
+async function getJSON<T>(path: string, auth: TrustAuth, fallback: T): Promise<T> {
   try {
-    const res = await fetch(`${TRUST}${path}`);
+    const res = await fetch(`${TRUST}${path}`, { headers: auth });
     if (!res.ok) return fallback;
     return await res.json();
   } catch (e) {
@@ -22,21 +30,24 @@ async function getJSON<T>(path: string, fallback: T): Promise<T> {
 }
 
 export const trust = {
-  programs: () => getJSON<TrustProgram[]>('/api/trust/programs', []),
-  program: (slug: string) =>
-    getJSON<TrustProgram | null>(`/api/trust/programs/${encodeURIComponent(slug)}`, null),
-  directory: (params = '') => getJSON<CertificateCard[]>(`/api/trust/directory${params}`, []),
-  profile: (orgId: string) =>
-    getJSON<TrustProfile | null>(`/api/trust/profile/${encodeURIComponent(orgId)}`, null),
+  programs: (auth: TrustAuth) => getJSON<TrustProgram[]>('/api/trust/programs', auth, []),
+  program: (slug: string, auth: TrustAuth) =>
+    getJSON<TrustProgram | null>(`/api/trust/programs/${encodeURIComponent(slug)}`, auth, null),
+  directory: (auth: TrustAuth, params = '') =>
+    getJSON<CertificateCard[]>(`/api/trust/directory${params}`, auth, []),
+  profile: (orgId: string, auth: TrustAuth) =>
+    getJSON<TrustProfile | null>(`/api/trust/profile/${encodeURIComponent(orgId)}`, auth, null),
 
   /**
    * Ba trạng thái, không phải hai. Union phân biệt được khiến việc đọc
    * `.certificate` mà chưa kiểm `state === 'found'` thành lỗi biên dịch - trước
    * đây trang xác thực có thể vô tình coi "service chết" là "chứng chỉ giả".
    */
-  async verify(serial: string): Promise<VerifyOutcome> {
+  async verify(serial: string, auth: TrustAuth): Promise<VerifyOutcome> {
     try {
-      const res = await fetch(`${TRUST}/api/trust/verify/${encodeURIComponent(serial)}`);
+      const res = await fetch(`${TRUST}/api/trust/verify/${encodeURIComponent(serial)}`, {
+        headers: auth,
+      });
       if (res.status === 404) return { state: 'missing' };
       if (!res.ok) return { state: 'unavailable' };
       return { state: 'found', certificate: await res.json() };

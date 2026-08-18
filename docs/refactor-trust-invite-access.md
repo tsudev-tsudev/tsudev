@@ -1,13 +1,14 @@
 # Kế hoạch: đưa Con dấu tín nhiệm về chế độ mời, và gỡ tín dụng
 
-> **Trạng thái: 2/3 đợt XONG.** Phần C (gỡ tín dụng) phát hành 17/08/2026;
-> Phần B (mã mời) hoàn thành 18/08/2026, **chưa phát hành**. Còn lại Phần A + D
-> (gác bề mặt, SEO, điều hướng) - đợt duy nhất có thể khoá nhầm chính mình ra
-> ngoài, nên nó đi cuối.
+> **Trạng thái: 3/3 đợt XONG ở mã nguồn.** Phần C (gỡ tín dụng) phát hành
+> 17/08/2026; Phần B (mã mời) hoàn thành 18/08/2026; Phần A + D (gác bề mặt,
+> SEO, điều hướng) hoàn thành 18/08/2026. **Cả đợt 2 và đợt 3 đều CHƯA lên
+> frontend Worker** - xem HANDOFF §0.9.
 >
-> Đọc hết mục "Quyết định đã có" trước khi viết dòng mã đầu tiên. Chủ dự án đã
-> chốt phạm vi ngày 16/08/2026; phần còn lại chứa một ràng buộc thứ tự có thể
-> làm trang trống ở production mà không test nào bắt được.
+> Phần A + D không có migration, nên nó không mang ràng buộc thứ tự nào của hai
+> đợt trước. Cái nó mang là rủi ro khác: phát hành nó khi mã mời chưa lên sóng
+> nghĩa là không ai có đường vào lại. Thứ tự phát hành bắt buộc: Worker mang mã
+> mời lên trước (đợt 2), cấp và đổi thử một mã, RỒI mới tới đợt 3.
 
 ## Mục tiêu (chủ dự án giao)
 
@@ -118,7 +119,34 @@ gỡ trọn cụm, nếu không sẽ còn lại đường code tính phí trên 
 
 ---
 
-## Phần A - phân loại lại bề mặt Con dấu
+## Phần A - phân loại lại bề mặt Con dấu ✅ XONG (đợt 3, 18/08/2026)
+
+> **Đã chọn hình "mặc định ĐÓNG"** - phương án đảo được nêu ngay dưới bảng này.
+> Cụ thể trong `services/trust-service/src/index.ts`:
+>
+> ```
+> app.use('/api/trust', rateLimit)        // trước cổng: request rác không chạm DB
+> app.use('/api/trust', auth)             // 401 nếu chưa đăng nhập
+> app.use('/api/trust', requireRole('VIP')) // 403 nếu chưa đổi mã mời
+> ```
+>
+> `AUTH_PREFIXES` không còn; thay bằng hai hằng được xuất ra: `PUBLIC_PATHS`
+> (đúng hai đường: `/health` và JWKS) và `GATED_PREFIX`. `authCoverage.test.ts`
+> đã viết lại để canh danh sách MIỄN TRỪ, và kiểm thêm phản hồi thật: 401 cho
+> khách · 403 cho MEMBER · 200 cho VIP · 403 cho VIP ở nhánh admin · 200 cho
+> JWKS khi chưa đăng nhập.
+>
+> Ở frontend: proxy `pages/api/trust/[...path].ts` không còn nhánh công khai
+> (`PUBLIC_PREFIXES` đã bị xoá, thay bằng `ALLOWED_PREFIXES` mặc-định-đóng và
+> `READ_ONLY_PREFIXES`); việc chuyển tiếp `Referer`/`Origin` đã gỡ hẳn theo đúng
+> cảnh báo bên dưới. Bảy trang `/trust/*` gác ở `getServerSideProps` qua
+> `lib/trustGate.ts`; `/trust` giữ mở và đổi vai thành trang mời.
+>
+> **Một chỗ kế hoạch không lường trước, tìm ra bằng cách grep cả cây** (đúng bài
+> học của đợt 1): **trang chủ** `pages/index.tsx` gọi `trust.directory()` và
+> hiển thị cả một khối "Website mang dấu tsudev" + chỉ số "Website đã cấp dấu".
+> Đã gỡ khối đó và lời gọi đó; CTA "Đăng ký cấp dấu" ở trang chủ đổi thành
+> "Tìm hiểu con dấu" trỏ `/trust`.
 
 Bảng dưới là nguồn sự thật cho toàn đợt. `authCoverage.test.ts` của
 trust-service bắt MỌI route phải nằm rõ ràng ở một bên; cập nhật bảng này và
@@ -365,7 +393,18 @@ miễn phí".
 
 ---
 
-## Phần D - SEO: rút Con dấu khỏi chỉ mục cho sạch
+## Phần D - SEO: rút Con dấu khỏi chỉ mục cho sạch ✅ XONG (đợt 3, 18/08/2026)
+
+> Đã làm cả ba việc dưới đây. Thêm một quyết định của chủ dự án ngày 18/08/2026:
+> **`robots.txt` không còn `Disallow` khu vực riêng tư nào** (chỉ còn
+> `Disallow: /api/`). Lý do: `Disallow` triệt tiêu chính thẻ `noindex` - bot bị
+> chặn thu thập thì không đọc được thẻ, và URL vẫn lọt vào kết quả qua liên kết
+> ngoài. Chuẩn là chọn MỘT, và `noindex` mạnh hơn.
+>
+> Hệ quả bắt buộc kèm theo: mọi trang riêng tư phải có `<Seo … noindex />` ở TẤT
+> CẢ các nhánh render, kể cả `status === 'loading'` và nhánh chưa đăng nhập -
+> trình thu thập không bao giờ có phiên. Ghi chú này nằm ngay đầu
+> `pages/robots.txt.ts`.
 
 Xem Quyết định 2. Với Con dấu, việc SEO duy nhất là rút lui gọn gàng.
 

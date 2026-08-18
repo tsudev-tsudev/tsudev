@@ -1,9 +1,21 @@
-// Bất biến của chế độ gộp. Cái đắt nhất ở đây là test đầu tiên:
+// Bất biến của chế độ gộp: /api/trust/* phải TỚI ĐƯỢC app trust.
 //
 // Nếu ai đó "đơn giản hoá" src/index.js thành `root.use(app)` ba lần, request
 // /api/trust/* sẽ đi vào app content trước và dính cổng chặn INTERNAL_API_TOKEN
-// của nó. Huy hiệu SVG mà site khách nhúng sẽ im lặng trả 401 - không có ngoại
-// lệ nào ném ra, không log nào đỏ, chỉ là huy hiệu biến mất trên site người ta.
+// của nó - không có ngoại lệ nào ném ra, không log nào đỏ, chỉ là mọi endpoint
+// của con dấu chết ở production trong khi chạy service riêng ở dev vẫn sống.
+//
+// ⚠️ DẤU HIỆU PHÂN BIỆT ĐÃ PHẢI ĐỔI. Bản trước dùng mã trạng thái: huy hiệu SVG
+// và danh bạ là endpoint CÔNG KHAI, nên 200 nghĩa là tới được trust còn 401
+// nghĩa là bị content nuốt. Từ khi Con dấu về chế độ mời, chính app trust cũng
+// trả 401 cho request không mang danh tính - hai khả năng cho ra CÙNG một mã, và
+// một test không phân biệt được hai trạng thái nó sinh ra để phân biệt là một
+// test đã chết mà vẫn xanh.
+//
+// Dấu hiệu nay là THÂN phản hồi: cổng của content nói 'Thiếu hoặc sai
+// x-internal-token', cổng danh tính của trust nói 'Missing or invalid
+// Authorization header'. Hai chuỗi đó do hai middleware khác nhau sinh ra, nên
+// chúng thật sự chỉ ra request đã đi tới đâu.
 //
 // Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
 process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
@@ -22,21 +34,37 @@ afterAll(() => {
   delete process.env.INTERNAL_API_TOKEN
 })
 
-describe('backend-bundle - endpoint công khai của trust không bị cổng chặn của content nuốt', () => {
-  test('huy hiệu SVG trả 200 dù INTERNAL_API_TOKEN đang bật', async () => {
-    const res = await request(app).get('/api/trust/seal/khong-co-serial-nay.svg')
-    expect(res.status).toBe(200)
-    expect(res.headers['content-type']).toMatch(/image\/svg\+xml/)
-  })
+/** Thân 401 của cổng INTERNAL_API_TOKEN ở app content. Thấy nó ⇒ đã bị nuốt. */
+const CONTENT_GATE = 'Thiếu hoặc sai x-internal-token'
 
+describe('backend-bundle - /api/trust tới được app trust, không bị cổng chặn của content nuốt', () => {
   test('JWKS trả 200 dù INTERNAL_API_TOKEN đang bật', async () => {
+    // Bằng chứng MẠNH NHẤT trong tệp này và là lý do nó đứng đầu: đây là đường
+    // duy nhất còn trả nội dung thật mà không cần danh tính, nên nó chứng minh
+    // app trust được gắn và chạy, chứ không chỉ chứng minh "có ai đó trả lời".
     const res = await request(app).get('/.well-known/tsudev-trust-jwks.json')
     expect(res.status).toBe(200)
+    expect(res.body.keys.length).toBeGreaterThan(0)
   })
 
-  test('thư mục chứng chỉ công khai không đòi x-internal-token', async () => {
+  test('huy hiệu SVG dừng ở cổng danh tính của TRUST, không ở cổng token của content', async () => {
+    const res = await request(app).get('/api/trust/seal/khong-co-serial-nay.svg')
+    expect(res.status).toBe(401)
+    expect(res.body.error).not.toBe(CONTENT_GATE)
+  })
+
+  test('danh bạ dừng ở cổng danh tính của TRUST, không ở cổng token của content', async () => {
     const res = await request(app).get('/api/trust/directory')
-    expect(res.status).not.toBe(401)
+    expect(res.status).toBe(401)
+    expect(res.body.error).not.toBe(CONTENT_GATE)
+  })
+
+  test('x-internal-token đúng KHÔNG mở được /api/trust - nó không phải danh tính', async () => {
+    // Cổng của content nhận token này. Nếu một ngày request /api/trust đi lạc
+    // vào content, test trên vẫn có thể xanh nhờ trùng mã 401; test này thì
+    // không: đi lạc vào content kèm token đúng sẽ cho 200/404, không phải 401.
+    const res = await request(app).get('/api/trust/directory').set('x-internal-token', 'test-token')
+    expect(res.status).toBe(401)
   })
 })
 

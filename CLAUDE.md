@@ -138,11 +138,21 @@ nguồn là hiện trạng; TSD là đích đến.
 - **`requireRole()` (từ `@tsudev/auth`) đọc `User.role` trong DB và FAIL CLOSED.**
   Không còn biến môi trường nào tắt được nó. `role` là union `Role` nên gõ sai là
   lỗi biên dịch, không phải một cổng lặng lẽ cho qua.
-- **trust-service gắn auth theo NHÁNH, không cho cả `/api`** (khác hai service
-  kia). Mặc định là công khai - thêm nhánh riêng tư mà quên khai thì nó lộ ra.
-  Danh sách nhánh nay là hằng `AUTH_PREFIXES` được xuất ra, và
-  `test/authCoverage.test.ts` bắt mọi route không nằm rõ ràng ở một bên của ranh
-  giới. Route mới buộc phải chọn một bên, không còn im lặng.
+- **trust-service MẶC ĐỊNH ĐÓNG: cả `/api/trust` đi qua `auth` rồi
+  `requireRole('VIP')`** (Con dấu chạy ở chế độ mời từ 18/08/2026). Miễn trừ chỉ
+  có hai đường, khai ở hằng `PUBLIC_PATHS` được xuất ra: `/health` và
+  `/.well-known/tsudev-trust-jwks.json`. Bản trước gắn auth theo NHÁNH và mặc
+  định công khai - quên khai một nhánh riêng tư là nó lặng lẽ mở; nay quên khai
+  một miễn trừ chỉ làm route đó đóng lại, tức hỏng ồn ào.
+  `test/authCoverage.test.ts` canh cả bảng định tuyến lẫn phản hồi thật.
+  **Đổi bề mặt này phải sửa BỐN chỗ trong cùng một commit**: hằng ở
+  `services/trust-service/src/index.ts`, `ALLOWED_PREFIXES` của proxy
+  `apps/frontend-main/pages/api/trust/[...path].ts`, `authCoverage.test.ts`, và
+  `services/backend-bundle/test/routing.test.ts` - chỗ thứ tư này nằm ở workspace
+  KHÁC nên dễ lọt lưới, và nó đã lọt: bản đầu của đợt gác bề mặt xanh cả bốn cổng
+  gốc ở local mà đỏ CI. Lệch một nhịp là hoặc route riêng tư lộ ra, hoặc trang
+  chết - cả hai đều im lặng. Trang `/trust` và `/trust/redeem` CỐ Ý không bị gác: một cái là đích của
+  mọi chuyển hướng, cái kia là đường vào lại.
 - **`TRUST_ISSUER` được ký vào chứng chỉ**; `TRUST_SIGNING_KEY` thiếu ở
   production ⇒ service từ chối khởi động (cố ý). Xoay khoá phải chuyển khoá cũ
   vào `TRUST_SIGNING_KEYS_RETIRED` trước.

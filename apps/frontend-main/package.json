@@ -16,6 +16,7 @@
   "dependencies": {
     "@simplewebauthn/browser": "13.2.2",
     "@tsudev/identity-token": "*",
+    "@tsudev/types": "*",
     "dotenv": "^16.3.1",
     "next": "15.5.22",
     "next-auth": "^4.24.15",

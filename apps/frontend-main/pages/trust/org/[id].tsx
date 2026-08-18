@@ -2,6 +2,7 @@ import React from 'react';
 import Seo from '../../../components/Seo';
 import { Layout, Card, Badge, SectionHeading, Stat } from '@tsudev/ui';
 import { trust, statusMeta, fmtDate } from '../../../lib/trust';
+import { withTrustAccess } from '../../../lib/trustGate';
 import type { GetServerSidePropsContext } from 'next';
 import type { TrustProfile } from '../../../lib/types';
 import { routeParam } from '../../../lib/identity';
@@ -42,6 +43,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
         title={profile.name}
         path={`/trust/org/${id}`}
         description={`Hồ sơ tín nhiệm của ${profile.name}: chứng chỉ đang hiệu lực, tên miền đã xác minh và lịch sử giám sát.`}
+        noindex
       />
       <div className="max-w-4xl mx-auto px-4 py-10">
         <nav className="text-sm text-muted mb-4">
@@ -186,7 +188,10 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
   );
 }
 
-export async function getServerSideProps({ params }: GetServerSidePropsContext) {
-  const profile = await trust.profile(routeParam(params, 'id'));
-  return { props: { profile, id: routeParam(params, 'id') } };
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return withTrustAccess(ctx, async (access) => {
+    const id = routeParam(ctx.params, 'id');
+    const profile = await trust.profile(id, access.headers);
+    return { props: { profile, id } };
+  });
 }

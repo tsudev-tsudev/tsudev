@@ -4,13 +4,12 @@
 // số cổng, để hình trạng lúc dev trùng hình trạng production:
 //
 //   http://tsudev.localhost:8080        → frontend-main   127.0.0.1:3000
-//   http://auth.tsudev.localhost:8080   → Keycloak        127.0.0.1:4100
 //   http://cdn.tsudev.localhost:8080    → MinIO           127.0.0.1:9000
 //
 // Lý do ban đầu là để cookie `Domain=.tsudev.localhost` chia sẻ được giữa trang
-// chính và diễn đàn. Diễn đàn không còn, nhưng proxy vẫn giữ vì ba lẽ: subdomain
-// `auth.`/`cdn.` vẫn cần, một cổng vào vẫn tiện, và hình trạng dev vẫn khớp
-// production. Không cần nữa thì `DEV_PROXY=0`.
+// chính và diễn đàn. Diễn đàn không còn và Keycloak cũng đã bị gỡ, nhưng proxy
+// vẫn giữ vì ba lẽ: subdomain `cdn.` vẫn cần, một cổng vào vẫn tiện, và hình
+// trạng dev vẫn khớp production. Không cần nữa thì `DEV_PROXY=0`.
 //
 // Bảng định tuyến sinh từ config/topology.json. Chạy: node scripts/dev-proxy.js
 
@@ -37,6 +36,18 @@ const hostnameOf = (req) =>
     .split(':')[0]
     .toLowerCase();
 
+// Host trần: gõ `localhost:8080` là nhầm lẫn thường gặp nhất, không phải lỗi
+// gõ tên miền. Trả 404 ở đây từng đẩy người dùng đi tìm sang cổng 3000 - nơi
+// site có chạy nhưng đăng nhập hỏng trong im lặng vì cookie sai domain. Chuyển
+// hướng về host chuẩn cắt đứt cả chuỗi đó.
+const BARE_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '']);
+
+function redirectToCanonical(res, url) {
+  const target = `http://${topo.dev.domain}:${PORT}${url}`;
+  res.writeHead(302, { Location: target, 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end(`dev-proxy: host trần không mang được cookie phiên, chuyển tới ${target}\n`);
+}
+
 function notFound(res, host) {
   const known = [...ROUTES.keys()].map((h) => `  http://${h}:${PORT}`).join('\n');
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -46,7 +57,7 @@ function notFound(res, host) {
 const server = http.createServer((req, res) => {
   const host = hostnameOf(req);
   const route = ROUTES.get(host);
-  if (!route) return notFound(res, host);
+  if (!route) return BARE_HOSTS.has(host) ? redirectToCanonical(res, req.url) : notFound(res, host);
 
   const upstream = http.request(
     {

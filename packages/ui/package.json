@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "main": "src/index.tsx",
+  "dependencies": {
+    "@tsudev/types": "*"
+  },
   "module": "src/index.tsx",
   "scripts": {
     "storybook": "storybook dev -p 6006",

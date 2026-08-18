@@ -1,16 +1,14 @@
-// Proxy tới trust-service. Một đường duy nhất /api/trust/* phục vụ hai loại:
+// Proxy tới trust-service. Sau đợt "chế độ mời"
+// (docs/refactor-trust-invite-access.md, Phần A) đường này KHÔNG còn nhánh công
+// khai nào: mọi tiền tố đều đòi phiên next-auth, và trust-service còn đòi thêm
+// vai trò VIP đọc từ DB.
 //
-//   CÔNG KHAI  programs, verify, directory, seal
-//              Không yêu cầu đăng nhập - huy hiệu do trình duyệt của khách trên
-//              site BÊN THỨ BA tải về, không hề có phiên nào. Trang xác thực
-//              cũng phải mở cho bất kỳ ai kiểm chứng.
+// Trước đây `programs`, `verify`, `directory`, `seal`, `profile` mở cho khách vì
+// huy hiệu do trình duyệt của người xem site BÊN THỨ BA tải về. Quyết định 1 của
+// kế hoạch bỏ hình đó: con dấu chỉ nhìn thấy được qua mã mời, không ngoại lệ cho
+// trang xác minh. Cái giá bằng không - lúc quyết định có 0 chứng chỉ đang chạy.
 //
-//   RIÊNG      orgs, domains, applications, certificates, admin
-//              Bắt buộc có phiên next-auth; danh tính được tiêm vào header cho
-//              service, trình duyệt không bao giờ nói chuyện trực tiếp với 4003.
-//
-// Gộp vào một đường để mã nhúng của khách trỏ vào MỘT domain duy nhất - hạ tầng
-// bên trong đổi thì khách không phải sửa gì.
+// Danh sách dưới đây là MẶC ĐỊNH ĐÓNG: tiền tố lạ nhận 404 chứ không đi tiếp.
 import { getToken } from 'next-auth/jwt';
 
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -18,33 +16,46 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { TRUST } from '../../../lib/services';
 import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
 
-const PUBLIC_PREFIXES = new Set(['programs', 'verify', 'directory', 'seal', 'profile']);
-const PRIVATE_PREFIXES = new Set(['orgs', 'domains', 'applications', 'certificates', 'admin']);
+const ALLOWED_PREFIXES = new Set([
+  'programs',
+  'verify',
+  'directory',
+  'seal',
+  'profile',
+  'orgs',
+  'domains',
+  'applications',
+  'certificates',
+  'admin',
+]);
+
+/**
+ * Nhánh CHỈ ĐỌC. Giữ lại sau khi mọi thứ thành riêng tư vì nó không phải cổng
+ * đăng nhập mà là ràng buộc hình dạng API: không route nào dưới năm tiền tố này
+ * nhận đường ghi, nên một `POST` lọt tới đây là dấu hiệu gọi nhầm.
+ */
+const READ_ONLY_PREFIXES = new Set(['programs', 'verify', 'directory', 'seal', 'profile']);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const parts = catchAllSegments(req.query.path);
   const head = parts[0] ?? '';
-  const isPublic = PUBLIC_PREFIXES.has(head);
-  const isPrivate = PRIVATE_PREFIXES.has(head);
-  if (!parts.length || (!isPublic && !isPrivate)) {
+  if (!parts.length || !ALLOWED_PREFIXES.has(head)) {
     return res.status(404).json({ error: 'Không tìm thấy' });
   }
-  if (isPublic && req.method !== 'GET' && req.method !== 'HEAD') {
+  if (READ_ONLY_PREFIXES.has(head) && req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Chỉ hỗ trợ GET' });
   }
 
-  const headers: Record<string, string> = {};
-  if (isPrivate) {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
-    Object.assign(headers, await identityHeaders(token));
-    headers['Content-Type'] = 'application/json';
-  } else {
-    // Chuyển tiếp Referer/Origin nguyên vẹn - trust-service dựa vào đó để phát
-    // hiện huy hiệu bị gắn sai tên miền. Mất header này là mất luôn ràng buộc.
-    if (req.headers.referer) headers['referer'] = req.headers.referer;
-    if (req.headers.origin) headers['origin'] = req.headers.origin;
-  }
+  // Không còn nhánh nào đi tiếp mà thiếu danh tính. Việc chuyển tiếp
+  // Referer/Origin cho cơ chế phát hiện huy hiệu gắn sai tên miền đã được GỠ ở
+  // đợt này: chỉ người đã đăng nhập mới tải được huy hiệu, nên nó không còn
+  // ràng buộc được gì - để lại là để một lớp phòng thủ giả nằm trong mã.
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
+  const headers: Record<string, string> = {
+    ...(await identityHeaders(token)),
+    'Content-Type': 'application/json',
+  };
 
   const path = parts.join('/');
   const qs = queryStringOf(req.url);

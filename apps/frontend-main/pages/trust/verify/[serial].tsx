@@ -2,6 +2,7 @@ import React from 'react';
 import Seo from '../../../components/Seo';
 import { Layout, Badge, Button } from '@tsudev/ui';
 import { trust, statusMeta, basisMeta, fmtDate } from '../../../lib/trust';
+import { trustAccess, trustRedirect } from '../../../lib/trustGate';
 import type { GetServerSidePropsContext } from 'next';
 import type { CertificateDetail } from '../../../lib/types';
 import { routeParam } from '../../../lib/identity';
@@ -87,6 +88,7 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
         title={`${cert.serial} - ${meta.label}`}
         path={`/trust/verify/${serial}`}
         description={`Chứng chỉ ${cert.serial} cấp cho ${cert.hostname}: ${meta.label}. Chương trình ${cert.program?.name}.`}
+        noindex
       />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
@@ -223,9 +225,14 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
   );
 }
 
-export async function getServerSideProps({ params, res }: GetServerSidePropsContext) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  // Không dùng withTrustAccess ở đây: trang này còn đặt statusCode theo kết quả
+  // tra cứu, nên nó cần cả `res`.
+  const access = await trustAccess(ctx);
+  if (!access.ok) return trustRedirect(access, ctx);
+  const { params, res } = ctx;
   const serial = routeParam(params, 'serial');
-  const result = await trust.verify(serial);
+  const result = await trust.verify(serial, access.headers);
   // Trang tra cứu phải luôn cho biết sự thật: 404 thật khi không có chứng chỉ.
   if (result.state === 'missing') res.statusCode = 404;
   if (result.state === 'unavailable') res.statusCode = 503;

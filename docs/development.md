@@ -39,6 +39,36 @@ Chỉ **một** cổng công khai - phần còn lại nghe loopback và không c
 nhiều máy nó ra `::1` (IPv6), nên dev-proxy bind dual-stack và luôn gọi upstream
 bằng `127.0.0.1` tường minh.
 
+### Chỉ có MỘT địa chỉ để gõ: `http://tsudev.localhost:8080`
+
+Mọi địa chỉ khác đều tự đưa bạn về đó. Không phải để cho gọn - mà vì gõ sai
+host từng làm **đăng nhập hỏng trong im lặng**:
+
+| Bạn gõ                  | Chuyện gì xảy ra                                          |
+| ----------------------- | --------------------------------------------------------- |
+| `tsudev.localhost:8080` | địa chỉ chuẩn, mọi thứ chạy                               |
+| `localhost:8080`        | dev-proxy trả 302 về địa chỉ chuẩn (giữ nguyên đường dẫn) |
+| `localhost:3000`        | middleware của Next trả 307 về địa chỉ chuẩn              |
+| host lạ trên :8080      | 404 kèm danh sách địa chỉ hợp lệ                          |
+
+**Vì sao host lại quan trọng đến thế.** Cookie phiên được phát kèm
+`Domain=.tsudev.localhost` (biến `NEXTAUTH_COOKIE_DOMAIN`, do topology sinh ra ở
+chế độ proxy). Vào bằng `localhost:3000` thì đăng nhập vẫn trả **HTTP 200** -
+mật khẩu được kiểm đúng, token phiên được ký xong - nhưng trình duyệt **vứt
+cookie đi** vì host không nằm trong domain đó. Phiên vì thế không tồn tại, giao
+diện vẫn hiện nút "Đăng nhập", và không có một dòng lỗi nào ở đâu cả. Đó là
+thành công giả, dạng hỏng tốn thời gian nhất để chẩn.
+
+Chuyển hướng chỉ kích hoạt khi cookie **bị giới hạn theo domain** mà host lại
+nằm ngoài domain đó - tức đúng lúc và chỉ lúc cookie sẽ bị vứt. Nhờ vậy
+`DEV_PROXY=0` không bị ảnh hưởng: ở chế độ đó `NEXTAUTH_COOKIE_DOMAIN` rỗng nên
+không có gì để chuyển hướng.
+
+⚠️ Cùng cơ chế này còn một cái bẫy **chưa xử lý ở production**: bản xem trước
+trên `*.workers.dev` cũng nằm ngoài `.tsudev.com`, nên đăng nhập ở đó sẽ hỏng
+đúng kiểu im lặng như vậy. Không chuyển hướng được (đưa bản xem trước về
+production là sai), nên nếu dùng preview thì phải biết trước điều này.
+
 Đường lui khi proxy hỏng: `DEV_PROXY=0 npm run dev:local` → quay lại gõ thẳng
 cổng của từng app như trước giai đoạn 3.
 

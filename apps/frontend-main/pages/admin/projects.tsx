@@ -200,9 +200,13 @@ export default function AdminProjects() {
     load();
   };
 
+  // `noindex` phải có ở CẢ hai nhánh chưa-đăng-nhập. Trình thu thập của công cụ
+  // tìm kiếm KHÔNG BAO GIỜ có phiên, nên trạng thái duy nhất nó nhìn thấy chính
+  // là hai nhánh này - đặt thẻ ở nhánh đã đăng nhập là đặt đúng chỗ không ai đọc.
   if (status === 'loading')
     return (
       <Layout>
+        <Seo title="Quản lý dự án" path="/admin/projects" noindex />
         <Card className="p-8 text-center text-muted">Đang tải…</Card>
       </Layout>
     );
@@ -210,6 +214,7 @@ export default function AdminProjects() {
   if (!session)
     return (
       <Layout>
+        <Seo title="Quản lý dự án" path="/admin/projects" noindex />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold text-ink mb-2">Quản lý dự án</h1>
           <p className="text-muted mb-4">Cần đăng nhập bằng tài khoản quản trị.</p>
