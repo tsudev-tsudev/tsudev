@@ -33,7 +33,7 @@ Nhưng Next xếp **`.env.local` CAO HƠN `.env.production`**, mà
 `scripts/write-env-local.js` sinh), và lệnh deploy chạy **trên máy dev**.
 
 Ngày 16/08/2026 điều này đã thành lỗ hổng thật trên production: bản dựng mang
-theo `E2E_BYPASS_KEYCLOAK=1`, nên NextAuth bật provider `e2e-dev` và **bất kỳ ai
+theo một cờ bỏ qua xác thực, nên NextAuth bật provider `e2e-dev` và **bất kỳ ai
 cũng đăng nhập được vào tài khoản ADMIN bằng mật khẩu `devpass`**. Cùng đường đó
 còn kéo theo `NEXTAUTH_SECRET=change-me-secret`
 và khoá ký dev. Site vẫn chạy bình thường; không có gì báo lỗi.
@@ -62,8 +62,8 @@ Blueprint `render.yaml` khai báo **1** web service, `plan: free`,
 `region: singapore`: `tsudev-backend` - bốn service backend gộp thành một tiến
 trình (content, storage, trust, identity).
 
-> `tsudev-sso` (Keycloak) đã được gỡ khỏi blueprint. **Gỡ khỏi repo KHÔNG xoá
-> service đang chạy trên Render** - phải xoá tay ở dashboard, nếu không nó vẫn
+> `tsudev-sso` - nhà cung cấp danh tính riêng của bản thiết kế cũ - đã được gỡ
+> khỏi blueprint. **Gỡ khỏi repo KHÔNG xoá service đang chạy trên Render** - phải xoá tay ở dashboard, nếu không nó vẫn
 > tiêu giờ instance của tài khoản.
 
 ### Ngân sách giờ chạy - quyết định thiết kế, không phải chi tiết vặt
@@ -73,7 +73,7 @@ service. Một service chạy liên tục tiêu 720 giờ. Nên chỉ giữ ấm
 một** service, và đó là `tsudev-backend` - nó nằm trên mọi đường đọc của site.
 
 Trước đây `tsudev-sso` buộc phải được ngủ, và cái giá là cold start ở lần đăng
-nhập đầu tiên. Gỡ Keycloak dồn toàn bộ 750 giờ về một chỗ và xoá luôn đánh đổi
+nhập đầu tiên. Đưa xác thực về trong chính codebase dồn toàn bộ 750 giờ về một chỗ và xoá luôn đánh đổi
 đó. Thêm service thứ hai chạy liên tục là vỡ ngân sách và Render dừng hết.
 
 ### Region là bất biến
@@ -289,7 +289,7 @@ Bắt buộc theo service:
 `INTERNAL_IDENTITY_SECRET` phải GIỐNG NHAU ở Worker và Render. Lệch nhau là mọi
 đường ghi đã xác thực trả 401, và triệu chứng là "đăng nhập rồi mà vẫn 401".
 
-⚠️ Hai cờ `E2E_BYPASS_KEYCLOAK` và `AUTH_DEV_BYPASS` **đã bị gỡ khỏi mã nguồn**; đặt lại không có tác dụng gì.
+⚠️ Hai cờ bỏ qua xác thực thời dev (`AUTH_DEV_BYPASS` và cờ dành cho E2E) **đã bị gỡ khỏi mã nguồn**; đặt lại không có tác dụng gì.
 Chúng cho phép đăng nhập bằng bất kỳ username nào.
 
 Hai biến "một lần rồi thôi":

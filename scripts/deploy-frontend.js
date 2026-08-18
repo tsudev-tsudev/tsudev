@@ -6,8 +6,8 @@
 //
 // `apps/frontend-main/.env.local` là BẢN SAO NGUYÊN VĂN của `.env` gốc (do
 // scripts/write-env-local.js sinh ra), gồm cả NEXTAUTH_SECRET=change-me-secret,
-// khoá ký dev, và - vào thời điểm sự cố - E2E_BYPASS_KEYCLOAK=1 cùng
-// AUTH_DEV_BYPASS=true. Next xếp `.env.local` CAO HƠN `.env.production`,
+// khoá ký dev, và - vào thời điểm sự cố - hai cờ bỏ qua xác thực dùng cho dev
+// và E2E. Next xếp `.env.local` CAO HƠN `.env.production`,
 // còn lệnh deploy thì chạy trên máy dev - nên mọi giá trị dev bị nướng vào bản
 // production. Hậu quả đã đo được: NextAuth bật provider `e2e-dev`, tức là BẤT KỲ
 // AI cũng đăng nhập được vào tài khoản ADMIN bằng mật khẩu `devpass`.

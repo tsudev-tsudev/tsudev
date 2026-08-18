@@ -30,9 +30,9 @@ Cloudflare (DNS *.tsudev.com · CDN · WAF · Zero Trust)
 
 - `apps/frontend-main` → **Cloudflare Workers** qua `@opennextjs/cloudflare`.
 - 4 service backend gộp thành MỘT tiến trình → **Render**, khai báo trong
-  `render.yaml`, build từ `docker/backend-service.Dockerfile`. Keycloak đã được
-  gỡ; xác thực do codebase tự quản lý (xem `docs/auth.md`).
-- PostgreSQL → dịch vụ ngoài (Neon), truyền qua `DATABASE_URL` / `KC_DB_*`.
+  `render.yaml`, build từ `docker/backend-service.Dockerfile`. Xác thực nằm trong
+  chính tiến trình đó, không có service danh tính riêng (xem `docs/auth.md`).
+- PostgreSQL → dịch vụ ngoài (Neon), truyền qua `DATABASE_URL`.
 
 Hợp đồng cổng/tên miền (cả dev lẫn production) khai ở **`config/topology.json`**,
 có cổng chặn hồi quy `npm run topology:check`. Ở local, mọi thứ trình duyệt chạm

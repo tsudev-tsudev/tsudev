@@ -14,7 +14,7 @@ const reuseExisting = process.env.E2E_NO_WEBSERVER === '1';
 // Next dev khởi động lần đầu phải biên dịch cả app - 10-20s là bình thường,
 // nên timeout rộng tay.
 //
-// KHÔNG còn E2E_BYPASS_KEYCLOAK. Bộ test nay đăng nhập bằng ĐÚNG luồng của
+// KHÔNG còn cửa sau nào cho E2E. Bộ test nay đăng nhập bằng ĐÚNG luồng của
 // người dùng thật: mật khẩu Argon2id trong DB, kiểm bởi auth-service. Tài khoản
 // do `npm run db:seed:dev` đặt. Một bộ E2E đi qua cửa sau thì nó chứng minh cửa
 // sau chạy được, không chứng minh cửa trước chạy được.

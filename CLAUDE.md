@@ -164,8 +164,8 @@ nguồn là hiện trạng; TSD là đích đến.
   Cần Rust ở máy dev (`rustup`, target `wasm32-unknown-unknown`) - chỉ để sửa
   mảnh đó, mọi thứ còn lại không cần.
 - **`REQUIRE_ROLE_ENFORCEMENT` ĐÃ BỊ GỠ. Đừng đặt lại.** Nó từng gác một nhánh
-  đọc vai trò từ claim Keycloak - nhánh chưa bao giờ chạy ở production vì cả hai
-  realm khai `"roles": {}`. Cờ mặc định tắt nên 4 route trông như được bảo vệ mà
+  đọc vai trò từ claim của nhà cung cấp danh tính ngoài thời trước - nhánh chưa
+  bao giờ chạy ở production vì bên đó không phát claim vai trò nào. Cờ mặc định tắt nên 4 route trông như được bảo vệ mà
   mở toang; bật lên thì chúng 403 vĩnh viễn (một trong bốn là `GET /api/posts`,
   đường đọc blog công khai). `.env.production.example` từng khuyến nghị đúng giá
   trị nguy hiểm đó.
@@ -241,7 +241,7 @@ nguồn là hiện trạng; TSD là đích đến.
   Thêm route ghi mới thì phải theo khuôn đó, đừng dựa vào middleware.
 - **`.env.local` THẮNG `.env.production` trong Next - đã từng thành lỗ hổng.**
   `apps/*/.env.local` là bản sao nguyên văn `.env` gốc, và lệnh deploy chạy trên
-  máy dev. Ngày 16/08/2026 bản production đã mang theo `E2E_BYPASS_KEYCLOAK=1`:
+  máy dev. Ngày 16/08/2026 bản production đã mang theo một cờ bỏ qua xác thực:
   **ai cũng đăng nhập được vào tài khoản ADMIN bằng `devpass`**, site vẫn chạy
   bình thường, không có gì báo lỗi. Provider đó nay đã bị gỡ, nhưng LỖ HỔNG
   KHÔNG PHẢI LÀ NÓ: lỗ hổng là việc giá trị dev đi được vào bản dựng production,

@@ -5,7 +5,8 @@
 # tục tiêu 720 giờ. Nghĩa là chỉ giữ ấm được ĐÚNG MỘT service, và đó là
 # tsudev-backend (nằm trên mọi đường đọc của site).
 #
-# tsudev-sso (Keycloak) ĐÃ ĐƯỢC GỠ. Xác thực nay do codebase tự quản lý và nằm
+# tsudev-sso - service danh tính riêng của bản thiết kế cũ - ĐÃ ĐƯỢC GỠ. Xác
+# thực nay do codebase tự quản lý và nằm
 # trong chính tsudev-backend, nên toàn bộ 750 giờ dồn về một chỗ thay vì phải
 # để đường đăng nhập ngủ và trả giá bằng cold start ở lần đăng nhập đầu tiên.
 # Thêm service thứ hai chạy liên tục là vỡ ngân sách.

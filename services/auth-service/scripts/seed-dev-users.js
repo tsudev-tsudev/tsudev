@@ -11,7 +11,7 @@
  * đã biết trước thì ngược lại: đó chính xác là loại dữ liệu không bao giờ được
  * mọc lên ở production.
  *
- * Thay cho `E2E_BYPASS_KEYCLOAK=1` + `devpass`, thứ cho phép đăng nhập bằng BẤT
+ * Thay cho cờ bỏ qua xác thực + `devpass`, thứ cho phép đăng nhập bằng BẤT
  * KỲ username nào và chỉ được gác sau một biến môi trường. Ngày 16/08/2026 bản
  * production đã từng mang theo cờ đó. Ở đây mật khẩu là hash Argon2id thật
  * trong DB, đi qua đúng đường mà người dùng thật đi.
