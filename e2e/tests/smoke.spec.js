@@ -57,12 +57,66 @@ test('tài liệu: danh sách có mục thật và mở được trang chi tiế
   await expect(page.locator('h1').first()).toHaveText('Bắt đầu nhanh');
 });
 
-test('con dấu tín nhiệm: trang chính và trang xác minh dựng được', async ({ page }) => {
+// Con dấu chạy ở CHẾ ĐỘ MỜI. Ba khẳng định dưới đây là toàn bộ hợp đồng nhìn
+// thấy được của Phần A (docs/refactor-trust-invite-access.md), và cả ba đều hỏng
+// ÂM THẦM: gác hụt thì trang vẫn 200 với đầy dữ liệu, gác quá tay thì người có
+// mã mời bị đá ra mà không có lỗi nào ở máy chủ.
+test('con dấu: khách chưa đăng nhập chỉ thấy trang mời, không thấy dữ liệu', async ({ page }) => {
   await page.goto(`${MAIN}/trust`, { waitUntil: 'networkidle' });
   await expect(page).toHaveTitle(/[Cc]on dấu/);
+  await expect(page.getByText('cấp theo lời mời')).toBeVisible();
+  // Rút khỏi chỉ mục: thẻ phải có mặt ở ĐÚNG nhánh mà bot nhìn thấy, tức nhánh
+  // chưa đăng nhập - bot không bao giờ có phiên.
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+
+  // Mọi trang còn lại chuyển hướng về đăng nhập, KHÔNG phải 200 kèm nội dung.
+  for (const path of ['/trust/verify', '/trust/directory', '/trust/apply']) {
+    await page.goto(`${MAIN}${path}`, { waitUntil: 'networkidle' });
+    expect(page.url()).toContain('/login');
+  }
+});
+
+test('con dấu: đăng nhập rồi nhưng chưa có mã mời vẫn không vào được', async ({ page }) => {
+  // "Đã đăng nhập" không còn đủ - phải đạt VIP. Đây là điểm dễ sai nhất vì cổng
+  // cũ chỉ đòi có phiên.
+  //
+  // Đăng ký MỘT tài khoản mới thay vì dùng `alice`: invite.spec.js nâng alice
+  // lên VIP khi nó chạy, và hai tệp spec không có thứ tự đảm bảo. Một test chỉ
+  // xanh khi tệp khác chưa chạy là một test nói dối.
+  const user = `e2e-member-${Date.now()}`;
+  const reg = await page.request.post(`${MAIN}/api/identity/register`, {
+    data: {
+      username: user,
+      email: `${user}@example.com`,
+      password: DEV_PASSWORD,
+    },
+  });
+  expect(reg.status()).toBeLessThan(400);
+
+  await signIn(page, user);
+  await page.goto(`${MAIN}/trust/directory`, { waitUntil: 'networkidle' });
+  expect(new URL(page.url()).pathname).toBe('/trust');
+  await expect(page.getByText('cấp theo lời mời')).toBeVisible();
+});
+
+test('con dấu: tài khoản VIP thấy nội dung thật', async ({ page }) => {
+  // bob là VIP - bậc mà mã mời cấp.
+  await signIn(page, 'bob');
+  await page.goto(`${MAIN}/trust`, { waitUntil: 'networkidle' });
+  await expect(page.locator('a[href^="/trust/programs/"]').first()).toBeVisible();
 
   await page.goto(`${MAIN}/trust/verify`, { waitUntil: 'networkidle' });
   await expect(page.locator('h1').first()).toBeVisible();
+});
+
+test('sitemap không còn liệt kê trang nào của con dấu', async ({ page }) => {
+  const res = await page.request.get(`${MAIN}/sitemap.xml`);
+  expect(res.status()).toBe(200);
+  const xml = await res.text();
+  // '/trust/' chứ không phải '/trust': dự án `tsudev-trust-seal` có chữ trust
+  // trong slug và vẫn phải nằm trong sitemap.
+  expect(xml).not.toContain('/trust/');
+  expect(xml).not.toContain('/trust<');
 });
 
 test('đăng nhập dev hoạt động', async ({ page }) => {
@@ -122,6 +176,8 @@ test('quản trị dự án mở được và thấy danh sách', async ({ page 
 // hiện chứng chỉ ACTIVE còn hạn. Thiếu bước đó thì test này đỏ ở CI dù mã đúng
 // (đã xảy ra một lần); xem bước seed trong .github/workflows/ci.yml.
 test('hồ sơ uy tín tổ chức mở được từ danh bạ', async ({ page }) => {
+  // Cần VIP: danh bạ nằm sau cổng chế độ mời từ 18/08/2026.
+  await signIn(page, 'bob');
   await page.goto(`${MAIN}/trust/directory`, { waitUntil: 'networkidle' });
   const orgLink = page.locator('a[href^="/trust/org/"]').first();
   await expect(orgLink).toBeVisible();

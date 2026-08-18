@@ -2,9 +2,8 @@ import React from 'react';
 import Seo from '../components/Seo';
 import { Layout, Button, Card, Badge, SectionHeading, Avatar, Stat } from '@tsudev/ui';
 import { api } from '../lib/api';
-import { trust } from '../lib/trust';
 import { KIND_LABEL, STATUS_LABEL, copyrightMeta } from '../lib/projectLabels';
-import type { CertificateCard, Post, Project } from '../lib/types';
+import type { Post, Project } from '../lib/types';
 
 const ECOSYSTEM = [
   {
@@ -47,12 +46,11 @@ function timeAgo(date: string | Date | null | undefined): string {
 
 type HomeProps = {
   posts: Post[];
-  certified: CertificateCard[];
   projects: Project[];
   totals: Record<string, string>;
 };
 
-export default function Home({ posts, certified, projects, totals }: HomeProps) {
+export default function Home({ posts, projects, totals }: HomeProps) {
   return (
     <Layout active="/" bare>
       <Seo
@@ -101,7 +99,6 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
               <Stat value={totals.projects} label="Dự án" />
               <Stat value={totals.posts} label="Bài viết" />
               <Stat value={totals.docs} label="Tài liệu" />
-              <Stat value={totals.certified} label="Website đã cấp dấu" />
             </div>
           </div>
 
@@ -253,52 +250,6 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
           </div>
         </section>
 
-        {/* ---------- TRUST ---------- */}
-        <section className="py-16">
-          <SectionHeading
-            eyebrow="Tín nhiệm"
-            title="Website mang dấu tsudev"
-            action={
-              <Button as="a" href="/trust/directory" variant="ghost" size="sm">
-                Xem danh bạ →
-              </Button>
-            }
-          />
-          {certified.length === 0 && (
-            <Card className="p-8 text-center">
-              <p className="text-muted">Chưa có chứng chỉ nào được cấp.</p>
-              <Button as="a" href="/trust/apply" size="sm" className="mt-4">
-                Đăng ký cấp dấu
-              </Button>
-            </Card>
-          )}
-          <div className="grid md:grid-cols-3 gap-4">
-            {certified.slice(0, 6).map((c: CertificateCard) => (
-              <Card
-                key={c.serial}
-                as="a"
-                href={`/trust/verify/${c.serial}`}
-                hover
-                className="p-5 block group"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium text-ink truncate group-hover:text-brandink transition-colors">
-                    {c.organization || c.hostname}
-                  </span>
-                  <Badge tone="teal" mono>
-                    {/* certCard() của trust-service KHÔNG có trường `programCode`;
-                        bản cũ đọc nó nên huy hiệu luôn rơi về 'SEAL'. Dùng tên
-                        chương trình - muốn mã hai chữ cái thì service phải phát
-                        ra, đừng dựng lại logic sinh mã ở phía trang. */}
-                    {c.program?.name || 'SEAL'}
-                  </Badge>
-                </div>
-                <div className="text-xs text-muted mt-1 font-mono truncate">{c.hostname}</div>
-              </Card>
-            ))}
-          </div>
-        </section>
-
         {/* ---------- CTA ---------- */}
         <section className="pb-20">
           <div className="p-10 md:p-14 text-center">
@@ -307,12 +258,12 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
                 Website của bạn dùng mã nguồn tsudev?
               </h2>
               <p className="mt-3 text-inksoft max-w-lg mx-auto">
-                Đăng ký cấp con dấu tín nhiệm - chứng chỉ ký số, xác minh quyền sở hữu tên miền và
-                giám sát định kỳ.
+                Con dấu tín nhiệm nay cấp theo lời mời: chứng chỉ ký số, xác minh quyền sở hữu tên
+                miền và giám sát định kỳ, dành cho tài khoản đã có mã mời.
               </p>
               <div className="mt-7 flex justify-center gap-3">
-                <Button as="a" href="/trust/apply" size="lg">
-                  Đăng ký cấp dấu
+                <Button as="a" href="/trust" size="lg">
+                  Tìm hiểu con dấu
                 </Button>
                 <Button as="a" href="/docs" variant="secondary" size="lg">
                   Tài liệu
@@ -327,19 +278,18 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
 }
 
 export async function getServerSideProps() {
-  const [posts, docs, certified, projects] = await Promise.all([
-    api.posts(6),
-    api.docs(),
-    trust.directory(),
-    api.projects(100),
-  ]);
+  // KHÔNG gọi trust-service ở đây nữa. Trang chủ là trang công khai và Con dấu
+  // nay chạy ở chế độ mời: số chứng chỉ và danh sách website đã cấp dấu là dữ
+  // liệu chỉ VIP mới được thấy (docs/refactor-trust-invite-access.md, Phần A).
+  // Gọi mà không có danh tính thì chỉ nhận 401 rồi rơi về [] - một lời gọi mạng
+  // vô nghĩa ở MỌI lượt tải trang chủ.
+  const [posts, docs, projects] = await Promise.all([api.posts(6), api.docs(), api.projects(100)]);
 
   const totals = {
     posts: String(posts.length),
     docs: String(docs.length),
-    certified: String(certified.length),
     projects: String(projects.length),
   };
 
-  return { props: { posts, certified, projects, totals } };
+  return { props: { posts, projects, totals } };
 }

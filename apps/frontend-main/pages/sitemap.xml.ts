@@ -1,22 +1,21 @@
 import { MAIN_URL } from '@tsudev/ui';
 import { api } from '../lib/api';
-import { trust } from '../lib/trust';
 import type { GetServerSidePropsContext } from 'next';
 
-// Sinh động chứ không phải file tĩnh trong public/: bài viết, tài liệu, dự án và
-// chứng chỉ đều nằm trong DB và thay đổi mà không cần build lại.
+// Sinh động chứ không phải file tĩnh trong public/: bài viết, tài liệu và dự án
+// đều nằm trong DB và thay đổi mà không cần build lại.
 //
-// KHÔNG liệt kê: /admin/* (riêng tư), /trust/apply và /trust/portal (chỉ có
-// nghĩa khi đã đăng nhập). robots.txt chặn thêm một lớp nữa.
+// KHÔNG liệt kê: /admin/*, /settings/* và TOÀN BỘ /trust/*. Con dấu chạy ở chế
+// độ mời từ 18/08/2026 nên không trang nào của nó phục vụ được cho khách chưa
+// đăng nhập; liệt kê chúng chỉ mời bot đi vào một chuỗi chuyển hướng. SEO của
+// site nay do blog, tài liệu và dự án gánh - Quyết định 2 trong
+// docs/refactor-trust-invite-access.md.
 
 const STATIC_ROUTES = [
   { path: '/', priority: '1.0', changefreq: 'weekly' },
   { path: '/projects', priority: '0.9', changefreq: 'weekly' },
   { path: '/blog', priority: '0.8', changefreq: 'daily' },
   { path: '/docs', priority: '0.7', changefreq: 'weekly' },
-  { path: '/trust', priority: '0.8', changefreq: 'weekly' },
-  { path: '/trust/directory', priority: '0.7', changefreq: 'daily' },
-  { path: '/trust/verify', priority: '0.5', changefreq: 'monthly' },
   { path: '/terms', priority: '0.3', changefreq: 'yearly' },
   { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { path: '/rules', priority: '0.3', changefreq: 'yearly' },
@@ -55,16 +54,14 @@ const urlTag = ({ path, lastmod, priority = '0.6', changefreq = 'weekly' }: UrlE
     .join('\n');
 
 export async function getServerSideProps({ res }: GetServerSidePropsContext) {
-  // Mỗi lời gọi tự nuốt lỗi thành [] (lib/api.js, lib/trust.js). Nghĩa là một
-  // service chết chỉ làm sitemap thiếu phần đó, không làm cả sitemap 500 -
-  // đúng đánh đổi cho một file mà bot đọc chứ người không đọc.
-  const [posts, docs, projects, programs, directory] = await Promise.all([
-    api.posts(50),
-    api.docs(),
-    api.projects(100),
-    trust.programs(),
-    trust.directory('?limit=100'),
-  ]);
+  // Mỗi lời gọi tự nuốt lỗi thành [] (lib/api.ts). Nghĩa là một service chết chỉ
+  // làm sitemap thiếu phần đó, không làm cả sitemap 500 - đúng đánh đổi cho một
+  // file mà bot đọc chứ người không đọc.
+  //
+  // Hai lời gọi trust.programs()/trust.directory() đã bị GỠ: sau khi gác, chúng
+  // chỉ trả 401 rồi rơi về [], tức một chặng mạng vô nghĩa ở mỗi lần dựng
+  // sitemap.
+  const [posts, docs, projects] = await Promise.all([api.posts(50), api.docs(), api.projects(100)]);
 
   const entries = [
     ...STATIC_ROUTES.map((r) => urlTag(r)),
@@ -84,21 +81,6 @@ export async function getServerSideProps({ res }: GetServerSidePropsContext) {
         priority: '0.8',
         changefreq: 'monthly',
       })
-    ),
-    ...programs.map((p) =>
-      urlTag({ path: `/trust/programs/${p.slug}`, priority: '0.6', changefreq: 'monthly' })
-    ),
-    ...directory.map((c) =>
-      urlTag({
-        path: `/trust/verify/${c.serial}`,
-        lastmod: c.issuedAt,
-        priority: '0.5',
-        changefreq: 'monthly',
-      })
-    ),
-    // Một tổ chức có thể có nhiều chứng chỉ nhưng chỉ một trang hồ sơ.
-    ...[...new Set(directory.map((c) => c.organizationId).filter(Boolean))].map((id) =>
-      urlTag({ path: `/trust/org/${id}`, priority: '0.6', changefreq: 'weekly' })
     ),
   ];
 

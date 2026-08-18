@@ -63,7 +63,7 @@ const qInt = (v: unknown, dflt: number): number => {
 import { prisma } from '@tsudev/db'
 // resolveUser() thay bản `currentUser` cục bộ: cùng phép upsert, nhưng cũng
 // đối chiếu sessionVersion nên phiên đã bị thu hồi không đi qua được.
-import { createAuthMiddleware, resolveUser } from '@tsudev/auth'
+import { createAuthMiddleware, requireRole, resolveUser } from '@tsudev/auth'
 
 import { createRateLimit } from './rateLimit'
 import { hasAtLeastRole } from '@tsudev/types'
@@ -103,50 +103,53 @@ const bindHost = process.env.BIND_HOST || '0.0.0.0'
 // trùng nhau, và CLAUDE.md phải cảnh báo "đổi hành vi xác thực phải sửa cả ba".
 const auth = createAuthMiddleware('trust')
 
-// Khác content-service (gắn auth cho cả /api): ở đây auth chỉ gắn cho các nhánh
-// cần danh tính. Huy hiệu, trang xác thực, thư mục và danh sách chương trình
-// BẮT BUỘC công khai - huy hiệu được trình duyệt của khách truy cập site bên
-// thứ ba tải về, không hề có token nào đi kèm.
+// Con dấu chạy ở CHẾ ĐỘ MỜI: mọi thứ dưới /api/trust đòi danh tính VÀ vai trò
+// VIP trở lên. Đây là đảo chiều so với bản trước - trước đây mặc định là công
+// khai và từng nhánh riêng tư phải tự khai, nên quên khai một nhánh là nó lặng
+// lẽ mở ra. Nay quên khai một MIỄN TRỪ chỉ làm route đó đóng lại, tức là hỏng
+// ồn ào chứ không lộ dữ liệu.
 /**
- * Nhánh BẮT BUỘC có danh tính. Xuất ra để test kiểm được độ phủ.
+ * Bề mặt CỐ Ý công khai của trust-service. Xuất ra để test đối chiếu.
  *
- * trust-service gắn auth theo NHÁNH chứ không cho cả `/api` như hai service kia,
- * vì huy hiệu SVG, trang xác minh, thư mục và JWKS phải công khai - chúng được
- * trình duyệt của khách trên site BÊN THỨ BA tải về, không hề có token nào.
+ * Đúng hai đường, và cả hai đều không đọc dữ liệu của ai:
  *
- * Cái giá của lựa chọn đó: mặc định là công khai. Thêm một nhánh riêng tư mà
- * quên khai ở đây thì nó lặng lẽ mở, và không có gì báo lỗi. Test
- * `authCoverage.test.ts` khoá chuyện đó lại.
+ *  - `/health` - Render gọi để biết tiến trình còn sống.
+ *  - JWKS - chỉ chứa KHOÁ CÔNG KHAI. Gác nó không che giấu điều gì (không tiết
+ *    lộ khách hàng hay chứng chỉ nào) mà chỉ làm hỏng việc xác minh chữ ký
+ *    ngoại tuyến của bên thứ ba. Xem docs/refactor-trust-invite-access.md,
+ *    Quyết định 1.
+ *
+ * Thêm một đường vào đây là một QUYẾT ĐỊNH SẢN PHẨM, không phải một dòng cấu
+ * hình: nó đưa dữ liệu ra ngoài chế độ mời.
  */
-const AUTH_PREFIXES = [
-  '/api/trust/orgs',
-  '/api/trust/domains',
-  '/api/trust/applications',
-  '/api/trust/certificates',
-  '/api/trust/admin',
-]
+const PUBLIC_PATHS = ['/health', '/.well-known/tsudev-trust-jwks.json']
 
-for (const p of AUTH_PREFIXES) {
-  app.use(p, auth)
-}
+/** Tiền tố được gác. Mọi route dưới nó đóng theo mặc định. */
+const GATED_PREFIX = '/api/trust'
 
 /**
- * Giới hạn tần suất cho nhánh CÔNG KHAI của con dấu.
+ * Giới hạn tần suất, đặt TRƯỚC cổng danh tính.
  *
- * Đây là mặt tiếp xúc rộng nhất của toàn hệ thống: không cần token, và huy hiệu
- * SVG được trình duyệt của khách trên site BÊN THỨ BA gọi ở mỗi lượt xem trang.
- * Trước đợt này nó không có bất kỳ giới hạn nào - HANDOFF gọi đó là món nợ bảo
- * mật lớn nhất còn lại.
+ * Thứ tự này quan trọng: `auth` kiểm chữ ký rồi `requireRole` đọc `User.role`
+ * bằng một truy vấn Postgres. Đặt rate limit sau chúng nghĩa là một trận lũ
+ * request không có token vẫn tạo ra một truy vấn DB mỗi cái - và Neon free tính
+ * tiền bằng CU-giờ (docs/free-tier.md). Chặn ở đây thì request rác dừng lại
+ * trước khi chạm database.
  *
- * Ngưỡng rộng tay có chủ đích: một website khách đông người đọc sẽ tạo ra nhiều
- * request thật từ nhiều IP khác nhau, và chặn nhầm ở đây nghĩa là huy hiệu biến
- * mất trên site của khách hàng. Con số này chặn kẻ quét, không chặn lưu lượng
- * bình thường.
- *
- * Đặt SAU vòng gắn auth ở trên: nhánh riêng tư đã có cổng danh tính riêng, và
- * đếm chúng theo IP sẽ gộp mọi thao tác quản trị vào cùng một xô.
+ * Ngưỡng rộng tay có chủ đích: nó chặn kẻ quét, không chặn thao tác thật của
+ * một người đang dùng trang quản trị.
  */
-app.use('/api/trust', createRateLimit({ name: 'trust-public', windowMs: 60_000, max: 240 }))
+app.use(GATED_PREFIX, createRateLimit({ name: 'trust-gated', windowMs: 60_000, max: 240 }))
+
+// Danh tính trước, rồi vai trò. Hai lớp tách nhau để khách chưa đăng nhập nhận
+// 401 (đi đăng nhập) còn người đã đăng nhập chưa đủ bậc nhận 403 (đi đổi mã
+// mời) - hai lối thoát khác nhau, và trang /trust dựa vào sự khác biệt đó.
+//
+// requireRole đọc `User.role` TỪ DB và fail closed; claim `role` trong khẳng
+// định danh tính chỉ để tham khảo. Nhánh /api/trust/admin không cần khai thêm
+// gì ở đây - handler của nó tự gọi cổng ADMIN, và ADMIN vốn cao hơn VIP.
+app.use(GATED_PREFIX, auth)
+app.use(GATED_PREFIX, requireRole('VIP'))
 
 // Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
 // được error handler của Express - request treo cho tới khi client bỏ cuộc.
@@ -875,7 +878,11 @@ app.get(
       sealUrl,
       verifyUrl,
       html: `<a href="${verifyUrl}" target="_blank" rel="noopener noreferrer">\n  <img src="${sealUrl}" alt="Con dấu tín nhiệm tsudev - ${c.program.name}" width="188" height="62" loading="lazy">\n</a>`,
-      note: 'Huy hiệu được tsudev phục vụ tại thời điểm hiển thị. Không tự lưu ảnh về host riêng - làm vậy huy hiệu sẽ không phản ánh được khi chứng chỉ bị thu hồi.',
+      // Nói thẳng hệ quả của chế độ mời: huy hiệu nằm dưới /api/trust nên nó
+      // ĐÒI ĐĂNG NHẬP. Nhúng vào một trang công khai thì khách vãng lai thấy
+      // ảnh hỏng. Đưa mã nhúng mà không nói điều này là để khách hàng tự phát
+      // hiện bằng cách bị lỗi trên website của họ.
+      note: 'Huy hiệu được tsudev phục vụ tại thời điểm hiển thị, và từ khi Con dấu chuyển sang chế độ mời thì chỉ người xem đã đăng nhập bằng tài khoản được mời mới tải được nó - khách vãng lai sẽ thấy ảnh hỏng. Không tự lưu ảnh về host riêng: làm vậy huy hiệu sẽ không phản ánh được khi chứng chỉ bị thu hồi.',
     })
   })
 )
@@ -1201,4 +1208,4 @@ async function startServer() {
 // đây là tranh cổng với cha.
 if (process.env.NODE_ENV !== 'test' && !process.env.EMBEDDED) startServer().catch(() => {})
 
-export { app, startServer, init, AUTH_PREFIXES }
+export { app, startServer, init, PUBLIC_PATHS, GATED_PREFIX }

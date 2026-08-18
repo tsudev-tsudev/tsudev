@@ -12,24 +12,24 @@
 
 **Không còn việc chặn nào.** Production đã đăng nhập được (§0.5 đã xong 17/08).
 
-➡️ **Phiên mới: đọc [§0.9 Bàn giao phiên 4](#09-bàn-giao-phiên-4-18082026--đọc-trước)
-trước tiên.** Ba PR của phiên 3 (#12, #13, #14) đã gộp; §0.8 giữ lại làm lịch sử
-nhưng **dấu hiệu phát hành ghi trong đó nay đã SAI** - §0.9 nói rõ vì sao.
+➡️ **Phiên mới: đọc [§0.10 Bàn giao phiên 5](#010-bàn-giao-phiên-5-18082026--đọc-trước)
+rồi [§0.9](#09-bàn-giao-phiên-4-18082026) trước tiên.** Ba PR của phiên 3 (#12,
+#13, #14) đã gộp; §0.8 giữ lại làm lịch sử nhưng **dấu hiệu phát hành ghi trong
+đó nay đã SAI** - §0.9 nói rõ vì sao.
 
 Thứ tự đề nghị:
 
-1. **PHÁT HÀNH frontend Worker.** Đo 18/08: backend Render đã chạy mã mới
-   (`/health` có `newsroom`) nhưng Worker vẫn là bản CŨ - `/trust/redeem` và
-   `/admin/newsroom` trả **404** trên `tsudev.com`. Nghĩa là mã mời (đợt 2) và
-   toàn bộ Toà soạn Agent AI đã có ở backend mà **người dùng chưa với tới được**.
-   Chi tiết và thứ tự: §0.9.
-2. **§1.9 đợt 3 - gác bề mặt Con dấu + SEO + điều hướng.** Làm cuối vì đó là đợt
-   duy nhất có thể khoá nhầm chính mình ra ngoài - và giờ đã có đường vào lại
-   (cấp mã ở `/admin/trust`, đổi ở `/trust/redeem`).
+1. **PHÁT HÀNH frontend Worker cho đợt 2 (mã mời).** Đo 18/08: backend Render đã
+   chạy mã mới (`/health` có `newsroom`) nhưng Worker vẫn là bản CŨ -
+   `/trust/redeem` và `/admin/newsroom` trả **404** trên `tsudev.com`. Chi tiết
+   và thứ tự: §0.9.
+2. **RỒI MỚI phát hành đợt 3** (gác bề mặt Con dấu), nay đã xong ở cây làm việc -
+   §0.10. Thứ tự này không được đảo: đợt 3 khoá bề mặt Con dấu lại, và đường vào
+   lại duy nhất là `/trust/redeem` của đợt 2.
 3. **§1.7 đợt A - trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
    không có route nào cho người dùng sửa hồ sơ của chính mình.
-4. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 và §1.9 thì rà
-   một lần cho cả trang mới.
+4. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 thì rà một lần
+   cho cả trang mới - trong đó có trang mời `/trust` vừa dựng ở phiên 5.
 5. Còn lại: §1.10 dọn service Render trùng (10 phút, làm lúc nào cũng được) ·
    §1.1 ping giữ ấm (§0.9 ghi chú: Worker cron của Toà soạn có thể đã gánh việc
    này) · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột `keycloakId` · §1.7 đợt B ·
@@ -137,7 +137,105 @@ production: `docs/auth.md` §5.
 
 ---
 
-## 0.9 Bàn giao phiên 4 (18/08/2026) - ĐỌC TRƯỚC
+## 0.10 Bàn giao phiên 5 (18/08/2026) - ĐỌC TRƯỚC
+
+### Đã làm: §1.9 đợt 3 - gác bề mặt Con dấu + SEO + điều hướng
+
+Nhánh **`feat/trust-surface-gating`** (chưa push, chưa có PR). Nó nằm CHỒNG lên
+`fix/admin-noindex-unauth` của phiên 4, nhánh cũng chưa push - nên PR của nhánh
+này sẽ mang theo cả hai đợt công việc.
+
+Con dấu nay chạy ở chế độ mời thật sự:
+
+| Tầng                 | Trước                                                  | Sau                                                                                                        |
+| -------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `trust-service`      | mặc định CÔNG KHAI, `AUTH_PREFIXES` khai 5 nhánh riêng | mặc định ĐÓNG: `rateLimit → auth → requireRole('VIP')` cho cả `/api/trust`, miễn trừ đúng `/health` + JWKS |
+| proxy `/api/trust/*` | `PUBLIC_PREFIXES` 5 nhánh mở                           | không còn nhánh mở; `ALLOWED_PREFIXES` mặc-định-đóng                                                       |
+| 7 trang `/trust/*`   | 4 trang không kiểm phiên                               | gác ở `getServerSideProps` qua `lib/trustGate.ts`                                                          |
+| `/trust`             | trang giới thiệu công khai                             | trang MỜI cho khách · nội dung thật cho VIP                                                                |
+| điều hướng           | luôn hiện                                              | `SiteHeader` 1 mục + `SiteFooter` 3 mục lọc theo vai trò                                                   |
+| `sitemap.xml`        | 5 nhóm `/trust/*`                                      | không còn dòng nào                                                                                         |
+| `robots.txt`         | `Disallow` /admin, /trust/apply, /trust/portal         | chỉ còn `Disallow: /api/` (xem §0.9 việc 3)                                                                |
+
+**Thứ hai chỗ kế hoạch không lường trước, cả hai tìm ra bằng cách grep cả cây
+thay vì đọc danh sách tệp đoán trước** - đúng bài học §0.7:
+
+1. **Trang chủ** (`pages/index.tsx`) gọi `trust.directory()` và hiển thị nguyên
+   một khối "Website mang dấu tsudev" + chỉ số "Website đã cấp dấu". Kế hoạch
+   chỉ liệt kê các trang `/trust/*`. Đã gỡ khối đó, gỡ lời gọi, và đổi CTA
+   "Đăng ký cấp dấu" thành "Tìm hiểu con dấu".
+2. **`applicationSubmit.test.ts`** tạo người nộp đơn ở vai trò `MEMBER`, nên
+   5 test đỏ ngay khi cổng VIP dựng lên. Đã nâng lên `VIP` và **thêm một test
+   ngược lại**: MEMBER nộp đơn phải nhận 403, đơn phải còn ở DRAFT.
+
+Bốn thứ đã cân nhắc và cố ý làm:
+
+- **Rate limit chuyển lên TRƯỚC cổng danh tính.** `requireRole` đọc `User.role`
+  bằng một truy vấn Postgres, nên đặt sau nó nghĩa là mỗi request rác không có
+  token vẫn tạo một truy vấn - Neon free tính tiền bằng CU-giờ (§0.9 việc 4).
+- **Mã nhúng huy hiệu nay nói thẳng** rằng khách vãng lai sẽ thấy ảnh hỏng, vì
+  `/api/trust/seal/*.svg` đã nằm sau cổng. Đây là hệ quả đã chốt (0 chứng chỉ
+  đang chạy), không phải lỗi - nhưng đưa mã nhúng mà không nói là để khách hàng
+  tự phát hiện bằng cách hỏng trên site của họ.
+- **`Referer`/`Origin` không còn được chuyển tiếp** ở proxy. Cơ chế phát hiện
+  huy hiệu gắn sai tên miền dựa vào chúng nay vô nghĩa (chỉ người đã đăng nhập
+  mới tải được huy hiệu); để lại là để một lớp phòng thủ giả nằm trong mã.
+- **`/trust` và `/trust/redeem` KHÔNG bị gác.** `/trust` là đích của mọi chuyển
+  hướng nên nó phải trả lời được "vì sao tôi không vào được"; `/trust/redeem` là
+  đường vào lại. Gác một trong hai là tự khoá mình ra ngoài.
+
+### Bẫy vai trò cũ đã được vá thêm một lớp
+
+`token.role` chỉ ghi ở lần đăng nhập đầu, nên người vừa đổi mã mời vẫn bị coi là
+MEMBER cho tới khi phiên làm mới. `/trust/redeem` đã gọi `update()` từ đợt 2;
+phiên 5 thêm: trang mời `/trust` **tự gọi `update()` một lần** rồi tải lại trang
+nếu vai trò đổi. Không có lớp này thì người tới `/trust` bằng liên kết cũ sau khi
+đổi mã sẽ thấy đúng màn hình "bạn cần mã mời" - trông y hệt như mã không có tác
+dụng.
+
+### Cổng kiểm đã chạy ở cuối phiên 5
+
+| Cổng                                                     | Kết quả                                     |
+| -------------------------------------------------------- | ------------------------------------------- |
+| `format:check` · `lint` · `typecheck` · `topology:check` | xanh cả bốn                                 |
+| `npm --workspace services/trust-service test`            | **57 test xanh** (thêm 12 so với trước)     |
+| `npm --workspace packages/ui test`                       | 68 xanh                                     |
+| `npm --workspace apps/frontend-main test`                | 19 xanh                                     |
+| **E2E `--project=app`**                                  | **20 xanh**, chạy thật với stack dev đầy đủ |
+
+E2E thêm bốn khẳng định mới trong `smoke.spec.js`: khách chỉ thấy trang mời và
+thẻ `noindex` · ba trang khác chuyển hướng về `/login` · tài khoản MEMBER bị đá
+về `/trust` · VIP (`bob`) thấy nội dung thật · `sitemap.xml` không còn `/trust/`.
+
+⚠️ Test MEMBER **tự đăng ký một tài khoản mới** thay vì dùng `alice`:
+`invite.spec.js` nâng alice lên VIP khi nó chạy, và hai tệp spec không có thứ tự
+đảm bảo. Một test chỉ xanh khi tệp khác chưa chạy là một test nói dối.
+
+### Trạng thái máy dev khi bàn giao
+
+- **Postgres user-space đang CHẠY ở 5433** (phiên 5 khởi động bằng `npm run
+db:up`). MinIO không chạy - E2E `full-stack` vì thế chưa chạy được.
+- DB dev đã dọn sau E2E: `alice` trả về `MEMBER`, tài khoản `e2e-member-*` và
+  mã mời nhãn `E2E …` đã xoá. Dữ liệu demo con dấu (`seed-demo.js`) vẫn còn -
+  test danh bạ cần nó.
+- Bốn nhánh cục bộ chưa push: `feat/trust-surface-gating` (phiên 5),
+  `fix/admin-noindex-unauth` (phiên 4), `feat/minio-user-space`,
+  `fix/dev-canonical-host`. `main` cục bộ vẫn đứng sau `origin/main` 19 commit.
+
+### Việc kế tiếp cần chủ dự án
+
+1. Duyệt và push nhánh này (chưa push theo quy ước "xin xác nhận trước khi
+   push").
+2. Phát hành theo đúng thứ tự ở mục "Bắt đầu từ đâu": Worker mang đợt 2 lên
+   trước, cấp + đổi thử một mã mời, RỒI mới đợt 3.
+3. Sau khi đợt 3 lên sóng, nghiệm thu bằng lệnh trong
+   `docs/refactor-trust-invite-access.md` §Phần D: `sitemap.xml` không còn
+   `/trust/`, và `/trust/directory` với khách chưa đăng nhập phải là chuyển
+   hướng chứ không phải 200.
+
+---
+
+## 0.9 Bàn giao phiên 4 (18/08/2026)
 
 ### Production đang lệch nhịp: backend MỚI, Worker CŨ
 
@@ -226,11 +324,11 @@ chính thẻ đó: tiêu đề lặp hậu tố (`Seo` tự nối `- tsudev`) v�
 
 E2E canh việc này: `e2e/tests/newsroom.spec.js` → `trang không được lập chỉ mục`.
 
-⚠️ **Điểm cần chủ dự án quyết:** `pages/robots.txt.ts` có `Disallow: /admin`,
-và nó **triệt tiêu** chính thẻ `noindex` vừa thêm - bot bị chặn thu thập thì
-không đọc được thẻ, URL vẫn lọt vào kết quả qua liên kết ngoài. Chuẩn là chọn
-một: cho thu thập + `noindex` (mạnh hơn), hoặc chỉ `Disallow`. Chưa đổi vì đó là
-thay đổi chính sách SEO nhìn thấy được.
+✅ **Đã quyết ở phiên 5 (18/08):** chọn **cho thu thập + `noindex`**.
+`pages/robots.txt.ts` nay chỉ còn `Disallow: /api/`; mọi khu vực riêng tư dựa
+hẳn vào thẻ `noindex`. Hệ quả bắt buộc, ghi ngay đầu tệp đó: trang riêng tư phải
+có `<Seo … noindex />` ở TẤT CẢ các nhánh render (kể cả `loading` và chưa đăng
+nhập) - trình thu thập không bao giờ có phiên.
 
 ### Trạng thái máy dev khi bàn giao
 
@@ -556,7 +654,7 @@ KHÔNG sửa bằng cách nới thông điệp ra - đó là đánh đổi sai. 
 
 ---
 
-### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng - 🟡 ĐANG LÀM (2/3 đợt xong)
+### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng - 🟢 XONG Ở MÃ (3/3 đợt), chờ phát hành
 
 > **Đợt 1 (gỡ tín dụng) đã XONG và đã phát hành 17/08/2026.** Ba cột
 > `User.credits`, `SealProgram.feeCredits`, `SealApplication.feeCharged` không
@@ -578,7 +676,10 @@ KHÔNG sửa bằng cách nới thông điệp ra - đó là đánh đổi sai. 
 > giờ từ tham số client truyền vào). Đợt 3 lọc điều hướng theo `session.role`
 > nên nó dựa thẳng lên chỗ này.
 >
-> **Còn đợt 3 (gác bề mặt + SEO).** Đợt đó chỉ có code, không migration.
+> **Đợt 3 (gác bề mặt + SEO) đã XONG ở cây làm việc** (phiên 5, nhánh
+> `feat/trust-surface-gating`) - chi tiết ở §0.10. Chỉ có code, không migration,
+> nhưng **phải phát hành SAU đợt 2**: nó khoá bề mặt Con dấu lại và đường vào
+> lại duy nhất là `/trust/redeem` của đợt 2.
 >
 > Bài học từ đợt 1, áp dụng cho đợt còn lại: kế hoạch ước lượng "3 trang
 > frontend" nhưng thực tế là 4 - `trust/portal.tsx` lọt lưới vì lần khảo sát đầu

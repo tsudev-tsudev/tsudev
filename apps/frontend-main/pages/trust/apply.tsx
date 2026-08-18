@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { useSession, signIn } from 'next-auth/react';
 import { Layout, Button, Badge, SectionHeading } from '@tsudev/ui';
 import { trust } from '../../lib/trust';
+import { withTrustAccess } from '../../lib/trustGate';
 import type { DomainInstructions, OwnerOrg, TrustProgram } from '../../lib/types';
 import type { GetServerSidePropsContext } from 'next';
 
@@ -507,9 +508,14 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
   );
 }
 
-export async function getServerSideProps({ query }: GetServerSidePropsContext) {
-  const programs = await trust.programs();
-  return {
-    props: { programs, preselect: typeof query.program === 'string' ? query.program : null },
-  };
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return withTrustAccess(ctx, async (access) => {
+    const programs = await trust.programs(access.headers);
+    return {
+      props: {
+        programs,
+        preselect: typeof ctx.query.program === 'string' ? ctx.query.program : null,
+      },
+    };
+  });
 }

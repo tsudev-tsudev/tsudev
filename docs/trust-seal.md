@@ -10,22 +10,33 @@ nguồn (`services/trust-service/src/*`), phần đầu mỗi tệp giải thíc
 
 ## Bốn mặt của hệ thống
 
-| Mặt                         | Đường dẫn                                    | Ai dùng                        |
-| --------------------------- | -------------------------------------------- | ------------------------------ |
-| Giới thiệu & chương trình   | `/trust`, `/trust/programs/<slug>`           | công khai                      |
-| Nộp hồ sơ & cổng khách hàng | `/trust/apply`, `/trust/portal`              | người dùng đã đăng nhập        |
-| Quản trị & thẩm định        | `/admin/trust`                               | MODERATOR trở lên              |
-| Xác thực & thư mục          | `/trust/verify/<serial>`, `/trust/directory` | công khai, không cần đăng nhập |
-| Hồ sơ uy tín tổ chức        | `/trust/org/<id>`                            | công khai, không cần đăng nhập |
+| Mặt                         | Đường dẫn                                    | Ai dùng                                |
+| --------------------------- | -------------------------------------------- | -------------------------------------- |
+| Trang mời                   | `/trust`                                     | công khai - giải thích cách xin mã mời |
+| Đổi mã mời                  | `/trust/redeem`                              | mọi tài khoản đã đăng nhập             |
+| Giới thiệu & chương trình   | `/trust`, `/trust/programs/<slug>`           | **VIP trở lên**                        |
+| Nộp hồ sơ & cổng khách hàng | `/trust/apply`, `/trust/portal`              | **VIP trở lên**                        |
+| Xác thực & thư mục          | `/trust/verify/<serial>`, `/trust/directory` | **VIP trở lên**                        |
+| Hồ sơ uy tín tổ chức        | `/trust/org/<id>`                            | **VIP trở lên**                        |
+| Quản trị & thẩm định        | `/admin/trust`                               | MODERATOR trở lên                      |
+| JWKS                        | `/.well-known/tsudev-trust-jwks.json`        | công khai - chỉ chứa khoá công khai    |
 
 Service chạy ở `:4003`. Trình duyệt **không bao giờ** gọi thẳng cổng này - mọi
 thứ đi qua proxy `/api/trust/*` của `frontend-main`, nên mã nhúng của khách chỉ
 trỏ tới một domain duy nhất và hạ tầng bên trong đổi được mà không phiền họ.
 
-⚠️ Cột "Ai dùng" ở trên là **hiện trạng, không phải đích đến**. Chủ dự án đã
-chốt (16/08/2026) rằng mọi trang Con dấu chỉ mở cho tài khoản được mời. Đợt gác
-bề mặt là đợt 3 của [`refactor-trust-invite-access.md`](refactor-trust-invite-access.md)
-và **chưa làm**; khi làm xong thì bảng này phải đổi theo.
+**Chế độ mời đã có hiệu lực từ 18/08/2026** (đợt 3 của
+[`refactor-trust-invite-access.md`](refactor-trust-invite-access.md)). Hai điều
+đi kèm mà người vận hành phải biết:
+
+- **Huy hiệu nhúng trên site khách KHÔNG còn hiển thị cho khách vãng lai.**
+  `/api/trust/seal/<serial>.svg` nằm sau cổng VIP, nên người xem chưa đăng nhập
+  chỉ thấy ảnh hỏng. Đây là hệ quả đã được chốt (lúc chốt có 0 chứng chỉ đang
+  chạy), không phải lỗi. Muốn đảo lại thì phải đưa `seal` ra khỏi cổng ở CẢ ba
+  chỗ: `services/trust-service/src/index.ts`, proxy
+  `apps/frontend-main/pages/api/trust/[...path].ts`, và `authCoverage.test.ts`.
+- **JWKS cố ý đứng ngoài.** Nó chỉ chứa khoá công khai nên gác nó không che giấu
+  gì, mà lại làm hỏng việc xác minh chữ ký ngoại tuyến.
 
 ## Mã mời - cách cấp và cách thu hồi
 

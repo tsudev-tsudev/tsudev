@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
+import { useCanSeeTrust } from '../lib/useTrustNav';
 // tsudev là MỘT site nên href tương đối. Trước đây có hai origin (trang chính và
 // diễn đàn) nên mọi link điều hướng buộc phải là URL tuyệt đối.
-type NavItem = { key: string; path: string; label: string };
+type NavItem = { key: string; path: string; label: string; needsTrust?: boolean };
 
 const NAV: NavItem[] = [
   { key: 'home', path: '/', label: 'Trang chủ' },
   { key: 'projects', path: '/projects', label: 'Dự án' },
   { key: 'blog', path: '/blog', label: 'Blog' },
   { key: 'docs', path: '/docs', label: 'Tài liệu' },
-  { key: 'trust', path: '/trust', label: 'Con dấu' },
+  // Chỉ hiện với tài khoản đã đổi mã mời - xem useCanSeeTrust.
+  { key: 'trust', path: '/trust', label: 'Con dấu', needsTrust: true },
 ];
 
 // Trang truyền `active` theo đường dẫn ('/blog') hoặc theo khoá ('home').
@@ -21,6 +23,8 @@ type SiteHeaderProps = { active?: string };
 
 export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
   const { data: session } = useSession();
+  const canSeeTrust = useCanSeeTrust();
+  const nav = NAV.filter((n) => !n.needsTrust || canSeeTrust);
   const [open, setOpen] = useState(false);
 
   return (
@@ -37,7 +41,7 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
             <Logo />
           </a>
           <nav className="hidden md:flex items-center gap-1" role="navigation" aria-label="Chính">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <a
                 key={n.key}
                 href={n.path}
@@ -113,7 +117,7 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
 
       {open && (
         <nav className="md:hidden border-t border-hairline bg-panel px-4 py-2" aria-label="Di động">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <a
               key={n.key}
               href={n.path}

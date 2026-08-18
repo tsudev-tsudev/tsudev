@@ -2,6 +2,7 @@ import React from 'react';
 import Seo from '../../components/Seo';
 import { Layout, Badge, SectionHeading } from '@tsudev/ui';
 import { trust, fmtDate } from '../../lib/trust';
+import { withTrustAccess } from '../../lib/trustGate';
 import type { GetServerSidePropsContext } from 'next';
 import type { CertificateCard, TrustProgram } from '../../lib/types';
 
@@ -21,7 +22,8 @@ export default function TrustDirectory({
       <Seo
         title="Thư mục website được cấp dấu"
         path="/trust/directory"
-        description="Danh sách công khai các website đang được tsudev cấp con dấu tín nhiệm."
+        description="Danh sách website đang được tsudev cấp con dấu tín nhiệm, mở cho tài khoản đã có mã mời."
+        noindex
       />
       <div className="max-w-5xl mx-auto px-4 py-12">
         <SectionHeading eyebrow="Minh bạch" title="Website đang được cấp dấu" />
@@ -96,11 +98,13 @@ export default function TrustDirectory({
   );
 }
 
-export async function getServerSideProps({ query }: GetServerSidePropsContext) {
-  const program = typeof query.program === 'string' ? query.program : '';
-  const [certificates, programs] = await Promise.all([
-    trust.directory(program ? `?program=${encodeURIComponent(program)}` : ''),
-    trust.programs(),
-  ]);
-  return { props: { certificates, programs, activeProgram: program || null } };
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return withTrustAccess(ctx, async (access) => {
+    const program = typeof ctx.query.program === 'string' ? ctx.query.program : '';
+    const [certificates, programs] = await Promise.all([
+      trust.directory(access.headers, program ? `?program=${encodeURIComponent(program)}` : ''),
+      trust.programs(access.headers),
+    ]);
+    return { props: { certificates, programs, activeProgram: program || null } };
+  });
 }

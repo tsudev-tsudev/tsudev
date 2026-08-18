@@ -69,9 +69,12 @@ và Render. Lệch nhau ⇒ mọi đường ghi đã xác thực trả 401.
   có thì đi tiếp. Blog/tài liệu/dự án là nội dung công khai và SSR gọi không kèm
   token. Đường ghi nằm dưới `/api/admin` và tự gọi `requireAdmin()`.
 - `storage-service`: `requireRole('MEMBER')` theo từng route.
-- `trust-service`: auth theo **nhánh** (`AUTH_PREFIXES`). Mặc định là công khai -
-  huy hiệu, trang xác minh và JWKS phải mở cho bên thứ ba.
-  `test/authCoverage.test.ts` bắt mọi route mới phải chọn một bên.
+- `trust-service`: **mặc định ĐÓNG** từ 18/08/2026. Cả `/api/trust` đi qua
+  `auth` rồi `requireRole('VIP')`; chỉ còn danh sách miễn trừ `PUBLIC_PATHS` gồm
+  đúng `/health` và JWKS. Trước đó nó gắn auth theo nhánh (`AUTH_PREFIXES`) và
+  mặc định là công khai - quên khai một nhánh là nó lặng lẽ mở.
+  `test/authCoverage.test.ts` canh cả bảng định tuyến lẫn phản hồi thật
+  (401 cho khách, 403 cho MEMBER, 200 cho VIP).
 - `auth-service`: **không có endpoint công khai nào**; mọi thứ đi qua BFF.
 
 ## 3. Phân quyền
