@@ -10,30 +10,56 @@
 
 ## Bắt đầu từ đâu
 
-**Không còn việc chặn nào.** Production đã đăng nhập được (§0.5 đã xong 17/08).
+⛔ **VIỆC CHẶN ĐÃ QUAY LẠI, và nó nằm ở PRODUCTION chứ không ở mã.** Backend
+Render thiếu (hoặc đặt ngắn hơn 32 ký tự) biến `INTERNAL_IDENTITY_SECRET`. Đo
+19/08/2026:
 
-➡️ **Phiên mới: đọc [§0.10 Bàn giao phiên 5](#010-bàn-giao-phiên-5-18082026--đọc-trước)
-rồi [§0.9](#09-bàn-giao-phiên-4-18082026) trước tiên.** Ba PR của phiên 3 (#12,
-#13, #14) đã gộp; §0.8 giữ lại làm lịch sử nhưng **dấu hiệu phát hành ghi trong
-đó nay đã SAI** - §0.9 nói rõ vì sao.
+```
+POST https://tsudev-backend.onrender.com/api/trust/programs
+  → 503 {"error":"Máy chủ chưa cấu hình xác thực"}
+```
+
+Nghĩa là **mọi đường ghi đã xác thực trên toàn site đang hỏng**, không riêng Con
+dấu. Sửa: đặt lại biến đó ở dashboard Render, dài **≥ 32 ký tự** và **trùng
+nguyên văn** secret cùng tên của Worker (Worker đã có, đã kiểm bằng
+`wrangler secret list`).
+
+Ba điều khiến lỗi này sống sót lâu đến thế - đáng đọc trước khi sửa cái khác:
+
+1. **Nó có từ trước đợt 3.** Đợt 3 chỉ làm nó lộ ra, vì trước đó
+   `/api/trust/directory` là công khai nên không đi qua tầng xác thực nào.
+2. **Ba service kia che mất nó.** `/api/posts`, `/api/presign`,
+   `/api/admin/projects` đều dính cổng `INTERNAL_API_TOKEN` TRƯỚC và trả 401,
+   nên request không bao giờ tới được tầng danh tính để lộ 503.
+3. **Đăng nhập vẫn chạy bình thường** - đăng nhập không dùng khẳng định danh
+   tính, nên nó không chứng minh gì về biến này.
+
+⚠️ **Phép chẩn đoán duy nhất không bị che: `GET /api/trust/programs` trên
+backend.** trust-service cố ý đứng ngoài `INTERNAL_API_TOKEN`, nên nó là endpoint
+duy nhất đi thẳng tới tầng danh tính. 503 = thiếu khoá · 401 = khoá đúng, chỉ
+thiếu danh tính (đây mới là trạng thái lành mạnh).
+
+⚠️ **Đừng phát hành Worker frontend trước khi sửa xong.** Đợt 3 đã lên backend,
+nên khi Worker mới lên thì mọi trang `/trust/*` sẽ gọi vào một API đang 503 - kể
+cả tài khoản VIP.
 
 Thứ tự đề nghị:
 
-1. **PHÁT HÀNH frontend Worker cho đợt 2 (mã mời).** Đo 18/08: backend Render đã
-   chạy mã mới (`/health` có `newsroom`) nhưng Worker vẫn là bản CŨ -
-   `/trust/redeem` và `/admin/newsroom` trả **404** trên `tsudev.com`. Chi tiết
-   và thứ tự: §0.9.
-2. **RỒI MỚI phát hành đợt 3** (gác bề mặt Con dấu), nay đã xong ở cây làm việc -
-   §0.10. Thứ tự này không được đảo: đợt 3 khoá bề mặt Con dấu lại, và đường vào
-   lại duy nhất là `/trust/redeem` của đợt 2.
-3. **§1.7 đợt A - trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
+1. **Sửa `INTERNAL_IDENTITY_SECRET` ở Render**, nghiệm thu bằng phép chẩn đoán ở
+   trên (phải chuyển từ 503 sang 401).
+2. **PHÁT HÀNH frontend Worker.** Nó đang mang mã CŨ: `/trust/redeem` và
+   `/admin/newsroom` còn 404, `sitemap.xml` còn 2 dòng `/trust/`. Lệnh:
+   `npm --workspace apps/frontend-main run deploy` (ĐỪNG gọi thẳng
+   `opennextjs-cloudflare deploy` - lý do ở `CLAUDE.md`). Đợt 2 và đợt 3 lên
+   cùng một lượt vì cả hai đã ở `main`.
+   Nghiệm thu: `/trust/redeem` 200 · `/trust/directory` với khách chưa đăng nhập
+   là CHUYỂN HƯỚNG chứ không phải 200 · `sitemap.xml` không còn `/trust/`.
+3. **Deploy Worker cron** (§1.1 - CHƯA từng deploy, đã đo bằng
+   `wrangler deployments list`). Không cần `NEWSROOM_TICK_TOKEN` cho việc giữ ấm.
+4. **§1.7 đợt A - trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
    không có route nào cho người dùng sửa hồ sơ của chính mình.
-4. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 thì rà một lần
-   cho cả trang mới - trong đó có trang mời `/trust` vừa dựng ở phiên 5.
-5. Còn lại: §1.10 dọn service Render trùng (10 phút, làm lúc nào cũng được) ·
-   §1.1 ping giữ ấm (§0.9 ghi chú: Worker cron của Toà soạn có thể đã gánh việc
-   này) · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột `keycloakId` · §1.7 đợt B ·
-   §1.8.
+5. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn.
+6. Còn lại: §1.4 CSP · §1.3 npm audit · §1.7 đợt B · §1.8.
 
 ## Đang chạy
 
@@ -487,20 +513,32 @@ trị. Giá trị vẫn phải điền tay.
 
 ## 1. Việc còn dở
 
-### 1.1 Dựng bộ ping giữ ấm - 🟡 CÓ THỂ ĐÃ XONG, cần kiểm
+### 1.1 Dựng bộ ping giữ ấm - 🟠 CHƯA XONG (đã ĐO, không còn phải đoán)
 
-⚠️ Đọc §0.9 việc 2 trước: `infrastructure/newsroom-cron` chạy `*/5 * * * *` và
-**cố ý kiêm luôn việc giữ ấm**. Nếu Worker đó đã deploy thì mục này đóng lại,
-khỏi dựng UptimeRobot. Phần dưới giữ nguyên làm bối cảnh.
+`infrastructure/newsroom-cron` **chưa bao giờ được deploy**. Đo 19/08/2026:
 
-Free tier cấp 750 giờ instance/tháng cho **cả tài khoản**; một service chạy liên
-tục tiêu 720 giờ. Nay chỉ còn MỘT service (`tsudev-backend`) nên toàn bộ ngân
-sách dồn về nó - không còn phải đánh đổi với đường đăng nhập như khi còn
-Keycloak. Ping `https://tsudev-backend.onrender.com/health` mỗi 5 phút.
+```
+$ npx wrangler deployments list      # trong infrastructure/newsroom-cron
+✘ This Worker does not exist on your account. [code: 10007]
+```
+
+Nghĩa là backend Render **hiện không có nhịp giữ ấm nào** - bản trước của phiếu
+này ghi "có thể đã xong", đó là suy đoán và nó sai.
+
+Deploy nó là xong mục này, và **không cần `NEWSROOM_TICK_TOKEN`**: nhánh giữ ấm
+chỉ đọc `BACKEND_URL`. Thiếu token thì mỗi giờ có một dòng log lỗi ở nhánh toà
+soạn, nhịp 5 phút vẫn chạy đủ.
+
+```
+npm run cron:deploy
+```
+
+Kể từ 19/08 cả hai nhịp **nghỉ 01:00-06:00 giờ VN** (viết trong cron là giờ UTC
+`0-17,23`) để hạ mức tiêu Render từ 744 xuống ~589 trên 750 giờ. Chi tiết và
+bảng đánh đổi: [`docs/free-tier.md`](docs/free-tier.md).
 
 **Đừng dùng GitHub Actions cron.** Repo private, mỗi lần chạy tính tối thiểu 1
-phút ⇒ ~8.600 phút/tháng, vượt xa hạn mức 2.000. Dùng UptimeRobot free hoặc
-Better Stack free.
+phút ⇒ ~8.600 phút/tháng, vượt xa hạn mức 2.000.
 
 ### 1.2 ~~Giới hạn tần suất~~ - ✅ XONG 16/08
 
@@ -545,26 +583,22 @@ cục đẹp hay khoảng cách hợp lý.
 Cần rà tay ở cả hai chế độ, ưu tiên: trang chủ · `/blog/[slug]` (mục lục mới) ·
 `/login` · `/settings/security` · `/admin/projects` · `/trust`.
 
-### 1.6 Xoá cột `User.keycloakId` - 🟡 CHỜ mã mới lên sóng
+### 1.6 ~~Xoá cột `User.keycloakId`~~ - ✅ XONG Ở MÃ 19/08, **migration chờ phát hành**
 
-Hoãn khỏi đợt phát hành trước có chủ đích (xem §0). Cột vẫn còn trong schema,
-nên Prisma Client đang chạy ở production VẪN SELECT nó.
+Gỡ khỏi `schema.prisma` + migration `20260819103000_drop_keycloak_id` (PR #16, đã
+gộp). Đã áp lên DB dev; **chưa áp lên Neon**.
 
-⚠️ **Với `DROP`, thứ tự NGƯỢC với `ADD`.** Thêm cột thì migration đi trước, code
-đi sau. Xoá cột thì **code phải đi TRƯỚC**:
+⚠️ **Thứ tự bắt buộc, và nó NGƯỢC với khi thêm cột:**
 
-1. Bỏ trường `keycloakId` khỏi `packages/db/prisma/schema.prisma`, tạo migration,
-   nhưng **chưa chạy nó lên production**.
-2. Phát hành code mới (Render + Worker). Từ lúc này không tiến trình nào còn
-   SELECT cột đó.
-3. Mới chạy `prisma migrate deploy` lên Neon.
+1. ~~Gỡ trường khỏi schema + `db:generate`~~ ✅
+2. Phát hành mã mới (Render đã có sau khi gộp; **Worker thì chưa**)
+3. Chỉ sau đó mới `npm run db:migrate` nhắm Neon
+
+Bằng chứng cho thấy bước 2-3 an toàn: 268 test xanh trên schema CÒN cột, rồi 252
+test xanh trên schema ĐÃ XOÁ cột. Mã mới sống được với cả hai, nên cửa sổ giữa
+hai bước không có trạng thái nào hỏng.
 
 Đảo lại là `GET /api/posts` 500 ⇒ `lib/api.ts` nuốt thành `[]` ⇒ **trang trống**.
-
-Mọi giá trị trong cột đều NULL và không dòng mã nào đọc nó, nên đây thuần tuý là
-dọn dẹp - không có dữ liệu nào mất.
-
----
 
 ### 1.7 KHÔNG CÓ trang quản lý tài khoản / thông tin cá nhân - 🟠 CHƯA LÀM
 
@@ -654,89 +688,44 @@ KHÔNG sửa bằng cách nới thông điệp ra - đó là đánh đổi sai. 
 
 ---
 
-### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng - 🟢 XONG Ở MÃ (3/3 đợt), chờ phát hành
+### 1.9 ~~Đưa Con dấu về chế độ mời + gỡ tín dụng~~ - ✅ XONG 3/3 ĐỢT, đã gộp hết
 
-> **Đợt 1 (gỡ tín dụng) đã XONG và đã phát hành 17/08/2026.** Ba cột
-> `User.credits`, `SealProgram.feeCredits`, `SealApplication.feeCharged` không
-> còn ở cả mã lẫn Neon. Mọi chương trình dấu miễn phí.
->
-> **Đợt 2 (mã mời) đã XONG và đã GỘP vào `main` (PR #12), nhưng mới lên tới
-> backend Render - frontend Worker vẫn là bản cũ, nên `/trust/redeem` còn 404
-> trên production (§0.9).** Bảng
-> `TrustInvite` + `TrustInviteRedemption`, bốn route
-> `/api/identity/invite/{redeem,create,list,revoke}`, trang `/trust/redeem`,
-> khối quản lý mã ở `/admin/trust`. 17 test đơn vị + 2 E2E mới, tất cả xanh.
-> Migration thuần tính cộng nên chạy trước khi phát hành code là an toàn.
->
-> Một bổ sung ngoài kế hoạch, **đợt 3 phụ thuộc vào nó**: `token.role` của
-> next-auth CHỈ được ghi ở lần đăng nhập đầu, nên đổi mã xong thì DB nói VIP còn
-> phiên vẫn nói MEMBER - điều hướng tiếp tục giấu mục Con dấu, trông y hệt như
-> đổi mã không có tác dụng. Đã thêm `POST /api/identity/session-state` và nhánh
-> `trigger === 'update'` ở callback `jwt` để đọc lại vai trò TỪ DB (không bao
-> giờ từ tham số client truyền vào). Đợt 3 lọc điều hướng theo `session.role`
-> nên nó dựa thẳng lên chỗ này.
->
-> **Đợt 3 (gác bề mặt + SEO) đã XONG ở cây làm việc** (phiên 5, nhánh
-> `feat/trust-surface-gating`) - chi tiết ở §0.10. Chỉ có code, không migration,
-> nhưng **phải phát hành SAU đợt 2**: nó khoá bề mặt Con dấu lại và đường vào
-> lại duy nhất là `/trust/redeem` của đợt 2.
->
-> Bài học từ đợt 1, áp dụng cho đợt còn lại: kế hoạch ước lượng "3 trang
-> frontend" nhưng thực tế là 4 - `trust/portal.tsx` lọt lưới vì lần khảo sát đầu
-> grep trong danh sách tệp đoán trước thay vì grep từ khoá trên cả cây.
+| Đợt                  | Trạng thái                                        |
+| -------------------- | ------------------------------------------------- |
+| 1 - gỡ tín dụng      | ✅ phát hành 17/08                                |
+| 2 - mã mời           | ✅ gộp (PR #12); backend đã chạy, **Worker chưa** |
+| 3 - gác bề mặt + SEO | ✅ gộp (PR #15); backend đã chạy, **Worker chưa** |
 
-**Kế hoạch đầy đủ: [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).**
-Phạm vi đã được chủ dự án chốt 16/08/2026 - **không còn câu nào phải hỏi trước
-khi bắt đầu.**
+Cả hai đợt sau nay lên cùng một lượt deploy Worker - xem "Bắt đầu từ đâu" việc 2,
+và **sửa `INTERNAL_IDENTITY_SECRET` trước đã**.
 
-Chốt: **mọi trang liên quan tới chứng chỉ/huy hiệu chỉ truy cập và nhìn thấy
-được qua mã mời do admin cấp**, không ngoại lệ cho trang xác minh. Gỡ hẳn
-`credits`.
+Kế hoạch đầy đủ: [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).
 
-Cái giá của quyết định đó, đã đếm trên Neon: **0 chứng chỉ · 0 tổ chức · 0 đơn ·
-0 tên miền**. Không có huy hiệu nào đang chạy trên site bên thứ ba, nên không có
-gì để hỏng - quyết định này hôm nay tốn con số không.
+Hai thứ rút ra từ đợt 3, đã ghi vào chỗ đúng của nó nên không lặp lại ở đây:
 
-Bốn điều phải biết trước khi mở kế hoạch:
+- Bề mặt Con dấu phải sửa ĐỒNG THỜI ở **bốn** chỗ, không phải ba - chỗ thứ tư
+  (`services/backend-bundle/test/routing.test.ts`) nằm ở workspace khác nên đã
+  lọt lưới đúng một lần. Gotcha ở `CLAUDE.md` đã cập nhật.
+- Khi hai cổng chặn khác nhau cùng trả một mã trạng thái thì **mã trạng thái
+  thôi không còn là dấu hiệu**. Test định tuyến của backend-bundle nay phân biệt
+  bằng thân phản hồi.
 
-1. **BA LẦN PHÁT HÀNH RIÊNG, không gộp.** Hai đợt migration chạy NGƯỢC chiều
-   nhau: gỡ `credits` là `DROP` ⇒ code trước, migration sau. Mã mời là thêm bảng
-   ⇒ migration trước, code sau. Gộp vào một lần là trang trống ở production.
-   (Cả hai đã làm đúng thứ tự; đợt 3 không có migration nên ràng buộc này hết
-   hiệu lực sau khi đợt 2 lên sóng.)
-2. **Phần A (gác bề mặt) làm CUỐI CÙNG** - đó là đợt duy nhất có thể khoá nhầm
-   chính mình ra ngoài. Làm sau thì mã mời đã chạy và có đường vào lại.
-3. **`credits` KHÔNG phải cột chết** (gotcha riêng ở `CLAUDE.md`) - gỡ nó là gỡ
-   cả cơ chế thu phí: 9 chỗ trong trust-service, 4 chương trình trong seed,
-   3 trang frontend.
-4. **JWKS được đề nghị giữ công khai** - nó chỉ chứa khoá công khai, không tiết
-   lộ khách hàng/chứng chỉ nào. Gác nó không che giấu gì mà chỉ làm hỏng xác
-   minh chữ ký ngoại tuyến. Chủ dự án muốn gác luôn cũng được, chỉ cần biết là
-   nó không bảo vệ điều gì.
-
-Điểm phải quyết lại TRONG TƯƠNG LAI (ghi trong kế hoạch, đừng quyết bây giờ):
-khi cấp chứng chỉ đầu tiên cho khách hàng THẬT, phải trả lời "khách vãng lai bấm
-vào huy hiệu thì thấy gì". `TRUST_ISSUER` được ký vào chứng chỉ nên URL xác minh
-là cố định vĩnh viễn. Serial hiện có dạng tuần tự `TSU-CR-2026-000123` - nếu sau
-này chọn hình "URL-năng-lực" thì phải đổi cách sinh serial TRƯỚC lần cấp đầu.
+Điểm phải quyết lại TRONG TƯƠNG LAI: khi cấp chứng chỉ đầu tiên cho khách hàng
+THẬT, phải trả lời "khách vãng lai bấm vào huy hiệu thì thấy gì".
+`TRUST_ISSUER` được ký vào chứng chỉ nên URL xác minh là cố định vĩnh viễn.
+Serial hiện có dạng tuần tự `TSU-CR-2026-000123` - nếu sau này chọn hình
+"URL-năng-lực" thì phải đổi cách sinh serial TRƯỚC lần cấp đầu.
 
 Hệ quả đã ghi nhận: **SEO không còn đến từ Con dấu.** Mục tiêu "đạt tiêu chí SEO"
-phải do blog · tài liệu · dự án gánh. Với Con dấu, việc SEO duy nhất là rút khỏi
-`sitemap.xml` và `noindex` cho sạch.
-
----
+phải do blog · tài liệu · dự án gánh.
 
 ### 1.10 Dọn service Render trùng `tsudev-backend-rqkz` - 🟠 CHƯA LÀM
 
 Mỗi lần deploy, hộp thư nhận `deploy failed for tsudev-backend-rqkz`. **Đó không
 phải sự cố production** - nó là một service THỨ HAI chưa bao giờ khởi động nổi vì
-không có secret nào (`render.yaml` khai `NODE_ENV: production` bằng giá trị
-literal, còn 11 biến kia là `sync: false`), nên nó chết ngay lúc nạp module ở
-`services/trust-service/src/signing.ts`.
-
-Đã đo 18/08/2026: `tsudev-backend.onrender.com/health` trả 200 và đủ bốn nhánh;
-`tsudev-backend-rqkz.onrender.com` không phản hồi nhưng DNS **vẫn phân giải** ⇒
-service tồn tại trong tài khoản.
+không có secret nào, nên nó chết ngay lúc nạp module ở
+`services/trust-service/src/signing.ts`. Chưa bao giờ chạy ⇒ **không tiêu giờ
+instance**, nên nó không phải nguồn rủi ro ngân sách - chỉ là rác.
 
 ⚠️ **Thứ tự khi dọn: xoá Blueprint instance TRƯỚC, rồi mới xoá service.** Xoá mỗi
 service mà để blueprint lại thì lần push sau nó dựng lại y nguyên. Và sau khi gỡ
@@ -744,15 +733,21 @@ blueprint phải xác nhận `tsudev-backend` còn bật Auto-Deploy - nếu đ�
 tự động lâu nay do blueprint kéo thì gỡ xong sẽ thành "đã gộp PR rồi mà
 production vẫn chạy mã cũ".
 
-Chẩn đoán đầy đủ, ba rủi ro nếu để nguyên, và cảnh báo "đừng làm ngược lại":
-[`docs/deployment.md`](docs/deployment.md) §`tsudev-backend-rqkz`.
+⚠️ **Đừng chẩn đoán bằng DNS.** Phiên 4 kết luận service "vẫn tồn tại trong tài
+khoản" vì tên miền còn phân giải - **lập luận đó sai**: `*.onrender.com` là
+wildcard nên MỌI tên đều phân giải, kể cả tên chưa ai đăng ký. Header
+`x-render-routing: no-server` cũng không phân biệt được "đã xoá" với "tồn tại mà
+không khởi động nổi". Chỉ dashboard mới trả lời được.
 
----
+✅ `tsudev-sso` (service danh tính của bản thiết kế cũ) **đã được xác nhận không
+còn tồn tại** trên Render - chủ dự án kiểm dashboard 19/08/2026. Nó từng là
+khoản chi lớn nhất của ngân sách giờ instance.
 
 ## 2. Nợ có đăng ký, KHÔNG phải việc cần làm
 
 - **Storybook không nằm trong CI** và root còn ghim `react@18.3.1` cho nó. App
   thật chạy React 19. Đợt này thêm prop `inputRef` cho `Input` thay vì dựa vào
   `ref` đi lọt qua `...props` - chính vì khoảng cách đó.
-- **`documents-tsudev.md` là ĐẶC TẢ, không phải hiện trạng.** Nó vẫn mô tả
-  Keycloak. Mã nguồn là hiện trạng.
+- **`documents-tsudev.md` là ĐẶC TẢ, không phải hiện trạng.** Mã nguồn là hiện
+  trạng. §2.2 của nó đã được cập nhật 19/08 để ghi nhánh xác thực ĐÃ CHỌN (tự
+  xây), nhưng phần còn lại vẫn là đích đến chứ không phải mô tả cái đang chạy.

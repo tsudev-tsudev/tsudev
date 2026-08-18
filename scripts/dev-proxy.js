@@ -7,8 +7,7 @@
 //   http://cdn.tsudev.localhost:8080    → MinIO           127.0.0.1:9000
 //
 // Lý do ban đầu là để cookie `Domain=.tsudev.localhost` chia sẻ được giữa trang
-// chính và diễn đàn. Diễn đàn không còn và Keycloak cũng đã bị gỡ, nhưng proxy
-// vẫn giữ vì ba lẽ: subdomain `cdn.` vẫn cần, một cổng vào vẫn tiện, và hình
+// chính và diễn đàn. Diễn đàn không còn, nhưng proxy vẫn giữ vì ba lẽ: subdomain `cdn.` vẫn cần, một cổng vào vẫn tiện, và hình
 // trạng dev vẫn khớp production. Không cần nữa thì `DEV_PROXY=0`.
 //
 // Bảng định tuyến sinh từ config/topology.json. Chạy: node scripts/dev-proxy.js

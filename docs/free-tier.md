@@ -23,6 +23,23 @@ quyết định thì kiểm lại nguồn thay vì tin bảng này.
 Thêm một cái nữa không phải dịch vụ chạy nhưng vẫn có hạn mức: **GitHub Actions**
 trên repo private được 2.000 phút/tháng, và hết phút thì job **bị chặn** chứ
 không sinh hoá đơn (miễn là tài khoản không có phương thức thanh toán hợp lệ).
+Triệu chứng vì thế không phải một dòng tiền mà là **"CI không chạy nữa" ngay giữa
+một đợt phát hành** - đúng lúc cần CI nhất.
+
+Một lượt chạy đầy đủ tốn ~18 phút tính phí (tổng năm job), nên hạn mức này chỉ
+đủ cho khoảng 110 lượt/tháng. Hai van đã lắp trong `.github/workflows/ci.yml`:
+
+- `on.push` **chỉ nghe `main`**. Trước 19/08/2026 nó nghe cả `feat/**` trong khi
+  `on.pull_request` nghe mọi PR, nên mỗi lượt đẩy một nhánh đang có PR sinh HAI
+  lần chạy y hệt nhau. Đo trong tháng 8: 49 lượt do push + 28 lượt do
+  pull_request, khoảng 360 phút đốt vô ích (~18% hạn mức).
+- `concurrency` huỷ lượt đang chạy dở khi có lượt mới trên cùng nhánh - trừ
+  `main`, nơi mỗi commit là một trạng thái đã phát hành.
+
+⚠️ Một job TREO là khoản đắt nhất ở đây: trần mặc định của GitHub là 360 phút,
+tức một job treo tiêu 18% hạn mức tháng mà không sinh kết quả nào. Đã xảy ra một
+lần (18/08, job E2E). Thấy một job chạy quá gấp đôi thời gian bình thường thì
+huỷ tay, đừng chờ nó tự hết giờ.
 
 Điểm chung đáng mừng của cả bảng: **không dịch vụ nào tự động tính tiền khi
 vượt.** Tất cả đều chặn hoặc treo. Nghĩa là rủi ro thật của dự án này không phải
