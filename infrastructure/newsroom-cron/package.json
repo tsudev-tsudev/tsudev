@@ -1,0 +1,14 @@
+{
+  "name": "newsroom-cron",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "secret": "wrangler secret put NEWSROOM_TICK_TOKEN",
+    "tail": "wrangler tail",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.14"
+  }
+}

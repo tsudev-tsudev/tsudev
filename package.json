@@ -9,6 +9,10 @@
   ],
   "scripts": {
     "env:local": "node scripts/write-env-local.js",
+    "cron:typecheck": "tsc --noEmit -p infrastructure/newsroom-cron/tsconfig.json",
+    "cron:deploy": "npm --prefix infrastructure/newsroom-cron exec -- wrangler deploy --config infrastructure/newsroom-cron/wrangler.jsonc",
+    "cron:secret": "npx wrangler secret put NEWSROOM_TICK_TOKEN --config infrastructure/newsroom-cron/wrangler.jsonc",
+    "cron:tail": "npx wrangler tail --config infrastructure/newsroom-cron/wrangler.jsonc",
     "dev": "npm run env:local && concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\" \"npm --workspace services/auth-service run dev\" \"npm --workspace services/newsroom-service run dev\" \"npm --workspace apps/frontend-main run dev\"",
     "dev:local": "npm run build:ts && node scripts/run-dev.js",
     "bootstrap": "npm ci",
@@ -32,7 +36,7 @@
     "db:seed": "node scripts/with-env.js npm --workspace packages/db run seed",
     "db:reset": "node scripts/with-env.js npm --workspace packages/db exec -- prisma migrate reset --force",
     "dev:full": "npm run db:up && npm run minio:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run build:services && npm run db:seed:dev && npm run dev:local",
-    "typecheck": "npm run build:ts && npm --workspace apps/frontend-main run typecheck",
+    "typecheck": "npm run build:ts && npm --workspace apps/frontend-main run typecheck && npm run cron:typecheck",
     "build:ts": "tsc -b",
     "build:services": "tsc -b tsconfig.services.json",
     "db:seed:dev": "node scripts/with-env.js node services/auth-service/scripts/seed-dev-users.js"
