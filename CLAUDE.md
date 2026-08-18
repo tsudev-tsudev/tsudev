@@ -8,19 +8,21 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** - sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay** - mục "Bắt đầu từ đâu"
-cho thứ tự việc còn dở. Không còn việc chặn nào; production đang chạy và đăng
-nhập được.
+⛔ **Đọc [`HANDOFF.md`](HANDOFF.md) TRƯỚC KHI LÀM BẤT CỨ VIỆC GÌ.** Tính tới
+19/08/2026 có **một việc chặn**: Neon thiếu 6 migration nên **toàn bộ nội dung
+site đang trống** (`/blog`, `/docs`, `/projects` đều báo "Chưa có…"). Lệnh sửa
+nằm ngay đầu phiếu. Site vẫn trả 200 ở mọi trang - đó chính là lý do nó sống sót
+lâu đến vậy.
 
-Đang dở giữa chừng: **kế hoạch ba đợt cho Con dấu tín nhiệm**
-([`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md)).
-Đợt 1 (gỡ tín dụng) đã phát hành; đợt 2 (mã mời) đã xong ở cây làm việc nhưng
-**chưa phát hành**; còn đợt 3 (gác bề mặt + SEO, chỉ code, không migration).
+Kế hoạch ba đợt cho Con dấu tín nhiệm
+([`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md))
+đã **XONG cả ba đợt và đã phát hành** 19/08.
 
-`HANDOFF.md` §0.7 ghi bốn kỹ thuật đã trả giá để học (dấu hiệu bản mới đã lên
-sóng, bẫy `--shadow-database-url`, cách khảo sát bằng grep, và
-`wrangler.jsonc` không được sinh tự động). Xong hết §1 thì xoá file và xoá cả
-đoạn này.
+`HANDOFF.md` §0.7 ghi sáu kỹ thuật đã trả giá để học: mã 200 không chứng minh
+trang có nội dung · dấu hiệu "bản mới đã lên sóng" phải là thứ THAY ĐỔI giữa hai
+bản · bẫy `--shadow-database-url` · khảo sát bằng grep trên cả cây · tệp test
+mới phải có `export {}` (và `tsc -b` giấu lỗi đó ở máy dev) · `wrangler.jsonc`
+không được sinh tự động. Xong hết §1 thì xoá file và xoá cả đoạn này.
 
 ## Bản đồ
 
