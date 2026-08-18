@@ -54,6 +54,7 @@
     "STORAGE_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "TRUST_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "AUTH_SERVICE_URL": "https://tsudev-backend.onrender.com",
+    "NEWSROOM_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "NEXTAUTH_URL": "https://tsudev.com",
     "NEXTAUTH_COOKIE_DOMAIN": ".tsudev.com"
   }

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "auth-service": "*",
+    "newsroom-service": "*",
     "content-service": "*",
     "express": "^4.18.2",
     "storage-service": "*",

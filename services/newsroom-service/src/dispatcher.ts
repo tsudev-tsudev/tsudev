@@ -1,0 +1,583 @@
+// Dispatcher: đọc NewsroomEvent, chạy agent, ghi kết quả.
+//
+// Đây là chỗ DUY NHẤT ghi vào DB của toà soạn. Agent chỉ suy nghĩ; mọi giao
+// dịch, nhật ký và van an toàn nằm ở đây, để không phải đi tìm ở bốn nơi khi
+// một bài đi sai đường.
+import { prisma } from '@tsudev/db'
+import { runScout, runWriter, runEditor, runSeo, slugify, AgentCost } from './agents'
+import { fetchSource, fingerprint } from './sources'
+import { DAILY_NEURON_BUDGET, neuronsUsedToday } from './llm'
+
+export const MAX_REVISIONS = parseInt(process.env.NEWSROOM_MAX_REVISIONS || '2', 10)
+const LEASE_MS = 5 * 60 * 1000
+const SCAN_EVERY_MS = 30 * 60 * 1000
+
+type Json = Record<string, unknown>
+
+async function emit(type: string, data: Json = {}, extra: Json = {}): Promise<void> {
+  await prisma.newsroomEvent.create({
+    data: {
+      type,
+      payload: data as never,
+      draftId: (extra.draftId as string) ?? null,
+      agentId: (extra.agentId as string) ?? null,
+      actorKind: (extra.actorKind as string) ?? 'agent',
+      // Sự kiện chỉ để ghi nhật ký thì đánh dấu DONE ngay - nó không có việc
+      // gì để dispatcher làm, và để PENDING là nó quay vòng vô ích mãi mãi.
+      status: (extra.terminal as boolean) ? 'DONE' : 'PENDING',
+    },
+  })
+}
+
+async function agentBySlug(slug: string) {
+  const a = await prisma.agentProfile.findUnique({ where: { slug } })
+  if (!a) throw new Error(`Không tìm thấy agent "${slug}" - đã chạy db:seed:newsroom chưa?`)
+  if (a.suspendedAt || !a.enabled) throw new Error(`Agent ${slug} đang bị treo`)
+  return a
+}
+
+async function setStatus(id: string, status: string, note?: string): Promise<void> {
+  await prisma.agentProfile.update({
+    where: { id },
+    data: { status: status as never, statusNote: note ?? null },
+  })
+}
+
+/// Bọc một lượt chạy agent: mở AgentRun (có lease), chạy, đóng, ghi số đo.
+/// Ném lỗi thì run được đóng với ok=false rồi lỗi nổi tiếp lên - đừng nuốt.
+async function withRun<T>(
+  agentId: string,
+  action: string,
+  draftId: string | null,
+  fn: () => Promise<{ result: T; cost: AgentCost }>
+): Promise<T> {
+  const run = await prisma.agentRun.create({
+    data: { agentId, action, draftId, leaseUntil: new Date(Date.now() + LEASE_MS) },
+  })
+  try {
+    const { result, cost } = await fn()
+    await prisma.agentRun.update({
+      where: { id: run.id },
+      data: {
+        endedAt: new Date(),
+        ok: true,
+        inputTokens: cost.inputTokens,
+        outputTokens: cost.outputTokens,
+        neuronsUsed: cost.neurons,
+        usedProvider: cost.provider,
+      },
+    })
+    if (cost.switched) {
+      await emit(
+        'provider.switched',
+        { to: cost.provider, reason: cost.switchReason ?? '' },
+        { agentId, terminal: true, actorKind: 'system' }
+      )
+    }
+    return result
+  } catch (err) {
+    await prisma.agentRun.update({
+      where: { id: run.id },
+      data: {
+        endedAt: new Date(),
+        ok: false,
+        errorMsg: String((err as Error).message).slice(0, 500),
+      },
+    })
+    throw err
+  }
+}
+
+// --------------------------------------------------------------------------
+// Săn tin
+// --------------------------------------------------------------------------
+
+async function scanSources(): Promise<void> {
+  const due = await prisma.newsroomSource.findMany({
+    where: {
+      enabled: true,
+      kind: { not: 'manual' },
+      OR: [{ lastScanAt: null }, { lastScanAt: { lt: new Date(Date.now() - SCAN_EVERY_MS) } }],
+    },
+    take: 3,
+  })
+  if (!due.length) return
+
+  const scout = await agentBySlug('scout-01')
+  await setStatus(scout.id, 'SCANNING', `đang quét ${due.length} nguồn`)
+
+  try {
+    for (const src of due) {
+      // Một nguồn hỏng KHÔNG được làm hỏng cả lượt quét. Đây là hợp đồng, và
+      // nó là lý do try/catch nằm TRONG vòng lặp chứ không bọc cả vòng.
+      try {
+        const items = await fetchSource(src.kind, src.url as string)
+        if (!items.length) throw new Error('nguồn không trả về mục nào')
+
+        const existing = await prisma.topicIdea.findMany({
+          where: { consumedAt: null },
+          select: { title: true },
+          take: 20,
+        })
+
+        const { picks } = await withRun(scout.id, 'scan', null, async () => {
+          const out = await runScout({
+            systemPrompt: scout.systemPrompt,
+            model: scout.model,
+            items,
+            target: src.target,
+            existingTitles: existing.map((e) => e.title),
+          })
+          return { result: out, cost: out.cost }
+        })
+
+        for (const pick of picks) {
+          const fp = fingerprint(pick.title)
+          if (await prisma.topicIdea.findUnique({ where: { fingerprint: fp } })) continue
+          const idea = await prisma.topicIdea.create({
+            data: {
+              title: pick.title.slice(0, 200),
+              rationale: (pick.rationale || '').slice(0, 500),
+              target: src.target,
+              sourceUrls: [pick.sourceUrl || (src.url as string)],
+              sourceId: src.id,
+              score: Math.min(100, Math.max(0, Number(pick.score) || 50)),
+              fingerprint: fp,
+            },
+          })
+          await emit('idea.created', { ideaId: idea.id, title: idea.title }, { agentId: scout.id })
+        }
+
+        await prisma.newsroomSource.update({
+          where: { id: src.id },
+          data: { lastScanAt: new Date(), lastError: null },
+        })
+      } catch (err) {
+        await prisma.newsroomSource.update({
+          where: { id: src.id },
+          data: { lastScanAt: new Date(), lastError: String((err as Error).message).slice(0, 300) },
+        })
+        await emit(
+          'source.failed',
+          { source: src.label, error: String((err as Error).message).slice(0, 300) },
+          { terminal: true, actorKind: 'system' }
+        )
+      }
+    }
+  } finally {
+    await setStatus(scout.id, 'IDLE')
+  }
+}
+
+// --------------------------------------------------------------------------
+// Xử lý từng loại sự kiện
+// --------------------------------------------------------------------------
+
+async function channelFor(target: string) {
+  const ch = await prisma.newsroomChannel.findUnique({ where: { target: target as never } })
+  if (!ch) throw new Error(`Chưa cấu hình chuyên mục ${target}`)
+  return ch
+}
+
+async function onIdeaCreated(payload: Json): Promise<void> {
+  const idea = await prisma.topicIdea.findUnique({ where: { id: payload.ideaId as string } })
+  if (!idea || idea.consumedAt) return
+
+  const ch = await channelFor(idea.target)
+  if (!ch.enabled) return
+
+  // Trần bài/ngày theo chuyên mục - van thứ ba trong ba van chống đốt hạn mức.
+  const since = new Date()
+  since.setUTCHours(0, 0, 0, 0)
+  const todayCount = await prisma.contentDraft.count({
+    where: { target: idea.target, status: 'PUBLISHED', updatedAt: { gte: since } },
+  })
+  if (todayCount >= ch.dailyPostCap) return
+
+  const draft = await prisma.contentDraft.create({
+    data: {
+      target: idea.target,
+      status: 'IN_PROGRESS',
+      title: idea.title,
+      topicId: idea.id,
+    },
+  })
+  await prisma.topicIdea.update({ where: { id: idea.id }, data: { consumedAt: new Date() } })
+  await emit('draft.claimed', { title: draft.title }, { draftId: draft.id })
+}
+
+async function onDraftClaimed(draftId: string): Promise<void> {
+  const draft = await prisma.contentDraft.findUnique({ where: { id: draftId } })
+  if (!draft || draft.deletedAt) return
+
+  const idea = draft.topicId
+    ? await prisma.topicIdea.findUnique({ where: { id: draft.topicId } })
+    : null
+  const ch = await channelFor(draft.target)
+  const writer = await agentBySlug('writer-01')
+  await setStatus(writer.id, 'WRITING', `đang viết: ${draft.title.slice(0, 60)}`)
+
+  try {
+    const out = await withRun(writer.id, 'write', draft.id, async () => {
+      const w = await runWriter({
+        systemPrompt: writer.systemPrompt,
+        model: writer.model,
+        styleGuide: ch.styleGuide,
+        title: draft.title,
+        rationale: idea?.rationale ?? '',
+        sourceUrls: idea?.sourceUrls ?? [],
+        previousDraft: draft.contentMd || undefined,
+        feedback: draft.reviewFeedback || undefined,
+      })
+      return { result: w, cost: w.cost }
+    })
+
+    const seq = (await prisma.draftRevision.count({ where: { draftId: draft.id } })) + 1
+    await prisma.$transaction([
+      prisma.draftRevision.create({
+        data: {
+          draftId: draft.id,
+          seq,
+          title: out.title,
+          contentMd: out.contentMd,
+          actorKind: 'agent',
+          actorId: writer.id,
+          note: draft.reviewFeedback ? 'bản sửa theo góp ý' : 'bản đầu',
+        },
+      }),
+      prisma.contentDraft.update({
+        where: { id: draft.id },
+        data: {
+          title: out.title,
+          excerpt: out.excerpt,
+          contentMd: out.contentMd,
+          status: 'PENDING_REVIEW',
+          authorAgentId: writer.id,
+        },
+      }),
+    ])
+    await emit('draft.submitted', { seq }, { draftId: draft.id, agentId: writer.id })
+  } finally {
+    await setStatus(writer.id, 'IDLE')
+  }
+}
+
+async function onDraftSubmitted(draftId: string): Promise<void> {
+  const draft = await prisma.contentDraft.findUnique({ where: { id: draftId } })
+  if (!draft || draft.deletedAt || draft.status !== 'PENDING_REVIEW') return
+
+  const idea = draft.topicId
+    ? await prisma.topicIdea.findUnique({ where: { id: draft.topicId } })
+    : null
+  const ch = await channelFor(draft.target)
+  const editor = await agentBySlug('editor-01')
+  await setStatus(editor.id, 'REVIEWING', `đang thẩm định: ${draft.title.slice(0, 60)}`)
+
+  try {
+    const { verdict } = await withRun(editor.id, 'review', draft.id, async () => {
+      const v = await runEditor({
+        systemPrompt: editor.systemPrompt,
+        model: editor.model,
+        styleGuide: ch.styleGuide,
+        title: draft.title,
+        contentMd: draft.contentMd,
+        sourceUrls: idea?.sourceUrls ?? [],
+      })
+      return { result: v, cost: v.cost }
+    })
+
+    if (verdict.approved) {
+      await prisma.contentDraft.update({
+        where: { id: draft.id },
+        data: { reviewFeedback: null },
+      })
+      await emit(
+        'review.approved',
+        { scores: verdict.scores },
+        { draftId: draft.id, agentId: editor.id }
+      )
+      return
+    }
+
+    // Trả về - nhưng có trần. Vòng Writer<->Editor không trần là đường đốt hạn
+    // mức nhanh nhất, và nó im lặng vì mỗi vòng riêng lẻ trông vẫn hợp lệ.
+    if (draft.revisionCount >= MAX_REVISIONS) {
+      await prisma.contentDraft.update({
+        where: { id: draft.id },
+        data: { status: 'PENDING_HUMAN', reviewFeedback: verdict.feedback },
+      })
+      await emit(
+        'review.exhausted',
+        { revisions: draft.revisionCount, feedback: verdict.feedback },
+        { draftId: draft.id, agentId: editor.id, terminal: true }
+      )
+      return
+    }
+
+    await prisma.contentDraft.update({
+      where: { id: draft.id },
+      data: {
+        status: 'REJECTED_WITH_FEEDBACK',
+        reviewFeedback: verdict.feedback,
+        revisionCount: { increment: 1 },
+      },
+    })
+    await emit(
+      'review.rejected',
+      { scores: verdict.scores, feedback: verdict.feedback },
+      { draftId: draft.id, agentId: editor.id }
+    )
+  } finally {
+    await setStatus(editor.id, 'IDLE')
+  }
+}
+
+async function onReviewRejected(draftId: string): Promise<void> {
+  const draft = await prisma.contentDraft.findUnique({ where: { id: draftId } })
+  if (!draft || draft.deletedAt || draft.status !== 'REJECTED_WITH_FEEDBACK') return
+  await prisma.contentDraft.update({ where: { id: draft.id }, data: { status: 'IN_PROGRESS' } })
+  await emit('draft.claimed', { revision: draft.revisionCount }, { draftId: draft.id })
+}
+
+async function onReviewApproved(draftId: string): Promise<void> {
+  const draft = await prisma.contentDraft.findUnique({ where: { id: draftId } })
+  if (!draft || draft.deletedAt) return
+
+  const seoAgent = await agentBySlug('seo-01')
+  await setStatus(seoAgent.id, 'PLANNING', `tối ưu SEO: ${draft.title.slice(0, 60)}`)
+  try {
+    const { seo } = await withRun(seoAgent.id, 'seo', draft.id, async () => {
+      const s = await runSeo({
+        systemPrompt: seoAgent.systemPrompt,
+        model: seoAgent.model,
+        title: draft.title,
+        contentMd: draft.contentMd,
+      })
+      return { result: s, cost: s.cost }
+    })
+    await prisma.contentDraft.update({
+      where: { id: draft.id },
+      data: {
+        slug: seo.slug,
+        metaTitle: seo.metaTitle,
+        metaDesc: seo.metaDesc,
+        tags: seo.tags,
+      },
+    })
+  } finally {
+    await setStatus(seoAgent.id, 'IDLE')
+  }
+
+  const ch = await channelFor(draft.target)
+  if (ch.autonomy === 'FULL_AUTO') {
+    await emit('publish.requested', {}, { draftId: draft.id })
+  } else {
+    await prisma.contentDraft.update({ where: { id: draft.id }, data: { status: 'PENDING_HUMAN' } })
+    await emit('review.awaiting_human', {}, { draftId: draft.id, terminal: true })
+  }
+}
+
+/// Slug phải là DUY NHẤT trên Post/Doc. SEO sinh slug từ tiêu đề nên trùng là
+/// chuyện sẽ xảy ra, và khi đó ghi thẳng sẽ 500 lúc xuất bản.
+async function uniqueSlug(target: string, base: string): Promise<string> {
+  const table = target === 'DOC' ? 'doc' : 'post'
+  const slug = base || `bai-${Date.now()}`
+  for (let i = 0; i < 50; i++) {
+    const candidate = i === 0 ? slug : `${slug}-${i + 1}`
+    const clash =
+      table === 'doc'
+        ? await prisma.doc.findUnique({ where: { slug: candidate } })
+        : await prisma.post.findUnique({ where: { slug: candidate } })
+    if (!clash) return candidate
+  }
+  return `${slug}-${Date.now()}`
+}
+
+async function onPublishRequested(draftId: string): Promise<void> {
+  const draft = await prisma.contentDraft.findUnique({ where: { id: draftId } })
+  if (!draft || draft.deletedAt || draft.status === 'PUBLISHED') return
+
+  const base = draft.slug || slugify(draft.title)
+
+  if (draft.target === 'DOC') {
+    const slug = await uniqueSlug('DOC', base)
+    const doc = await prisma.doc.create({
+      data: {
+        slug,
+        title: draft.title,
+        contentMd: draft.contentMd,
+        category: 'huong-dan',
+        sourceDraftId: draft.id,
+        authoredByAgentId: draft.authorAgentId,
+      },
+    })
+    await prisma.contentDraft.update({
+      where: { id: draft.id },
+      data: { status: 'PUBLISHED', slug, publishedPostId: doc.id },
+    })
+  } else if (draft.target === 'PROJECT') {
+    // Agent KHÔNG được tạo dự án mới: Project mang phiên bản, giấy phép và số
+    // đăng ký bản quyền - dữ liệu pháp lý về phần mềm có thật, không được suy
+    // đoán. Nó chỉ được cập nhật phần MÔ TẢ của một dự án đã tồn tại.
+    const project = await prisma.project.findUnique({ where: { slug: base } })
+    if (!project) {
+      await prisma.contentDraft.update({
+        where: { id: draft.id },
+        data: {
+          status: 'PENDING_HUMAN',
+          reviewFeedback:
+            `Không có dự án nào mang slug "${base}". Agent không được tạo dự án mới ` +
+            `(phiên bản/giấy phép/bản quyền là dữ liệu pháp lý). Chủ dự án chọn dự án đích.`,
+        },
+      })
+      await emit(
+        'publish.needs_human',
+        { reason: 'project_not_found' },
+        { draftId: draft.id, terminal: true }
+      )
+      return
+    }
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { descriptionMd: draft.contentMd },
+    })
+    await prisma.contentDraft.update({
+      where: { id: draft.id },
+      data: { status: 'PUBLISHED', slug: base, publishedPostId: project.id },
+    })
+  } else {
+    // BLOG và TRUST cùng đổ vào Post; TRUST được gắn thẻ để lọc lại được.
+    const slug = await uniqueSlug('BLOG', base)
+    const post = await prisma.post.create({
+      data: {
+        slug,
+        title: draft.title,
+        excerpt: draft.excerpt,
+        contentMd: draft.contentMd,
+        tags: draft.target === 'TRUST' ? [...draft.tags, 'con-dau'] : draft.tags,
+        published: true,
+        sourceDraftId: draft.id,
+        authoredByAgentId: draft.authorAgentId,
+      },
+    })
+    await prisma.contentDraft.update({
+      where: { id: draft.id },
+      data: { status: 'PUBLISHED', slug, publishedPostId: post.id },
+    })
+  }
+
+  await emit('draft.published', { slug: base }, { draftId: draft.id, terminal: true })
+}
+
+// --------------------------------------------------------------------------
+// Vòng lặp
+// --------------------------------------------------------------------------
+
+const HANDLERS: Record<string, (payload: Json, draftId: string | null) => Promise<void>> = {
+  'idea.created': (p) => onIdeaCreated(p),
+  'draft.claimed': (_p, d) => onDraftClaimed(d as string),
+  'draft.submitted': (_p, d) => onDraftSubmitted(d as string),
+  'review.rejected': (_p, d) => onReviewRejected(d as string),
+  'review.approved': (_p, d) => onReviewApproved(d as string),
+  'publish.requested': (_p, d) => onPublishRequested(d as string),
+}
+
+/// Trả sự kiện của những lượt chạy đã chết về hàng đợi.
+///
+/// Cần vì tick trả 202 ngay rồi chạy nền: Render restart giữa chừng là event
+/// mắc kẹt ở CLAIMED vĩnh viễn, và triệu chứng là toà soạn "im lặng" chứ không
+/// phải một lỗi nào.
+async function reclaimStale(): Promise<number> {
+  const cutoff = new Date(Date.now() - LEASE_MS)
+  const { count } = await prisma.newsroomEvent.updateMany({
+    where: { status: 'CLAIMED', claimedAt: { lt: cutoff }, attempts: { lt: 3 } },
+    data: { status: 'PENDING' },
+  })
+  await prisma.newsroomEvent.updateMany({
+    where: { status: 'CLAIMED', claimedAt: { lt: cutoff }, attempts: { gte: 3 } },
+    data: { status: 'DEAD' },
+  })
+  return count
+}
+
+/// Nhặt một lô sự kiện. `FOR UPDATE SKIP LOCKED` là lý do phải dùng $queryRaw:
+/// Prisma không phát ra được mệnh đề đó, và thiếu nó thì hai tick chồng nhau sẽ
+/// cùng nhặt một sự kiện rồi viết hai bài giống hệt.
+async function claimBatch(limit: number) {
+  return prisma.$queryRawUnsafe<
+    { id: string; type: string; payload: Json; draftId: string | null }[]
+  >(
+    `UPDATE "NewsroomEvent" SET status = 'CLAIMED', "claimedAt" = now(), attempts = attempts + 1
+     WHERE id IN (
+       SELECT id FROM "NewsroomEvent"
+       WHERE status = 'PENDING'
+       ORDER BY "createdAt"
+       LIMIT ${limit}
+       FOR UPDATE SKIP LOCKED
+     )
+     RETURNING id, type, payload, "draftId"`
+  )
+}
+
+export interface TickResult {
+  processed: number
+  reclaimed: number
+  skipped?: string
+}
+
+export async function tick(batch = 3): Promise<TickResult> {
+  if (process.env.NEWSROOM_ENABLED !== 'true') {
+    return { processed: 0, reclaimed: 0, skipped: 'NEWSROOM_ENABLED chưa bật' }
+  }
+
+  const budget = DAILY_NEURON_BUDGET()
+  const used = await neuronsUsedToday()
+  const reclaimed = await reclaimStale()
+
+  await scanSources().catch(async (err) => {
+    await emit(
+      'scan.failed',
+      { error: String((err as Error).message).slice(0, 300) },
+      { terminal: true, actorKind: 'system' }
+    )
+  })
+
+  const events = await claimBatch(batch)
+  let processed = 0
+
+  for (const ev of events) {
+    const handler = HANDLERS[ev.type]
+    if (!handler) {
+      // Sự kiện chỉ để ghi nhật ký (source.failed, provider.switched, ...) rơi
+      // vào đây nếu lỡ được tạo với status PENDING. Đánh dấu DONE thay vì để nó
+      // quay vòng mãi.
+      await prisma.newsroomEvent.update({ where: { id: ev.id }, data: { status: 'DONE' } })
+      continue
+    }
+    try {
+      await handler(ev.payload || {}, ev.draftId)
+      await prisma.newsroomEvent.update({ where: { id: ev.id }, data: { status: 'DONE' } })
+      processed++
+    } catch (err) {
+      const msg = String((err as Error).message).slice(0, 300)
+      // Ba lần thất bại thì DEAD và hiện lên dashboard. Im lặng nuốt lỗi là
+      // đúng cái đã làm "trang trống" thành huyền thoại trong repo này.
+      const dead = (await prisma.newsroomEvent.findUnique({ where: { id: ev.id } }))!.attempts >= 3
+      await prisma.newsroomEvent.update({
+        where: { id: ev.id },
+        data: { status: dead ? 'DEAD' : 'PENDING' },
+      })
+      await emit(
+        dead ? 'event.dead' : 'event.failed',
+        { type: ev.type, error: msg },
+        { draftId: ev.draftId ?? undefined, terminal: true, actorKind: 'system' }
+      )
+    }
+  }
+
+  if (used >= budget) {
+    await emit('budget.exhausted', { used, budget }, { terminal: true, actorKind: 'system' })
+  }
+
+  return { processed, reclaimed }
+}

@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "env:local": "node scripts/write-env-local.js",
-    "dev": "npm run env:local && concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\" \"npm --workspace services/auth-service run dev\" \"npm --workspace apps/frontend-main run dev\"",
+    "dev": "npm run env:local && concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\" \"npm --workspace services/auth-service run dev\" \"npm --workspace services/newsroom-service run dev\" \"npm --workspace apps/frontend-main run dev\"",
     "dev:local": "npm run build:ts && node scripts/run-dev.js",
     "bootstrap": "npm ci",
     "dev:services": "concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\" \"npm --workspace services/auth-service run dev\"",

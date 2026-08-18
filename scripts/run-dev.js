@@ -72,6 +72,7 @@ const processes = [
   { name: 'storage-service', type: 'service', cwd: path.join(ROOT, 'services/storage-service') },
   { name: 'trust-service', type: 'service', cwd: path.join(ROOT, 'services/trust-service') },
   { name: 'auth-service', type: 'service', cwd: path.join(ROOT, 'services/auth-service') },
+  { name: 'newsroom-service', type: 'service', cwd: path.join(ROOT, 'services/newsroom-service') },
   {
     name: 'frontend-main',
     type: 'next',

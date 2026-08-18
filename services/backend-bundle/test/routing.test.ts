@@ -63,10 +63,10 @@ describe('backend-bundle - cổng chặn của content và storage vẫn nguyên
 })
 
 describe('backend-bundle - điều phối và health', () => {
-  test('/health trả 200 và kể tên đủ bốn service', async () => {
+  test('/health trả 200 và kể tên đủ năm service', async () => {
     const res = await request(app).get('/health')
     expect(res.status).toBe(200)
-    expect(res.body.bundled).toEqual(['content', 'storage', 'trust', 'identity'])
+    expect(res.body.bundled).toEqual(['content', 'storage', 'trust', 'identity', 'newsroom'])
   })
 
   test('đường dẫn không thuộc bảng sở hữu ⇒ 404, không rơi nhầm vào service nào', async () => {
@@ -97,3 +97,29 @@ describe('backend-bundle - điều phối và health', () => {
 // script toàn cục, và các biến top-level (`request`, `app`) của những tệp test
 // khác nhau sẽ đụng tên nhau. Không đổi gì lúc chạy.
 export {}
+
+describe('backend-bundle - toà soạn Agent AI có mặt trong bảng sở hữu', () => {
+  // Đây là cái bẫy đã được ghi trong CLAUDE.md và trong kế hoạch: đặt toà soạn ở
+  // '/api/admin/newsroom' thì request đi vào app content TRƯỚC (vì '/api/admin'
+  // là của content), dính cổng INTERNAL_API_TOKEN của nó, và trả 404 ở
+  // production - trong khi chạy service riêng ở dev vẫn sống. Test này chứng
+  // minh tiền tố riêng '/api/newsroom' thật sự tới được app newsroom.
+  test('/api/newsroom/tick tới được newsroom, KHÔNG bị content nuốt', async () => {
+    const res = await request(app).post('/api/newsroom/tick')
+    // 401 = đã tới newsroom và bị cổng NEWSROOM_TICK_TOKEN chặn (đúng).
+    // 503 = đã tới newsroom nhưng biến chưa cấu hình (cũng đúng).
+    // 404 = KHÔNG tới được - bảng tiền tố sai.
+    expect([401, 503]).toContain(res.status)
+  })
+
+  test('/api/newsroom/state đòi danh tính chứ không 404', async () => {
+    const res = await request(app).get('/api/newsroom/state')
+    expect(res.status).not.toBe(404)
+  })
+
+  test("'/api/admin/newsroom' KHÔNG được dùng - nó thuộc content", async () => {
+    // Nếu một ngày ai đó dời route sang đây, test này đỏ và nói rõ vì sao.
+    const res = await request(app).get('/api/admin/newsroom/state')
+    expect(res.status).not.toBe(200)
+  })
+})

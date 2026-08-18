@@ -56,6 +56,15 @@
       "note": "Sở hữu mật khẩu, TOTP, passkey và token một lần. Tách riêng vì đây là ranh giới bảo mật: nó là service DUY NHẤT đọc User.passwordHash. Ở production nó gộp vào backend-bundle như ba service kia."
     },
     {
+      "id": "newsroom",
+      "label": "newsroom-service",
+      "workspace": "services/newsroom-service",
+      "port": 4005,
+      "public": false,
+      "internalEnv": "NEWSROOM_SERVICE_URL",
+      "note": "Toà soạn Agent AI. Ở production gộp vào backend-bundle như bốn service kia; nhịp đập đến từ Worker cron riêng, không phải từ tiến trình này."
+    },
+    {
       "id": "bundle",
       "label": "backend-bundle",
       "workspace": "services/backend-bundle",
