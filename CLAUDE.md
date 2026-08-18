@@ -8,11 +8,10 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** - sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-⛔ **Đọc [`HANDOFF.md`](HANDOFF.md) TRƯỚC KHI LÀM BẤT CỨ VIỆC GÌ.** Tính tới
-19/08/2026 có **một việc chặn**: Neon thiếu 6 migration nên **toàn bộ nội dung
-site đang trống** (`/blog`, `/docs`, `/projects` đều báo "Chưa có…"). Lệnh sửa
-nằm ngay đầu phiếu. Site vẫn trả 200 ở mọi trang - đó chính là lý do nó sống sót
-lâu đến vậy.
+⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay** - mục "Bắt đầu từ đâu"
+cho thứ tự việc còn dở. Tính tới 19/08/2026 **không còn việc chặn nào**;
+production chạy đủ và có nội dung thật. Việc duy nhất cần tay chủ dự án là năm
+biến môi trường để bật Toà soạn Agent AI, liệt kê sẵn ở đầu phiếu.
 
 Kế hoạch ba đợt cho Con dấu tín nhiệm
 ([`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md))

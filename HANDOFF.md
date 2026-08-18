@@ -13,67 +13,78 @@
 > hành 16/08") thành §0. Chúng mô tả công việc nay đã phát hành xong; giữ nguyên
 > chỉ tạo mâu thuẫn với hiện trạng.
 
-## ⛔ Bắt đầu từ đâu: MỘT lệnh, và site đang hỏng cho tới khi nó chạy
+## ✅ Bắt đầu từ đâu
 
-**Neon thiếu 6 migration. Toàn bộ nội dung site đang trống.**
+**Không còn việc chặn nào.** Site đã có nội dung trở lại, Con dấu chạy chế độ
+mời, Keycloak đã sạch hoàn toàn.
+
+Việc chặn của phiên 6 - Neon thiếu 6 migration ⇒ toàn bộ nội dung trống - **đã
+sửa 19/08/2026**. Nghiệm thu đếm bằng nội dung chứ không bằng mã 200:
+
+```
+bài trên /blog: 3 · mục trên /docs: 2 · dự án trên /projects: 4
+```
+
+### Còn lại đúng MỘT việc cần tay chủ dự án: bật Toà soạn Agent AI
+
+Mọi thứ làm được bằng mã đã xong. Dữ liệu tham chiếu **đã seed lên Neon**
+(4 agent · 4 chuyên mục · 9 nguồn), Worker cron đã chạy, bảng đã có. Chỉ còn năm
+biến ở **Render → `tsudev-backend` → Environment**:
+
+| Biến                  | Giá trị                                                                |
+| --------------------- | ---------------------------------------------------------------------- |
+| `NEWSROOM_ENABLED`    | `true` - công tắc tổng; để `false` thì dispatcher trả về ngay dòng đầu |
+| `NEWSROOM_TICK_TOKEN` | **chuỗi bạn đã nhập lúc chạy `npm run cron:secret`** - phải TRÙNG      |
+| `CF_ACCOUNT_ID`       | `9541f44e84433a32b013ec31bae14848`                                     |
+| `CF_AI_TOKEN`         | token mới, quyền **Workers AI** (403 thì nâng Read → Edit)             |
+| `GEMINI_API_KEY`      | _(tuỳ chọn)_ dự phòng khi cạn Neuron; **project KHÔNG bật billing**    |
+
+Tạo `CF_AI_TOKEN`: dash.cloudflare.com → My Profile → API Tokens → Create Token
+→ Custom token → Permissions: **Account · Workers AI**. `wrangler` không tạo
+được token, nên bước này bắt buộc qua dashboard.
+
+**Nghiệm thu, theo đúng thứ tự:**
 
 ```bash
-DATABASE_URL="$(grep -m1 '^DATABASE_URL=' backup/production-env-2026-08-16.txt | cut -d= -f2-)" \
-  npm --workspace packages/db run migrate:deploy
+# 1. Cổng token: chưa đặt biến ⇒ 503, đặt sai ⇒ 401, đặt đúng ⇒ 202
+curl -s -X POST https://tsudev-backend.onrender.com/api/newsroom/tick \
+  -H "x-newsroom-token: <chuỗi vừa đặt>" -H 'content-type: application/json' -d '{}'
+
+# 2. Sau vài nhịp giờ, đếm NỘI DUNG chứ không đếm mã 200
+curl -s https://tsudev.com/blog | grep -c 'href="/blog/'    # phải > 3
 ```
 
-⚠️ Trước khi nó áp, đọc dòng `Datasource "db"` nó in ra - phải là
-`neondb … neon.tech`, KHÔNG phải `localhost:5433`. Lệnh này cố ý **không** đi qua
-`npm run db:migrate`: script đó nạp `.env` gốc và sẽ trỏ vào DB dev. Đó đúng là
-cách sự cố ở §0.8 đã xảy ra.
+⚠️ Nhịp toà soạn chạy **mỗi giờ, phút thứ 7, và nghỉ 01:00-06:00 giờ VN**. Đặt
+biến lúc 2 giờ sáng thì lượt đầu tiên là 06:07 - đừng tưởng nó hỏng.
 
-**Nghiệm thu:** `https://tsudev.com/blog` phải liệt kê bài viết thật trở lại.
-
-### Vì sao, và vì sao không ai thấy
-
-Đo 19/08/2026 bằng `prisma migrate status` nhắm Neon:
-
-```
-Following migrations have not yet been applied:
-20260817172916_trust_invite
-20260817220608_newsroom_agents
-20260817220700_newsroom_no_hard_delete
-20260817223903_project_soft_delete
-20260817224000_project_no_hard_delete
-20260819103000_drop_keycloak_id
-```
-
-Render chạy mã mà Prisma SELECT `Project.deletedAt` cùng mấy bảng chưa tồn tại ⇒
-mọi truy vấn nội dung trả 500 ⇒ `lib/api.ts` nuốt thành `[]` ⇒ **trang trống chứ
-không phải trang lỗi**. `/blog`, `/docs`, `/projects` đều báo "Chưa có…".
-
-Site đã hỏng từ lúc gộp #14 (**18/08 lúc 01:55**), KHÔNG phải do đợt phát hành
-19/08. Phiếu bàn giao phiên 4 có ghi "kiểm Neon đã áp migration chưa" như một câu
-hỏi mở - **và nó chưa bao giờ được trả lời**.
-
-⚠️ **Bài học đắt nhất của phiên 6, đáng đọc dù bạn không đụng vùng này:** mọi
-phép nghiệm thu từ 16/08 tới giờ đều đo **mã trạng thái HTTP**, mà một trang
-trống vẫn trả **200**. Bảy phép kiểm sau đợt phát hành 19/08 đạt hết trong khi
-site không có một dòng nội dung nào. Nghiệm thu cho một trang nội dung phải đếm
-**thứ bên trong trang**, không phải mã trạng thái của nó.
-
-Năm migration đầu thuần tính cộng nên an toàn ngay. Cái thứ sáu (xoá cột
-`keycloakId`) đòi mã đi trước - điều kiện đó nay đã đủ, cả Render lẫn Worker đều
-chạy mã mới.
+⚠️ **Chi phí vẫn bằng 0 sau khi bật**, nhưng chỉ vì ba van đã lắp sẵn:
+`NEWSROOM_DAILY_NEURON_BUDGET=8000` trên hạn mức 10.000 Neuron/ngày ·
+`NEWSROOM_MAX_REVISIONS=2` chặn vòng Writer↔Editor · Gemini chỉ là dự phòng và
+phải lấy khoá từ project không bật billing. Đừng nới van nào mà không đọc
+[`docs/free-tier.md`](docs/free-tier.md) trước.
 
 ### Rồi tới, theo thứ tự
 
-1. **Chạy migration ở trên**, nghiệm thu bằng nội dung chứ không bằng mã 200.
-2. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn, và nay có thêm ba thứ mới:
-   trang mời `/trust`, `/settings/profile`, và điều hướng đã đổi.
-3. **§1.7 ảnh đại diện** - cần chủ dự án chốt một trong ba đường; bảng đánh đổi
+1. **§1.5 - rà giao diện bằng MẮT.** Việc lớn nhất còn lại, và chưa ai nhìn.
+   Nay có thêm ba thứ mới: trang mời `/trust`, `/settings/profile`, điều hướng
+   đã đổi.
+2. **§1.7 ảnh đại diện** - cần chủ dự án chốt một trong ba đường; bảng đánh đổi
    và đề nghị đã ghi sẵn.
-4. **§1.10** dọn service Render trùng · **§1.4** CSP · **§1.3** npm audit ·
+3. **§1.10** dọn service Render trùng · **§1.4** CSP · **§1.3** npm audit ·
    **§1.7 đợt B** · **§1.8**.
 
-⚠️ **`NEWSROOM_TICK_TOKEN` chưa đặt ở Render** nên `POST /api/newsroom/tick` trả 503. Không chặn gì: `NEWSROOM_ENABLED` vẫn `false` nên toà soạn không chạy dù có
-token, và nhịp giữ ấm Render không dùng token này. Đặt khi nào thật sự bật toà
-soạn, và phải TRÙNG secret cùng tên của Worker cron.
+### ⚠️ Bản sao lưu biến production đã LẠC HẬU
+
+`backup/production-env-2026-08-16.txt` **không chứa `INTERNAL_IDENTITY_SECRET`**
+
+- đó chính là lý do biến này chưa bao giờ được đặt ở Render và gây sự cố 503 của
+  phiên 6. Nó cũng còn bốn mục Keycloak đã chết (`KEYCLOAK_ISSUER`,
+  `KEYCLOAK_ADMIN_PASSWORD`, `KC_DB_*`, `KEYCLOAK_CLIENT_SECRET`) và **hai** giá
+  trị `INTERNAL_API_TOKEN` khác nhau - chỉ một cái đúng.
+
+Nên tạo bản sao lưu mới ngay sau khi bật toà soạn, gồm cả `INTERNAL_IDENTITY_SECRET`
+mới sinh 19/08. Mất nó thì phải xoay đồng thời ở Cloudflare và Render, vì secret
+của Worker **không đọc lại được**.
 
 ---
 
@@ -140,6 +151,23 @@ không còn tồn tại nên lệnh đó chết · `scripts/verify-stack.ps1` g�
 service đã xoá · Worker còn giữ một secret `KEYCLOAK_CLIENT_SECRET` chết mà dọn
 repo không với tới được - **xoá tay khi tiện**
 (`npx wrangler secret delete KEYCLOAK_CLIENT_SECRET` trong `apps/frontend-main`).
+
+### Cuối phiên: việc chặn đã sửa, toà soạn đã chuẩn bị xong
+
+Chủ dự án cho phép chạy tiếp, nên phần còn lại đã làm nốt:
+
+- **Chạy 6 migration lên Neon** ⇒ site có nội dung trở lại (3 bài · 2 tài liệu ·
+  4 dự án). Nghiệm thu đếm bằng nội dung, không bằng mã 200.
+- **Xoá secret `KEYCLOAK_CLIENT_SECRET`** khỏi Worker. Keycloak nay sạch hoàn
+  toàn: mã, tài liệu, schema, cột DB, và mảnh cuối cùng ở hạ tầng sống. Worker
+  chỉ còn ba secret, đều đang được dùng thật.
+- **Seed dữ liệu tham chiếu của toà soạn lên Neon** (4 agent · 4 chuyên mục ·
+  9 nguồn). Bảng vừa được tạo nên chúng rỗng; không có agent thì bật
+  `NEWSROOM_ENABLED` cũng không có gì chạy. Seed là idempotent, chạy lại vô hại.
+  Đã đếm lại TRÊN NEON sau khi seed để chắc nó không ghi nhầm vào DB dev - đúng
+  bẫy §0.8.
+
+Còn lại năm biến ở Render mà chỉ chủ dự án đặt được - bảng ở đầu phiếu.
 
 ### Số đo cuối phiên
 
@@ -346,22 +374,18 @@ cục đẹp hay khoảng cách hợp lý.
 Cần rà tay ở cả hai chế độ, ưu tiên: trang chủ · `/blog/[slug]` (mục lục mới) ·
 `/login` · `/settings/security` · `/admin/projects` · `/trust`.
 
-### 1.6 Xoá cột `User.keycloakId` - 🟡 CÒN ĐÚNG BƯỚC 3: chạy migration lên Neon
+### 1.6 ~~Xoá cột `User.keycloakId`~~ - ✅ XONG HẲN 19/08/2026
 
-Gỡ khỏi `schema.prisma` + migration `20260819103000_drop_keycloak_id` (PR #16, đã
-gộp). Đã áp lên DB dev; **chưa áp lên Neon**.
+Cả ba bước đã chạy đúng thứ tự: gỡ khỏi schema → phát hành mã (Render + Worker)
+→ `migrate deploy` lên Neon. Cột không còn ở cả mã lẫn database.
 
-⚠️ **Thứ tự bắt buộc, và nó NGƯỢC với khi thêm cột:**
+Bằng chứng cho thấy thứ tự đó là thật chứ không phải nghi thức: **268 test xanh
+trên schema CÒN cột, rồi 252 test xanh trên schema ĐÃ XOÁ cột**. Mã mới sống
+được với cả hai, nên cửa sổ giữa hai bước không có trạng thái nào hỏng.
 
-1. ~~Gỡ trường khỏi schema + `db:generate`~~ ✅
-2. Phát hành mã mới (Render đã có sau khi gộp; **Worker thì chưa**)
-3. Chỉ sau đó mới `npm run db:migrate` nhắm Neon
-
-Bằng chứng cho thấy bước 2-3 an toàn: 268 test xanh trên schema CÒN cột, rồi 252
-test xanh trên schema ĐÃ XOÁ cột. Mã mới sống được với cả hai, nên cửa sổ giữa
-hai bước không có trạng thái nào hỏng.
-
-Đảo lại là `GET /api/posts` 500 ⇒ `lib/api.ts` nuốt thành `[]` ⇒ **trang trống**.
+Đây cũng là lần đầu quy trình "xoá cột" được chạy trọn vẹn ở dự án này. Lần sau
+xoá cột khác thì lặp lại đúng ba bước; đảo lại là trang trống, không phải trang
+lỗi.
 
 ### 1.7 Trang quản lý tài khoản - 🟢 ĐỢT A XONG 19/08 (trừ ảnh đại diện) · đợt B chưa làm
 
