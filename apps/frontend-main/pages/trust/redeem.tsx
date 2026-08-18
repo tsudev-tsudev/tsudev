@@ -30,9 +30,13 @@ export default function RedeemInvitePage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
 
+  // `noindex` phải có ở CẢ hai nhánh chưa-đăng-nhập. Trình thu thập của công cụ
+  // tìm kiếm KHÔNG BAO GIỜ có phiên, nên trạng thái duy nhất nó nhìn thấy chính
+  // là hai nhánh này - đặt thẻ ở nhánh đã đăng nhập là đặt đúng chỗ không ai đọc.
   if (status === 'loading') {
     return (
       <Layout active="/trust">
+        <Seo title="Nhập mã mời" path="/trust/redeem" noindex />
         <p className="text-sm text-muted">Đang tải…</p>
       </Layout>
     );
@@ -41,7 +45,7 @@ export default function RedeemInvitePage() {
   if (status !== 'authenticated') {
     return (
       <Layout active="/trust">
-        <Seo title="Nhập mã mời - tsudev" path="/trust/redeem" noindex />
+        <Seo title="Nhập mã mời" path="/trust/redeem" noindex />
         <div className="mx-auto max-w-md">
           <h1 className="text-2xl font-bold text-ink">Nhập mã mời</h1>
           <p className="mt-3 text-sm text-muted leading-relaxed">
@@ -90,7 +94,7 @@ export default function RedeemInvitePage() {
 
   return (
     <Layout active="/trust">
-      <Seo title="Nhập mã mời - tsudev" path="/trust/redeem" noindex />
+      <Seo title="Nhập mã mời" path="/trust/redeem" noindex />
       <div className="mx-auto max-w-md">
         <h1 className="text-2xl font-bold text-ink">Nhập mã mời</h1>
         <p className="mt-3 text-sm text-muted leading-relaxed">

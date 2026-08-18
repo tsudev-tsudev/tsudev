@@ -56,9 +56,13 @@ export default function SecurityPage() {
     if (status === 'authenticated') refreshKeys();
   }, [status, refreshKeys]);
 
+  // `noindex` phải có ở CẢ hai nhánh chưa-đăng-nhập. Trình thu thập của công cụ
+  // tìm kiếm KHÔNG BAO GIỜ có phiên, nên trạng thái duy nhất nó nhìn thấy chính
+  // là hai nhánh này - đặt thẻ ở nhánh đã đăng nhập là đặt đúng chỗ không ai đọc.
   if (status === 'loading') {
     return (
       <Layout active="/settings">
+        <Seo title="Bảo mật" path="/settings/security" noindex />
         <p className="text-sm text-muted">Đang tải…</p>
       </Layout>
     );
@@ -67,7 +71,7 @@ export default function SecurityPage() {
   if (status !== 'authenticated') {
     return (
       <Layout active="/settings">
-        <Seo title="Bảo mật - tsudev" noindex />
+        <Seo title="Bảo mật" path="/settings/security" noindex />
         <div className="mx-auto max-w-md">
           <Notice kind="error">Bạn cần đăng nhập để mở trang này.</Notice>
           <Button as="a" href="/login?callbackUrl=/settings/security" className="mt-4 w-full">
@@ -144,7 +148,7 @@ export default function SecurityPage() {
 
   return (
     <Layout active="/settings">
-      <Seo title="Bảo mật - tsudev" noindex />
+      <Seo title="Bảo mật" path="/settings/security" noindex />
       <div className="mx-auto max-w-2xl">
         <h1 className="text-xl font-semibold text-ink">Bảo mật tài khoản</h1>
         <p className="mt-1.5 text-sm text-muted">
