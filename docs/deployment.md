@@ -63,8 +63,15 @@ Blueprint `render.yaml` khai báo **1** web service, `plan: free`,
 trình (content, storage, trust, identity).
 
 > `tsudev-sso` - nhà cung cấp danh tính riêng của bản thiết kế cũ - đã được gỡ
-> khỏi blueprint. **Gỡ khỏi repo KHÔNG xoá service đang chạy trên Render** - phải xoá tay ở dashboard, nếu không nó vẫn
-> tiêu giờ instance của tài khoản.
+> khỏi blueprint. **Gỡ khỏi repo KHÔNG xoá service đang chạy trên Render** - phải
+> xoá tay ở dashboard, nếu không nó vẫn tiêu giờ instance của tài khoản.
+> ✅ Đã xác nhận trên dashboard 19/08/2026: service không còn tồn tại.
+>
+> ⚠️ **Đừng chẩn đoán sự tồn tại của một service bằng DNS.** `*.onrender.com` là
+> wildcard nên MỌI tên đều phân giải, kể cả tên chưa ai đăng ký; header
+> `x-render-routing: no-server` cũng không phân biệt được "đã xoá" với "tồn tại
+> mà không khởi động nổi". Chỉ dashboard mới trả lời được. Phiên 4 đã kết luận
+> nhầm đúng theo đường này.
 
 ### Ngân sách giờ chạy - quyết định thiết kế, không phải chi tiết vặt
 
@@ -75,6 +82,38 @@ một** service, và đó là `tsudev-backend` - nó nằm trên mọi đường
 Trước đây `tsudev-sso` buộc phải được ngủ, và cái giá là cold start ở lần đăng
 nhập đầu tiên. Đưa xác thực về trong chính codebase dồn toàn bộ 750 giờ về một chỗ và xoá luôn đánh đổi
 đó. Thêm service thứ hai chạy liên tục là vỡ ngân sách và Render dừng hết.
+
+### ⚠️ Phép chẩn đoán `INTERNAL_IDENTITY_SECRET` - endpoint duy nhất không bị che
+
+Thiếu (hoặc đặt ngắn hơn 32 ký tự) `INTERNAL_IDENTITY_SECRET` ở Render làm **mọi
+đường ghi đã xác thực trên toàn site trả 503**. Lỗi này ẩn rất giỏi, vì ba lý do
+cộng lại:
+
+- **Đăng nhập vẫn chạy bình thường.** Đăng nhập không dùng khẳng định danh tính,
+  nên nó không chứng minh gì về biến này.
+- **Ba service kia che mất nó.** `/api/posts`, `/api/presign`,
+  `/api/admin/projects` dính cổng `INTERNAL_API_TOKEN` TRƯỚC và trả 401, nên
+  request không bao giờ tới được tầng danh tính để lộ 503.
+- Không có gì đỏ ở `/health`.
+
+`trust-service` cố ý đứng ngoài `INTERNAL_API_TOKEN` (endpoint của nó phải công
+khai cho bên thứ ba), nên nó là đường duy nhất đi thẳng tới tầng danh tính:
+
+```bash
+curl -s https://tsudev-backend.onrender.com/api/trust/programs
+```
+
+| Trả về                                           | Nghĩa là                                       |
+| ------------------------------------------------ | ---------------------------------------------- |
+| `503 {"error":"Máy chủ chưa cấu hình xác thực"}` | **thiếu khoá** - sửa ngay                      |
+| `401`                                            | khoá đúng, chỉ thiếu danh tính - **lành mạnh** |
+
+Giá trị phải dài **≥ 32 ký tự** và **trùng nguyên văn** secret cùng tên của
+Worker. Kiểm phía Worker bằng `npx wrangler secret list` trong
+`apps/frontend-main` (chỉ in tên, không in giá trị).
+
+Đã xảy ra thật: đo 19/08/2026 backend trả 503, và lỗi có từ trước - nó chỉ lộ ra
+khi đợt gác bề mặt Con dấu đưa `/api/trust/*` ra sau tầng xác thực.
 
 ### Region là bất biến
 
