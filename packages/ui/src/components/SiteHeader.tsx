@@ -77,9 +77,20 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
           <ThemeToggle />
           {session ? (
             <div className="flex items-center gap-2">
-              <span className="hidden lg:inline text-sm text-inksoft max-w-[10rem] truncate">
+              {/*
+                Tên người dùng là LIÊN KẾT, không phải nhãn. Trước đợt này
+                `/settings/security` và `/settings/profile` không được nhắc tới ở
+                bất kỳ đâu trong giao diện - chỉ vào được bằng cách gõ URL. Một
+                trang quản lý tài khoản mà không có lối vào thì nó là trang chết,
+                đúng cái số phận mà chính nó được dựng ra để cứu 2FA và passkey
+                khỏi mắc phải.
+              */}
+              <a
+                href="/settings/profile"
+                className="hidden lg:inline text-sm text-inksoft max-w-[10rem] truncate rounded-md px-2 py-1 hover:bg-panel2 hover:text-ink transition-colors"
+              >
                 {session.user?.name || session.user?.email}
-              </span>
+              </a>
               <button
                 onClick={() => signOut()}
                 className="inline-flex items-center h-8 px-3 rounded-md text-sm font-medium text-inksoft hover:bg-panel2 hover:text-ink transition-colors"
@@ -126,6 +137,27 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
               {n.label}
             </a>
           ))}
+          {/*
+            Trên màn hình hẹp, tên người dùng ở thanh trên bị ẩn (lg:inline), nên
+            hai mục này là lối vào DUY NHẤT tới trang tài khoản. Thiếu chúng thì
+            người dùng điện thoại không có đường nào tới đó.
+          */}
+          {session && (
+            <div className="mt-1 border-t border-hairline pt-1">
+              <a
+                href="/settings/profile"
+                className="block px-2 py-2.5 rounded-md text-sm text-inksoft hover:bg-panel2"
+              >
+                Hồ sơ
+              </a>
+              <a
+                href="/settings/security"
+                className="block px-2 py-2.5 rounded-md text-sm text-inksoft hover:bg-panel2"
+              >
+                Bảo mật
+              </a>
+            </div>
+          )}
         </nav>
       )}
     </header>

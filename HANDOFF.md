@@ -600,7 +600,7 @@ hai bước không có trạng thái nào hỏng.
 
 Đảo lại là `GET /api/posts` 500 ⇒ `lib/api.ts` nuốt thành `[]` ⇒ **trang trống**.
 
-### 1.7 KHÔNG CÓ trang quản lý tài khoản / thông tin cá nhân - 🟠 CHƯA LÀM
+### 1.7 Trang quản lý tài khoản - 🟢 ĐỢT A XONG 19/08 (trừ ảnh đại diện) · đợt B chưa làm
 
 Đây là khoảng trống lớn nhất còn lại về mặt sản phẩm, không phải một chi tiết
 thiếu. `/settings/security` chỉ có 2FA và passkey - nó được dựng để hai cơ chế
@@ -642,21 +642,61 @@ ngoài phạm vi được giao, nên không được dựng.
 
 #### Cần làm gì
 
-Đề nghị chia hai đợt. **Đợt A** không có rủi ro chiếm tài khoản, làm trước:
+**Đợt A - ✅ XONG 19/08/2026, trừ ảnh đại diện.**
 
-| Mảnh                | Ghi chú                                                         |
-| ------------------- | --------------------------------------------------------------- |
-| `/settings/profile` | `displayName`, `bio`, ảnh đại diện                              |
-| Đổi mật khẩu        | `POST /api/identity/change-password`, **đòi mật khẩu hiện tại** |
-| Ảnh đại diện        | storage-service + presign đã có sẵn, chỉ cần nối vào            |
+| Mảnh                                 | Trạng thái                                                |
+| ------------------------------------ | --------------------------------------------------------- |
+| `/settings/profile`                  | ✅ `displayName` + `bio`                                  |
+| `POST /api/identity/password/change` | ✅ đòi mật khẩu hiện tại, tăng `sessionVersion`           |
+| Ảnh đại diện                         | 🟠 **CHƯA - cần chủ dự án quyết một việc, xem ngay dưới** |
 
-Đổi mật khẩu phải đòi mật khẩu hiện tại: cookie phiên bị đánh cắp KHÔNG được
-phép đủ để đổi mật khẩu. Xong thì tăng `sessionVersion` để đá mọi phiên khác.
-Khuôn có sẵn - `totp/disable` đã làm đúng kiểu đó.
+Ba route mới ở auth-service (`profile/get`, `profile/update`, `password/change`),
+đều gắn `auth` theo nhánh và đi qua proxy CÓ PHIÊN
+`pages/api/account/[...path].ts`. 11 test mới trong
+`services/auth-service/test/profile.test.ts` khoá bốn thứ:
 
-Đường ghi đi qua proxy CÓ PHIÊN `pages/api/account/[...path].ts`, không phải
-`pages/api/identity/[...path].ts` (proxy công khai). Hai tệp, hai mức bảo vệ -
-thêm nhầm nhánh là mở một route đáng lẽ phải đăng nhập.
+- `profile/update` chỉ chạm ĐÚNG hai cột - có test gửi kèm `role: 'ADMIN'`,
+  `username`, `email` và khẳng định chúng không đổi. Một route "sửa hồ sơ" nhận
+  nguyên `req.body` là đường tự cấp ADMIN bằng một dòng JSON, và nó vẫn trả 200.
+- Sai mật khẩu hiện tại ⇒ 401 và mật khẩu KHÔNG đổi.
+- Đổi mật khẩu ⇒ `sessionVersion` tăng, và **phiên mang số cũ bị từ chối ngay
+  sau đó** - đây mới là thứ làm cho việc đổi mật khẩu LẤY LẠI được tài khoản.
+- Tài khoản chỉ có passkey ⇒ 409 `no_password_set` nói rõ, không phải 401 mơ hồ.
+  Trả 401 ở đó là đẩy người dùng vào đúng kiểu bế tắc của §0.5.
+
+Số mới của `sessionVersion` được TRẢ VỀ cho client để nó gọi `update()` của
+`useSession`. Thiếu bước đó thì chính người vừa đổi mật khẩu thành công bị đăng
+xuất ngay lập tức, và trông y hệt như thao tác đã hỏng.
+
+⚠️ **Tiện tay phát hiện: `/settings/security` là TRANG CHẾT.** Nó không được
+nhắc tới ở bất kỳ đâu trong giao diện - chỉ vào được bằng cách gõ URL. Tức là
+trang được dựng để 2FA và passkey không thành mã chết thì chính nó lại mắc đúng
+số phận đó. Đã sửa: tên người dùng ở `SiteHeader` nay là liên kết tới
+`/settings/profile`, và menu di động có thêm hai mục (trên màn hình hẹp tên người
+dùng bị ẩn, nên đó là lối vào duy nhất).
+
+#### ⚠️ Ảnh đại diện - một quyết định phải chốt TRƯỚC khi viết mã
+
+Nghe như "nối presign có sẵn vào là xong", nhưng không phải, và cái vướng không
+nằm ở tầng tải lên:
+
+**Bucket R2 là bucket RIÊNG TƯ.** `CLAUDE.md` cảnh báo đừng đặt
+`S3_PUBLIC_ENDPOINT` thành `cdn.tsudev.com` vì làm thế biến bucket thành công
+khai. Nhưng ảnh đại diện phải đọc được CÔNG KHAI - nó hiện dưới mỗi bài viết,
+nơi người xem không có phiên nào. URL presign thì HẾT HẠN, nên lưu một URL
+presign vào `User.avatarUrl` là hẹn ngày ảnh hỏng hàng loạt.
+
+Ba đường đi, phải chọn một:
+
+| Cách                                                        | Được                                    | Mất                                                                      |
+| ----------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------ |
+| Bucket/tiền tố `avatars/` để đọc công khai                  | đơn giản nhất, ảnh là URL vĩnh viễn     | phải tách bucket hoặc bật public read - đụng đúng cảnh báo ở `CLAUDE.md` |
+| Route proxy `/api/avatar/<username>` ký presign GET rồi 302 | bucket vẫn riêng tư hoàn toàn           | mỗi lượt xem ảnh là một lượt gọi Worker, ăn vào hạn mức 100.000/ngày     |
+| Không có ảnh tải lên, dùng chữ cái đầu (`Avatar` đã có)     | 0 hạ tầng, 0 chi phí, 0 bề mặt tấn công | không cá nhân hoá được                                                   |
+
+Với một site dự án cá nhân lưu lượng thưa và mục tiêu chi phí bằng 0, **đề nghị
+cách 3 trước mắt** - component `Avatar` của `@tsudev/ui` đã dựng sẵn hình chữ cái
+đầu. Cách 1 để dành cho lúc thật sự cần.
 
 **Đợt B** chạm vào chiếm tài khoản và nghĩa vụ ở `/privacy`, làm riêng có test
 đầy đủ:
