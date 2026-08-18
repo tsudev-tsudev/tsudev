@@ -342,7 +342,9 @@ function readProjectBody(body: unknown, { partial }: { partial: boolean }): Read
 app.get(
   '/api/projects',
   asyncHandler(async (req, res) => {
-    const where: Prisma.ProjectWhereInput = { published: true }
+    // `deletedAt: null` bắt buộc trên mọi đường đọc công khai - xem đợt 5 của
+    // docs/refactor-newsroom-agents.md.
+    const where: Prisma.ProjectWhereInput = { published: true, deletedAt: null }
     const kind = qStr(req.query.kind)
     const status = qStr(req.query.status)
     const copyright = qStr(req.query.copyright)
@@ -367,7 +369,7 @@ app.get(
   '/api/projects/:slug',
   asyncHandler(async (req, res) => {
     const project = await prisma.project.findUnique({ where: { slug: req.params.slug } })
-    if (!project || !project.published)
+    if (!project || !project.published || project.deletedAt)
       return res.status(404).json({ error: 'Không tìm thấy dự án' })
     res.json(project)
   })
@@ -378,7 +380,12 @@ app.get(
   '/api/admin/projects',
   asyncHandler(async (req, res) => {
     if (!(await requireAdmin(req, res))) return
+    // `?trash=1` xem thùng rác. Mặc định ẩn đã xoá: trang quản trị mà trộn lẫn
+    // dự án còn sống với dự án đã xoá là cách để một ngày nào đó sửa nhầm cái
+    // đã bỏ đi rồi tưởng mình vừa sửa cái đang chạy.
+    const trash = req.query.trash === '1'
     const projects = await prisma.project.findMany({
+      where: trash ? { deletedAt: { not: null } } : { deletedAt: null },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     })
     res.json(projects)
@@ -432,14 +439,41 @@ app.patch(
   })
 )
 
+/**
+ * XOÁ MỀM, không phải xoá cứng.
+ *
+ * Đổi ở đợt 5 của Toà soạn Agent AI. Giữ nguyên động từ DELETE và hình dạng
+ * phản hồi để không phá `/admin/projects` đang chạy - thay đổi nằm ở chỗ bản
+ * ghi vẫn còn trong DB và khôi phục được.
+ *
+ * ⚠️ Route này PHẢI đổi TRƯỚC khi trigger tsudev_block_hard_delete được gắn cho
+ * bảng Project. Đảo thứ tự là mọi lượt xoá dự án ném lỗi 500 - một tính năng
+ * đang chạy được bỗng hỏng vì một migration.
+ */
 app.delete(
   '/api/admin/projects/:slug',
   asyncHandler(async (req, res) => {
     if (!(await requireAdmin(req, res))) return
     const current = await prisma.project.findUnique({ where: { slug: req.params.slug } })
+    if (!current || current.deletedAt)
+      return res.status(404).json({ error: 'Không tìm thấy dự án' })
+    await prisma.project.update({ where: { id: current.id }, data: { deletedAt: new Date() } })
+    res.json({ ok: true, softDeleted: true })
+  })
+)
+
+/** Khôi phục từ thùng rác. Chỉ ADMIN, giống mọi đường ghi khác dưới /api/admin. */
+app.post(
+  '/api/admin/projects/:slug/restore',
+  asyncHandler(async (req, res) => {
+    if (!(await requireAdmin(req, res))) return
+    const current = await prisma.project.findUnique({ where: { slug: req.params.slug } })
     if (!current) return res.status(404).json({ error: 'Không tìm thấy dự án' })
-    await prisma.project.delete({ where: { id: current.id } })
-    res.json({ ok: true })
+    const project = await prisma.project.update({
+      where: { id: current.id },
+      data: { deletedAt: null },
+    })
+    res.json(project)
   })
 )
 

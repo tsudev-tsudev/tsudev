@@ -612,7 +612,14 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// --- Toà soạn Agent AI ---
+  /// Xoá mềm, thêm ở đợt 5. Route DELETE /api/admin/projects/:slug đã đổi sang
+  /// đặt cột này TRƯỚC khi trigger chặn xoá cứng được gắn cho bảng Project -
+  /// đảo thứ tự là làm hỏng một tính năng đang chạy được.
+  deletedAt DateTime?
+
   @@index([published, sortOrder])
+  @@index([deletedAt])
   @@index([kind, status])
   @@index([copyrightStatus])
 }

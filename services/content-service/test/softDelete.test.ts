@@ -102,3 +102,45 @@ describe('trigger chặn xoá cứng ở cấp database', () => {
     ])
   })
 })
+
+describe('xoá mềm cho dự án (đợt 5)', () => {
+  const SLUG = `soft-delete-project-${stamp}`
+
+  beforeAll(async () => {
+    await prisma.project.create({
+      data: { slug: SLUG, name: 'Dự án nghiệm thu', summary: 'x', published: true },
+    })
+  })
+
+  afterAll(async () => {
+    await prisma.$transaction([
+      prisma.$executeRawUnsafe(`SET LOCAL tsudev.allow_hard_delete = 'on'`),
+      prisma.$executeRawUnsafe(`DELETE FROM "Project" WHERE slug = $1`, SLUG),
+    ])
+  })
+
+  test('dự án đã xoá mềm biến khỏi đường đọc công khai', async () => {
+    expect((await withToken(`/api/projects/${SLUG}`)).status).toBe(200)
+
+    await prisma.project.update({ where: { slug: SLUG }, data: { deletedAt: new Date() } })
+
+    expect((await withToken(`/api/projects/${SLUG}`)).status).toBe(404)
+    const list = await withToken('/api/projects?limit=100')
+    expect(list.body.map((p: { slug: string }) => p.slug)).not.toContain(SLUG)
+
+    await prisma.project.update({ where: { slug: SLUG }, data: { deletedAt: null } })
+  })
+
+  test('bản ghi vẫn còn trong DB sau khi xoá mềm - khôi phục được', async () => {
+    await prisma.project.update({ where: { slug: SLUG }, data: { deletedAt: new Date() } })
+    const still = await prisma.project.findUnique({ where: { slug: SLUG } })
+    expect(still).not.toBeNull()
+    expect(still.deletedAt).not.toBeNull()
+    await prisma.project.update({ where: { slug: SLUG }, data: { deletedAt: null } })
+  })
+
+  test('trigger chặn xoá cứng Project', async () => {
+    const p = await prisma.project.findUnique({ where: { slug: SLUG } })
+    await expect(prisma.project.delete({ where: { id: p.id } })).rejects.toThrow(/Xoá cứng/)
+  })
+})
