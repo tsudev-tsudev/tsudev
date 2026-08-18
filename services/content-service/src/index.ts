@@ -141,7 +141,9 @@ app.get(
   asyncHandler(async (req, res) => {
     const take = Math.min(qInt(req.query.limit, 20), 50)
     const posts = await prisma.post.findMany({
-      where: { published: true },
+      // `deletedAt: null` là BẮT BUỘC trên mọi đường đọc công khai. Toà soạn
+      // Agent AI xoá mềm, nên thiếu bộ lọc này là bài đã xoá vẫn hiện ra.
+      where: { published: true, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       take,
       include: { author: true },
@@ -167,7 +169,8 @@ app.get(
       where: { slug: req.params.slug },
       include: { author: true },
     })
-    if (!post || !post.published) return res.status(404).json({ error: 'Post not found' })
+    if (!post || !post.published || post.deletedAt)
+      return res.status(404).json({ error: 'Post not found' })
     res.json({ ...post, author: authorCard(post.author) })
   })
 )
@@ -176,7 +179,10 @@ app.get(
 app.get(
   '/api/docs',
   asyncHandler(async (req, res) => {
-    const docs = await prisma.doc.findMany({ orderBy: [{ category: 'asc' }, { position: 'asc' }] })
+    const docs = await prisma.doc.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ category: 'asc' }, { position: 'asc' }],
+    })
     res.json(docs.map((d) => ({ id: d.id, slug: d.slug, title: d.title, category: d.category })))
   })
 )
@@ -185,7 +191,7 @@ app.get(
   '/api/docs/:slug',
   asyncHandler(async (req, res) => {
     const doc = await prisma.doc.findUnique({ where: { slug: req.params.slug } })
-    if (!doc) return res.status(404).json({ error: 'Doc not found' })
+    if (!doc || doc.deletedAt) return res.status(404).json({ error: 'Doc not found' })
     res.json(doc)
   })
 )

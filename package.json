@@ -28,6 +28,7 @@
     "minio:up": "bash scripts/start-minio.sh",
     "db:migrate": "node scripts/with-env.js npm --workspace packages/db run migrate:deploy",
     "db:generate": "npm --workspace packages/db run generate",
+    "db:seed:newsroom": "node scripts/with-env.js npm --workspace packages/db run seed:newsroom",
     "db:seed": "node scripts/with-env.js npm --workspace packages/db run seed",
     "db:reset": "node scripts/with-env.js npm --workspace packages/db exec -- prisma migrate reset --force",
     "dev:full": "npm run db:up && npm run minio:up && npm run db:generate && npm run db:migrate && npm run db:seed && npm run build:services && npm run db:seed:dev && npm run dev:local",

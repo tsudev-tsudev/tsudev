@@ -7,6 +7,7 @@
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
+    "seed:newsroom": "node prisma/seed-newsroom.js",
     "seed": "node prisma/seed.js",
     "studio": "prisma studio"
   },
