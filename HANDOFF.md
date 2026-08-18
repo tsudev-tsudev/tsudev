@@ -10,56 +10,48 @@
 
 ## Bắt đầu từ đâu
 
-⛔ **VIỆC CHẶN ĐÃ QUAY LẠI, và nó nằm ở PRODUCTION chứ không ở mã.** Backend
-Render thiếu (hoặc đặt ngắn hơn 32 ký tự) biến `INTERNAL_IDENTITY_SECRET`. Đo
-19/08/2026:
+✅ **Không còn việc chặn nào.** Đợt phát hành 19/08/2026 đã xong: backend Render
+và Worker frontend nay chạy CÙNG một mã, và việc chặn
+`INTERNAL_IDENTITY_SECRET` đã được sửa.
 
+### Còn đúng MỘT việc của đợt này chưa làm
+
+**Chạy migration xoá cột `keycloakId` lên Neon.** Nay đã an toàn - mã mới đã lên
+sóng ở cả hai nơi, nên không còn tiến trình nào SELECT cột đó (thứ tự ba bước ở
+§1.6). Chạy với `DATABASE_URL` trỏ **Neon**, không phải DB dev:
+
+```bash
+DATABASE_URL='<chuỗi kết nối Neon>' npm --workspace packages/db run migrate:deploy
 ```
-POST https://tsudev-backend.onrender.com/api/trust/programs
-  → 503 {"error":"Máy chủ chưa cấu hình xác thực"}
-```
 
-Nghĩa là **mọi đường ghi đã xác thực trên toàn site đang hỏng**, không riêng Con
-dấu. Sửa: đặt lại biến đó ở dashboard Render, dài **≥ 32 ký tự** và **trùng
-nguyên văn** secret cùng tên của Worker (Worker đã có, đã kiểm bằng
-`wrangler secret list`).
+Nghiệm thu: `prisma migrate status` báo 15 migration đã áp, và
+`https://tsudev.com/blog` vẫn liệt kê bài viết thật (đường này dùng
+`include: { author: true }` nên nó là phép thử trực tiếp cho cột vừa xoá).
 
-Ba điều khiến lỗi này sống sót lâu đến thế - đáng đọc trước khi sửa cái khác:
+### Nghiệm thu đã chạy sau khi phát hành (19/08)
 
-1. **Nó có từ trước đợt 3.** Đợt 3 chỉ làm nó lộ ra, vì trước đó
-   `/api/trust/directory` là công khai nên không đi qua tầng xác thực nào.
-2. **Ba service kia che mất nó.** `/api/posts`, `/api/presign`,
-   `/api/admin/projects` đều dính cổng `INTERNAL_API_TOKEN` TRƯỚC và trả 401,
-   nên request không bao giờ tới được tầng danh tính để lộ 503.
-3. **Đăng nhập vẫn chạy bình thường** - đăng nhập không dùng khẳng định danh
-   tính, nên nó không chứng minh gì về biến này.
+| Kiểm                                                  | Kết quả                                       |
+| ----------------------------------------------------- | --------------------------------------------- |
+| `/api/trust/programs` trên backend                    | **401** (trước là 503 - khoá đã đúng)         |
+| `/trust/redeem`                                       | **200** (trước 404 - đợt 2 đã lên)            |
+| `/trust/directory`, `/trust/verify` (khách)           | **307 → /login** (đợt 3 đã gác)               |
+| `sitemap.xml`                                         | **0 dòng** `/trust/`                          |
+| `/settings/profile`, `/settings/security`             | 200                                           |
+| `/api/auth/providers`                                 | chỉ `credentials, passkey` - không có cửa sau |
+| `noindex` ở nhánh khách vãng lai của 4 trang riêng tư | có đủ                                         |
 
-⚠️ **Phép chẩn đoán duy nhất không bị che: `GET /api/trust/programs` trên
-backend.** trust-service cố ý đứng ngoài `INTERNAL_API_TOKEN`, nên nó là endpoint
-duy nhất đi thẳng tới tầng danh tính. 503 = thiếu khoá · 401 = khoá đúng, chỉ
-thiếu danh tính (đây mới là trạng thái lành mạnh).
+### Thứ tự đề nghị cho phiên sau
 
-⚠️ **Đừng phát hành Worker frontend trước khi sửa xong.** Đợt 3 đã lên backend,
-nên khi Worker mới lên thì mọi trang `/trust/*` sẽ gọi vào một API đang 503 - kể
-cả tài khoản VIP.
+1. **Migration Neon** (ở trên) - việc duy nhất còn lại của đợt phát hành.
+2. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn, và nay có thêm ba trang mới
+   (`/trust` bản mời, `/settings/profile`, và điều hướng đã đổi).
+3. **§1.7 ảnh đại diện** - cần chủ dự án chốt một trong ba đường, đề nghị đã ghi.
+4. **§1.10** dọn service Render trùng · **§1.4** CSP · **§1.3** npm audit ·
+   **§1.7 đợt B** · **§1.8**.
 
-Thứ tự đề nghị:
-
-1. **Sửa `INTERNAL_IDENTITY_SECRET` ở Render**, nghiệm thu bằng phép chẩn đoán ở
-   trên (phải chuyển từ 503 sang 401).
-2. **PHÁT HÀNH frontend Worker.** Nó đang mang mã CŨ: `/trust/redeem` và
-   `/admin/newsroom` còn 404, `sitemap.xml` còn 2 dòng `/trust/`. Lệnh:
-   `npm --workspace apps/frontend-main run deploy` (ĐỪNG gọi thẳng
-   `opennextjs-cloudflare deploy` - lý do ở `CLAUDE.md`). Đợt 2 và đợt 3 lên
-   cùng một lượt vì cả hai đã ở `main`.
-   Nghiệm thu: `/trust/redeem` 200 · `/trust/directory` với khách chưa đăng nhập
-   là CHUYỂN HƯỚNG chứ không phải 200 · `sitemap.xml` không còn `/trust/`.
-3. **Deploy Worker cron** (§1.1 - CHƯA từng deploy, đã đo bằng
-   `wrangler deployments list`). Không cần `NEWSROOM_TICK_TOKEN` cho việc giữ ấm.
-4. **§1.7 đợt A - trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
-   không có route nào cho người dùng sửa hồ sơ của chính mình.
-5. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn.
-6. Còn lại: §1.4 CSP · §1.3 npm audit · §1.7 đợt B · §1.8.
+⚠️ **`NEWSROOM_TICK_TOKEN` chưa đặt ở Render** nên `POST /api/newsroom/tick` trả 503. Không chặn gì: `NEWSROOM_ENABLED` vẫn là `false` nên toà soạn không chạy dù
+có token, và nhịp giữ ấm Render không dùng token này. Đặt khi nào thật sự bật
+toà soạn, và phải TRÙNG giá trị secret cùng tên của Worker cron.
 
 ## Đang chạy
 
@@ -530,25 +522,23 @@ trị. Giá trị vẫn phải điền tay.
 
 ## 1. Việc còn dở
 
-### 1.1 Dựng bộ ping giữ ấm - 🟠 CHƯA XONG (đã ĐO, không còn phải đoán)
+### 1.1 ~~Dựng bộ ping giữ ấm~~ - ✅ XONG 19/08
 
-`infrastructure/newsroom-cron` **chưa bao giờ được deploy**. Đo 19/08/2026:
-
-```
-$ npx wrangler deployments list      # trong infrastructure/newsroom-cron
-✘ This Worker does not exist on your account. [code: 10007]
-```
-
-Nghĩa là backend Render **hiện không có nhịp giữ ấm nào** - bản trước của phiếu
-này ghi "có thể đã xong", đó là suy đoán và nó sai.
-
-Deploy nó là xong mục này, và **không cần `NEWSROOM_TICK_TOKEN`**: nhánh giữ ấm
-chỉ đọc `BACKEND_URL`. Thiếu token thì mỗi giờ có một dòng log lỗi ở nhánh toà
-soạn, nhịp 5 phút vẫn chạy đủ.
+`infrastructure/newsroom-cron` đã được deploy 19/08 với cả hai nhịp:
 
 ```
-npm run cron:deploy
+Deployed tsudev-newsroom-cron triggers
+  schedule: */5 0-17,23 * * *
+  schedule: 7 0-17,23 * * *
 ```
+
+Trước đó nó **chưa bao giờ được deploy** - `wrangler deployments list` trả
+`This Worker does not exist on your account`. Bản trước của phiếu này ghi "có thể
+đã xong"; đó là suy đoán và nó sai. Ghi lại vì đây là kiểu sai dễ lặp: một mục
+được đánh dấu "có thể xong" rồi không ai đo lại.
+
+⚠️ Nhịp giữ ấm **không dùng** `NEWSROOM_TICK_TOKEN` (chỉ đọc `BACKEND_URL`), nên
+mục này xong độc lập với việc toà soạn có chạy hay không.
 
 Kể từ 19/08 cả hai nhịp **nghỉ 01:00-06:00 giờ VN** (viết trong cron là giờ UTC
 `0-17,23`) để hạ mức tiêu Render từ 744 xuống ~589 trên 750 giờ. Chi tiết và
@@ -600,7 +590,7 @@ cục đẹp hay khoảng cách hợp lý.
 Cần rà tay ở cả hai chế độ, ưu tiên: trang chủ · `/blog/[slug]` (mục lục mới) ·
 `/login` · `/settings/security` · `/admin/projects` · `/trust`.
 
-### 1.6 ~~Xoá cột `User.keycloakId`~~ - ✅ XONG Ở MÃ 19/08, **migration chờ phát hành**
+### 1.6 Xoá cột `User.keycloakId` - 🟡 CÒN ĐÚNG BƯỚC 3: chạy migration lên Neon
 
 Gỡ khỏi `schema.prisma` + migration `20260819103000_drop_keycloak_id` (PR #16, đã
 gộp). Đã áp lên DB dev; **chưa áp lên Neon**.
