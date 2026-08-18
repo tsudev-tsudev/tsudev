@@ -5,9 +5,10 @@ const { loadTopology, publicUrl } = require('../../scripts/topology/load');
 // Cần full stack (MinIO + storage-service) - chạy qua docker-compose, không nằm
 // trong CI. Xem project `full-stack` trong playwright.config.js.
 //
-// Tên cũ là `sso-upload`: nó đăng nhập qua Keycloak, rồi rơi về provider
-// `e2e-dev` với mật khẩu `devpass` khi Keycloak không sẵn sàng. Cả hai đường đó
-// đã bị gỡ. Nay nó đi qua ĐÚNG trang /login mà người dùng thật đi.
+// Tên cũ là `sso-upload`: nó đăng nhập qua một nhà cung cấp danh tính ngoài,
+// rồi rơi về provider `e2e-dev` với mật khẩu `devpass` khi bên đó không sẵn
+// sàng. Cả hai đường đó đã bị gỡ. Nay nó đi qua ĐÚNG trang /login mà người dùng
+// thật đi.
 const DEV_PASSWORD = process.env.DEV_SEED_PASSWORD || 'tsudev-dev-2026!';
 
 test('đăng nhập rồi tải tệp lên qua storage-service', async ({ page }) => {

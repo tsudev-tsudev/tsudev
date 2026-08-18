@@ -6,8 +6,8 @@ Ba lớp riêng biệt, hay bị lẫn:
 2. **Danh tính gửi xuống service** - khẳng định có chữ ký do BFF ký.
 3. **Phân quyền** - cột `User.role` trong DB, fail closed.
 
-Xác thực do **codebase tự quản lý**. Keycloak đã được gỡ hẳn; nếu bạn đọc thấy
-`KEYCLOAK_*` ở đâu đó thì đó là dấu vết cũ, không phải cấu hình đang chạy.
+Xác thực do **codebase tự quản lý**: không có nhà cung cấp danh tính ngoài, không
+có origin `auth.*`, không có biến issuer/client-id/client-secret nào cần đặt.
 
 ## 1. Phiên trình duyệt - NextAuth
 
@@ -36,8 +36,8 @@ production: mật khẩu Argon2id trong DB. Tài khoản dev do `npm run db:seed
 đặt (`tsudev` ADMIN · `alice` MEMBER · `bob` VIP, mật khẩu `tsudev-dev-2026!`).
 
 > Bản trước có provider `e2e-dev` nhận **bất kỳ username nào** với mật khẩu
-> `devpass`, gác sau `E2E_BYPASS_KEYCLOAK`. Ngày 16/08/2026 bản production đã
-> mang theo cờ đó. Cả provider lẫn cờ đã bị gỡ khỏi mã nguồn.
+> `devpass`, gác sau một cờ môi trường bỏ qua xác thực. Ngày 16/08/2026 bản
+> production đã mang theo cờ đó. Cả provider lẫn cờ đã bị gỡ khỏi mã nguồn.
 
 ## 2. Danh tính gửi xuống service
 
@@ -151,7 +151,7 @@ sánh miễn phí. Kiểm ở BFF sẽ tốn một truy vấn Workers → Neon c
 
 ## 5. Tài khoản không có mật khẩu
 
-Tài khoản tạo từ thời Keycloak không có `passwordHash`. Đường tự phục hồi là
+Tài khoản có từ trước khi mật khẩu được giữ trong DB thì không có `passwordHash`. Đường tự phục hồi là
 "quên mật khẩu", nhưng nó chỉ chạy khi tài khoản có email **thật** - mà
 `resolveUser()` tạo tài khoản với `<username>@tsudev.local`, tên miền không nhận
 được thư.

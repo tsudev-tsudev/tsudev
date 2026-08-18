@@ -4,12 +4,11 @@
 // số cổng, để hình trạng lúc dev trùng hình trạng production:
 //
 //   http://tsudev.localhost:8080        → frontend-main   127.0.0.1:3000
-//   http://auth.tsudev.localhost:8080   → Keycloak        127.0.0.1:4100
 //   http://cdn.tsudev.localhost:8080    → MinIO           127.0.0.1:9000
 //
 // Lý do ban đầu là để cookie `Domain=.tsudev.localhost` chia sẻ được giữa trang
 // chính và diễn đàn. Diễn đàn không còn, nhưng proxy vẫn giữ vì ba lẽ: subdomain
-// `auth.`/`cdn.` vẫn cần, một cổng vào vẫn tiện, và hình trạng dev vẫn khớp
+// `cdn.` vẫn cần, một cổng vào vẫn tiện, và hình trạng dev vẫn khớp
 // production. Không cần nữa thì `DEV_PROXY=0`.
 //
 // Bảng định tuyến sinh từ config/topology.json. Chạy: node scripts/dev-proxy.js

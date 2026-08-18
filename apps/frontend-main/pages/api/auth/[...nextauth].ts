@@ -17,9 +17,9 @@ import { identityHeaders } from '../../../lib/identity';
  * Xác thực do codebase tự quản lý.
  *
  * KHÔNG CÒN PROVIDER `e2e-dev`. Nó nhận BẤT KỲ username nào với mật khẩu
- * `devpass`, và chỉ được gác sau `E2E_BYPASS_KEYCLOAK=1`. Ngày 16/08/2026 bản
- * production đã từng mang theo cờ đó - ai cũng đăng nhập được vào tài khoản
- * ADMIN, site vẫn chạy bình thường, không có gì báo lỗi. Một đường đăng nhập
+ * `devpass`, và chỉ được gác sau một cờ môi trường bỏ qua xác thực. Ngày
+ * 16/08/2026 bản production đã từng mang theo cờ đó - ai cũng đăng nhập được
+ * vào tài khoản ADMIN, site vẫn chạy bình thường, không có gì báo lỗi. Một đường đăng nhập
  * mà độ an toàn phụ thuộc vào việc một biến môi trường KHÔNG được đặt là một
  * đường đăng nhập đang chờ tới lượt hỏng.
  *

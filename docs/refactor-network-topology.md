@@ -13,6 +13,12 @@ trong `CLAUDE.md`.
 > nhắc tới **diễn đàn / `forum.*`** là bối cảnh của thời điểm viết: app đó đã bị
 > xoá ở PR #9, tsudev nay chỉ còn một app trên một origin.
 
+> **Ghi chú lịch sử (19/08/2026).** Mọi nhắc tới **Keycloak / `auth.*` / cổng
+> 4100** trong tài liệu này là bối cảnh của thời điểm viết. Nhà cung cấp danh
+> tính ngoài đã được gỡ hẳn khỏi dự án: xác thực nay do chính codebase quản lý
+> (mật khẩu Argon2id trong DB, kiểm bởi `auth-service` - xem
+> [auth.md](auth.md)), và `config/topology.json` không còn nút nào cho nó.
+
 ---
 
 ## 1. Hiện trạng đo được

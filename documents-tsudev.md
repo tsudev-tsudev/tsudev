@@ -56,18 +56,19 @@ nhánh đường dẫn của cùng một site, không còn tách thành sub-site
 thành phần cần origin riêng, vì chúng là hệ khác chứ không phải trang khác.
 
 - **Main Site (dự án & bản quyền, blog, tài liệu, con dấu, quản trị):** tsudev.com
-- **Identity Provider (SSO):** auth.tsudev.com
 - **CDN / Object Storage công khai:** cdn.tsudev.com
 
-### **2.2. Kiến trúc Single Sign-On (SSO)**
+### **2.2. Kiến trúc xác thực**
 
-Để đảm bảo trải nghiệm liền mạch (chỉ cần login một lần cho cả trang quản trị và việc tải tài liệu riêng tư):
+Đặc tả ban đầu để ngỏ hai nhánh: dựng một Auth Server độc lập, hoặc xây dựng Auth API riêng bằng JWT/Session cookie. **Đã chốt nhánh thứ hai** - xác thực do chính codebase quản lý, không có nhà cung cấp danh tính ngoài và không có origin `auth.*`. Một website dự án cá nhân không cần một hệ danh tính riêng để nuôi, mà hệ đó lại tiêu đúng phần hạn mức miễn phí mà site thật đang cần.
 
-- **Giao thức:** Sử dụng **OAuth 2.0** và **OpenID Connect (OIDC)**.
-- **Authentication Service (Identity Provider):** Triển khai một Auth Server độc lập (khuyến nghị dùng Keycloak hoặc xây dựng custom Auth API bằng JWT/Session cookies với domain level \*.tsudev.com).
-- **Luồng hoạt động:** 1\. Người dùng truy cập một đường dẫn yêu cầu quyền (VD: tải tài liệu riêng tư, hoặc vào /admin).  
-  2\. Hệ thống redirect về auth.tsudev.com để xác thực.  
-  3\. Sau khi xác thực, hệ thống cấp Access Token và Refresh Token, lưu tại HttpOnly Cookie áp dụng cho toàn bộ wildcard domain \*.tsudev.com.
+- **Phiên trình duyệt:** NextAuth, cookie HttpOnly ở cấp tên miền, không đẩy token ra JavaScript.
+- **Mật khẩu:** Argon2id, chỉ `auth-service` chạm tới `passwordHash`.
+- **Yếu tố thứ hai:** TOTP và passkey (WebAuthn).
+- **Danh tính gửi xuống service:** khẳng định có chữ ký do BFF ký lại cho từng request, hạn dùng ngắn - người dùng không bao giờ giữ token này.
+- **Phân quyền:** đọc cột `User.role` trong DB, fail closed. Không có biến môi trường nào bật/tắt được.
+
+Hiện trạng chi tiết: `docs/auth.md`.
 
 ### **2.3. Giải pháp Lưu trữ đối tượng (Object Storage) & CDN**
 
@@ -143,7 +144,7 @@ tsudev/
 
 **6\. TIÊU CHUẨN NGHIỆM THU (ACCEPTANCE CRITERIA)**
 
-1. **SSO:** Dev team phải demo được việc đăng nhập tại auth.tsudev.com, sau đó tự động có phiên làm việc hợp lệ trên tsudev.com và có quyền tải file private từ kho lưu trữ.
+1. **Xác thực:** Dev team phải demo được việc đăng nhập tại tsudev.com/login, sau đó có phiên làm việc hợp lệ và có quyền tải file private từ kho lưu trữ.
 2. **Object Storage:** Khách truy cập tải một file tài liệu 100MB, header của trình duyệt phải hiển thị file được serve qua đường truyền của CDN (ví dụ cf-cache-status: HIT) chứ không tải trực tiếp từ băng thông của server backend.
 3. **Alerting:** Tạo ra một lỗi "chủ động" trên backend (ví dụ: chia cho 0 hoặc gọi một API không tồn tại), hệ thống phải tự động đẩy thông báo báo lỗi chi tiết đến Telegram @nguyentrangtinhsu và email devnguyentrangtinhsu@gmail.com trong vòng 30 giây.
 4. **Code Quality:** Không chứa hardcode credentials. Repo phải chạy được trên môi trường cục bộ bằng một lệnh khởi tạo duy nhất (`docker-compose up`, hoặc `npm run dev:full` - đường chạy không cần Docker).
@@ -223,7 +224,7 @@ Mục tiêu của phần này: xác định đầy đủ site, luồng người 
   - Storage & upload logs
 
 7.7 UX Patterns & Flows (critical)
-- Auth flow: redirect to auth.tsudev.com and return with HttpOnly cookie (wildcard domain) - avoid exposing tokens to JS where possible.
+- Auth flow: đăng nhập tại `/login` của chính site, phiên giữ trong cookie HttpOnly - không phơi token ra JS.
 - Upload flow: client requests presigned URL from `storage-service`, uploads directly to S3/R2, then signals backend for post-processing and crawl/index.
 - Content editing: Markdown editor with preview + image uploader + autosave draft.
 - Empty/Loading/Error states: provide clear feedback (skeletons while loading, contextual empty-state illustration + action).

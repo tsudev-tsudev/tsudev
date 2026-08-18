@@ -22,8 +22,8 @@ services/trust-service/Dockerfile
 .github/workflows/ci.yml
 
 # docker/backend-service.Dockerfile KHÔNG copy config/ vào image, nên bốn service
-# không thể require topology. Giá trị dự phòng buộc phải là literal - đã cập nhật
-# theo hình trạng mới (auth.tsudev.localhost:8080). Quy tắc B vẫn kiểm số cổng.
+# không thể require topology. Giá trị dự phòng buộc phải là literal. Quy tắc B
+# vẫn kiểm số cổng.
 
 # Next chỉ inline được process.env.NEXT_PUBLIC_* khi viết NGUYÊN VĂN, và file này
 # chạy cả trong trình duyệt - không import JSON topology vào bundle được.

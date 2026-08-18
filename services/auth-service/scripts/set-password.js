@@ -22,7 +22,8 @@
  *
  * VÌ SAO CẦN
  *
- * Sau khi gỡ Keycloak, tài khoản cũ không có `passwordHash`. Đường tự phục hồi
+ * Tài khoản có từ trước khi mật khẩu được giữ trong DB thì không có
+ * `passwordHash`. Đường tự phục hồi
  * là "quên mật khẩu", nhưng nó chỉ chạy khi tài khoản có địa chỉ email THẬT -
  * mà `resolveUser()` tạo tài khoản với `<username>@tsudev.local`, một tên miền
  * không nhận được thư. Script này là đường vào cho những tài khoản đó.

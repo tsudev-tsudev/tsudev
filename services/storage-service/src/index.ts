@@ -189,7 +189,6 @@ async function generatePresign(cmd: Parameters<typeof getSignedUrl>[1]) {
   return await getSignedUrl(s3Signer, cmd, { expiresIn: 900 })
 }
 
-// Auth middleware (Keycloak JWKS verifier)
 // Xác thực dùng chung. Trước đây mỗi service giữ một bản authMiddleware gần
 // trùng nhau, và CLAUDE.md phải cảnh báo "đổi hành vi xác thực phải sửa cả ba".
 const auth = createAuthMiddleware('storage')

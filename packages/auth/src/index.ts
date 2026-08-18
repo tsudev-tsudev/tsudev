@@ -20,8 +20,8 @@ declare global {
   /**
    * Danh tính người gọi, lấy từ khẳng định có chữ ký của BFF.
    *
-   * `preferred_username` giữ lại tên cũ thời Keycloak vì mã tiêu thụ đang đọc
-   * nó; nay nó luôn bằng `sub`.
+   * `preferred_username` giữ tên theo quy ước OIDC vì mã tiêu thụ đang đọc nó;
+   * nay nó luôn bằng `sub`.
    */
   type AuthenticatedUser = {
     sub: string;
@@ -35,8 +35,8 @@ declare global {
 /**
  * Middleware xác thực.
  *
- * Kiểm KHẲNG ĐỊNH DANH TÍNH do BFF ký (xem @tsudev/identity-token), không phải
- * JWT của Keycloak. Người dùng không bao giờ giữ token này; BFF ký lại cho từng
+ * Kiểm KHẲNG ĐỊNH DANH TÍNH do BFF ký (xem @tsudev/identity-token) - tsudev
+ * không dùng nhà cung cấp danh tính ngoài nào. Người dùng không bao giờ giữ token này; BFF ký lại cho từng
  * request từ phiên next-auth, với hạn dùng 120 giây.
  *
  * KHÔNG CÒN ĐƯỜNG TẮT NÀO. Bản trước có nhánh `AUTH_DEV_BYPASS=true` cho phép
