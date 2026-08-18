@@ -29,15 +29,28 @@ vượt.** Tất cả đều chặn hoặc treo. Nghĩa là rủi ro thật củ
 "bị trừ tiền" mà là **"site chết cho tới đầu tháng sau"** - và hai ngân sách
 dưới đây là hai chỗ chật nhất.
 
-## Ngân sách chật số 1: Render, 744 trên 750 giờ
+## Ngân sách chật số 1: Render, 589 trên 750 giờ
 
 Render free ngủ sau ~15 phút không có request, nên có bộ giữ ấm gõ cửa mỗi 5
-phút. Giữ ấm nghĩa là service chạy 24/7:
+phút. Giữ ấm 24/7 gần như tiêu hết hạn mức, nên **cả hai nhịp cron đều nghỉ
+01:00-06:00 giờ Việt Nam** (chốt 19/08/2026):
 
-| Tháng   | Giờ instance tiêu | Còn lại trên hạn mức 750 |
-| ------- | ----------------- | ------------------------ |
-| 30 ngày | 720               | 30 giờ                   |
-| 31 ngày | **744**           | **6 giờ**                |
+| Hình giữ ấm        | Giờ instance/tháng (31 ngày) | Còn lại trên hạn mức 750 |
+| ------------------ | ---------------------------- | ------------------------ |
+| 24/7               | 744                          | **6 giờ**                |
+| nghỉ 5 giờ mỗi đêm | **~589**                     | **~161 giờ**             |
+
+Cái giá đã chấp nhận: người truy cập đầu tiên sau khung nghỉ chờ cold start ~50
+giây. Đổi lại, biên đủ rộng để một lần dựng lại service hay một đợt gỡ lỗi không
+làm vỡ hạn mức của cả workspace.
+
+⚠️ **Hai nhịp phải nghỉ CÙNG khung.** Nhịp toà soạn cũng là một request tới
+Render: để nó chạy 24/7 thì mỗi giờ đêm Render lại thức ~15 phút và khung nghỉ
+chỉ tiết kiệm được khoảng một phần tư số giờ ở bảng trên.
+
+⚠️ **Cron của Cloudflare không có múi giờ - `0-17,23` là giờ UTC.** Khung nghỉ
+01:00-06:00 giờ VN (UTC+7) viết ngược lại thành "chạy ở giờ UTC 0-17 và 23". Đọc
+nhầm nó thành giờ VN là đặt khung nghỉ vào đúng giờ cao điểm.
 
 Hệ quả phải nhớ trước khi động vào Render:
 
@@ -46,10 +59,9 @@ Hệ quả phải nhớ trước khi động vào Render:
   vượt thì Render tạm dừng **mọi** service free - kể cả `tsudev-backend`.
 - `tsudev-backend-rqkz` (HANDOFF §1.10) chưa bao giờ khởi động nổi nên **không**
   tiêu giờ instance. Nó vẫn nên bị xoá, nhưng nó không phải nguồn rủi ro ở đây.
-- Muốn có biên rộng hơn thì cách duy nhất là **ngừng giữ ấm trong một khung
-  giờ** (ví dụ 01:00-06:00 giờ Việt Nam ⇒ tiết kiệm ~150 giờ/tháng). Cái giá là
-  người truy cập đầu tiên sau khung đó chờ cold start ~50 giây. Đây là đánh đổi
-  sản phẩm, không phải quyết định kỹ thuật - chưa làm, chờ chủ dự án chốt.
+- Khung nghỉ đêm ở trên là **van duy nhất** còn lại cho ngân sách này. Muốn hẹp
+  lại (nghỉ ít giờ hơn) thì phải trả bằng biên an toàn; muốn rộng ra thì trả
+  bằng số giờ khách gặp cold start.
 
 ## Ngân sách chật số 2: Neon, 100 CU-giờ/tháng
 
@@ -67,10 +79,10 @@ tức là đánh thức lại ngay trước mỗi lần Neon định ngủ.
 
 Vì thế Worker cron chạy **hai nhịp, gọi hai endpoint khác nhau**:
 
-| Nhịp cron     | Gọi gì                    | Chạm DB? | Việc                  |
-| ------------- | ------------------------- | -------- | --------------------- |
-| `*/5 * * * *` | `GET /health`             | Không    | giữ ấm Render         |
-| `7 * * * *`   | `POST /api/newsroom/tick` | **Có**   | nhịp đập của toà soạn |
+| Nhịp cron (UTC)     | Gọi gì                    | Chạm DB? | Việc                  |
+| ------------------- | ------------------------- | -------- | --------------------- |
+| `*/5 0-17,23 * * *` | `GET /health`             | Không    | giữ ấm Render         |
+| `7 0-17,23 * * *`   | `POST /api/newsroom/tick` | **Có**   | nhịp đập của toà soạn |
 
 `GET /health` của `backend-bundle` trả JSON tĩnh, không đụng Prisma - nên giữ ấm
 Render **không** đánh thức Neon. Chỉ nhịp giờ mới đánh thức, và giữa hai lượt
@@ -83,7 +95,9 @@ tháng thứ hai - đủ xa lần sửa để không ai nối được nhân qu�
 Chuỗi cron của nhịp đập nằm ở **hai chỗ phải trùng nguyên văn**: hằng `TICK_CRON`
 trong `infrastructure/newsroom-cron/src/index.ts` và mảng `triggers.crons` trong
 `wrangler.jsonc` cạnh đó. Lệch một ký tự thì lượt đó rơi xuống nhánh giữ ấm và
-toà soạn đứng yên trong im lặng.
+toà soạn đứng yên trong im lặng - Worker vẫn chạy, log vẫn xanh, chỉ là không
+còn bài mới. Nay có `services/newsroom-service/test/cronContract.test.ts` đọc cả
+hai tệp và bắt đúng chuyện đó, kể cả việc hai nhịp lỡ nghỉ hai khung khác nhau.
 
 ## Van chi phí của Toà soạn Agent AI
 

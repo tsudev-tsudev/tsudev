@@ -7,21 +7,36 @@
 
   // HAI nhịp, hai việc khác nhau - src/index.ts phân nhánh theo `event.cron`:
   //
-  //   "*/5 * * * *"  giữ ấm Render (GET /health, KHÔNG chạm database).
-  //                  Render free ngủ sau ~15 phút không có request; thưa hơn
-  //                  15 phút là mất việc này.
-  //   "7 * * * *"    nhịp đập của toà soạn (POST /api/newsroom/tick, CÓ truy
-  //                  vấn database). Mỗi giờ, không dày hơn: truy vấn mỗi 5
-  //                  phút thì Neon free không bao giờ tự ngủ và tiêu ~186
-  //                  CU-giờ/tháng trên hạn mức 100 ⇒ treo compute cả site.
-  //                  Chuỗi này phải TRÙNG NGUYÊN VĂN `TICK_CRON` trong mã.
-  //                  Phút 7 chứ không phải 0 để không trùng lượt giữ ấm - hai
-  //                  lượt cùng lúc không sai, chỉ khó đọc log.
+  //   "*/5 0-17,23 * * *"  giữ ấm Render (GET /health, KHÔNG chạm database).
+  //                        Render free ngủ sau ~15 phút không có request; thưa
+  //                        hơn 15 phút là mất việc này.
+  //   "7 0-17,23 * * *"    nhịp đập của toà soạn (POST /api/newsroom/tick, CÓ
+  //                        truy vấn database). Mỗi giờ, không dày hơn: truy vấn
+  //                        mỗi 5 phút thì Neon free không bao giờ tự ngủ và tiêu
+  //                        ~186 CU-giờ/tháng trên hạn mức 100 ⇒ treo compute cả
+  //                        site. Chuỗi này phải TRÙNG NGUYÊN VĂN `TICK_CRON`
+  //                        trong mã. Phút 7 chứ không phải 0 để không trùng lượt
+  //                        giữ ấm - hai lượt cùng lúc không sai, chỉ khó đọc log.
+  //
+  // ⚠️ `0-17,23` LÀ GIỜ UTC, và đó là khung NGHỈ 01:00-06:00 giờ Việt Nam
+  // (UTC+7) viết ngược lại. Cron của Cloudflare không có múi giờ - đọc nhầm nó
+  // thành giờ VN là đặt khung nghỉ vào đúng giờ cao điểm.
+  //
+  // Vì sao có khung nghỉ: giữ ấm 24/7 tiêu 744 trên 750 giờ instance/tháng của
+  // Render trong tháng 31 ngày, mà hạn mức đó tính cho CẢ workspace - biên 6 giờ
+  // nghĩa là thêm bất kỳ service free thứ hai nào cũng làm Render tạm dừng MỌI
+  // service. Nghỉ 5 giờ mỗi đêm hạ xuống ~589 giờ, biên ~161 giờ. Cái giá đã
+  // được chủ dự án chốt: người truy cập đầu tiên sau khung nghỉ chờ cold start
+  // ~50 giây.
+  //
+  // ⚠️ HAI nhịp phải cùng nghỉ. Nhịp toà soạn cũng là một request tới Render,
+  // nên để nó chạy 24/7 thì mỗi giờ đêm Render lại thức ~15 phút và khung nghỉ
+  // chỉ tiết kiệm được một phần tư số giờ đã tính ở trên.
   //
   // Cron Triggers nằm trong gói Workers Free và KHÔNG tính phí riêng; chúng ăn
-  // chung hạn mức 100.000 request/ngày. 288 + 24 lượt/ngày là muối bỏ bể.
+  // chung hạn mức 100.000 request/ngày. 228 + 19 lượt/ngày là muối bỏ bể.
   "triggers": {
-    "crons": ["*/5 * * * *", "7 * * * *"]
+    "crons": ["*/5 0-17,23 * * *", "7 0-17,23 * * *"]
   },
 
   // KHÔNG có route/custom_domain: Worker này không phục vụ người dùng. Nó vẫn

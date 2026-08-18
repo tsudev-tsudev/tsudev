@@ -17,9 +17,17 @@
  * 10ms CPU mỗi lần gọi). Lượt gọi này chỉ `fetch` rồi chờ I/O - thời gian chờ
  * mạng KHÔNG tính vào hạn mức CPU, nên 10ms là thừa thãi.
  *
- * Phụ đề quan trọng: mỗi 5 phút gõ cửa Render cũng chính là bộ ping giữ ấm mà
- * HANDOFF.md §1.1 còn nợ - Render free ngủ sau ~15 phút không có request. Nghĩa
- * là cron chết thì MẤT CẢ HAI. Vẫn nên có giám sát ngoài (UptimeRobot free).
+ * Phụ đề quan trọng: lượt gõ cửa Render mỗi 5 phút cũng chính là bộ ping giữ ấm
+ * mà HANDOFF.md §1.1 còn nợ - Render free ngủ sau ~15 phút không có request.
+ * Nghĩa là cron chết thì MẤT CẢ HAI. Vẫn nên có giám sát ngoài (UptimeRobot
+ * free).
+ *
+ * ⚠️ CẢ HAI NHỊP ĐỀU NGHỈ 01:00-06:00 GIỜ VIỆT NAM, viết trong cron là giờ UTC
+ * `0-17,23`. Giữ ấm 24/7 tiêu 744 trên 750 giờ instance/tháng của Render (tháng
+ * 31 ngày) và hạn mức đó tính cho CẢ workspace; nghỉ 5 giờ mỗi đêm hạ xuống
+ * ~589 giờ. Cái giá đã được chốt: khách đầu tiên sau khung nghỉ chờ cold start
+ * ~50 giây. Nhịp toà soạn phải nghỉ CÙNG khung - nó cũng là một request tới
+ * Render, để nó chạy suốt đêm là khung nghỉ chỉ còn hình thức.
  *
  * ⚠️ HAI NHỊP, KHÔNG PHẢI MỘT - và lý do là hạn mức của NEON, không phải của
  * Cloudflare:
@@ -43,7 +51,7 @@
  */
 
 /** Phải TRÙNG NGUYÊN VĂN một phần tử trong `triggers.crons` của wrangler.jsonc. */
-const TICK_CRON = '7 * * * *';
+const TICK_CRON = '7 0-17,23 * * *';
 
 export interface Env {
   /** URL gốc của backend trên Render, ví dụ https://tsudev-backend.onrender.com */
@@ -72,7 +80,7 @@ async function tick(env: Env): Promise<void> {
       signal: AbortSignal.timeout(30_000),
     });
     // Không ném khi lỗi: cron không có ai để báo, và một lượt hỏng không đáng
-    // làm gì hơn là một dòng log. Lượt sau cách đây 5 phút.
+    // làm gì hơn là một dòng log. Lượt sau cách đây một giờ.
     console.log(`[cron] tick → ${res.status}`);
   } catch (err) {
     console.error('[cron] tick thất bại:', err instanceof Error ? err.message : String(err));
