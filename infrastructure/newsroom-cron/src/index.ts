@@ -20,7 +20,30 @@
  * Phụ đề quan trọng: mỗi 5 phút gõ cửa Render cũng chính là bộ ping giữ ấm mà
  * HANDOFF.md §1.1 còn nợ - Render free ngủ sau ~15 phút không có request. Nghĩa
  * là cron chết thì MẤT CẢ HAI. Vẫn nên có giám sát ngoài (UptimeRobot free).
+ *
+ * ⚠️ HAI NHỊP, KHÔNG PHẢI MỘT - và lý do là hạn mức của NEON, không phải của
+ * Cloudflare:
+ *
+ *   - Nhịp 5 phút gọi `GET /health`. Route đó trả JSON tĩnh, KHÔNG chạm
+ *     database. Việc duy nhất của nó là không cho Render ngủ.
+ *     (Không viết chuỗi cron 5 phút vào chú thích khối: nó chứa dấu đóng
+ *     comment và sẽ cắt cụt khối này - đã trả giá một lần.)
+ *   - `TICK_CRON` (mỗi giờ) mới gọi `POST /api/newsroom/tick`, và lượt đó
+ *     truy vấn database.
+ *
+ * Gộp cả hai vào nhịp 5 phút thì mỗi lượt đều đánh thức Neon, mà Neon free chỉ
+ * cho 100 CU-giờ/tháng và tự ngủ sau ~5 phút không có truy vấn. Truy vấn đúng
+ * mỗi 5 phút = compute KHÔNG BAO GIỜ ngủ = ~186 CU-giờ/tháng ở 0,25 CU ⇒ vượt
+ * hạn mức ⇒ Neon treo compute tới đầu tháng sau ⇒ CẢ SITE chết, không chỉ toà
+ * soạn. Nhịp giờ để Neon ngủ lại giữa hai lượt.
+ *
+ * Toà soạn viết vài bài một ngày, nên nhịp giờ là thừa sức. Đổi TICK_CRON thì
+ * phải đổi ĐỒNG THỜI chuỗi trong `wrangler.jsonc` - so khớp bằng chuỗi nguyên
+ * văn, lệch một ký tự là lượt đó rơi xuống nhánh giữ ấm và toà soạn đứng yên.
  */
+
+/** Phải TRÙNG NGUYÊN VĂN một phần tử trong `triggers.crons` của wrangler.jsonc. */
+const TICK_CRON = '7 * * * *';
 
 export interface Env {
   /** URL gốc của backend trên Render, ví dụ https://tsudev-backend.onrender.com */
@@ -56,9 +79,28 @@ async function tick(env: Env): Promise<void> {
   }
 }
 
+/**
+ * Chỉ giữ cho Render khỏi ngủ. `GET /health` trả JSON tĩnh - không Prisma,
+ * không truy vấn, nên Neon vẫn ngủ yên (xem chú thích đầu tệp).
+ */
+async function keepWarm(env: Env): Promise<void> {
+  if (!env.BACKEND_URL) {
+    console.error('[cron] thiếu BACKEND_URL - bỏ qua lượt giữ ấm');
+    return;
+  }
+  try {
+    const res = await fetch(`${env.BACKEND_URL}/health`, {
+      signal: AbortSignal.timeout(30_000),
+    });
+    console.log(`[cron] giữ ấm → ${res.status}`);
+  } catch (err) {
+    console.error('[cron] giữ ấm thất bại:', err instanceof Error ? err.message : String(err));
+  }
+}
+
 export default {
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(tick(env));
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(event.cron === TICK_CRON ? tick(env) : keepWarm(env));
   },
 
   /**

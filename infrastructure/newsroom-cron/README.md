@@ -1,7 +1,17 @@
 # Worker cron của Toà soạn Agent AI
 
-Nhịp đập 5 phút/lần cho `newsroom-service`, **và** bộ ping giữ ấm Render mà
-`HANDOFF.md` §1.1 còn nợ. Một Worker, hai việc, **0đ**.
+Bộ ping giữ ấm Render mà `HANDOFF.md` §1.1 còn nợ, **và** nhịp đập cho
+`newsroom-service`. Một Worker, hai việc, **0đ**.
+
+| Nhịp cron     | Gọi gì                    | Chạm DB? | Vì sao nhịp đó                                                            |
+| ------------- | ------------------------- | -------- | ------------------------------------------------------------------------- |
+| `*/5 * * * *` | `GET /health`             | Không    | Render free ngủ sau ~15 phút không có request                             |
+| `7 * * * *`   | `POST /api/newsroom/tick` | **Có**   | Neon free chỉ có 100 CU-giờ/tháng và tự ngủ sau ~5 phút không có truy vấn |
+
+⚠️ **Đừng gộp hai nhịp lại làm một.** Truy vấn database đúng mỗi 5 phút nghĩa là
+compute của Neon không bao giờ ngủ: ~186 CU-giờ/tháng ở 0,25 CU trên hạn mức
+100 ⇒ Neon treo compute tới đầu tháng sau ⇒ **cả site chết**, không riêng toà
+soạn. Chi tiết và các hạn mức khác: [`docs/free-tier.md`](../../docs/free-tier.md).
 
 ## Vì sao tách khỏi `apps/frontend-main`
 
@@ -16,8 +26,8 @@ không đụng tới cron.
 
 | Hạng mục      | Gói Free                 | Dùng thực tế                                                          |
 | ------------- | ------------------------ | --------------------------------------------------------------------- |
-| Cron Triggers | Có, không tính phí riêng | 288 lượt/ngày                                                         |
-| Request       | 100.000/ngày             | 288                                                                   |
+| Cron Triggers | Có, không tính phí riêng | 288 + 24 = 312 lượt/ngày                                              |
+| Request       | 100.000/ngày             | 312                                                                   |
 | CPU           | 10ms mỗi lần gọi         | ~1ms (chỉ `fetch` rồi chờ I/O; thời gian chờ mạng không tính vào CPU) |
 
 ## Phát hành

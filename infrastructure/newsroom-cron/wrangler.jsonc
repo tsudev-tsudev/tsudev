@@ -5,17 +5,23 @@
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Nhịp đập: mỗi 5 phút. Con số này phục vụ HAI việc cùng lúc:
-  //   1. Đánh nhịp cho dispatcher của toà soạn.
-  //   2. Giữ ấm Render free (ngủ sau ~15 phút không có request).
-  // Thưa hơn 15 phút là mất việc thứ hai. Dày hơn 5 phút không mua thêm gì:
-  // một lượt tick chỉ xử lý tối đa 3 sự kiện, và toà soạn không cần thời gian
-  // thực - nó viết vài bài một ngày.
+  // HAI nhịp, hai việc khác nhau - src/index.ts phân nhánh theo `event.cron`:
+  //
+  //   "*/5 * * * *"  giữ ấm Render (GET /health, KHÔNG chạm database).
+  //                  Render free ngủ sau ~15 phút không có request; thưa hơn
+  //                  15 phút là mất việc này.
+  //   "7 * * * *"    nhịp đập của toà soạn (POST /api/newsroom/tick, CÓ truy
+  //                  vấn database). Mỗi giờ, không dày hơn: truy vấn mỗi 5
+  //                  phút thì Neon free không bao giờ tự ngủ và tiêu ~186
+  //                  CU-giờ/tháng trên hạn mức 100 ⇒ treo compute cả site.
+  //                  Chuỗi này phải TRÙNG NGUYÊN VĂN `TICK_CRON` trong mã.
+  //                  Phút 7 chứ không phải 0 để không trùng lượt giữ ấm - hai
+  //                  lượt cùng lúc không sai, chỉ khó đọc log.
   //
   // Cron Triggers nằm trong gói Workers Free và KHÔNG tính phí riêng; chúng ăn
-  // chung hạn mức 100.000 request/ngày. 288 lượt/ngày là muối bỏ bể.
+  // chung hạn mức 100.000 request/ngày. 288 + 24 lượt/ngày là muối bỏ bể.
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    "crons": ["*/5 * * * *", "7 * * * *"]
   },
 
   // KHÔNG có route/custom_domain: Worker này không phục vụ người dùng. Nó vẫn
