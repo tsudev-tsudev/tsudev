@@ -499,6 +499,23 @@ Khảo sát cho đợt gỡ tín dụng đếm "3 trang frontend" vì chỉ qué
 tên. Thực tế là 4 - `trust/portal.tsx` lọt lưới. Hai đợt còn lại của §1.9 khảo
 sát theo đúng kiểu đó, nên rất dễ lặp lại.
 
+### Tệp test mới phải có `export {}`, và `tsc -b` sẽ GIẤU chuyện đó ở máy dev
+
+Tệp test không có `import`/`export` nào thì TypeScript coi là **script toàn cục**,
+nên `request`, `prisma`, `app`, `post`, `clean`… ở top-level đụng tên với đúng
+những biến đó trong tệp test khác ⇒ `TS6200`, và cả suite không chạy nổi.
+
+Cái đắt không phải lỗi mà là **nó không lộ ra ở máy dev**: `tsc -b` dựng tăng
+dần, bỏ qua tệp chưa đổi, nên `npm --workspace … test` xanh ở local rồi đỏ ở CI
+(nơi build sạch). Đã tốn một vòng CI đúng theo đường này.
+
+Hai cách dùng lại được:
+
+- Thêm `export {}` vào mọi tệp test dùng `require()` ở top-level.
+- Nghi ngờ thì xoá `*.tsbuildinfo` rồi chạy lại - đó là cách tái hiện điều kiện
+  của CI ở máy mình:
+  `find . -name "*.tsbuildinfo" -not -path "./node_modules/*" -delete`
+
 ### `wrangler.jsonc` KHÔNG được `topology:gen` sinh ra
 
 Thêm service vào `config/topology.json` **không** kéo theo biến cho Worker. Quên

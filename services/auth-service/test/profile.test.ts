@@ -16,6 +16,15 @@ process.env.NODE_ENV = 'test'
 process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 delete process.env.INTERNAL_API_TOKEN
 
+// Đánh dấu tệp này là MODULE. Không có import/export thì TypeScript coi nó là
+// script toàn cục, và `request`/`prisma`/`app`/`post`/`clean` ở đây sẽ đụng tên
+// với đúng những biến đó trong invite.test.ts (TS6200). Không đổi gì lúc chạy.
+//
+// ⚠️ Lỗi này KHÔNG lộ ra ở lần chạy test đầu tiên trên máy dev: `tsc -b` dựng
+// tăng dần, nên nó bỏ qua tệp chưa đổi và chỉ đỏ ở CI (nơi build sạch). Thấy
+// TS6200 mà local xanh thì đây là chỗ cần nhìn.
+export {}
+
 const request = require('supertest')
 const { prisma } = require('@tsudev/db')
 const { signIdentity } = require('@tsudev/identity-token')
