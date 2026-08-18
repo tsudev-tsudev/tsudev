@@ -1,4 +1,4 @@
-// Nhãn tiếng Việt cho các enum của Project. Một chỗ duy nhất — trang công khai,
+// Nhãn tiếng Việt cho các enum của Project. Một chỗ duy nhất - trang công khai,
 // trang chi tiết và trang quản trị phải gọi cùng một tên cho cùng một trạng thái.
 
 export const KIND_LABEL: Record<string, string> = {
@@ -16,7 +16,7 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 
 // `tone` khớp bộ tone của Badge trong @tsudev/ui. REGISTERED dùng `success` vì
-// đó là khẳng định đã có giấy chứng nhận — đừng dùng cho PENDING.
+// đó là khẳng định đã có giấy chứng nhận - đừng dùng cho PENDING.
 import type { BadgeTone } from '@tsudev/ui';
 
 // `tone` là union của Badge, không phải string: một tông sai chính tả sẽ lặng
@@ -31,7 +31,7 @@ export const COPYRIGHT: Record<string, CopyrightMeta> = {
 
 /**
  * Tra bảng bản quyền an toàn: `copyrightStatus` tới từ API nên là chuỗi tự do.
- * Bản cũ viết `COPYRIGHT[x] || COPYRIGHT.NONE` ở từng trang — cùng một dự phòng
+ * Bản cũ viết `COPYRIGHT[x] || COPYRIGHT.NONE` ở từng trang - cùng một dự phòng
  * chép ba lần, và không có gì bảo đảm ba lần đó giống nhau.
  */
 export const copyrightMeta = (status: string | null | undefined): CopyrightMeta =>

@@ -7,10 +7,10 @@ coverage
 verify-output
 
 # Thư mục dựng của cargo (packages/trust-crypto). Chứa hàng chục nghìn tệp JSON
-# do trình biên dịch sinh ra — không phải mã của repo.
+# do trình biên dịch sinh ra - không phải mã của repo.
 target
 
-# Bản xuất dữ liệu trước migration DROP — dữ liệu, không phải mã.
+# Bản xuất dữ liệu trước migration DROP - dữ liệu, không phải mã.
 backup
 e2e/test-results
 e2e/playwright-report
@@ -19,10 +19,10 @@ e2e/playwright-report
 
 # Đặc tả dự án do người viết, không phải mã. Prettier hiểu nhầm các mục
 # "7.2", "7.3"… là phần tiếp của danh sách phía trên rồi thụt chúng thành
-# mục con, và đánh số lại danh sách — tức là làm sai cấu trúc tài liệu.
+# mục con, và đánh số lại danh sách - tức là làm sai cấu trúc tài liệu.
 documents-tsudev.md
 
 # Ngữ cảnh tự nạp mỗi phiên. Prettier escape "_"/"*" bên trong nội dung
 # (vd services/** -> services/\*\*) làm sai lệch glob pattern và tên đường dẫn
-# — giữ nguyên văn. AGENTS.md KHÔNG nằm ở đây: nó là văn xuôi bình thường.
+# - giữ nguyên văn. AGENTS.md KHÔNG nằm ở đây: nó là văn xuôi bình thường.
 CLAUDE.md

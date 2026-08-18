@@ -33,7 +33,7 @@ const COLS: { title: string; links: FooterLink[] }[] = [
   },
 ];
 
-// Footer không có nền riêng — nó nằm thẳng trên nền trang. Ranh giới với phần
+// Footer không có nền riêng - nó nằm thẳng trên nền trang. Ranh giới với phần
 // nội dung chính chỉ do MỘT đường kẻ đảm nhiệm, dùng --border-strong vì ở chế
 // độ tối đường mảnh --border gần như không thấy, còn ở chế độ sáng nó cho ra
 // một ranh giới rõ mà không cần đổi nền.
@@ -68,7 +68,7 @@ export const SiteFooter = () => (
       ))}
     </div>
     <div className="max-w-6xl mx-auto px-4 pb-6 flex flex-col sm:flex-row justify-between gap-1.5 text-xs text-muted font-mono">
-      <span>© {new Date().getFullYear()} tsudev — Nguyễn Trang Tình Sử</span>
+      <span>© {new Date().getFullYear()} tsudev - Nguyễn Trang Tình Sử</span>
       <span>Built with Next.js · Node · PostgreSQL</span>
     </div>
   </footer>

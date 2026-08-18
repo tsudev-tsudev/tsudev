@@ -1,5 +1,5 @@
 {
-  // Cấu hình gốc dùng chung. KHÔNG build gì trực tiếp từ file này — mỗi
+  // Cấu hình gốc dùng chung. KHÔNG build gì trực tiếp từ file này - mỗi
   // workspace có tsconfig.json riêng `extends` về đây rồi khai `module` và
   // `outDir` của mình. Solution file ở `tsconfig.json` gốc giữ danh sách
   // references; `npm run typecheck` chạy `tsc -b` trên đó.

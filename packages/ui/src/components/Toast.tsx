@@ -20,7 +20,7 @@ export const Toast = ({ message, type = 'info', onClose }: ToastProps) => {
   if (!message) return null;
   const fg = TONES[type] ?? TONES.info;
   const bg = type === 'info' ? 'var(--panel-2)' : `color-mix(in srgb, ${fg} 18%, var(--panel))`;
-  // Toast nổi trên nội dung nên giữ một viền mảnh để tách lớp — có chức năng,
+  // Toast nổi trên nội dung nên giữ một viền mảnh để tách lớp - có chức năng,
   // khác với khung trang trí đã lược bỏ ở các bề mặt tĩnh.
   const border =
     type === 'info' ? 'var(--border-strong)' : `color-mix(in srgb, ${fg} 35%, transparent)`;

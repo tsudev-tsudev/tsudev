@@ -10,7 +10,7 @@ import { Notice } from '../../components/AuthShell';
  * Bảo mật tài khoản: bật 2FA và quản lý passkey.
  *
  * Không có trang này thì hai cơ chế kia tồn tại ở tầng API mà không ai bật
- * được — tức là chúng là mã chết trông như lớp phòng thủ.
+ * được - tức là chúng là mã chết trông như lớp phòng thủ.
  */
 
 type Passkey = { id: string; label: string | null; createdAt: string; lastUsedAt: string | null };
@@ -67,7 +67,7 @@ export default function SecurityPage() {
   if (status !== 'authenticated') {
     return (
       <Layout active="/settings">
-        <Seo title="Bảo mật — tsudev" noindex />
+        <Seo title="Bảo mật - tsudev" noindex />
         <div className="mx-auto max-w-md">
           <Notice kind="error">Bạn cần đăng nhập để mở trang này.</Notice>
           <Button as="a" href="/login?callbackUrl=/settings/security" className="mt-4 w-full">
@@ -144,7 +144,7 @@ export default function SecurityPage() {
 
   return (
     <Layout active="/settings">
-      <Seo title="Bảo mật — tsudev" noindex />
+      <Seo title="Bảo mật - tsudev" noindex />
       <div className="mx-auto max-w-2xl">
         <h1 className="text-xl font-semibold text-ink">Bảo mật tài khoản</h1>
         <p className="mt-1.5 text-sm text-muted">

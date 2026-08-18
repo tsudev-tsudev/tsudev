@@ -5,11 +5,11 @@
 > [`docs/architecture.md`](docs/architecture.md) và [`README.md`](README.md).
 >
 > Chênh lệch đã biết tính đến 11/08/2026:
-> - `services/api-gateway` (§5) **chưa tồn tại** — vai trò gateway hiện do route
+> - `services/api-gateway` (§5) **chưa tồn tại** - vai trò gateway hiện do route
 >   proxy của Next đảm nhiệm.
 > - Blog và kho tài liệu (§2.1) đang là nhánh `/blog`, `/docs` của `frontend-main`
 >   chứ chưa tách thành subdomain riêng.
-> - `packages/ui` (§7.5) **đã có** với 17 component + Storybook — phần "hiện trạng
+> - `packages/ui` (§7.5) **đã có** với 17 component + Storybook - phần "hiện trạng
 >   là scaffold" ở §7 đã lỗi thời.
 > - Đã bổ sung ngoài đặc tả gốc: `services/trust-service` (con dấu tín nhiệm),
 >   chợ có ký quỹ, tin nhắn riêng.
@@ -146,7 +146,7 @@ tsudev/
 1. **SSO:** Dev team phải demo được việc đăng nhập tại auth.tsudev.com, sau đó tự động có phiên làm việc hợp lệ trên tsudev.com và có quyền tải file private từ kho lưu trữ.
 2. **Object Storage:** Khách truy cập tải một file tài liệu 100MB, header của trình duyệt phải hiển thị file được serve qua đường truyền của CDN (ví dụ cf-cache-status: HIT) chứ không tải trực tiếp từ băng thông của server backend.
 3. **Alerting:** Tạo ra một lỗi "chủ động" trên backend (ví dụ: chia cho 0 hoặc gọi một API không tồn tại), hệ thống phải tự động đẩy thông báo báo lỗi chi tiết đến Telegram @nguyentrangtinhsu và email devnguyentrangtinhsu@gmail.com trong vòng 30 giây.
-4. **Code Quality:** Không chứa hardcode credentials. Repo phải chạy được trên môi trường cục bộ bằng một lệnh khởi tạo duy nhất (`docker-compose up`, hoặc `npm run dev:full` — đường chạy không cần Docker).
+4. **Code Quality:** Không chứa hardcode credentials. Repo phải chạy được trên môi trường cục bộ bằng một lệnh khởi tạo duy nhất (`docker-compose up`, hoặc `npm run dev:full` - đường chạy không cần Docker).
 
 ---
 
@@ -156,7 +156,7 @@ Mục tiêu của phần này: xác định đầy đủ site, luồng người 
 
 7.1 Tổng quan và nguyên tắc thiết kế
 - Thiết kế tôn trọng tính nhất quán (consistency), khả năng truy cập (a11y), và khả năng mở rộng (scalability).
-- Ngôn ngữ chính: Tiếng Việt (vi-VN) — hỗ trợ song ngữ (vi / en) cho nội dung chính.
+- Ngôn ngữ chính: Tiếng Việt (vi-VN) - hỗ trợ song ngữ (vi / en) cho nội dung chính.
 - Phong cách: hiện đại, tối giản, dễ đọc, trọng tâm nội dung (content-first).
 
 7.2 Brand & Visual
@@ -223,7 +223,7 @@ Mục tiêu của phần này: xác định đầy đủ site, luồng người 
   - Storage & upload logs
 
 7.7 UX Patterns & Flows (critical)
-- Auth flow: redirect to auth.tsudev.com and return with HttpOnly cookie (wildcard domain) — avoid exposing tokens to JS where possible.
+- Auth flow: redirect to auth.tsudev.com and return with HttpOnly cookie (wildcard domain) - avoid exposing tokens to JS where possible.
 - Upload flow: client requests presigned URL from `storage-service`, uploads directly to S3/R2, then signals backend for post-processing and crawl/index.
 - Content editing: Markdown editor with preview + image uploader + autosave draft.
 - Empty/Loading/Error states: provide clear feedback (skeletons while loading, contextual empty-state illustration + action).

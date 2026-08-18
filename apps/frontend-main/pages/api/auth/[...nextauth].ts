@@ -18,7 +18,7 @@ import { identityHeaders } from '../../../lib/identity';
  *
  * KHÔNG CÒN PROVIDER `e2e-dev`. Nó nhận BẤT KỲ username nào với mật khẩu
  * `devpass`, và chỉ được gác sau `E2E_BYPASS_KEYCLOAK=1`. Ngày 16/08/2026 bản
- * production đã từng mang theo cờ đó — ai cũng đăng nhập được vào tài khoản
+ * production đã từng mang theo cờ đó - ai cũng đăng nhập được vào tài khoản
  * ADMIN, site vẫn chạy bình thường, không có gì báo lỗi. Một đường đăng nhập
  * mà độ an toàn phụ thuộc vào việc một biến môi trường KHÔNG được đặt là một
  * đường đăng nhập đang chờ tới lượt hỏng.
@@ -32,7 +32,7 @@ import { identityHeaders } from '../../../lib/identity';
  *
  * App này chạy trên Cloudflare Workers: không có kết nối Postgres và không nạp
  * được native module, nên Argon2id không thể chạy trong tiến trình này. Việc
- * kiểm nằm ở auth-service, và ràng buộc hạ tầng đó trùng với ranh giới đúng —
+ * kiểm nằm ở auth-service, và ràng buộc hạ tầng đó trùng với ranh giới đúng -
  * hash mật khẩu không nên đi qua tầng biên.
  */
 async function verifyWithIdentityService(
@@ -54,7 +54,7 @@ async function verifyWithIdentityService(
   });
   // Mã lỗi được TRẢ RA NGUYÊN VĂN cho tầng trên, không nuốt thành null: trang
   // /login cần phân biệt "sai mật khẩu" với "cần nhập mã 2FA" để biết hiện ô
-  // nào. Đây là ranh giới duy nhất mà sự phân biệt đó an toàn — người gọi đã
+  // nào. Đây là ranh giới duy nhất mà sự phân biệt đó an toàn - người gọi đã
   // qua được bước mật khẩu.
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -78,7 +78,7 @@ async function verifyWithIdentityService(
  * Provider passkey.
  *
  * Cũng là CredentialsProvider, nhưng "thông tin đăng nhập" ở đây là một chữ ký
- * WebAuthn đã được auth-service kiểm — không phải mật khẩu. Dùng lại cơ chế
+ * WebAuthn đã được auth-service kiểm - không phải mật khẩu. Dùng lại cơ chế
  * credentials của next-auth để tránh dựng một luồng phiên thứ hai chạy song
  * song với luồng đã có.
  */
@@ -153,7 +153,7 @@ const providers: Provider[] = [
 ];
 
 // Nhà cung cấp bên thứ ba: chỉ thêm khi ĐÃ cấu hình đủ. next-auth vẫn dựng ra
-// một provider khi thiếu biến — chỉ là nó không bao giờ đăng nhập được, và
+// một provider khi thiếu biến - chỉ là nó không bao giờ đăng nhập được, và
 // người dùng thấy một nút bấm không làm gì cả.
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   providers.push(
@@ -175,7 +175,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 /**
  * Vai trò hiện tại trong DB, cho callback `jwt` khi client gọi `update()`.
  *
- * Trả về null khi có bất kỳ trục trặc nào — token giữ nguyên giá trị cũ. Đó là
+ * Trả về null khi có bất kỳ trục trặc nào - token giữ nguyên giá trị cũ. Đó là
  * hướng an toàn: giá trị cũ luôn là vai trò THẤP HƠN hoặc bằng (vai trò chỉ
  * được nâng qua đường này), nên hỏng mạng dẫn tới ít quyền hơn chứ không nhiều
  * hơn. Ném lỗi ở đây thì người dùng bị đăng xuất.
@@ -221,12 +221,12 @@ export const authOptions: NextAuthOptions = {
         return token;
       }
       // Client gọi `update()` từ useSession. Vai trò đọc lại từ DB qua
-      // auth-service — KHÔNG bao giờ từ tham số mà client truyền vào, vì tham
+      // auth-service - KHÔNG bao giờ từ tham số mà client truyền vào, vì tham
       // số đó là dữ liệu người dùng và token này là thứ quyết định họ là ai.
       //
       // Cần thiết vì `token.role` chỉ được ghi ở lần đăng nhập đầu: đổi mã mời
       // xong thì DB nói VIP còn phiên vẫn nói MEMBER, và điều hướng tiếp tục
-      // giấu mục Con dấu — trông y hệt như đổi mã không có tác dụng.
+      // giấu mục Con dấu - trông y hệt như đổi mã không có tác dụng.
       if (trigger === 'update') {
         const fresh = await freshSessionState(token);
         if (fresh) {
@@ -254,7 +254,7 @@ export const authOptions: NextAuthOptions = {
         //   cookies: { ...defaultCookies(secure), ...authOptions.cookies }
         // Khai `sessionToken` là thay thế TRỌN GÓI mặc định, kể cả
         // `httpOnly: true` nằm bên trong `options`. Trước dòng này, cookie phiên
-        // của tsudev.com ĐỌC ĐƯỢC BẰNG JAVASCRIPT — nghĩa là bất kỳ lỗ XSS nào
+        // của tsudev.com ĐỌC ĐƯỢC BẰNG JAVASCRIPT - nghĩa là bất kỳ lỗ XSS nào
         // cũng nâng cấp thành chiếm tài khoản.
         httpOnly: true,
         domain: process.env.NEXTAUTH_COOKIE_DOMAIN || process.env.COOKIE_DOMAIN || undefined,

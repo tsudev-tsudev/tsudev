@@ -22,16 +22,16 @@ jobs:
       - run: npm run lint --silent
       # Cổng kiểm kiểu. Trước đây repo có typescript trong devDependencies
       # và 3 file .ts/.tsx chạy thật, nhưng KHÔNG có tsconfig nào và không
-      # có bước tsc — esbuild chỉ xoá kiểu chứ không kiểm. Bước này đóng lỗ đó.
+      # có bước tsc - esbuild chỉ xoá kiểu chứ không kiểm. Bước này đóng lỗ đó.
       # Kiểm kiểu đọc kiểu Prisma qua packages/db/src/index.d.ts, mà client của
-      # Prisma là mã SINH RA — chưa generate thì tsc không tìm thấy @prisma/client.
+      # Prisma là mã SINH RA - chưa generate thì tsc không tìm thấy @prisma/client.
       - name: Generate Prisma client
         run: npm run db:generate
       - name: Kiểm kiểu (TypeScript)
         run: npm run typecheck
 
   wasm:
-    name: WASM con dấu — artifact phải khớp mã nguồn
+    name: WASM con dấu - artifact phải khớp mã nguồn
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,14 +53,14 @@ jobs:
         working-directory: .
         run: npm --workspace packages/trust-crypto run build:wasm
       # Artifact .wasm được COMMIT vào repo vì image Docker dựng từ git và không
-      # có Rust. Bước này là thứ duy nhất chứng minh artifact đó khớp mã nguồn —
+      # có Rust. Bước này là thứ duy nhất chứng minh artifact đó khớp mã nguồn -
       # thiếu nó thì mã Rust và thứ đang ký chứng chỉ có thể trôi xa nhau mà
       # không ai biết. build:wasm đã chép vào pkg/, nên cây git bẩn = lệch.
       - name: Artifact đã commit phải khớp bản vừa dựng
         working-directory: .
         run: |
           git diff --exit-code -- packages/trust-crypto/pkg/trust_crypto.wasm \
-            || { echo "::error::pkg/trust_crypto.wasm không khớp mã nguồn Rust — chạy 'npm --workspace packages/trust-crypto run build:wasm' rồi commit lại"; exit 1; }
+            || { echo "::error::pkg/trust_crypto.wasm không khớp mã nguồn Rust - chạy 'npm --workspace packages/trust-crypto run build:wasm' rồi commit lại"; exit 1; }
 
   test:
     name: Migrate & test services
@@ -104,11 +104,11 @@ jobs:
           # dangerouslySetInnerHTML ở ba trang). Test của nó phải chạy trong CI,
           # không phải chỉ tồn tại trong repo.
           npm --workspace apps/frontend-main test
-          # Cổng tương phản của hệ token màu — đọc thẳng packages/ui/src/tokens.css.
+          # Cổng tương phản của hệ token màu - đọc thẳng packages/ui/src/tokens.css.
           npm --workspace packages/ui test
 
   e2e-app:
-    name: E2E — smoke các trang được giữ
+    name: E2E - smoke các trang được giữ
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -140,7 +140,7 @@ jobs:
       # migrate + seed. Không có nó thì getServerSideProps nuốt lỗi, trang rỗng
       # vẫn trả 200 và test xanh mà chẳng chứng minh được gì.
       # seed-demo dựng tổ chức + chứng chỉ đã ký. `db:seed` chỉ tạo chương trình
-      # dấu, KHÔNG tạo chứng chỉ nào — mà không có chứng chỉ thì /trust/directory
+      # dấu, KHÔNG tạo chứng chỉ nào - mà không có chứng chỉ thì /trust/directory
       # rỗng và trang hồ sơ uy tín không có đường nào dẫn tới. Ký bằng khoá dev
       # (chưa đặt TRUST_SIGNING_KEY) là đủ cho smoke; script tự chặn khi
       # NODE_ENV=production.
@@ -155,7 +155,7 @@ jobs:
           npm run build:services
           node services/trust-service/scripts/seed-demo.js
           # Mật khẩu cho ba tài khoản dev. Bộ E2E đăng nhập bằng đúng luồng của
-          # người dùng thật (Argon2id trong DB) — không còn provider `e2e-dev`
+          # người dùng thật (Argon2id trong DB) - không còn provider `e2e-dev`
           # nhận mọi username với `devpass`.
           npm run db:seed:dev
       # Playwright tự dựng content-service, trust-service, frontend-main và

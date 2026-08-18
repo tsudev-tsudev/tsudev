@@ -9,7 +9,7 @@
     "binding": "ASSETS"
   },
   // Tên miền tuỳ chỉnh. `custom_domain: true` khiến wrangler tự tạo luôn bản ghi
-  // DNS trong zone tsudev.com (zone phải nằm cùng tài khoản Cloudflare) — không
+  // DNS trong zone tsudev.com (zone phải nằm cùng tài khoản Cloudflare) - không
   // phải thêm tay. Cả hai host đều phục vụ; thẻ canonical do components/Seo.jsx
   // phát ra luôn trỏ về apex nên không có chuyện trùng lặp nội dung.
   "routes": [
@@ -29,7 +29,7 @@
     // see https://opennext.js.org/cloudflare/howtos/image
     "binding": "IMAGES"
   },
-  // Biến LÚC CHẠY của Worker (khác NEXT_PUBLIC_*, thứ được nội suy lúc build —
+  // Biến LÚC CHẠY của Worker (khác NEXT_PUBLIC_*, thứ được nội suy lúc build -
   // xem apps/frontend-main/.env.production). Chỉ để giá trị KHÔNG bí mật ở đây;
   // secret đặt bằng `wrangler secret put`, đừng commit.
   //
@@ -40,13 +40,13 @@
   // ⚠️ TỆP NÀY KHÔNG ĐƯỢC `npm run topology:gen` SINH RA và `topology:check`
   // KHÔNG đối chiếu nó. Thêm một service mới vào config/topology.json thì phải
   // thêm biến ở đây BẰNG TAY. Quên là biến rơi về giá trị dự phòng
-  // `http://localhost:<port>` trong lib/services.ts — Worker gọi vào chính nó và
+  // `http://localhost:<port>` trong lib/services.ts - Worker gọi vào chính nó và
   // không bao giờ tới được service. Đã xảy ra thật với AUTH_SERVICE_URL ở lần
   // phát hành đầu của auth-service: đăng nhập hỏng hoàn toàn, mà `/api/auth/
   // providers` vẫn trả về đúng nên nhìn qua thì tưởng đã xong.
   //
   // ⚠️ Đối chiếu URL này với URL Render thật sự cấp cho service `tsudev-backend`
-  // sau khi tạo — Render đổi tên nếu tên đã bị chiếm. Sai URL thì SSR nuốt lỗi
+  // sau khi tạo - Render đổi tên nếu tên đã bị chiếm. Sai URL thì SSR nuốt lỗi
   // thành danh sách rỗng (lib/api.js) nên triệu chứng là TRANG TRỐNG, không
   // phải trang lỗi.
   "vars": {
@@ -54,6 +54,7 @@
     "STORAGE_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "TRUST_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "AUTH_SERVICE_URL": "https://tsudev-backend.onrender.com",
+    "NEWSROOM_SERVICE_URL": "https://tsudev-backend.onrender.com",
     "NEXTAUTH_URL": "https://tsudev.com",
     "NEXTAUTH_COOKIE_DOMAIN": ".tsudev.com"
   }

@@ -1,4 +1,4 @@
-// tsudev — Prisma schema
+// tsudev - Prisma schema
 // Nền tảng dữ liệu chung cho toàn hệ thống (users, blog, docs, files, con dấu).
 // Provider: PostgreSQL. Local dev chạy trên cluster user-space (port 5433).
 
@@ -31,7 +31,7 @@ model User {
   /// lại (nó không tự chạy lúc boot), nên trong khoảng giữa hai bước, mã CŨ vẫn
   /// đang phục vụ. Mà `GET /api/posts` dùng `include: { author: true }` ⇒ Prisma
   /// SELECT mọi cột của User, kể cả cột này. Xoá sớm là blog và trang bài viết
-  /// 500 — và `lib/api.ts` nuốt lỗi thành [], nên triệu chứng là TRANG TRỐNG
+  /// 500 - và `lib/api.ts` nuốt lỗi thành [], nên triệu chứng là TRANG TRỐNG
   /// chứ không phải trang lỗi.
   ///
   /// Xoá ở đợt phát hành SAU, khi không còn tiến trình nào chạy schema cũ.
@@ -57,13 +57,13 @@ model User {
   /// Thu hồi phiên mà không cần bảng phiên. JWT mang số này; đổi mật khẩu hoặc
   /// "đăng xuất mọi thiết bị" thì tăng lên, và mọi token đã phát mất hiệu lực
   /// ngay. Phiên lưu DB sẽ đúng hơn về lý thuyết nhưng frontend chạy trên
-  /// Cloudflare Workers còn DB ở Neon ap-southeast-1 — nghĩa là một truy vấn
+  /// Cloudflare Workers còn DB ở Neon ap-southeast-1 - nghĩa là một truy vấn
   /// xuyên lục địa cho MỖI request.
   sessionVersion   Int       @default(0)
   /// Đếm số lần sai LIÊN TIẾP; đăng nhập thành công đặt lại về 0.
   failedLoginCount Int       @default(0)
   /// Khoá tạm sau quá nhiều lần sai. Khoá theo TÀI KHOẢN, khác với chặn theo IP
-  /// ở LoginAttempt — thiếu một trong hai thì kẻ tấn công chỉ cần đổi trục.
+  /// ở LoginAttempt - thiếu một trong hai thì kẻ tấn công chỉ cần đổi trục.
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
@@ -85,10 +85,10 @@ model OAuthAccount {
   id                String   @id @default(cuid())
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// "github" | "google" — chuỗi chứ không phải enum: thêm nhà cung cấp là dữ
+  /// "github" | "google" - chuỗi chứ không phải enum: thêm nhà cung cấp là dữ
   /// liệu, không phải migration.
   provider          String
-  /// Định danh ổn định do nhà cung cấp cấp. KHÔNG dùng email làm khoá — email
+  /// Định danh ổn định do nhà cung cấp cấp. KHÔNG dùng email làm khoá - email
   /// đổi được, và tin vào email của bên thứ ba là đường chiếm tài khoản.
   providerAccountId String
   createdAt         DateTime @default(now())
@@ -168,7 +168,7 @@ model AuthToken {
 ///
 /// Phải có TRẠNG THÁI: giao thức yêu cầu máy chủ tự nhớ challenge nó vừa phát
 /// và đối chiếu với cái quay về. Gửi challenge kèm chữ ký cho client giữ hộ sẽ
-/// phá đúng tính chất mà challenge tồn tại để bảo đảm — chống phát lại.
+/// phá đúng tính chất mà challenge tồn tại để bảo đảm - chống phát lại.
 ///
 /// `userId` NULL được: lúc đăng nhập bằng passkey khám phá được, máy chủ chưa
 /// biết đó là ai cho tới khi chữ ký được kiểm xong.
@@ -191,7 +191,7 @@ model WebAuthnChallenge {
 /// Thà chậm hơn một chút còn hơn một lớp phòng thủ chỉ tồn tại trên giấy.
 model LoginAttempt {
   id         String   @id @default(cuid())
-  /// IP hoặc tên đăng nhập — trục nào đang bị đếm.
+  /// IP hoặc tên đăng nhập - trục nào đang bị đếm.
   identifier String
   succeeded  Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -216,7 +216,17 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// --- Toà soạn Agent AI ---
+  /// Xoá mềm. Mọi truy vấn đọc công khai PHẢI thêm `deletedAt: null`; quên một
+  /// chỗ là bài đã xoá vẫn hiện ra. Xoá cứng bị trigger Postgres chặn.
+  deletedAt         DateTime?
+  /// Bản nháp đã sinh ra bản ghi này, để lần ngược về lịch sử phiên bản.
+  sourceDraftId     String?
+  /// AgentProfile.id của agent đã viết. NULL = do người viết (dữ liệu seed cũ).
+  authoredByAgentId String?
+
   @@index([published, createdAt])
+  @@index([deletedAt])
 }
 
 model Doc {
@@ -229,7 +239,17 @@ model Doc {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// --- Toà soạn Agent AI ---
+  /// Xoá mềm. Mọi truy vấn đọc công khai PHẢI thêm `deletedAt: null`; quên một
+  /// chỗ là bài đã xoá vẫn hiện ra. Xoá cứng bị trigger Postgres chặn.
+  deletedAt         DateTime?
+  /// Bản nháp đã sinh ra bản ghi này, để lần ngược về lịch sử phiên bản.
+  sourceDraftId     String?
+  /// AgentProfile.id của agent đã viết. NULL = do người viết (dữ liệu seed cũ).
+  authoredByAgentId String?
+
   @@index([category, position])
+  @@index([deletedAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -247,7 +267,7 @@ model FileObject {
 }
 
 // ---------------------------------------------------------------------------
-// Trust Seal — Nhà cung cấp Con dấu tín nhiệm
+// Trust Seal - Nhà cung cấp Con dấu tín nhiệm
 //
 // Vòng đời: tổ chức đăng ký -> xác minh sở hữu domain -> nộp đơn theo chương
 // trình -> kiểm tra tự động + admin duyệt -> cấp chứng chỉ (có serial, hạn,
@@ -292,7 +312,7 @@ enum CertificateStatus {
   EXPIRED
 }
 
-/// Cơ sở đánh giá — in trên trang xác thực để người đọc biết con dấu dựa vào
+/// Cơ sở đánh giá - in trên trang xác thực để người đọc biết con dấu dựa vào
 /// đâu. Cấp dấu pháp lý mà chỉ SELF_DECLARED là rủi ro, nên admin phải chọn.
 enum AssessmentBasis {
   SELF_DECLARED
@@ -409,7 +429,7 @@ model SealEvidence {
   @@index([applicationId])
 }
 
-/// Chứng chỉ đã cấp. `signature` là JWS Ed25519 của `payload` — bên thứ ba xác
+/// Chứng chỉ đã cấp. `signature` là JWS Ed25519 của `payload` - bên thứ ba xác
 /// minh offline được bằng khoá công khai ở /.well-known/tsudev-trust-jwks.json.
 model TrustCertificate {
   id              String            @id @default(cuid())
@@ -433,7 +453,7 @@ model TrustCertificate {
   /// Nội dung đã ký, công khai trên trang xác thực.
   payload         Json
   signature       String
-  /// `kid` của khoá đã ký — cho phép xoay khoá mà chứng chỉ cũ vẫn xác minh được.
+  /// `kid` của khoá đã ký - cho phép xoay khoá mà chứng chỉ cũ vẫn xác minh được.
   signingKeyId    String
   issuedById      String
   issuedByName    String
@@ -459,7 +479,7 @@ model TrustCheck {
   @@index([certificateId, ranAt])
 }
 
-/// Nhật ký bất biến cho mọi hành động trên hệ thống dấu — theo đúng khuôn mẫu
+/// Nhật ký bất biến cho mọi hành động trên hệ thống dấu - theo đúng khuôn mẫu
 /// ModAction của kiểm duyệt. Cần cho trách nhiệm pháp lý khi cấp dấu.
 model TrustAuditLog {
   id          String   @id @default(cuid())
@@ -481,38 +501,38 @@ model TrustAuditLog {
 //
 // Con dấu là vùng chỉ-dành-cho-khách-mời: đổi mã hợp lệ = được nâng lên
 // `Role.VIP`, và `requireRole('VIP')` ở trust-service là cổng thật. CỐ Ý dùng
-// lại `Role` thay vì thêm cột `trustAccess` riêng — một hệ phân quyền thứ hai
+// lại `Role` thay vì thêm cột `trustAccess` riêng - một hệ phân quyền thứ hai
 // chạy song song với hệ đã có đúng là thứ đã sinh ra vụ REQUIRE_ROLE_ENFORCEMENT.
 // ---------------------------------------------------------------------------
 
 model TrustInvite {
-  id String @id @default(cuid())
+  id          String    @id @default(cuid())
   /// CHỈ lưu SHA-256. Cùng lý do với AuthToken.tokenHash và BackupCode.codeHash:
   /// một bản sao DB bị rò không được phép biến thành một xấp mã mời dùng được.
   ///
   /// SHA-256 chứ không phải Argon2id, và đó là đúng: mã do CSPRNG sinh, entropy
   /// cao, không có gì để dò. Argon2 chỉ cần khi đầu vào là thứ người tự đặt.
-  codeHash String @unique
+  codeHash    String    @unique
   /// Nhãn cho người vận hành: "Đối tác ABC", "Hội thảo 09/2026". Không bao giờ
   /// hiện ra cho người đổi mã.
-  label String
+  label       String
   /// Mã dùng nhiều lần (một đối tác) hay một lần (một người).
-  maxUses   Int @default(1)
-  usedCount Int @default(0)
+  maxUses     Int       @default(1)
+  usedCount   Int       @default(0)
   /// NULL = không hết hạn.
   expiresAt   DateTime?
   createdById String
   createdAt   DateTime  @default(now())
   /// Thu hồi là đặt mốc thời gian, không phải xoá dòng: lịch sử đổi mã phải còn
   /// tra được sau khi mã bị thu hồi.
-  revokedAt DateTime?
+  revokedAt   DateTime?
 
   redemptions TrustInviteRedemption[]
 
   @@index([createdAt])
 }
 
-/// Ai đã đổi mã nào, lúc nào. Cần cho trách nhiệm pháp lý khi cấp dấu — cùng lý
+/// Ai đã đổi mã nào, lúc nào. Cần cho trách nhiệm pháp lý khi cấp dấu - cùng lý
 /// do TrustAuditLog tồn tại.
 model TrustInviteRedemption {
   id        String      @id @default(cuid())
@@ -528,7 +548,7 @@ model TrustInviteRedemption {
 }
 
 // ---------------------------------------------------------------------------
-// Dự án & bản quyền — trọng tâm mới của website
+// Dự án & bản quyền - trọng tâm mới của website
 //
 // Mỗi dòng là một dự án/tool/phần mềm do tsudev phát triển. Ba nhóm trường:
 // giới thiệu, phát hành, và bản quyền. Nhóm bản quyền là cầu nối sang Con dấu
@@ -592,7 +612,284 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// --- Toà soạn Agent AI ---
+  /// Xoá mềm, thêm ở đợt 5. Route DELETE /api/admin/projects/:slug đã đổi sang
+  /// đặt cột này TRƯỚC khi trigger chặn xoá cứng được gắn cho bảng Project -
+  /// đảo thứ tự là làm hỏng một tính năng đang chạy được.
+  deletedAt DateTime?
+
   @@index([published, sortOrder])
+  @@index([deletedAt])
   @@index([kind, status])
   @@index([copyrightStatus])
+}
+
+// ---------------------------------------------------------------------------
+// Toà soạn Agent AI (Newsroom)
+//
+// Kế hoạch đầy đủ: docs/refactor-newsroom-agents.md
+//
+// Nguyên tắc nền của cụm này, đừng phá khi sửa về sau:
+//   1. Agent làm việc trên ContentDraft, KHÔNG trên Post. Publish là phép chiếu
+//      draft -> Post/Doc. Nhờ vậy đường đọc công khai không đổi một dòng nào và
+//      tắt cả hệ agent thì site vẫn chạy y nguyên.
+//   2. NewsroomEvent là hàng đợi sự kiện VÀ nhật ký kiểm toán. Append-only.
+//      Không có đường UPDATE nội dung, chỉ đổi `status` khi claim/hoàn tất.
+//   3. Agent KHÔNG phải User và không có phiên đăng nhập. Enum Role không được
+//      thêm giá trị nào cho agent - phân quyền vẫn chỉ có một nguồn là
+//      User.role qua @tsudev/auth.
+//   4. Không bảng nào ở đây được xoá cứng. Trigger Postgres chặn DELETE; xoá là
+//      đặt deletedAt. Xem migration ..._newsroom_no_hard_delete.
+// ---------------------------------------------------------------------------
+
+enum AgentDept {
+  RESEARCH
+  EDITORIAL
+  PUBLISHING
+  SEO
+}
+
+enum AgentStatus {
+  IDLE
+  PLANNING
+  SCANNING
+  WRITING
+  REVIEWING
+  SUSPENDED
+}
+
+enum DraftStatus {
+  IDEA
+  IN_PROGRESS
+  PENDING_REVIEW
+  PENDING_HUMAN
+  REJECTED_WITH_FEEDBACK
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DraftTarget {
+  BLOG
+  DOC
+  PROJECT
+  TRUST
+}
+
+enum Autonomy {
+  FULL_AUTO
+  HUMAN_APPROVAL
+  DRAFT_ONLY
+}
+
+enum NewsroomEventStatus {
+  PENDING
+  CLAIMED
+  DONE
+  FAILED
+  DEAD
+}
+
+model AgentProfile {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  displayName String
+  title       String
+  dept        AgentDept
+  /// Hạt giống sinh avatar định danh phía client. Cố ý KHÔNG dùng ảnh upload:
+  /// tránh kéo storage-service vào một tính năng không cần nó.
+  avatarSeed  String
+
+  /// "workers-ai" | "gemini". Adapter tra bản cài theo giá trị này.
+  /// KHÔNG phải enum: thêm nhà cung cấp mới không nên cần migration.
+  provider     String @default("workers-ai")
+  model        String @default("@cf/meta/llama-3.3-70b-instruct-fp8-fast")
+  systemPrompt String
+
+  status      AgentStatus @default(IDLE)
+  /// Câu mô tả việc đang làm, hiện trên sàn ảo. Ví dụ "đang quét Hacker News".
+  statusNote  String?
+  /// SUSPEND_AGENT - chỉ ADMIN đặt được. Dispatcher bỏ qua agent bị treo.
+  suspendedAt DateTime?
+  enabled     Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  runs   AgentRun[]
+  drafts ContentDraft[] @relation("draftAuthorAgent")
+
+  @@index([dept, status])
+}
+
+/// Cấu hình mức tự chủ theo chuyên mục. Mặc định FULL_AUTO cho cả bốn theo
+/// quyết định của chủ dự án 18/08/2026; đổi sang HUMAN_APPROVAL là một câu
+/// UPDATE, không cần phát hành lại.
+model NewsroomChannel {
+  id           String      @id @default(cuid())
+  target       DraftTarget @unique
+  autonomy     Autonomy    @default(FULL_AUTO)
+  /// Hướng dẫn giọng văn cho chuyên mục này, nhét vào system prompt của Writer.
+  /// Giữ NGẮN - cửa sổ ngữ cảnh của Llama 3.3 70B nhỏ hơn Claude rất nhiều.
+  styleGuide   String
+  dailyPostCap Int         @default(2)
+  enabled      Boolean     @default(true)
+  updatedAt    DateTime    @updatedAt
+}
+
+/// Nguồn săn tin. Sửa được từ dashboard, không phải hằng số trong mã.
+model NewsroomSource {
+  id     String      @id @default(cuid())
+  label  String
+  /// "rss" | "atom" | "hn_algolia" | "manual"
+  kind   String
+  /// NULL với kind="manual" (chủ đề do người nhập tay).
+  url    String?
+  target DraftTarget
+
+  /// Nguồn báo chí: chỉ được lấy tiêu đề + mô tả + URL rồi VIẾT MỚI, không bao
+  /// giờ đăng lại toàn văn. Mặc định true và không có đường tắt trong mã.
+  rewriteOnly Boolean @default(true)
+
+  enabled    Boolean   @default(true)
+  lastScanAt DateTime?
+  /// Lỗi lần quét gần nhất. Một nguồn hỏng KHÔNG được làm hỏng cả lượt quét.
+  lastError  String?
+  createdAt  DateTime  @default(now())
+
+  ideas TopicIdea[]
+
+  @@index([enabled, lastScanAt])
+}
+
+model TopicIdea {
+  id         String      @id @default(cuid())
+  title      String
+  rationale  String
+  target     DraftTarget
+  sourceUrls String[]    @default([])
+
+  sourceId String?
+  source   NewsroomSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  score       Int    @default(0)
+  /// Chống trùng chủ đề giữa các lượt quét. sha256 của tiêu đề đã chuẩn hoá.
+  /// @unique là hàng phòng thủ cuối - Scout vẫn phải kiểm trước khi ghi.
+  fingerprint String @unique
+
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([consumedAt, score])
+}
+
+model ContentDraft {
+  id     String      @id @default(cuid())
+  target DraftTarget
+  status DraftStatus @default(IDEA)
+
+  slug      String?
+  title     String
+  excerpt   String?
+  contentMd String   @default("")
+  tags      String[] @default([])
+  metaTitle String?
+  metaDesc  String?
+
+  topicId       String?
+  authorAgentId String?
+  authorAgent   AgentProfile? @relation("draftAuthorAgent", fields: [authorAgentId], references: [id], onDelete: SetNull)
+
+  /// Đếm vòng Writer -> Editor -> Writer. Trần cứng trong mã (NEWSROOM_MAX_REVISIONS).
+  /// Không có trần là đường đốt hạn mức Neuron nhanh nhất, và nó im lặng.
+  revisionCount  Int     @default(0)
+  reviewFeedback String?
+
+  publishedPostId String?
+  /// Xoá mềm. CHỈ người đặt được - agent không có route nào chạm tới cột này.
+  deletedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  revisions DraftRevision[]
+
+  @@index([status, target, updatedAt])
+  @@index([deletedAt])
+}
+
+/// Lịch sử phiên bản bản nháp. Append-only - không có đường UPDATE nào trong mã.
+model DraftRevision {
+  id      String       @id @default(cuid())
+  draftId String
+  draft   ContentDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  seq     Int
+
+  title     String
+  contentMd String
+
+  /// "agent" | "human". Nhật ký phải phân biệt được ai sửa gì.
+  actorKind String
+  actorId   String?
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([draftId, seq])
+}
+
+model AgentRun {
+  id      String       @id @default(cuid())
+  agentId String
+  agent   AgentProfile @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  draftId String?
+
+  /// "scan" | "write" | "review" | "seo"
+  action String
+
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  /// Lease chống run treo khi tiến trình restart giữa chừng. Tick mở đầu bằng
+  /// một câu reclaim: quá hạn mà chưa endedAt thì event quay lại PENDING.
+  leaseUntil DateTime
+
+  ok       Boolean?
+  errorMsg String?
+
+  inputTokens  Int    @default(0)
+  outputTokens Int    @default(0)
+  /// Neuron tiêu thụ, KHÔNG phải tiền. Hệ này không tốn tiền - đừng đặt tên cột
+  /// là "cost" cho thứ không phải chi phí (bài học từ User.credits đã bị gỡ).
+  neuronsUsed  Int    @default(0)
+  /// Nhà cung cấp đã thực sự phục vụ lần chạy này. Cần để đọc dashboard đúng
+  /// khi adapter đã chuyển sang dự phòng giữa ngày.
+  usedProvider String @default("workers-ai")
+
+  @@index([agentId, startedAt])
+  @@index([leaseUntil])
+}
+
+/// Hàng đợi sự kiện + nguồn cấp dashboard + NHẬT KÝ KIỂM TOÁN, cùng một bảng.
+/// Append-only về nội dung: chỉ `status`/`attempts`/`claimedAt` được đổi.
+model NewsroomEvent {
+  id     String              @id @default(cuid())
+  /// "idea.created" | "draft.claimed" | "draft.submitted" | "review.approved"
+  /// | "review.rejected" | "publish.requested" | "draft.published"
+  /// | "agent.suspended" | "budget.exhausted" | "provider.switched" | ...
+  type   String
+  status NewsroomEventStatus @default(PENDING)
+
+  draftId   String?
+  agentId   String?
+  /// "agent" | "human" | "system"
+  actorKind String  @default("agent")
+
+  payload Json
+
+  attempts  Int       @default(0)
+  claimedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([draftId, createdAt])
 }

@@ -29,7 +29,7 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
 
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-3xl md:text-4xl font-bold text-ink">{program.name}</h1>
-          {/* Mọi chương trình dấu đều miễn phí — cơ chế tín dụng đã được gỡ. */}
+          {/* Mọi chương trình dấu đều miễn phí - cơ chế tín dụng đã được gỡ. */}
           <Badge tone="success" mono>
             miễn phí
           </Badge>

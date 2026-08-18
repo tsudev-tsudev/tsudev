@@ -4,7 +4,7 @@
  * Đây là tiêu chí nghiệm thu của việc chuyển sang WASM, và nó không phải hình
  * thức: chứng chỉ con dấu sống hàng năm. Nếu bản mới không xác minh nổi chữ ký
  * bản cũ đã tạo, thì mọi chứng chỉ đã cấp đồng loạt trở thành "không hợp lệ"
- * trên trang tra cứu công khai — mà không có gì báo lỗi ở phía máy chủ.
+ * trên trang tra cứu công khai - mà không có gì báo lỗi ở phía máy chủ.
  */
 const crypto = require('crypto')
 const {

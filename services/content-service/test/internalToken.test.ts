@@ -1,5 +1,5 @@
 // Cổng chặn x-internal-token (giai đoạn 5). Bốn service backend nằm ở URL Render
-// công khai vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render —
+// công khai vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render -
 // đây là lớp bù cho việc không giấu được chúng sau mạng nội bộ.
 //
 // Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
@@ -8,13 +8,13 @@ const request = require('supertest')
 const { app } = require('../src/index')
 
 // process.env dùng chung giữa các file test khi jest chạy --runInBand, nên phải
-// trả lại nguyên trạng — nếu không, file chạy sau sẽ bị cổng chặn này mà không
+// trả lại nguyên trạng - nếu không, file chạy sau sẽ bị cổng chặn này mà không
 // hiểu vì sao 401.
 afterAll(() => {
   delete process.env.INTERNAL_API_TOKEN
 })
 
-describe('content-service — cổng chặn x-internal-token', () => {
+describe('content-service - cổng chặn x-internal-token', () => {
   test('thiếu header ⇒ 401', async () => {
     const res = await request(app).get('/api/posts')
     expect(res.status).toBe(401)
@@ -30,7 +30,7 @@ describe('content-service — cổng chặn x-internal-token', () => {
     expect(res.status).not.toBe(401)
   })
 
-  test('/health đứng ngoài cổng chặn — health check của Render phải chạy', async () => {
+  test('/health đứng ngoài cổng chặn - health check của Render phải chạy', async () => {
     const res = await request(app).get('/health')
     expect(res.status).toBe(200)
   })

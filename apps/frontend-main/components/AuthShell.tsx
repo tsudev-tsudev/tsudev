@@ -9,7 +9,7 @@ import Seo from './Seo';
  *
  * Một cột hẹp, căn giữa, không có gì khác trên màn hình. Trang xác thực là nơi
  * người dùng dễ bị dẫn dụ nhất, nên nó cố ý KHÔNG có điều hướng phụ, banner hay
- * ô tìm kiếm — càng ít thứ bấm được thì càng ít thứ để giả mạo.
+ * ô tìm kiếm - càng ít thứ bấm được thì càng ít thứ để giả mạo.
  */
 type AuthShellProps = {
   title: string;
@@ -20,7 +20,7 @@ type AuthShellProps = {
 
 export const AuthShell = ({ title, description, children, footer }: AuthShellProps) => (
   <Layout active="/login">
-    <Seo title={`${title} — tsudev`} description={description} />
+    <Seo title={`${title} - tsudev`} description={description} />
     <div className="mx-auto w-full max-w-[26rem] py-6">
       <div className="rounded-lg border border-hairline bg-panel p-6 sm:p-8">
         <h1 className="text-xl font-semibold text-ink">{title}</h1>
@@ -35,7 +35,7 @@ export const AuthShell = ({ title, description, children, footer }: AuthShellPro
 /**
  * Ô thông báo lỗi/thành công.
  *
- * `role="alert"` để trình đọc màn hình đọc ngay khi nó xuất hiện — không có nó
+ * `role="alert"` để trình đọc màn hình đọc ngay khi nó xuất hiện - không có nó
  * thì người dùng bàn phím gửi form, không nghe thấy gì, và không biết vì sao
  * trang không đi tiếp.
  */

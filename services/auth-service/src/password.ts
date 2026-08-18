@@ -20,7 +20,7 @@ const OPTS = {
 } as const
 
 /**
- * Độ dài tối đa. KHÔNG phải để làm khó người dùng — là để một chuỗi 10MB không
+ * Độ dài tối đa. KHÔNG phải để làm khó người dùng - là để một chuỗi 10MB không
  * biến mỗi lần thử đăng nhập thành một đợt từ chối dịch vụ tự gây ra.
  */
 export const MAX_PASSWORD_LEN = 200
@@ -31,13 +31,13 @@ export type PasswordProblem = 'too_short' | 'too_long' | 'too_common'
 /**
  * Danh sách chặn ngắn, có chủ đích.
  *
- * Đây không phải bộ lọc mật khẩu yếu đầy đủ — thứ đó cần k-anonymity với
+ * Đây không phải bộ lọc mật khẩu yếu đầy đủ - thứ đó cần k-anonymity với
  * HaveIBeenPwned, và một lệnh gọi mạng ở giữa luồng đăng ký là một điểm hỏng
  * mới. Danh sách này chỉ chặn phần đuôi dài nhất của phân phối thực tế.
  */
 //
 // MỌI mục PHẢI dài ít nhất MIN_PASSWORD_LEN ký tự. Ngắn hơn thì `too_short`
-// bắt trước và mục đó không bao giờ với tới được — một dòng chết trông như
+// bắt trước và mục đó không bao giờ với tới được - một dòng chết trông như
 // một lớp phòng thủ. ('password' và 'password123' từng nằm ở đây đúng như vậy.)
 const COMMON = new Set([
   '123456789012',
@@ -84,11 +84,11 @@ export async function verifyPassword(hashStr: string, pw: string): Promise<boole
  * Đốt thời gian khi tài khoản KHÔNG tồn tại.
  *
  * Thiếu bước này, "không có user" trả lời trong 1ms còn "sai mật khẩu" mất
- * ~50ms — đủ để liệt kê xem địa chỉ email nào đã đăng ký.
+ * ~50ms - đủ để liệt kê xem địa chỉ email nào đã đăng ký.
  *
  * Hash được TÍNH lúc chạy từ một giá trị ngẫu nhiên, không phải hằng dán vào mã
  * nguồn: một chuỗi hằng chép sai định dạng sẽ làm `verify` ném lỗi lúc phân
- * tích rồi trả về gần như tức thì — tức là im lặng không đốt thời gian gì cả,
+ * tích rồi trả về gần như tức thì - tức là im lặng không đốt thời gian gì cả,
  * đúng thứ hàm này tồn tại để làm.
  */
 let dummyHash: Promise<string> | null = null

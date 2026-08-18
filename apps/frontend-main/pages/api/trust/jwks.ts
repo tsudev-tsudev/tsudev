@@ -1,5 +1,5 @@
 // Khoá công khai của cơ quan cấp dấu, phục vụ tại /.well-known/tsudev-trust-jwks.json
-// (xem rewrite trong next.config.js). Công khai có chủ đích — đây chính là thứ
+// (xem rewrite trong next.config.js). Công khai có chủ đích - đây chính là thứ
 // cho phép bên thứ ba tự xác minh chữ ký mà không cần tin API của tsudev.
 import type { NextApiRequest, NextApiResponse } from 'next';
 

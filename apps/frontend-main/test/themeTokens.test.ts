@@ -5,13 +5,13 @@ import { join } from 'path';
  * Màu nền của hai chế độ bị CHÉP ra ba nơi ngoài tokens.css, và cả ba đều buộc
  * phải như vậy:
  *
- *  - `pages/_document.tsx` — script chống nháy màu phải là chuỗi nội tuyến chạy
+ *  - `pages/_document.tsx` - script chống nháy màu phải là chuỗi nội tuyến chạy
  *    trước khi CSS tải xong, nên nó không đọc được biến CSS.
- *  - `packages/ui/src/components/ThemeToggle.tsx` — cập nhật <meta theme-color>
+ *  - `packages/ui/src/components/ThemeToggle.tsx` - cập nhật <meta theme-color>
  *    lúc bấm nút, cũng chạy trước khi trình duyệt tính lại style.
  *
  * Một bản sao im lặng trôi lệch ở đây cho ra thanh địa chỉ màu này còn trang
- * màu kia — sai lệch nhỏ đến mức không ai báo lỗi, nhưng trông rẻ tiền. Test
+ * màu kia - sai lệch nhỏ đến mức không ai báo lỗi, nhưng trông rẻ tiền. Test
  * này bắt chúng phải bằng nhau.
  */
 
@@ -62,7 +62,7 @@ describe('màu nền chép ra ngoài tokens.css phải khớp nguồn', () => {
       'utf8'
     );
     expect(css).toMatch(/:root\s*\{[^}]*color-scheme:\s*light/);
-    // Bảng màu KHÔNG được treo vào prefers-color-scheme — nếu có, hai người mở
+    // Bảng màu KHÔNG được treo vào prefers-color-scheme - nếu có, hai người mở
     // cùng một link sẽ thấy hai giao diện khác nhau mà không ai chọn gì cả.
     //
     // Khớp câu lệnh @media chứ không phải chuỗi trần: chính chú thích ở đầu

@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
  *
  * CÓ NỀN VÀ VIỀN RIÊNG, có chủ đích: mục lục là điều hướng chứ không phải nội
  * dung. Không tách nó ra khỏi thân bài bằng một bề mặt riêng thì ở chế độ sáng
- * nó đọc như một danh sách gạch đầu dòng nằm giữa bài — người đọc phải tự đoán
+ * nó đọc như một danh sách gạch đầu dòng nằm giữa bài - người đọc phải tự đoán
  * đâu là chỗ bấm được.
  *
  * Mục đang đọc được đánh dấu bằng IntersectionObserver. Việc đó không phải để
@@ -67,7 +67,7 @@ export const TableOfContents = ({
             <li key={item.id}>
               <a
                 href={`#${item.id}`}
-                // aria-current cho trình đọc màn hình biết mục nào đang đọc —
+                // aria-current cho trình đọc màn hình biết mục nào đang đọc -
                 // màu chữ và thanh dọc chỉ nói điều đó với người nhìn thấy.
                 aria-current={active ? 'location' : undefined}
                 className={`block border-l-2 py-1 pr-2 text-sm transition-colors ${

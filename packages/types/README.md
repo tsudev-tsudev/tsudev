@@ -2,7 +2,7 @@
 
 Kiểu và hằng dùng chung giữa các service và app.
 
-Không có bước build — `src/index.js` được import trực tiếp. Package nội bộ, không
+Không có bước build - `src/index.js` được import trực tiếp. Package nội bộ, không
 publish; vì thế Docker build phải lấy context là **gốc repo**, xem
 [../../docs/deployment.md](../../docs/deployment.md).
 

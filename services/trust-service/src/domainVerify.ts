@@ -1,6 +1,6 @@
 'use strict'
 /**
- * Xác minh quyền kiểm soát domain — ba cách, khách chọn một:
+ * Xác minh quyền kiểm soát domain - ba cách, khách chọn một:
  *
  *   DNS_TXT   bản ghi TXT tại _tsudev-trust.<hostname> chứa
  *             tsudev-trust-verification=<token>
@@ -15,7 +15,7 @@ import { promises as dns } from 'dns'
 import type { LookupAddress } from 'dns'
 import net from 'net'
 
-/** Kết quả một lần kiểm tra. Luôn có cả hai trường — không nhánh nào trả rỗng. */
+/** Kết quả một lần kiểm tra. Luôn có cả hai trường - không nhánh nào trả rỗng. */
 export type CheckResult = { ok: boolean; detail: string }
 
 /**
@@ -44,7 +44,7 @@ function isValidHostname(h: unknown): boolean {
   return /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/.test(s)
 }
 
-/** Dải IP nội bộ — chặn để service không bị dùng làm bàn đạp quét mạng nội bộ. */
+/** Dải IP nội bộ - chặn để service không bị dùng làm bàn đạp quét mạng nội bộ. */
 function isPrivateAddress(ip: string): boolean {
   if (net.isIPv4(ip)) {
     // Mặc định -1 giữ ĐÚNG ngữ nghĩa bản cũ: khi thiếu octet, mọi so sánh đều
@@ -70,7 +70,7 @@ function isPrivateAddress(ip: string): boolean {
  *
  * Đây là biện pháp giảm thiểu SSRF theo thông lệ, không tuyệt đối: vẫn còn khe
  * TOCTOU giữa lúc phân giải và lúc fetch (DNS rebinding). Muốn chặn triệt để
- * thì phải ghim IP đã kiểm tra vào tầng socket — ghi lại đây để sau này siết.
+ * thì phải ghim IP đã kiểm tra vào tầng socket - ghi lại đây để sau này siết.
  */
 async function assertPublicHost(hostname: string): Promise<void> {
   // `{ all: true }` cho MẢNG địa chỉ. Khai thẳng kiểu vì suy diễn từ
@@ -84,7 +84,7 @@ async function assertPublicHost(hostname: string): Promise<void> {
   if (!addrs.length) throw new Error('Tên miền không có bản ghi địa chỉ')
   for (const a of addrs) {
     if (isPrivateAddress(a.address)) {
-      throw new Error(`Tên miền trỏ vào địa chỉ nội bộ (${a.address}) — không chấp nhận`)
+      throw new Error(`Tên miền trỏ vào địa chỉ nội bộ (${a.address}) - không chấp nhận`)
     }
   }
 }

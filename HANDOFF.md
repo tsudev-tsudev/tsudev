@@ -1,4 +1,4 @@
-# Phiếu bàn giao — sau đợt xác thực tự quản lý và tái cấu trúc giao diện (16/08/2026)
+# Phiếu bàn giao - sau đợt xác thực tự quản lý và tái cấu trúc giao diện (16/08/2026)
 
 > **Trạng thái tạm.** Xong hết §1 thì **xoá file này** và xoá dòng trỏ tới nó ở
 > đầu `CLAUDE.md`. Để lâu nó thành tầng tài liệu thứ hai nói khác `docs/`.
@@ -12,20 +12,24 @@
 
 **Không còn việc chặn nào.** Production đã đăng nhập được (§0.5 đã xong 17/08).
 
+➡️ **Phiên mới: đọc [§0.8 Bàn giao phiên 3](#08-bàn-giao-phiên-3-18082026--đọc-trước)
+trước tiên.** Có hai PR chưa gộp (#12, #13) và chính tệp này nằm trong cả hai -
+bản trên `main` đã cũ.
+
 Thứ tự đề nghị:
 
-1. **PHÁT HÀNH đợt 2 (mã mời).** Mã đã xong và xanh hết cổng kiểm nhưng **chưa
+1. **Gộp #12 + #13, rồi PHÁT HÀNH đợt 2 (mã mời).** Mã đã xong và xanh hết cổng kiểm nhưng **chưa
    lên sóng**. Thứ tự: `prisma migrate deploy` lên Neon (thuần tính cộng, hai
    `CREATE TABLE`) → gộp PR (Render dựng lại) → `npm --workspace
 apps/frontend-main run deploy`. Dấu hiệu bản mới đã lên sóng:
    `POST /api/identity/invite/redeem` không kèm khẳng định danh tính trả **401**
    ở bản mới, **404** ở bản cũ.
-2. **§1.9 đợt 3 — gác bề mặt Con dấu + SEO + điều hướng.** Làm cuối vì đó là đợt
-   duy nhất có thể khoá nhầm chính mình ra ngoài — và giờ đã có đường vào lại
+2. **§1.9 đợt 3 - gác bề mặt Con dấu + SEO + điều hướng.** Làm cuối vì đó là đợt
+   duy nhất có thể khoá nhầm chính mình ra ngoài - và giờ đã có đường vào lại
    (cấp mã ở `/admin/trust`, đổi ở `/trust/redeem`).
-3. **§1.7 đợt A — trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
+3. **§1.7 đợt A - trang quản lý tài khoản.** Khoảng trống lớn nhất về sản phẩm:
    không có route nào cho người dùng sửa hồ sơ của chính mình.
-4. **§1.5 — rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 và §1.9 thì rà
+4. **§1.5 - rà giao diện bằng MẮT.** Chưa ai nhìn. Làm sau §1.7 và §1.9 thì rà
    một lần cho cả trang mới.
 5. Còn lại: §1.10 dọn service Render trùng (10 phút, làm lúc nào cũng được) ·
    §1.1 ping giữ ấm · §1.4 CSP · §1.3 npm audit · §1.6 xoá cột `keycloakId` ·
@@ -46,18 +50,18 @@ Biến môi trường/secret production: **`backup/production-env-2026-08-16.txt
 
 Ba thứ mất là không sinh lại được:
 
-- `TRUST_SIGNING_KEY` — mất là chứng chỉ đã cấp không xác minh nổi.
-- `TOTP_ENCRYPTION_KEY` — mất là mọi thiết bị 2FA đang dùng hỏng.
-- `INTERNAL_IDENTITY_SECRET` — sinh lại được, nhưng phải đổi ĐỒNG THỜI ở
+- `TRUST_SIGNING_KEY` - mất là chứng chỉ đã cấp không xác minh nổi.
+- `TOTP_ENCRYPTION_KEY` - mất là mọi thiết bị 2FA đang dùng hỏng.
+- `INTERNAL_IDENTITY_SECRET` - sinh lại được, nhưng phải đổi ĐỒNG THỜI ở
   Cloudflare Workers và Render; lệch nhau là mọi đường ghi trả 401.
 
 ---
 
-## 0. ~~Phát hành~~ — ✅ XONG 16/08
+## 0. ~~Phát hành~~ - ✅ XONG 16/08
 
 PR #1 (20 commit) và PR #2 đã gộp vào `main`; production đang chạy mã mới.
 
-Thứ tự đã thực hiện — **không được đảo ở lần sau**:
+Thứ tự đã thực hiện - **không được đảo ở lần sau**:
 
 1. `prisma migrate deploy` lên Neon (2 migration, đều thuần tính cộng).
    Nghiệm thu ngay sau đó: site chạy mã CŨ vẫn liệt kê bài viết thật.
@@ -77,7 +81,7 @@ Thứ tự đã thực hiện — **không được đảo ở lần sau**:
 | `POST /api/identity/register` với username sai định dạng | **400 `invalid_username`** |
 
 Phép kiểm cuối là phép kiểm QUAN TRỌNG NHẤT, và nó được chọn có lý do: thử đăng
-nhập bằng mật khẩu sai cho ra 401 — nhưng cổng `INTERNAL_API_TOKEN` bị thiếu
+nhập bằng mật khẩu sai cho ra 401 - nhưng cổng `INTERNAL_API_TOKEN` bị thiếu
 cũng cho ra đúng 401 ở tầng NextAuth, nên phép thử đó **không phân biệt được**
 "mật khẩu bị từ chối" với "request chưa bao giờ tới auth-service". `400
 invalid_username` thì chỉ có thể đến từ route handler của auth-service.
@@ -94,12 +98,12 @@ toàn**, trong khi `/api/auth/providers` vẫn trả về đúng nên nhìn qua 
 mã thoát 1 khi thiếu biến). **Thêm service mới ⇒ vẫn phải khai biến ở
 `wrangler.jsonc` bằng tay**, chỉ khác là nay quên sẽ bị chặn.
 
-## 0.5 ~~Production không đăng nhập được~~ — ✅ XONG 17/08
+## 0.5 ~~Production không đăng nhập được~~ - ✅ XONG 17/08
 
 Đã kiểm trực tiếp trên Neon: `tsudev` có `passwordHash`, `lastLoginAt` =
 2026-08-17T13:33:18Z. Chủ dự án đã đặt mật khẩu và đăng nhập thành công.
 
-`emailVerifiedAt` vẫn rỗng — không chặn gì, nhưng luồng "quên mật khẩu" sẽ xác
+`emailVerifiedAt` vẫn rỗng - không chặn gì, nhưng luồng "quên mật khẩu" sẽ xác
 minh luôn nếu chạy qua nó một lần.
 
 ### Bài học giữ lại (đây là lý do mục này không bị xoá hẳn)
@@ -127,13 +131,113 @@ production: `docs/auth.md` §5.
 - Bốn cổng gốc xanh · **219 test JS** · 9 test Rust · **13 E2E**.
 - Production đang chạy mã của `main`. Neon đã áp dụng **9 migration**.
 
-⚠️ **CÓ thay đổi đang treo (phiên 3):** đợt 2 của §1.9 (mã mời) đã xong ở cây
-làm việc — 6 tệp mã, 1 migration, 2 tệp test, 4 tệp tài liệu. **Chưa commit,
-chưa phát hành.** Neon chưa có migration `20260817172916_trust_invite`.
+---
+
+## 0.8 Bàn giao phiên 3 (18/08/2026) - ĐỌC TRƯỚC
+
+### ⚠️ Nếu bạn đang đọc bản này trên `main` thì nó đã CŨ
+
+Phiên 3 để lại **hai PR chưa gộp**, và chính tệp này được sửa trong cả hai. Bản
+trên `main` nói "đợt 2 chưa làm" - **sai**. Đợt 2 đã xong.
+
+| PR                                                     | Nhánh                           | Nội dung                                       |
+| ------------------------------------------------------ | ------------------------------- | ---------------------------------------------- |
+| [#12](https://github.com/tsudev-tsudev/tsudev/pull/12) | `feat/trust-invite-codes`       | §1.9 đợt 2 - mã mời. 19 tệp, +1370/−28         |
+| [#13](https://github.com/tsudev-tsudev/tsudev/pull/13) | `docs/render-duplicate-service` | §1.10 + chẩn đoán `tsudev-backend-rqkz`. 2 tệp |
+
+Cả hai `MERGEABLE`; `git merge-tree` khô cho **0 xung đột** nên gộp thứ tự nào
+cũng được. **Việc đầu tiên của phiên mới là gộp chúng**, nếu không mọi thứ đọc
+được từ `main` đều lệch một nhịp.
+
+### Việc 1 - PHÁT HÀNH đợt 2 (mã mời)
+
+Mã đã xong, xanh hết cổng kiểm, **chưa lên sóng**. Neon **chưa** có migration
+`20260817172916_trust_invite`.
+
+⚠️ Thứ tự đợt này **NGƯỢC** với đợt 1 (đợt 1 là `DROP COLUMN` nên code đi trước;
+đợt này là thêm bảng nên migration đi trước):
+
+1. `prisma migrate deploy` lên Neon - thuần tính cộng, hai `CREATE TABLE`, không
+   đụng bảng nào đang có. Mã cũ đang chạy không biết hai bảng đó tồn tại.
+2. Gộp #12 ⇒ Render dựng lại `tsudev-backend` (~160s).
+3. `npm --workspace apps/frontend-main run deploy`.
+
+Dấu hiệu bản mới đã lên sóng - phải là thứ THAY ĐỔI giữa hai bản, `/health` thì
+không (xem §0.7):
+
+```
+POST /api/identity/invite/redeem   không kèm khẳng định danh tính
+  → 401 ở bản mới · 404 ở bản cũ
+```
+
+Nghiệm thu sau khi lên sóng: đăng nhập bằng `tsudev`, cấp một mã ở
+`/admin/trust`, đổi nó ở `/trust/redeem` bằng một tài khoản khác. Đây là loại
+tính năng **chỉ lộ lỗi khi bấm thật**.
+
+### Việc 2 - §1.9 đợt 3 (gác bề mặt + SEO + điều hướng)
+
+Đợt cuối của kế hoạch, và là đợt **duy nhất có thể khoá nhầm chính mình ra
+ngoài**. Làm được rồi vì mã mời đã chạy: có đường vào lại qua `/trust/redeem`.
+
+Chỉ có code, **không migration**. Ba thứ phải sửa **TRONG CÙNG MỘT COMMIT**:
+`AUTH_PREFIXES` của trust-service · `PUBLIC_PREFIXES`/`PRIVATE_PREFIXES` của
+`pages/api/trust/[...path].ts` · `authCoverage.test.ts`. Lệch một nhịp là hoặc
+route riêng tư lộ ra, hoặc trang công khai chết - **cả hai đều im lặng**.
+
+⚠️ Đợt 3 lọc điều hướng theo `session.role`. Vai trò trong phiên **chỉ đúng sau
+khi làm mới** - `token.role` của next-auth chỉ được ghi ở lần đăng nhập đầu.
+Đường sửa đã có sẵn từ đợt 2 (`POST /api/identity/session-state` + nhánh
+`trigger === 'update'` ở callback `jwt`); `/trust/redeem` đã tự gọi `update()`.
+Trang nào của đợt 3 dựa vào `session.role` mà không đi qua đường đó sẽ thấy vai
+trò cũ.
+
+Kế hoạch đầy đủ + danh sách cổng kiểm bắt buộc:
+[`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).
+
+### Việc 3 - §1.10 dọn service Render trùng
+
+10 phút, làm lúc nào cũng được, nằm trong PR #13. Không phải sự cố production.
+
+### Có người khác đang làm song song - ĐỪNG quét chung vào commit của mình
+
+Nhánh **`feat/minio-user-space`** (MinIO user-space cho dev: `scripts/start-minio.sh`,
+`scripts/ensure-bucket.js`, `minio:up` trong `package.json`, mục mới ở
+`docs/development.md`) **không phải của phiên 3**. Nó xuất hiện trong cây làm
+việc giữa phiên và đã suýt bị `git add -A` quét vào PR #12.
+
+⚠️ **Nhánh đó CHƯA được đẩy lên remote** - commit `2776c15` chỉ tồn tại trên máy
+này, không có upstream. Nó không phải việc của phiên 3 nên phiên 3 không đẩy hộ,
+nhưng phiên sau cần biết: xoá nhánh hay dựng lại máy là mất hẳn. Hỏi chủ dự án
+trước khi đụng vào.
+
+Bài học dùng lại được: **trước khi commit, đối chiếu danh sách staged với danh
+sách tệp mình thực sự sửa.** `git status --short` trước và sau khi làm việc,
+hoặc đơn giản là `ls -l --time-style=+%H:%M` để xem mtime - tệp của người khác
+có dấu thời gian không khớp với phiên của mình.
+
+### Trạng thái máy dev khi bàn giao
+
+- Postgres user-space đang chạy ở `5433`; migration của đợt 2 **đã áp dụng cục bộ**.
+- DB dev đã seed lại; `alice` đã trả về `MEMBER`, mã mời do E2E sinh đã xoá.
+- Một stack dev (`3000/4001/4002/4003/4004/8080`) đang chạy từ trước phiên 3.
+  E2E chạy bằng `E2E_REUSE_SERVER=1` để bám vào nó - **mặc định là dựng mới**, và
+  mặc định đó có lý do (xem chú thích trong `e2e/playwright.config.js`).
+
+### Vết đã trả giá ở phiên 3
+
+- **`gh pr create` gặp GitHub API 503 suốt ~5 phút** trong khi `git push` (HTTPS)
+  vẫn chạy bình thường - hai đường khác nhau, GraphQL hỏng riêng. Lần thử đầu trả
+  503 **sau khi** đã gửi request, nên phải `gh pr list` kiểm trước khi thử lại,
+  nếu không dễ tạo PR trùng. Mất 6 lần thử.
+- **Thêm tệp spec E2E mới thì phải khai vào `testMatch`** của một project trong
+  `e2e/playwright.config.js`. Playwright **không** tự nhặt; quên là spec đó im
+  lặng không bao giờ chạy, và triệu chứng duy nhất là số test không tăng.
+- **`docs/testing.md` từng ghi sai** rằng "E2E không chạy trong CI". Project `app`
+  **vẫn** chạy ở job `e2e-app`. Đã sửa trong PR #12.
 
 ---
 
-## 0.7 Kỹ thuật rút ra từ phiên trước — dùng lại được
+## 0.7 Kỹ thuật rút ra từ phiên trước - dùng lại được
 
 Bốn thứ đã trả giá để học, ghi lại để khỏi học lần nữa.
 
@@ -142,7 +246,7 @@ Bốn thứ đã trả giá để học, ghi lại để khỏi học lần nữ
 `/health` của backend không đổi giữa các lần phát hành, nên nó chỉ nói "còn
 sống", không nói "đã mới". Chọn một trường thật sự khác nhau:
 
-- Đợt gỡ tín dụng: `/api/trust/programs` — mã cũ trả `feeCredits`, mã mới không.
+- Đợt gỡ tín dụng: `/api/trust/programs` - mã cũ trả `feeCredits`, mã mới không.
   Chờ nó biến mất (mất ~80 giây) rồi mới chạy migration `DROP`.
 - Đợt thêm auth-service: `/health` trả `bundled` có `identity` hay chưa.
 
@@ -151,19 +255,19 @@ Chạy bước phá huỷ trước khi có dấu hiệu này là tự tạo cử
 ### ⚠️ Đừng truyền DATABASE_URL thật vào `--shadow-database-url`
 
 `prisma migrate diff --shadow-database-url "$DATABASE_URL"` dùng DB đó theo cách
-**PHÁ HUỶ** — nó xoá bảng `_prisma_migrations`, và lần `migrate deploy` sau đó
+**PHÁ HUỶ** - nó xoá bảng `_prisma_migrations`, và lần `migrate deploy` sau đó
 chết với `P3005`. Đã xảy ra với DB dev (dựng lại được bằng `migrate reset`);
 nếu lỡ tay trỏ vào production thì hậu quả khác hẳn.
 
 `prisma migrate dev --create-only` từ chối chạy khi không có TTY nếu thay đổi
-làm **mất dữ liệu** (`DROP COLUMN`) — đó là lý do phải dùng `migrate diff`. Cách
+làm **mất dữ liệu** (`DROP COLUMN`) - đó là lý do phải dùng `migrate diff`. Cách
 an toàn: so hai TỆP schema (`--from-schema-datamodel` cũ lấy từ git,
 `--to-schema-datamodel` mới), không cần DB nào cả.
 
 ### Grep theo TỪ KHOÁ trên cả cây, đừng grep trong danh sách tệp đoán trước
 
 Khảo sát cho đợt gỡ tín dụng đếm "3 trang frontend" vì chỉ quét ba tệp đã biết
-tên. Thực tế là 4 — `trust/portal.tsx` lọt lưới. Hai đợt còn lại của §1.9 khảo
+tên. Thực tế là 4 - `trust/portal.tsx` lọt lưới. Hai đợt còn lại của §1.9 khảo
 sát theo đúng kiểu đó, nên rất dễ lặp lại.
 
 ### `wrangler.jsonc` KHÔNG được `topology:gen` sinh ra
@@ -173,25 +277,25 @@ là biến rơi về `http://localhost:<port>` và Worker gọi vào chính nó.
 với `AUTH_SERVICE_URL` (đăng nhập hỏng hoàn toàn, trong khi
 `/api/auth/providers` vẫn trả đúng nên nhìn qua tưởng xong).
 
-`topology:check` nay canh tệp đó — nhưng nó chỉ kiểm SỰ CÓ MẶT, không kiểm giá
+`topology:check` nay canh tệp đó - nhưng nó chỉ kiểm SỰ CÓ MẶT, không kiểm giá
 trị. Giá trị vẫn phải điền tay.
 
 ---
 
 ## 1. Việc còn dở
 
-### 1.1 Dựng bộ ping giữ ấm — 🟠 CHƯA LÀM
+### 1.1 Dựng bộ ping giữ ấm - 🟠 CHƯA LÀM
 
 Free tier cấp 750 giờ instance/tháng cho **cả tài khoản**; một service chạy liên
 tục tiêu 720 giờ. Nay chỉ còn MỘT service (`tsudev-backend`) nên toàn bộ ngân
-sách dồn về nó — không còn phải đánh đổi với đường đăng nhập như khi còn
+sách dồn về nó - không còn phải đánh đổi với đường đăng nhập như khi còn
 Keycloak. Ping `https://tsudev-backend.onrender.com/health` mỗi 5 phút.
 
 **Đừng dùng GitHub Actions cron.** Repo private, mỗi lần chạy tính tối thiểu 1
 phút ⇒ ~8.600 phút/tháng, vượt xa hạn mức 2.000. Dùng UptimeRobot free hoặc
 Better Stack free.
 
-### 1.2 ~~Giới hạn tần suất~~ — ✅ XONG 16/08
+### 1.2 ~~Giới hạn tần suất~~ - ✅ XONG 16/08
 
 - Đường đăng nhập: hai trục (theo IP qua bảng `LoginAttempt`, theo tài khoản qua
   `failedLoginCount`/`lockedUntil`) trong `services/auth-service/src/throttle.ts`.
@@ -200,19 +304,19 @@ Better Stack free.
 
 ⚠️ **Bộ đếm của trust-service nằm trong RAM và giả định ĐÚNG MỘT tiến trình.**
 Giả định đó đúng hôm nay (`backend-bundle` là một tiến trình) và **vỡ** nếu chạy
-nhiều bản — lúc đó ngưỡng thực tế nhân lên theo số bản. Chú thích đầu tệp ghi rõ.
+nhiều bản - lúc đó ngưỡng thực tế nhân lên theo số bản. Chú thích đầu tệp ghi rõ.
 
-### 1.3 `npm audit`: 7 lỗ, 4 mức cao — 🟠 CHƯA LÀM
+### 1.3 `npm audit`: 7 lỗ, 4 mức cao - 🟠 CHƯA LÀM
 
-`sharp` kế thừa CVE của libvips qua `next`; sửa cần nâng lên `next@16` —
+`sharp` kế thừa CVE của libvips qua `next`; sửa cần nâng lên `next@16` -
 breaking. Phải là **đợt riêng có test đầy đủ**, đừng nhét vào commit khác.
 `qs` qua `express` thì `npm audit fix` xử lý được, không breaking.
 
-### 1.4 Bật CSP thật — 🟡 CHƯA LÀM
+### 1.4 Bật CSP thật - 🟡 CHƯA LÀM
 
 CSP đang ở **`Content-Security-Policy-Report-Only`, CÓ CHỦ ĐÍCH**, không phải
 quên. Trình duyệt PUT thẳng lên endpoint R2 bằng URL presign, mà host đó đến từ
-biến môi trường chứ không biết được lúc build — bật chặn mù là upload chết **mà
+biến môi trường chứ không biết được lúc build - bật chặn mù là upload chết **mà
 không có lỗi nào phía máy chủ**.
 
 Cách bật: mở site, thao tác thật vài phút (đăng nhập, xem blog, **upload một
@@ -224,7 +328,7 @@ tệp**, **đăng ký một passkey**), xem Console. Không có dòng "Report On
 > CSP thật sẽ chặn nó trừ khi có `'unsafe-inline'` hoặc một nonce. Xử lý trước
 > khi bật, nếu không mọi lần tải trang đều nháy trắng ở chế độ tối.
 
-### 1.5 Kiểm giao diện bằng MẮT — 🟠 CHƯA LÀM
+### 1.5 Kiểm giao diện bằng MẮT - 🟠 CHƯA LÀM
 
 Đợt tái cấu trúc giao diện được canh bằng cổng tương phản tự động
 (`packages/ui/test/contrast.test.ts`, 68 phép kiểm) và E2E, nhưng **chưa ai nhìn
@@ -234,7 +338,7 @@ cục đẹp hay khoảng cách hợp lý.
 Cần rà tay ở cả hai chế độ, ưu tiên: trang chủ · `/blog/[slug]` (mục lục mới) ·
 `/login` · `/settings/security` · `/admin/projects` · `/trust`.
 
-### 1.6 Xoá cột `User.keycloakId` — 🟡 CHỜ mã mới lên sóng
+### 1.6 Xoá cột `User.keycloakId` - 🟡 CHỜ mã mới lên sóng
 
 Hoãn khỏi đợt phát hành trước có chủ đích (xem §0). Cột vẫn còn trong schema,
 nên Prisma Client đang chạy ở production VẪN SELECT nó.
@@ -251,14 +355,14 @@ nên Prisma Client đang chạy ở production VẪN SELECT nó.
 Đảo lại là `GET /api/posts` 500 ⇒ `lib/api.ts` nuốt thành `[]` ⇒ **trang trống**.
 
 Mọi giá trị trong cột đều NULL và không dòng mã nào đọc nó, nên đây thuần tuý là
-dọn dẹp — không có dữ liệu nào mất.
+dọn dẹp - không có dữ liệu nào mất.
 
 ---
 
-### 1.7 KHÔNG CÓ trang quản lý tài khoản / thông tin cá nhân — 🟠 CHƯA LÀM
+### 1.7 KHÔNG CÓ trang quản lý tài khoản / thông tin cá nhân - 🟠 CHƯA LÀM
 
 Đây là khoảng trống lớn nhất còn lại về mặt sản phẩm, không phải một chi tiết
-thiếu. `/settings/security` chỉ có 2FA và passkey — nó được dựng để hai cơ chế
+thiếu. `/settings/security` chỉ có 2FA và passkey - nó được dựng để hai cơ chế
 đó không thành mã chết, chứ không phải để quản lý tài khoản.
 
 #### Hiện trạng đã đo
@@ -275,20 +379,20 @@ chủ động gọi:
 
 Hệ quả trên ba cột đang tồn tại trong schema:
 
-- **`displayName`** — đặt một lần lúc đăng ký (hoặc mặc định bằng username), sau
+- **`displayName`** - đặt một lần lúc đăng ký (hoặc mặc định bằng username), sau
   đó KHÔNG có đường nào đổi. Nó lại là thứ hiển thị công khai dưới mỗi bài viết
   (`authorCard` của content-service).
-- **`avatarUrl`** — chỉ xuất hiện trong khai báo kiểu và trong `authorCard`.
+- **`avatarUrl`** - chỉ xuất hiện trong khai báo kiểu và trong `authorCard`.
   Không có gì GHI vào nó.
-- **`bio`** — grep toàn bộ `services/`, `apps/`, `packages/`: không nơi nào đọc.
+- **`bio`** - grep toàn bộ `services/`, `apps/`, `packages/`: không nơi nào đọc.
   Cột chết, chỉ được `seed.js` điền một lần.
 
-Cũng không có `/admin/users` — quản trị chỉ có dự án và con dấu.
+Cũng không có `/admin/users` - quản trị chỉ có dự án và con dấu.
 
 #### Vì sao thành ra thế
 
 Site vốn dùng Keycloak, nơi bảng `User` được `resolveUser()` tự tạo ÂM THẦM từ
-token — không ai "có tài khoản" theo nghĩa sản phẩm, chỉ có một dòng dữ liệu để
+token - không ai "có tài khoản" theo nghĩa sản phẩm, chỉ có một dòng dữ liệu để
 gắn quyền. Không có đăng ký thì cũng không có gì để quản lý.
 
 Khái niệm tài khoản chỉ thành thật ở đợt vừa rồi, khi thêm đăng ký/mật khẩu/2FA/
@@ -307,10 +411,10 @@ ngoài phạm vi được giao, nên không được dựng.
 
 Đổi mật khẩu phải đòi mật khẩu hiện tại: cookie phiên bị đánh cắp KHÔNG được
 phép đủ để đổi mật khẩu. Xong thì tăng `sessionVersion` để đá mọi phiên khác.
-Khuôn có sẵn — `totp/disable` đã làm đúng kiểu đó.
+Khuôn có sẵn - `totp/disable` đã làm đúng kiểu đó.
 
 Đường ghi đi qua proxy CÓ PHIÊN `pages/api/account/[...path].ts`, không phải
-`pages/api/identity/[...path].ts` (proxy công khai). Hai tệp, hai mức bảo vệ —
+`pages/api/identity/[...path].ts` (proxy công khai). Hai tệp, hai mức bảo vệ -
 thêm nhầm nhánh là mở một route đáng lẽ phải đăng nhập.
 
 **Đợt B** chạm vào chiếm tài khoản và nghĩa vụ ở `/privacy`, làm riêng có test
@@ -320,7 +424,7 @@ thêm nhầm nhánh là mở một route đáng lẽ phải đăng nhập.
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Đổi email         | phải xác minh địa chỉ MỚI trước khi thay. Thay trước rồi mới gửi thư xác minh là đường chiếm tài khoản: kẻ chiếm phiên đổi email sang của mình rồi dùng "quên mật khẩu". |
 | Xem/thu hồi phiên | cơ chế đã có (`sessionVersion`), chỉ thiếu giao diện                                                                                                                     |
-| Xoá tài khoản     | `Post.authorId` và `FileObject.ownerId` đều `onDelete: SetNull` nên xoá được mà không mất nội dung. Nhớ xoá kèm passkey/TOTP/mã dự phòng — `onDelete: Cascade` đã lo.    |
+| Xoá tài khoản     | `Post.authorId` và `FileObject.ownerId` đều `onDelete: SetNull` nên xoá được mà không mất nội dung. Nhớ xoá kèm passkey/TOTP/mã dự phòng - `onDelete: Cascade` đã lo.    |
 
 #### Thứ tự
 
@@ -328,22 +432,22 @@ thêm nhầm nhánh là mở một route đáng lẽ phải đăng nhập.
 bấm thật**, nên nghiệm thu phải là đăng nhập vào production rồi thao tác, không
 phải chỉ chạy test.
 
-### 1.8 Cân nhắc: đường chẩn đoán cho tài khoản không có mật khẩu — 🟡
+### 1.8 Cân nhắc: đường chẩn đoán cho tài khoản không có mật khẩu - 🟡
 
 Thông điệp đăng nhập cố ý không phân biệt "không có tài khoản" / "sai mật khẩu"
 / "tài khoản chưa đặt mật khẩu". Đúng về chống dò tài khoản, nhưng §0.5 cho thấy
 nó làm chính chủ tài khoản mắc kẹt và mất nhiều lượt mới chẩn đoán ra.
 
-KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai. Hai hướng an toàn:
+KHÔNG sửa bằng cách nới thông điệp ra - đó là đánh đổi sai. Hai hướng an toàn:
 
 - Ghi log ở auth-service khi rơi vào nhánh `!user.passwordHash` (có username),
   để người vận hành đọc được mà người ngoài thì không.
 - Trang `/login` thêm gợi ý trung tính kiểu "Tài khoản mới hoặc chưa từng đặt
-  mật khẩu? Dùng Quên mật khẩu." — không tiết lộ gì về một tài khoản cụ thể.
+  mật khẩu? Dùng Quên mật khẩu." - không tiết lộ gì về một tài khoản cụ thể.
 
 ---
 
-### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng — 🟡 ĐANG LÀM (2/3 đợt xong)
+### 1.9 Đưa Con dấu về chế độ mời + gỡ tín dụng - 🟡 ĐANG LÀM (2/3 đợt xong)
 
 > **Đợt 1 (gỡ tín dụng) đã XONG và đã phát hành 17/08/2026.** Ba cột
 > `User.credits`, `SealProgram.feeCredits`, `SealApplication.feeCharged` không
@@ -357,7 +461,7 @@ KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai
 >
 > Một bổ sung ngoài kế hoạch, **đợt 3 phụ thuộc vào nó**: `token.role` của
 > next-auth CHỈ được ghi ở lần đăng nhập đầu, nên đổi mã xong thì DB nói VIP còn
-> phiên vẫn nói MEMBER — điều hướng tiếp tục giấu mục Con dấu, trông y hệt như
+> phiên vẫn nói MEMBER - điều hướng tiếp tục giấu mục Con dấu, trông y hệt như
 > đổi mã không có tác dụng. Đã thêm `POST /api/identity/session-state` và nhánh
 > `trigger === 'update'` ở callback `jwt` để đọc lại vai trò TỪ DB (không bao
 > giờ từ tham số client truyền vào). Đợt 3 lọc điều hướng theo `session.role`
@@ -366,11 +470,11 @@ KHÔNG sửa bằng cách nới thông điệp ra — đó là đánh đổi sai
 > **Còn đợt 3 (gác bề mặt + SEO).** Đợt đó chỉ có code, không migration.
 >
 > Bài học từ đợt 1, áp dụng cho đợt còn lại: kế hoạch ước lượng "3 trang
-> frontend" nhưng thực tế là 4 — `trust/portal.tsx` lọt lưới vì lần khảo sát đầu
+> frontend" nhưng thực tế là 4 - `trust/portal.tsx` lọt lưới vì lần khảo sát đầu
 > grep trong danh sách tệp đoán trước thay vì grep từ khoá trên cả cây.
 
 **Kế hoạch đầy đủ: [`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md).**
-Phạm vi đã được chủ dự án chốt 16/08/2026 — **không còn câu nào phải hỏi trước
+Phạm vi đã được chủ dự án chốt 16/08/2026 - **không còn câu nào phải hỏi trước
 khi bắt đầu.**
 
 Chốt: **mọi trang liên quan tới chứng chỉ/huy hiệu chỉ truy cập và nhìn thấy
@@ -379,7 +483,7 @@ Chốt: **mọi trang liên quan tới chứng chỉ/huy hiệu chỉ truy cập
 
 Cái giá của quyết định đó, đã đếm trên Neon: **0 chứng chỉ · 0 tổ chức · 0 đơn ·
 0 tên miền**. Không có huy hiệu nào đang chạy trên site bên thứ ba, nên không có
-gì để hỏng — quyết định này hôm nay tốn con số không.
+gì để hỏng - quyết định này hôm nay tốn con số không.
 
 Bốn điều phải biết trước khi mở kế hoạch:
 
@@ -388,12 +492,12 @@ Bốn điều phải biết trước khi mở kế hoạch:
    ⇒ migration trước, code sau. Gộp vào một lần là trang trống ở production.
    (Cả hai đã làm đúng thứ tự; đợt 3 không có migration nên ràng buộc này hết
    hiệu lực sau khi đợt 2 lên sóng.)
-2. **Phần A (gác bề mặt) làm CUỐI CÙNG** — đó là đợt duy nhất có thể khoá nhầm
+2. **Phần A (gác bề mặt) làm CUỐI CÙNG** - đó là đợt duy nhất có thể khoá nhầm
    chính mình ra ngoài. Làm sau thì mã mời đã chạy và có đường vào lại.
-3. **`credits` KHÔNG phải cột chết** (gotcha riêng ở `CLAUDE.md`) — gỡ nó là gỡ
+3. **`credits` KHÔNG phải cột chết** (gotcha riêng ở `CLAUDE.md`) - gỡ nó là gỡ
    cả cơ chế thu phí: 9 chỗ trong trust-service, 4 chương trình trong seed,
    3 trang frontend.
-4. **JWKS được đề nghị giữ công khai** — nó chỉ chứa khoá công khai, không tiết
+4. **JWKS được đề nghị giữ công khai** - nó chỉ chứa khoá công khai, không tiết
    lộ khách hàng/chứng chỉ nào. Gác nó không che giấu gì mà chỉ làm hỏng xác
    minh chữ ký ngoại tuyến. Chủ dự án muốn gác luôn cũng được, chỉ cần biết là
    nó không bảo vệ điều gì.
@@ -401,7 +505,7 @@ Bốn điều phải biết trước khi mở kế hoạch:
 Điểm phải quyết lại TRONG TƯƠNG LAI (ghi trong kế hoạch, đừng quyết bây giờ):
 khi cấp chứng chỉ đầu tiên cho khách hàng THẬT, phải trả lời "khách vãng lai bấm
 vào huy hiệu thì thấy gì". `TRUST_ISSUER` được ký vào chứng chỉ nên URL xác minh
-là cố định vĩnh viễn. Serial hiện có dạng tuần tự `TSU-CR-2026-000123` — nếu sau
+là cố định vĩnh viễn. Serial hiện có dạng tuần tự `TSU-CR-2026-000123` - nếu sau
 này chọn hình "URL-năng-lực" thì phải đổi cách sinh serial TRƯỚC lần cấp đầu.
 
 Hệ quả đã ghi nhận: **SEO không còn đến từ Con dấu.** Mục tiêu "đạt tiêu chí SEO"
@@ -410,10 +514,10 @@ phải do blog · tài liệu · dự án gánh. Với Con dấu, việc SEO duy
 
 ---
 
-### 1.10 Dọn service Render trùng `tsudev-backend-rqkz` — 🟠 CHƯA LÀM
+### 1.10 Dọn service Render trùng `tsudev-backend-rqkz` - 🟠 CHƯA LÀM
 
 Mỗi lần deploy, hộp thư nhận `deploy failed for tsudev-backend-rqkz`. **Đó không
-phải sự cố production** — nó là một service THỨ HAI chưa bao giờ khởi động nổi vì
+phải sự cố production** - nó là một service THỨ HAI chưa bao giờ khởi động nổi vì
 không có secret nào (`render.yaml` khai `NODE_ENV: production` bằng giá trị
 literal, còn 11 biến kia là `sync: false`), nên nó chết ngay lúc nạp module ở
 `services/trust-service/src/signing.ts`.
@@ -424,7 +528,7 @@ service tồn tại trong tài khoản.
 
 ⚠️ **Thứ tự khi dọn: xoá Blueprint instance TRƯỚC, rồi mới xoá service.** Xoá mỗi
 service mà để blueprint lại thì lần push sau nó dựng lại y nguyên. Và sau khi gỡ
-blueprint phải xác nhận `tsudev-backend` còn bật Auto-Deploy — nếu đường deploy
+blueprint phải xác nhận `tsudev-backend` còn bật Auto-Deploy - nếu đường deploy
 tự động lâu nay do blueprint kéo thì gỡ xong sẽ thành "đã gộp PR rồi mà
 production vẫn chạy mã cũ".
 
@@ -437,6 +541,6 @@ Chẩn đoán đầy đủ, ba rủi ro nếu để nguyên, và cảnh báo "đ
 
 - **Storybook không nằm trong CI** và root còn ghim `react@18.3.1` cho nó. App
   thật chạy React 19. Đợt này thêm prop `inputRef` cho `Input` thay vì dựa vào
-  `ref` đi lọt qua `...props` — chính vì khoảng cách đó.
+  `ref` đi lọt qua `...props` - chính vì khoảng cách đó.
 - **`documents-tsudev.md` là ĐẶC TẢ, không phải hiện trạng.** Nó vẫn mô tả
   Keycloak. Mã nguồn là hiện trạng.

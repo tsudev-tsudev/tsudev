@@ -1,5 +1,5 @@
 {
-  // Solution file — không chứa mã nguồn nào (`files: []`), chỉ liệt kê thứ tự
+  // Solution file - không chứa mã nguồn nào (`files: []`), chỉ liệt kê thứ tự
   // biên dịch. Thêm workspace vào TypeScript ⇒ thêm một dòng vào `references`.
   // Thiếu dòng đó thì workspace ấy KHÔNG được kiểm kiểu và không có gì báo lỗi.
   "files": [],
@@ -14,6 +14,7 @@
     { "path": "services/storage-service" },
     { "path": "services/trust-service" },
     { "path": "services/auth-service" },
+    { "path": "services/newsroom-service" },
     { "path": "services/backend-bundle" }
   ]
 }

@@ -5,7 +5,7 @@
 // cá nhân 2025 buộc công bố đầu mối tiếp nhận yêu cầu của chủ thể dữ liệu.
 //
 // MỌI GIÁ TRỊ Ở ĐÂY ĐỀU HIỂN THỊ CÔNG KHAI trên /terms, /privacy, /rules. Đừng
-// để chuỗi giữ chỗ dạng "[…]" lọt vào — nó render nguyên văn ra trang pháp lý,
+// để chuỗi giữ chỗ dạng "[…]" lọt vào - nó render nguyên văn ra trang pháp lý,
 // vừa sai vừa trông như hỏng. Đã từng xảy ra với "[số ĐKKD]".
 //
 // tsudev do một CÁ NHÂN vận hành, không phải pháp nhân: `legalName` trùng
@@ -28,7 +28,7 @@ export const OPERATOR = {
   phone: '0329577500',
 };
 
-// Ngày ban hành/hiệu lực của chính các văn bản này trên tsudev — không phải
+// Ngày ban hành/hiệu lực của chính các văn bản này trên tsudev - không phải
 // ngày hiệu lực của luật.
 export const DOC_DATES = {
   effective: '01/08/2026',

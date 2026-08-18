@@ -5,7 +5,7 @@ build monorepo (Turbo/Nx): mọi thứ chạy qua `npm --workspace <path> run <s
 
 **Một app, ba service.** tsudev là website dự án cá nhân: dự án/bản quyền, blog,
 tài liệu và con dấu tín nhiệm. Diễn đàn, chợ ký quỹ, tin nhắn và hồ sơ thành
-viên đã được gỡ — xem [refactor-personal-site.md](refactor-personal-site.md).
+viên đã được gỡ - xem [refactor-personal-site.md](refactor-personal-site.md).
 
 ## Bản đồ
 
@@ -23,15 +23,15 @@ packages/
   @tsudev/types      kiểu dùng chung
   @tsudev/utils      tiện ích dùng chung
   brand/             ảnh gốc logo/avatar/favicon + script sinh asset
-  observability/     initSentry.js · notify.js (Telegram/email) — thư mục thuần,
+  observability/     initSentry.js · notify.js (Telegram/email) - thư mục thuần,
                      không có package.json, import theo đường dẫn tương đối
 ```
 
 ## Luồng request
 
 Ở dev, mọi thứ trình duyệt chạm tới đi qua **một cổng vào duy nhất**
-(`scripts/dev-proxy.js`, cổng 8080) và phân biệt bằng subdomain —
-`tsudev.localhost`, `auth.…`, `cdn.…` — đúng hình trạng production. Bảng cổng:
+(`scripts/dev-proxy.js`, cổng 8080) và phân biệt bằng subdomain -
+`tsudev.localhost`, `auth.…`, `cdn.…` - đúng hình trạng production. Bảng cổng:
 `config/topology.json`.
 
 ```
@@ -50,13 +50,13 @@ Prisma → PostgreSQL      ·      S3/R2 (chỉ storage-service)
 **Trình duyệt không bao giờ gọi thẳng cổng service.** Hai đường vào service:
 
 - **Đọc công khai** (blog, docs, dự án, danh bạ dấu) đi qua
-  `getServerSideProps` — chạy trên server, không cần proxy.
+  `getServerSideProps` - chạy trên server, không cần proxy.
 - **Ghi và đọc riêng tư** đi qua route proxy; trình duyệt không tự khai được vai
   trò của mình, danh tính lấy từ phiên next-auth rồi tiêm vào header.
 
 | Proxy                                        | Đích            |
 | -------------------------------------------- | --------------- |
-| `/api/content/[...path]` — chỉ nhánh `admin` | content-service |
+| `/api/content/[...path]` - chỉ nhánh `admin` | content-service |
 | `/api/storage/[...path]`                     | storage-service |
 | `/api/trust/[...path]`, `/api/trust/jwks`    | trust-service   |
 
@@ -65,35 +65,35 @@ hạ tầng phía sau đổi được mà không phiền ai. Thêm endpoint serv
 thêm/mở rộng proxy tương ứng, nếu không trình duyệt sẽ chặn CORS.
 
 Cả `/api/content/*` và `/api/trust/*` dùng **danh sách trắng tiền tố**, không
-phải danh sách đen: nhánh chưa khai thì 404. Bỏ sót một nhánh là nó không chạy —
+phải danh sách đen: nhánh chưa khai thì 404. Bỏ sót một nhánh là nó không chạy -
 an toàn hơn lỡ mở cả `/api`.
 
 ## Bề mặt API
 
 Đầy đủ trong mã (`services/*/src/index.js`). Nhóm chính:
 
-- **content-service** — `/api/posts`, `/api/docs`, `/api/projects`,
+- **content-service** - `/api/posts`, `/api/docs`, `/api/projects`,
   `/api/admin/projects` (chỉ ADMIN)
-- **storage-service** — `/api/presign`, `/api/upload`, `/api/files`
-- **trust-service** — `/api/trust/*`, `/api/trust/admin/*`,
+- **storage-service** - `/api/presign`, `/api/upload`, `/api/files`
+- **trust-service** - `/api/trust/*`, `/api/trust/admin/*`,
   `/.well-known/tsudev-trust-jwks.json`
 
 Mọi service có `GET /health` (Render dùng làm health check).
-`content-service` có `GET /debug/boom` chỉ bật ngoài production — dùng để nghiệm
+`content-service` có `GET /debug/boom` chỉ bật ngoài production - dùng để nghiệm
 thu đường cảnh báo (§6.3 của TSD).
 
 ## Dữ liệu
 
 Một database PostgreSQL, một schema Prisma dùng chung
-(`packages/db/prisma/schema.prisma`). Các service **không** có DB riêng — đây là
+(`packages/db/prisma/schema.prisma`). Các service **không** có DB riêng - đây là
 microservice về mặt tiến trình, không phải về mặt dữ liệu.
 
 13 model: `User` `Post` `Doc` `FileObject` `Project`, cộng 8 model của con dấu
 (`TrustOrganization` `TrustDomain` `SealProgram` `SealApplication`
 `SealEvidence` `TrustCertificate` `TrustCheck` `TrustAuditLog`).
 
-- Vai trò: enum `Role` = `GUEST`, `MEMBER`, `VIP`, `MODERATOR`, `ADMIN` — mặc định `MEMBER`.
-- Migration đã áp dụng là **bất biến** — sửa file cũ làm lệch checksum và
+- Vai trò: enum `Role` = `GUEST`, `MEMBER`, `VIP`, `MODERATOR`, `ADMIN` - mặc định `MEMBER`.
+- Migration đã áp dụng là **bất biến** - sửa file cũ làm lệch checksum và
   `prisma migrate deploy` sẽ dừng, kéo theo CI đỏ và deploy không boot. Cần đổi
   thì tạo migration mới.
 - Đổi `schema.prisma` xong phải chạy `npm run db:generate`, nếu không build

@@ -1,6 +1,6 @@
 require('source-map-support').install()
 require('dotenv').config()
-// npm workspace đặt cwd ở thư mục service, nơi không có .env — nạp thêm .env ở
+// npm workspace đặt cwd ở thư mục service, nơi không có .env - nạp thêm .env ở
 // gốc repo. Giống ba service kia.
 if (!process.env.DATABASE_URL) {
   require('dotenv').config({ path: require('path').join(__dirname, '../../../.env') })
@@ -77,7 +77,7 @@ const str = (v: unknown, max = 400): string => (typeof v === 'string' ? v.slice(
 
 /** Tên đăng nhập: chữ, số, gạch dưới, gạch ngang, chấm. Không phân biệt hoa thường. */
 const USERNAME_RE = /^[a-z0-9](?:[a-z0-9._-]{1,30})[a-z0-9]$/
-/** Kiểm email ở mức "có đúng một @ và hai bên không rỗng" — phần còn lại do việc gửi thư tự chứng minh. */
+/** Kiểm email ở mức "có đúng một @ và hai bên không rỗng" - phần còn lại do việc gửi thư tự chứng minh. */
 const EMAIL_RE = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/
 
 // ---------------------------------------------------------------------------
@@ -100,14 +100,14 @@ app.post(
     const pwProblem = checkPasswordPolicy(password)
     if (pwProblem) return res.status(400).json({ error: 'weak_password', detail: pwProblem })
 
-    // Tên đăng nhập bị chiếm thì PHẢI nói thẳng — người dùng cần chọn tên khác,
+    // Tên đăng nhập bị chiếm thì PHẢI nói thẳng - người dùng cần chọn tên khác,
     // và tên đăng nhập vốn công khai trên site nên không có gì để giấu.
     const takenName = await prisma.user.findUnique({ where: { username }, select: { id: true } })
     if (takenName) return res.status(409).json({ error: 'username_taken' })
 
     // Email trùng thì NGƯỢC LẠI: trả về như thể đã tạo xong. Nói "email này đã
     // đăng ký" biến form đăng ký thành công cụ dò xem ai có tài khoản ở đây.
-    // Người sở hữu thật vẫn biết chuyện gì xảy ra — họ nhận được thư báo.
+    // Người sở hữu thật vẫn biết chuyện gì xảy ra - họ nhận được thư báo.
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
       const link = `${siteUrl()}/login`
@@ -141,7 +141,7 @@ app.post(
 )
 
 // ---------------------------------------------------------------------------
-// Kiểm thông tin đăng nhập — do NextAuth authorize() gọi
+// Kiểm thông tin đăng nhập - do NextAuth authorize() gọi
 //
 // Đây là service DUY NHẤT đọc User.passwordHash. `apps/frontend-main` chạy trên
 // Cloudflare Workers: nó không có kết nối Postgres và không nạp được native
@@ -182,7 +182,7 @@ app.post(
     }
 
     // Mật khẩu ĐÚNG nhưng tài khoản đang bị khoá tạm. Chỉ tới nhánh này mới nói
-    // ra chuyện khoá — người đang đứng đây đã chứng minh họ biết mật khẩu, nên
+    // ra chuyện khoá - người đang đứng đây đã chứng minh họ biết mật khẩu, nên
     // câu trả lời không tiết lộ gì cho người ngoài.
     if (accountIsLocked(user)) {
       await recordAttempt(ip, false)
@@ -194,7 +194,7 @@ app.post(
     // --- Bước hai: TOTP -----------------------------------------------------
     //
     // Chỉ tính khi người dùng ĐÃ XÁC NHẬN (confirmedAt khác null). Một bí mật đã
-    // tạo nhưng chưa xác nhận nghĩa là họ mới quét mã QR rồi bỏ dở — coi đó là
+    // tạo nhưng chưa xác nhận nghĩa là họ mới quét mã QR rồi bỏ dở - coi đó là
     // đã bật 2FA sẽ khoá chính họ ra khỏi tài khoản.
     const totp = await prisma.totpCredential.findUnique({ where: { userId: user.id } })
     if (totp?.confirmedAt) {
@@ -315,7 +315,7 @@ app.post(
  * `updateMany` có điều kiện `usedAt: null` là thứ làm cho "một lần" là thật:
  * hai request đến cùng lúc thì chỉ một cái đếm được 1 dòng đã đổi.
  *
- * Mã lưu dưới dạng SHA-256 — không phải Argon2id, và đó là đúng: mã do CSPRNG
+ * Mã lưu dưới dạng SHA-256 - không phải Argon2id, và đó là đúng: mã do CSPRNG
  * sinh, entropy cao, không có gì để dò.
  */
 async function consumeBackupCode(userId: string, supplied: string): Promise<boolean> {
@@ -333,7 +333,7 @@ async function consumeBackupCode(userId: string, supplied: string): Promise<bool
 }
 
 // ---------------------------------------------------------------------------
-// Quản lý 2FA — cần đăng nhập
+// Quản lý 2FA - cần đăng nhập
 //
 // Gắn xác thực theo NHÁNH: mọi thứ dưới /api/identity/totp đòi khẳng định danh
 // tính của BFF. Các route phía trên (đăng ký, quên mật khẩu) cố ý công khai vì
@@ -342,7 +342,7 @@ async function consumeBackupCode(userId: string, supplied: string): Promise<bool
 const auth = createAuthMiddleware('auth')
 app.use('/api/identity/totp', auth)
 
-/** Sinh bí mật mới và trả về URI để quét. CHƯA bật 2FA — phải xác nhận đã. */
+/** Sinh bí mật mới và trả về URI để quét. CHƯA bật 2FA - phải xác nhận đã. */
 app.post(
   '/api/identity/totp/setup',
   asyncHandler(async (req, res) => {
@@ -401,7 +401,7 @@ app.post(
   })
 )
 
-/** Tắt 2FA. Đòi mật khẩu hiện tại — cookie phiên bị đánh cắp không đủ để tháo. */
+/** Tắt 2FA. Đòi mật khẩu hiện tại - cookie phiên bị đánh cắp không đủ để tháo. */
 app.post(
   '/api/identity/totp/disable',
   asyncHandler(async (req, res) => {
@@ -425,7 +425,7 @@ app.post(
 //
 // Hai luồng, hai mức bảo vệ khác nhau:
 //   - ĐĂNG KÝ khoá mới đòi đã đăng nhập (gắn auth theo nhánh, bên dưới).
-//   - ĐĂNG NHẬP bằng khoá thì công khai — người gọi chưa có danh tính nào.
+//   - ĐĂNG NHẬP bằng khoá thì công khai - người gọi chưa có danh tính nào.
 // ---------------------------------------------------------------------------
 
 /** Công khai: xin thử thách để đăng nhập bằng passkey. */
@@ -537,7 +537,7 @@ app.post(
 )
 
 // ---------------------------------------------------------------------------
-// Trạng thái phiên — cần đăng nhập
+// Trạng thái phiên - cần đăng nhập
 // ---------------------------------------------------------------------------
 app.use('/api/identity/session-state', auth)
 
@@ -546,7 +546,7 @@ app.use('/api/identity/session-state', auth)
  *
  * Tồn tại vì `token.role` của next-auth chỉ được ghi ở lần đăng nhập ĐẦU TIÊN.
  * Sau khi đổi mã mời, DB nói VIP còn phiên vẫn nói MEMBER, nên điều hướng tiếp
- * tục giấu mục Con dấu — trông y hệt như việc đổi mã không có tác dụng, và
+ * tục giấu mục Con dấu - trông y hệt như việc đổi mã không có tác dụng, và
  * không có lỗi nào để lần theo.
  *
  * Chỉ trả về ba trường. Đây là đường mà callback `jwt` gọi, và bất cứ thứ gì
@@ -566,7 +566,7 @@ app.post(
 )
 
 // ---------------------------------------------------------------------------
-// Mã mời vào Con dấu tín nhiệm — cần đăng nhập
+// Mã mời vào Con dấu tín nhiệm - cần đăng nhập
 //
 // Đổi mã GHI VÀO `User.role`, tức là nó thuộc ranh giới danh tính, không phải
 // của trust-service. trust-service chỉ việc gọi requireRole('VIP') và không cần
@@ -585,7 +585,7 @@ const requireAdmin = async (req: Request, res: Response) => {
     return null
   }
   // Đọc vai trò từ DB, không từ claim. Claim `role` trong khẳng định danh tính
-  // CHỈ ĐỂ THAM KHẢO — xem gotcha REQUIRE_ROLE_ENFORCEMENT ở CLAUDE.md.
+  // CHỈ ĐỂ THAM KHẢO - xem gotcha REQUIRE_ROLE_ENFORCEMENT ở CLAUDE.md.
   if (user.role !== 'ADMIN') {
     res.status(403).json({ error: 'forbidden' })
     return null
@@ -636,7 +636,7 @@ app.post(
     if (!outcome.ok) {
       await recordAttempt(ip, false)
       // 'exhausted' nói ra được vì tới đó thì mã đã được chứng minh là có thật
-      // và người gọi đã đăng nhập — không còn gì để dò.
+      // và người gọi đã đăng nhập - không còn gì để dò.
       return res.status(outcome.reason === 'exhausted' ? 409 : 400).json({
         error: outcome.reason === 'exhausted' ? 'invite_exhausted' : 'invite_invalid',
       })
@@ -652,7 +652,7 @@ app.post(
   })
 )
 
-/** ADMIN: sinh mã mới. Mã thô trả về ĐÚNG MỘT LẦN — DB chỉ giữ SHA-256. */
+/** ADMIN: sinh mã mới. Mã thô trả về ĐÚNG MỘT LẦN - DB chỉ giữ SHA-256. */
 app.post(
   '/api/identity/invite/create',
   asyncHandler(async (req, res) => {
@@ -686,7 +686,7 @@ app.post(
   })
 )
 
-/** ADMIN: liệt kê. KHÔNG bao giờ trả `codeHash` — nó là bí mật đã băm, không phải id. */
+/** ADMIN: liệt kê. KHÔNG bao giờ trả `codeHash` - nó là bí mật đã băm, không phải id. */
 app.post(
   '/api/identity/invite/list',
   asyncHandler(async (req, res) => {
@@ -702,7 +702,7 @@ app.post(
   })
 )
 
-/** ADMIN: thu hồi. Đặt mốc thời gian chứ không xoá — lịch sử đổi mã phải còn. */
+/** ADMIN: thu hồi. Đặt mốc thời gian chứ không xoá - lịch sử đổi mã phải còn. */
 app.post(
   '/api/identity/invite/revoke',
   asyncHandler(async (req, res) => {
@@ -758,7 +758,7 @@ function publicInvite(row: {
  *
  * KHÔNG có giá trị dự phòng cắm cứng. Một fallback sai ở đây nghĩa là thư đặt
  * lại mật khẩu mang liên kết trỏ vào hư không, mà lỗi đó chỉ lộ ra ở hộp thư
- * của người dùng — không log nào bắt được. Biến này do `npm run topology:gen`
+ * của người dùng - không log nào bắt được. Biến này do `npm run topology:gen`
  * sinh vào .env, và init() từ chối khởi động ở production nếu thiếu.
  */
 function siteUrl(): string {
@@ -779,17 +779,17 @@ app.use(onError)
  * Chuẩn bị lúc khởi động: dọn token đã hết hạn và nhật ký thử đăng nhập cũ.
  *
  * backend-bundle gọi hàm này cho từng service ở chế độ gộp. Không có nó thì
- * hai bảng chỉ-ghi này lớn mãi — AuthToken hết hạn không còn dùng được nữa
+ * hai bảng chỉ-ghi này lớn mãi - AuthToken hết hạn không còn dùng được nữa
  * nhưng vẫn là hash của thứ từng là bí mật, nên giữ lại là nợ chứ không phải
  * tài sản.
  */
 export async function init(): Promise<void> {
   // Thiếu ở production = mọi liên kết trong thư đều hỏng, và hỏng ở một nơi
-  // không quan sát được. Chết ồn ào lúc khởi động thay vì âm thầm lúc chạy —
+  // không quan sát được. Chết ồn ào lúc khởi động thay vì âm thầm lúc chạy -
   // cùng khuôn với TRUST_SIGNING_KEY của trust-service.
   if (process.env.NODE_ENV === 'production' && !siteUrl()) {
     throw new Error(
-      '[auth] NEXT_PUBLIC_MAIN_URL bắt buộc ở production — liên kết trong thư dựng từ nó'
+      '[auth] NEXT_PUBLIC_MAIN_URL bắt buộc ở production - liên kết trong thư dựng từ nó'
     )
   }
   try {

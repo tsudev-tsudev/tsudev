@@ -18,7 +18,7 @@ type AdminMessage = { tone: string; text: string };
 
 /**
  * Trạng thái của biểu mẫu. Mọi ô nhập là CHUỖI kể cả khi cột trong DB là số
- * hoặc ngày — đó là cách <input> hoạt động, và giả vờ ngược lại chỉ đẩy việc ép
+ * hoặc ngày - đó là cách <input> hoạt động, và giả vờ ngược lại chỉ đẩy việc ép
  * kiểu sang chỗ khác. `sortOrder` được parse một lần lúc gửi đi.
  */
 type ProjectForm = {
@@ -421,7 +421,7 @@ export default function AdminProjects() {
                 </div>
                 {/* Nút hành động KHÔNG có nền và viền riêng. Ở một danh sách,
                     mỗi hàng có hai nút đặc là hai mảng màu lặp lại xuống hết
-                    trang — chúng át cả nội dung mà chúng phục vụ. Màu icon (hổ
+                    trang - chúng át cả nội dung mà chúng phục vụ. Màu icon (hổ
                     phách = sửa, đỏ = xoá) đã mang đủ tín hiệu; nền chỉ xuất hiện
                     khi rê chuột. */}
                 <div className="flex shrink-0 gap-1">

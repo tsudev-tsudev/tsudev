@@ -1,11 +1,11 @@
-// Proxy CÓ PHIÊN tới auth-service — quản lý bảo mật của chính tài khoản mình.
+// Proxy CÓ PHIÊN tới auth-service - quản lý bảo mật của chính tài khoản mình.
 //
 // Tách khỏi pages/api/identity/[...path].ts một cách CÓ CHỦ ĐÍCH: hai tệp, hai
 // mức bảo vệ. Tệp kia phục vụ người chưa đăng nhập (đăng ký, quên mật khẩu);
 // tệp này đòi phiên hợp lệ và ký khẳng định danh tính gửi xuống.
 //
 // Gộp chung rồi rẽ nhánh bên trong là cách để một ngày nào đó thêm nhầm một
-// route vào nhánh sai — và không có gì báo lỗi.
+// route vào nhánh sai - và không có gì báo lỗi.
 import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 

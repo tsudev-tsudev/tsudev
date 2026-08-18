@@ -3,7 +3,7 @@ import type { GetServerSidePropsContext } from 'next';
 
 // Sinh động thay vì để tĩnh trong public/ chỉ vì một lý do: dòng Sitemap phải
 // mang URL TUYỆT ĐỐI, mà origin thật chỉ biết được từ NEXT_PUBLIC_MAIN_URL lúc
-// build. File tĩnh sẽ phải hardcode tên miền — đúng thứ config/topology.json
+// build. File tĩnh sẽ phải hardcode tên miền - đúng thứ config/topology.json
 // sinh ra để dẹp.
 
 export async function getServerSideProps({ res }: GetServerSidePropsContext) {

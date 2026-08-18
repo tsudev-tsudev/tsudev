@@ -1,7 +1,7 @@
 // Truy vấn trust-service từ phía server (getServerSideProps).
 //
 // Khác lib/api.js: ở đây KHÔNG nuốt lỗi thành mảng rỗng. Trang xác thực mà âm
-// thầm hiện "không tìm thấy" khi thực chất service chết là sai lệch nguy hiểm —
+// thầm hiện "không tìm thấy" khi thực chất service chết là sai lệch nguy hiểm -
 // người đọc sẽ tưởng con dấu giả. Nên hàm verify phân biệt rõ ba trường hợp:
 // tìm thấy / không tồn tại / không kiểm tra được.
 
@@ -31,7 +31,7 @@ export const trust = {
 
   /**
    * Ba trạng thái, không phải hai. Union phân biệt được khiến việc đọc
-   * `.certificate` mà chưa kiểm `state === 'found'` thành lỗi biên dịch — trước
+   * `.certificate` mà chưa kiểm `state === 'found'` thành lỗi biên dịch - trước
    * đây trang xác thực có thể vô tình coi "service chết" là "chứng chỉ giả".
    */
   async verify(serial: string): Promise<VerifyOutcome> {
@@ -87,7 +87,7 @@ export type StatusMeta = { label: string; tone: string; note: string };
 /**
  * Tra STATUS_META an toàn.
  *
- * `status` tới từ API nên là chuỗi tự do — tra bảng bằng nó cho ra
+ * `status` tới từ API nên là chuỗi tự do - tra bảng bằng nó cho ra
  * `undefined` với mọi trạng thái chưa biết, và các trang trước đây viết
  * `STATUS_META[c.status] || {}` rồi đọc `.label` trên object rỗng, tức là hiện
  * "undefined" thay vì trạng thái. Hàm này luôn trả một mục đọc được.
@@ -110,4 +110,4 @@ export const basisMeta = (basis: string | null | undefined): BasisMeta =>
 export const fmtDate = (d: string | number | Date | null | undefined): string =>
   d
     ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '—';
+    : '-';

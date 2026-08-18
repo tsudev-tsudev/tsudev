@@ -12,7 +12,7 @@ module.exports = {
         //
         // Trước đây ở đây còn một thang `primary` 50→900 cắm cứng mã hex, song
         // song với bảng token. Hai bảng màu trong một dự án thì chúng sẽ lệch
-        // nhau, và thang cắm cứng KHÔNG đổi theo chế độ — dùng `bg-primary-100`
+        // nhau, và thang cắm cứng KHÔNG đổi theo chế độ - dùng `bg-primary-100`
         // ở chế độ tối cho ra một mảng xanh nhạt chói giữa nền đen.
         surface: 'var(--surface)',
         panel: 'var(--panel)',
@@ -30,7 +30,7 @@ module.exports = {
         warning: 'var(--warning)',
         error: 'var(--error)',
         onvivid: 'var(--on-vivid)',
-        // Màu icon theo chức năng — dùng qua `text-icon-create`, `text-icon-danger`…
+        // Màu icon theo chức năng - dùng qua `text-icon-create`, `text-icon-danger`…
         icon: {
           nav: 'var(--icon-nav)',
           create: 'var(--icon-create)',

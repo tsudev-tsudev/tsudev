@@ -1,4 +1,4 @@
-/* Vỏ ngoài cho Storybook — bám theo token của site.
+/* Vỏ ngoài cho Storybook - bám theo token của site.
    Storybook hiện chỉ dựng chế độ SÁNG (mặc định của site). Muốn xem chế độ tối
    thì đặt data-theme="dark" lên <html> bằng devtools; Storybook KHÔNG nằm trong
    CI nên một nút chuyển ở đây sẽ không có gì canh nó.

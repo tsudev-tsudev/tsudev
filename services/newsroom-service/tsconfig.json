@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // CommonJS có chủ đích, giống bốn service kia - backend-bundle điều phối
+    // bằng require() và một bảng tiền tố đường dẫn.
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../../packages/types" }, { "path": "../../packages/auth" }]
+}

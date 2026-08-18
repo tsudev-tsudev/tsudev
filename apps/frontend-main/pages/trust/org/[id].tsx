@@ -11,7 +11,7 @@ import { routeParam } from '../../../lib/identity';
 // Trang này cố ý KHÔNG hiển thị một "điểm uy tín" tổng hợp. Điểm số trông có
 // thẩm quyền hơn thứ nó đo được, và người đọc không kiểm chứng được cách tính.
 // Bốn chỉ số thô, mỗi cái truy về được nguồn (chứng chỉ, tên miền, lịch sử giám
-// sát), trung thực hơn — và đó chính là điều một con dấu tín nhiệm phải làm.
+// sát), trung thực hơn - và đó chính là điều một con dấu tín nhiệm phải làm.
 
 type RowProps = { label: React.ReactNode; children?: React.ReactNode };
 
@@ -61,7 +61,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
           <Stat value={String(r.activeCertificates)} label="Chứng chỉ hiệu lực" />
           <Stat value={String(r.verifiedDomains)} label="Tên miền đã xác minh" />
           <Stat
-            value={r.firstIssuedAt ? String(new Date(r.firstIssuedAt).getFullYear()) : '—'}
+            value={r.firstIssuedAt ? String(new Date(r.firstIssuedAt).getFullYear()) : '-'}
             label="Mang dấu từ"
           />
           <Stat
@@ -102,7 +102,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
               <>
                 <h2 className="font-semibold text-ink mt-8 mb-3">Lịch sử</h2>
                 <p className="text-sm text-muted mb-3">
-                  Chứng chỉ đã hết hạn, bị đình chỉ hoặc thu hồi. Hiển thị công khai có chủ đích —
+                  Chứng chỉ đã hết hạn, bị đình chỉ hoặc thu hồi. Hiển thị công khai có chủ đích -
                   một hồ sơ tín nhiệm chỉ khoe phần đẹp thì không đáng tin.
                 </p>
                 <div className="space-y-2">

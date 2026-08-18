@@ -1,5 +1,5 @@
 // BFF cho storage-service. Trước giai đoạn 4, storage là service DUY NHẤT trình
-// duyệt gọi thẳng cổng (:4002) — vi phạm quy tắc của repo và là lý do nó phải
+// duyệt gọi thẳng cổng (:4002) - vi phạm quy tắc của repo và là lý do nó phải
 // bật CORS mở toàn bộ. Route này đóng đường tắt đó lại: trình duyệt chỉ nói
 // chuyện cùng origin, danh tính lấy từ phiên next-auth ở phía server.
 //
@@ -14,13 +14,13 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { STORAGE, internalHeaders } from '../../../lib/services';
 import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
 
-/** Lỗi có mã HTTP đi kèm — readBody() ném ra khi thân request vượt MAX_BODY. */
+/** Lỗi có mã HTTP đi kèm - readBody() ném ra khi thân request vượt MAX_BODY. */
 type SizedError = Error & { status?: number };
 
 // Thân request đọc thành Buffer rồi mới chuyển tiếp, không stream: frontend-main
 // chạy trên Cloudflare Workers ở production, nơi `http.request` của Node không
 // dùng được và `fetch` streaming cần duplex nửa vời không phải runtime nào cũng
-// có. Đánh đổi: tệp lớn nằm trọn trong bộ nhớ một lúc — vì vậy có MAX_BODY.
+// có. Đánh đổi: tệp lớn nằm trọn trong bộ nhớ một lúc - vì vậy có MAX_BODY.
 export const config = { api: { bodyParser: false } };
 
 const MAX_BODY = Number(process.env.STORAGE_BFF_MAX_BYTES || 25 * 1024 * 1024);

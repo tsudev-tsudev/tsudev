@@ -6,10 +6,10 @@ type InputProps = {
    * Tham chiếu tới chính thẻ <input>.
    *
    * Khai TƯỜNG MINH thay vì dựa vào `ref` đi lọt qua `...props`. React 19 có
-   * truyền `ref` như một prop thường, nên cách đó CHẠY ĐƯỢC — nhưng nó là một
+   * truyền `ref` như một prop thường, nên cách đó CHẠY ĐƯỢC - nhưng nó là một
    * tai nạn của việc trải props, không phải một hợp đồng: đổi thứ tự destructure
    * hoặc hạ React xuống 18 là nó im lặng ngừng hoạt động, và triệu chứng chỉ là
-   * "con trỏ không nhảy vào ô" — thứ không ai viết test cho.
+   * "con trỏ không nhảy vào ô" - thứ không ai viết test cho.
    */
   inputRef?: React.Ref<HTMLInputElement>;
   label?: React.ReactNode;

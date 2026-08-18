@@ -45,7 +45,7 @@ export {
 export default Layout;
 
 // Kiểu của prop cũng là một phần hợp đồng công khai của design system. Không
-// xuất chúng thì nơi dùng buộc phải viết `string` rồi đụng vào union bên trong —
+// xuất chúng thì nơi dùng buộc phải viết `string` rồi đụng vào union bên trong -
 // đúng thứ đã xảy ra với `tone` của Badge ở trang quản trị dự án.
 export type { BadgeTone } from './components/Badge';
 export type { ButtonSize, ButtonVariant } from './components/Button';

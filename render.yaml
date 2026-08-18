@@ -1,4 +1,4 @@
-# Blueprint Render. MỘT service — xem docs/deployment.md.
+# Blueprint Render. MỘT service - xem docs/deployment.md.
 #
 # NGÂN SÁCH GIỜ CHẠY, đọc trước khi thêm service: gói free cấp 750 giờ instance
 # mỗi tháng cho CẢ TÀI KHOẢN, không phải cho mỗi service. Một service chạy liên
@@ -11,7 +11,7 @@
 # Thêm service thứ hai chạy liên tục là vỡ ngân sách.
 #
 # REGION LÀ BẤT BIẾN sau khi service được tạo. Đổi `region` trong file này
-# KHÔNG di chuyển service đang chạy — phải xoá và dựng lại. Trước đây không khai
+# KHÔNG di chuyển service đang chạy - phải xoá và dựng lại. Trước đây không khai
 # region nên cả bốn service nằm ở Oregon (mặc định của Render), cách Việt Nam
 # ~180ms mỗi lượt gọi SSR; singapore còn ~40ms.
 services:
@@ -24,14 +24,14 @@ services:
     region: singapore
     dockerfilePath: ./docker/backend-service.Dockerfile
     dockerContext: .
-    # dist/, không phải src/ — backend chạy bản đã biên dịch từ TypeScript.
+    # dist/, không phải src/ - backend chạy bản đã biên dịch từ TypeScript.
     # Bước dựng nằm trong docker/backend-service.Dockerfile (npm run build:ts).
     dockerCommand: node services/backend-bundle/dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      # Gác /api của nhánh content và storage. Nhánh trust CỐ Ý đứng ngoài —
+      # Gác /api của nhánh content và storage. Nhánh trust CỐ Ý đứng ngoài -
       # huy hiệu, trang xác minh và JWKS phải công khai cho bên thứ ba.
       - key: INTERNAL_API_TOKEN
         sync: false
@@ -50,7 +50,7 @@ services:
       - key: S3_SECRET_KEY
         sync: false
       # Khoá ký KHẲNG ĐỊNH DANH TÍNH mà BFF gửi xuống. PHẢI trùng giá trị đặt
-      # ở Cloudflare Workers cho frontend — lệch nhau thì mọi đường ghi đã xác
+      # ở Cloudflare Workers cho frontend - lệch nhau thì mọi đường ghi đã xác
       # thực trả 401, đúng triệu chứng mà cơ chế này ra đời để chấm dứt.
       - key: INTERNAL_IDENTITY_SECRET
         sync: false
@@ -77,7 +77,7 @@ services:
       - key: TRUST_SIGNING_KEY_ID
         sync: false
       # ĐƯỢC KÝ VÀO CHỨNG CHỈ. Chữ ký vẫn xác minh được nếu đổi (khoá theo kid),
-      # nhưng URL trong chứng chỉ ĐÃ CẤP thì cố định vĩnh viễn — đổi sau là link
+      # nhưng URL trong chứng chỉ ĐÃ CẤP thì cố định vĩnh viễn - đổi sau là link
       # rot. Đặt đúng domain thật TRƯỚC lần cấp đầu tiên. Xem docs/trust-seal.md.
       - key: TRUST_ISSUER
         value: https://tsudev.com

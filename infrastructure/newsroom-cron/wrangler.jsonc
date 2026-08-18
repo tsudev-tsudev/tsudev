@@ -1,0 +1,34 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "tsudev-newsroom-cron",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Nhịp đập: mỗi 5 phút. Con số này phục vụ HAI việc cùng lúc:
+  //   1. Đánh nhịp cho dispatcher của toà soạn.
+  //   2. Giữ ấm Render free (ngủ sau ~15 phút không có request).
+  // Thưa hơn 15 phút là mất việc thứ hai. Dày hơn 5 phút không mua thêm gì:
+  // một lượt tick chỉ xử lý tối đa 3 sự kiện, và toà soạn không cần thời gian
+  // thực - nó viết vài bài một ngày.
+  //
+  // Cron Triggers nằm trong gói Workers Free và KHÔNG tính phí riêng; chúng ăn
+  // chung hạn mức 100.000 request/ngày. 288 lượt/ngày là muối bỏ bể.
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+
+  // KHÔNG có route/custom_domain: Worker này không phục vụ người dùng. Nó vẫn
+  // có URL workers.dev để gõ tay lúc nghiệm thu, và đường đó đã được gác token.
+  "workers_dev": true,
+
+  // BACKEND_URL không bí mật nên để ở đây. NEWSROOM_TICK_TOKEN là BÍ MẬT -
+  // đặt bằng `npm run cron:secret`, ĐỪNG commit vào tệp này.
+  "vars": {
+    "BACKEND_URL": "https://tsudev-backend.onrender.com"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

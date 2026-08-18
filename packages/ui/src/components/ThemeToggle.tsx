@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react';
  * Nút chuyển Sáng ↔ Tối.
  *
  * Mặc định là SÁNG. Lựa chọn ghi vào localStorage và được áp lại trước khi vẽ
- * bởi script nội tuyến trong `apps/frontend-main/pages/_document.tsx` — component
+ * bởi script nội tuyến trong `apps/frontend-main/pages/_document.tsx` - component
  * này chỉ phụ trách việc ĐỔI, không phụ trách việc khôi phục.
  *
  * Vì sao có `mounted`: HTML do server dựng luôn ở trạng thái sáng (server không
  * đọc được localStorage), còn trình duyệt có thể đã ở chế độ tối. Vẽ đúng biểu
  * tượng ngay lượt đầu sẽ làm React báo lệch hydration. Nên lượt đầu vẽ một ô
- * giữ chỗ ĐÚNG KÍCH THƯỚC — không có nó thì header nhảy một nhịp khi nút xuất
+ * giữ chỗ ĐÚNG KÍCH THƯỚC - không có nó thì header nhảy một nhịp khi nút xuất
  * hiện.
  */
 const STORAGE_KEY = 'tsudev-theme';
@@ -63,7 +63,7 @@ export const ThemeToggle = () => {
       className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted transition-colors hover:bg-panel2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       {dark ? (
-        // Mặt trời — bấm để về chế độ sáng.
+        // Mặt trời - bấm để về chế độ sáng.
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.7" />
           <path
@@ -74,7 +74,7 @@ export const ThemeToggle = () => {
           />
         </svg>
       ) : (
-        // Mặt trăng — bấm để sang chế độ tối.
+        // Mặt trăng - bấm để sang chế độ tối.
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M20.5 14.3A8.5 8.5 0 1 1 9.7 3.5a6.8 6.8 0 0 0 10.8 10.8Z"

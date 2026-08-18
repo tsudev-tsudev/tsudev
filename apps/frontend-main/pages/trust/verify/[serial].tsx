@@ -28,7 +28,7 @@ function Row({ label, children }: RowProps) {
  * Union phân biệt được theo `state`.
  *
  * Nhờ nó, sau `if (state !== 'found') return …` thì `cert` tự thu hẹp về
- * CertificateDetail — không còn ~40 phép kiểm null rải khắp phần render, và
+ * CertificateDetail - không còn ~40 phép kiểm null rải khắp phần render, và
  * quan trọng hơn: không thể vô tình render dữ liệu chứng chỉ ở nhánh mà
  * service báo "không kiểm tra được".
  */
@@ -55,7 +55,7 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
           </h1>
           <p className="mt-3 text-inksoft">
             {unavailable ? (
-              'Hệ thống tra cứu tạm thời không phản hồi. Đây KHÔNG có nghĩa là con dấu không hợp lệ — vui lòng thử lại sau.'
+              'Hệ thống tra cứu tạm thời không phản hồi. Đây KHÔNG có nghĩa là con dấu không hợp lệ - vui lòng thử lại sau.'
             ) : (
               <>
                 Không có chứng chỉ nào mang số hiệu{' '}
@@ -84,7 +84,7 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
   return (
     <Layout active="/trust" bare>
       <Seo
-        title={`${cert.serial} — ${meta.label}`}
+        title={`${cert.serial} - ${meta.label}`}
         path={`/trust/verify/${serial}`}
         description={`Chứng chỉ ${cert.serial} cấp cho ${cert.hostname}: ${meta.label}. Chương trình ${cert.program?.name}.`}
       />
@@ -111,7 +111,7 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
               color: 'var(--error)',
             }}
           >
-            <strong>Lý do thu hồi:</strong> {cert.revokeReason} — thu hồi ngày{' '}
+            <strong>Lý do thu hồi:</strong> {cert.revokeReason} - thu hồi ngày{' '}
             {fmtDate(cert.revokedAt)}.
           </p>
         )}
@@ -132,7 +132,7 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
             <Row label="Người cấp">{cert.issuedBy}</Row>
             {cert.lastCheckAt && (
               <Row label="Tái kiểm gần nhất">
-                {fmtDate(cert.lastCheckAt)} —{' '}
+                {fmtDate(cert.lastCheckAt)} -{' '}
                 {cert.lastCheckPassed ? (
                   <span className="text-[var(--success)]">đạt</span>
                 ) : (
@@ -143,7 +143,7 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
           </dl>
         </div>
 
-        {/* Chữ ký số — cho phép người đọc tự kiểm chứng, không cần tin trang này */}
+        {/* Chữ ký số - cho phép người đọc tự kiểm chứng, không cần tin trang này */}
         <div className="mt-10">
           <h2 className="text-lg font-semibold text-ink">Chữ ký số</h2>
           <p className="mt-1.5 text-sm text-muted">
@@ -155,7 +155,7 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
               {sigOk
                 ? '✓ Chữ ký hợp lệ'
                 : `✕ Chữ ký không hợp lệ${
-                    cert.signature?.reason ? ` — ${cert.signature.reason}` : ''
+                    cert.signature?.reason ? ` - ${cert.signature.reason}` : ''
                   }`}
             </span>
             <span className="text-muted">·</span>
@@ -229,7 +229,7 @@ export async function getServerSideProps({ params, res }: GetServerSidePropsCont
   // Trang tra cứu phải luôn cho biết sự thật: 404 thật khi không có chứng chỉ.
   if (result.state === 'missing') res.statusCode = 404;
   if (result.state === 'unavailable') res.statusCode = 503;
-  // `certificate` CHỈ tồn tại ở nhánh 'found' của VerifyOutcome — union phân
+  // `certificate` CHỈ tồn tại ở nhánh 'found' của VerifyOutcome - union phân
   // biệt được buộc phải kiểm state trước, thay vì đọc bừa rồi nhận undefined.
   return {
     props: {

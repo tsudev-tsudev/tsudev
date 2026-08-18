@@ -2,7 +2,7 @@
 //
 // Bản trước kiểm rằng GET /api/posts đòi vai trò `content:read`. Đó chính là
 // thứ khiến REQUIRE_ROLE_ENFORCEMENT không bao giờ bật được: bật lên là blog
-// biến mất khỏi site. Cổng đó đã được gỡ — bài viết là nội dung công khai.
+// biến mất khỏi site. Cổng đó đã được gỡ - bài viết là nội dung công khai.
 //
 // Bất biến cần khoá lại nay là: ĐỌC mở, GHI đóng.
 //
@@ -58,7 +58,7 @@ describe('content-service: đọc công khai, ghi cần quản trị', () => {
     expect(res.status).toBe(200)
   })
 
-  test('MEMBER không tạo được dự án — đường ghi đòi ADMIN', async () => {
+  test('MEMBER không tạo được dự án - đường ghi đòi ADMIN', async () => {
     const res = await request(app)
       .post('/api/admin/projects')
       .set(await asUser(MEMBER))

@@ -43,7 +43,7 @@ function loadRootEnv() {
 
 loadRootEnv();
 
-// Mỗi app cần NEXTAUTH_URL riêng nên không copy thẳng .env — xem write-env-local.js.
+// Mỗi app cần NEXTAUTH_URL riêng nên không copy thẳng .env - xem write-env-local.js.
 writeEnvLocal();
 
 // Enable polling-based file watchers to be robust when working on mounted
@@ -72,6 +72,7 @@ const processes = [
   { name: 'storage-service', type: 'service', cwd: path.join(ROOT, 'services/storage-service') },
   { name: 'trust-service', type: 'service', cwd: path.join(ROOT, 'services/trust-service') },
   { name: 'auth-service', type: 'service', cwd: path.join(ROOT, 'services/auth-service') },
+  { name: 'newsroom-service', type: 'service', cwd: path.join(ROOT, 'services/newsroom-service') },
   {
     name: 'frontend-main',
     type: 'next',
@@ -93,7 +94,7 @@ function spawnProc(def) {
   // so next-auth builds callback URLs against the right host.
   const childEnv = Object.assign({}, process.env);
   if (def.type === 'next' && def.port) {
-    // NEXTAUTH_URL phải là URL CÔNG KHAI (qua proxy), không phải cổng nội bộ —
+    // NEXTAUTH_URL phải là URL CÔNG KHAI (qua proxy), không phải cổng nội bộ -
     // next-auth dựng callback từ đây, sai là đăng nhập nhảy về sai origin.
     childEnv.NEXTAUTH_URL = String(def.url).replace(/\/+$/, '');
     childEnv.PORT = String(def.port);
@@ -134,7 +135,7 @@ function spawnProc(def) {
   } else if (def.type === 'next') {
     try {
       const nextBin = require.resolve('next/dist/bin/next', { paths: [cwd] });
-      // Sau proxy thì Next chỉ cần nghe loopback — không việc gì phải phơi ra
+      // Sau proxy thì Next chỉ cần nghe loopback - không việc gì phải phơi ra
       // mọi giao diện mạng của máy.
       const args = [nextBin, 'dev', '-p', String(def.port)];
       if (USE_PROXY) args.push('-H', '127.0.0.1');

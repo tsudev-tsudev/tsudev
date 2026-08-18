@@ -19,14 +19,14 @@ Cloudflare (DNS *.tsudev.com · CDN · WAF · Zero Trust)
 ## 1. Cloudflare (CDN, WAF, Zero Trust)
 
 - **DNS + TLS**: tạo zone `tsudev.com`, bản ghi cho `@`, `auth`, `cdn`; bật Universal SSL (wildcard `*.tsudev.com`).
-- **CDN cache**: Cache Rules cho asset tĩnh (PDF, ZIP, ảnh, SVG) — TTL dài ở edge để giảm ~90% egress. Kiểm chứng bằng header `cf-cache-status: HIT` (tiêu chí nghiệm thu §6.2).
+- **CDN cache**: Cache Rules cho asset tĩnh (PDF, ZIP, ảnh, SVG) - TTL dài ở edge để giảm ~90% egress. Kiểm chứng bằng header `cf-cache-status: HIT` (tiêu chí nghiệm thu §6.2).
 - **R2**: dùng làm object storage tương thích S3. Đặt `S3_ENDPOINT` (nội bộ) và `S3_PUBLIC_ENDPOINT` (public qua CDN) để presigned URL trỏ về host công khai.
 - **WAF**: bật managed ruleset + rate-limiting cho `/api/*` chống lạm dụng.
 - **Zero Trust (Tunnels)**: expose admin dashboard & cổng DB nội bộ qua Cloudflare Tunnel thay vì mở port công khai.
 
 ## 2. Triển khai container
 
-**Hiện trạng đã chạy** khác với kế hoạch ban đầu (VPS/k8s) — thực tế dùng PaaS:
+**Hiện trạng đã chạy** khác với kế hoạch ban đầu (VPS/k8s) - thực tế dùng PaaS:
 
 - `apps/frontend-main` → **Cloudflare Workers** qua `@opennextjs/cloudflare`.
 - 4 service backend gộp thành MỘT tiến trình → **Render**, khai báo trong
@@ -37,12 +37,12 @@ Cloudflare (DNS *.tsudev.com · CDN · WAF · Zero Trust)
 Hợp đồng cổng/tên miền (cả dev lẫn production) khai ở **`config/topology.json`**,
 có cổng chặn hồi quy `npm run topology:check`. Ở local, mọi thứ trình duyệt chạm
 tới đi qua **một cổng vào duy nhất** (`scripts/dev-proxy.js`) và phân biệt bằng
-subdomain `*.tsudev.localhost` — cùng hình trạng với `*.tsudev.com`, nên đường
+subdomain `*.tsudev.localhost` - cùng hình trạng với `*.tsudev.com`, nên đường
 chia sẻ phiên đăng nhập kiểm chứng được ngay ở máy dev.
 Chi tiết và lộ trình: [../docs/refactor-network-topology.md](../docs/refactor-network-topology.md).
 
 `docker-compose.yml` ở gốc dựng full stack (Postgres, Redis, MinIO,
-services, frontends) — dùng cho phát triển và E2E, không phải cho production.
+services, frontends) - dùng cho phát triển và E2E, không phải cho production.
 
 `prisma migrate deploy` **không** tự chạy khi service khởi động; phải chạy trước
 khi phát hành phiên bản có migration mới.

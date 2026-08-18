@@ -3,10 +3,10 @@
 /**
  * Đặt mật khẩu cho MỘT tài khoản. Công cụ vận hành, chạy tay.
  *
- *   # local (mặc định — .env ở gốc repo trỏ DB dev)
+ *   # local (mặc định - .env ở gốc repo trỏ DB dev)
  *   NEW_PASSWORD='…' node services/auth-service/scripts/set-password.js <username>
  *
- *   # PRODUCTION — phải xuất DATABASE_URL TRƯỚC, nếu không nó nhắm DB local
+ *   # PRODUCTION - phải xuất DATABASE_URL TRƯỚC, nếu không nó nhắm DB local
  *   set -a; . <(grep '^DATABASE_URL=' backup/production-env-2026-08-16.txt); set +a
  *   NEW_PASSWORD='…' node services/auth-service/scripts/set-password.js <username>
  *
@@ -16,14 +16,14 @@
  *
  * ⚠️ SCRIPT IN RA HOST CỦA DATABASE TRƯỚC KHI GHI, và đó không phải trang trí.
  * Bản đầu không in gì cả: nó nạp `.env` ở gốc repo (trỏ DB dev), nên chạy với ý
- * định sửa production thì nó báo "thành công" — thành công thật, chỉ là trên
+ * định sửa production thì nó báo "thành công" - thành công thật, chỉ là trên
  * máy dev. Người chạy tin rằng tài khoản production đã có mật khẩu, còn thực tế
  * cột `passwordHash` ở đó vẫn rỗng và không đăng nhập được. Đã xảy ra thật.
  *
  * VÌ SAO CẦN
  *
  * Sau khi gỡ Keycloak, tài khoản cũ không có `passwordHash`. Đường tự phục hồi
- * là "quên mật khẩu", nhưng nó chỉ chạy khi tài khoản có địa chỉ email THẬT —
+ * là "quên mật khẩu", nhưng nó chỉ chạy khi tài khoản có địa chỉ email THẬT -
  * mà `resolveUser()` tạo tài khoản với `<username>@tsudev.local`, một tên miền
  * không nhận được thư. Script này là đường vào cho những tài khoản đó.
  *
@@ -44,7 +44,7 @@ const { hashPassword, checkPasswordPolicy } = require('../dist/password')
  * Đọc toàn bộ stdin.
  *
  * Chặn ở 4KB: không mật khẩu nào dài thế, và đọc vô hạn từ một ống bị bỏ quên
- * sẽ treo script trong im lặng — đúng kiểu hỏng khó chẩn đoán nhất.
+ * sẽ treo script trong im lặng - đúng kiểu hỏng khó chẩn đoán nhất.
  */
 function readStdin() {
   return new Promise((resolve, reject) => {
@@ -71,7 +71,7 @@ async function main() {
 
   // STDIN trước, NEW_PASSWORD sau.
   //
-  // Chỉ bỏ ký tự xuống dòng CUỐI CÙNG do heredoc thêm vào — KHÔNG trim hai đầu.
+  // Chỉ bỏ ký tự xuống dòng CUỐI CÙNG do heredoc thêm vào - KHÔNG trim hai đầu.
   // Khoảng trắng có thể là một phần thật của mật khẩu, và tự ý cắt nó nghĩa là
   // đặt một mật khẩu KHÁC cái người dùng nghĩ họ vừa đặt, rồi họ không đăng
   // nhập được và không hiểu vì sao.
@@ -80,7 +80,7 @@ async function main() {
 
   if (!password) {
     console.error('Thiếu mật khẩu. Truyền qua stdin (heredoc) hoặc biến NEW_PASSWORD.')
-    console.error('KHÔNG truyền qua tham số dòng lệnh — nó nằm trong `ps` và lịch sử shell.')
+    console.error('KHÔNG truyền qua tham số dòng lệnh - nó nằm trong `ps` và lịch sử shell.')
     process.exit(2)
   }
 
@@ -97,7 +97,7 @@ async function main() {
   try {
     host = new URL(process.env.DATABASE_URL).host
   } catch (e) {
-    /* URL hỏng — phép ghi bên dưới sẽ tự thất bại và nói rõ hơn */
+    /* URL hỏng - phép ghi bên dưới sẽ tự thất bại và nói rõ hơn */
   }
   const looksLocal = /^(localhost|127\.0\.0\.1|\[::1\])/.test(host)
   console.log(`Database: ${host}${looksLocal ? '  ← DB LOCAL, KHÔNG phải production' : ''}`)

@@ -11,7 +11,7 @@ const MIN_PASSWORD_LEN = 12;
  *
  * Token đi qua query string, nên nó nằm trong lịch sử trình duyệt và trong log
  * của mọi proxy trên đường. Đó là lý do máy chủ cho nó hạn 1 giờ, dùng một lần,
- * và chỉ lưu hash — chứ không phải vì cẩn thận thừa.
+ * và chỉ lưu hash - chứ không phải vì cẩn thận thừa.
  *
  * Đặt lại thành công sẽ ĐÁ MỌI PHIÊN đang mở (sessionVersion tăng ở phía
  * service). Nếu tài khoản đã bị chiếm thì kẻ chiếm đang giữ một phiên hợp lệ,

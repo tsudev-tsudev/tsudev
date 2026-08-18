@@ -11,7 +11,7 @@ import {
 } from '../src/totp'
 
 // Vector kiểm thử của RFC 6238, phụ lục B. Bí mật là ASCII "12345678901234567890"
-// mã hoá base32 — nếu bản cài đặt lệch dù chỉ một bit thì các mã dưới đây khác
+// mã hoá base32 - nếu bản cài đặt lệch dù chỉ một bit thì các mã dưới đây khác
 // ngay, nên đây là thứ chứng minh nó THẬT SỰ là TOTP chứ không phải một hàm
 // sinh số ổn định trông giống TOTP.
 const RFC_SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ'
@@ -64,7 +64,7 @@ describe('TOTP theo RFC 6238', () => {
 })
 
 describe('mã hoá bí mật khi lưu', () => {
-  // Bí mật TOTP KHÔNG băm được — kiểm mã cần chính giá trị đó. Nên nó phải nằm
+  // Bí mật TOTP KHÔNG băm được - kiểm mã cần chính giá trị đó. Nên nó phải nằm
   // trong DB dưới dạng mã hoá, với khoá ở ngoài DB.
   test('mã hoá rồi giải ra đúng giá trị gốc', () => {
     const s = generateSecret()

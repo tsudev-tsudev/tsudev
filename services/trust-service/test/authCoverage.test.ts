@@ -1,11 +1,11 @@
-// Độ phủ của auth theo nhánh — bất biến khó thấy nhất của trust-service.
+// Độ phủ của auth theo nhánh - bất biến khó thấy nhất của trust-service.
 //
 // Service này KHÔNG gắn auth cho cả `/api` (khác content và storage): huy hiệu
 // SVG, trang xác minh, thư mục và JWKS phải công khai vì chúng được trình duyệt
 // của khách trên site BÊN THỨ BA tải về, không kèm token nào.
 //
 // Cái giá: mặc định là CÔNG KHAI. Thêm một route riêng tư mà quên khai nhánh của
-// nó trong AUTH_PREFIXES thì nó lặng lẽ mở ra, và không có gì báo lỗi — CLAUDE.md
+// nó trong AUTH_PREFIXES thì nó lặng lẽ mở ra, và không có gì báo lỗi - CLAUDE.md
 // liệt kê đúng cái bẫy này. Test dưới đây bắt mọi route mới không thuộc hai nhóm
 // đã được quyết định, nên người thêm route buộc phải chọn một bên.
 process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'

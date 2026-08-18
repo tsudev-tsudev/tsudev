@@ -12,7 +12,7 @@ const { app } = require('../src/index')
 
 const { signIdentity } = require('@tsudev/identity-token')
 
-/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+/** Header Authorization như BFF sẽ gửi - thay cho header `x-dev-user` đã gỡ. */
 const asUser = async (sub: string) => ({
   Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
 })
@@ -39,14 +39,14 @@ const presign = async (body: Record<string, unknown>) =>
     .send(body)
 
 describe('storage-service: khoá object không do client quyết định', () => {
-  test('bỏ qua `key` client gửi — không ghi đè được object có sẵn', async () => {
+  test('bỏ qua `key` client gửi - không ghi đè được object có sẵn', async () => {
     const res = await presign({ key: 'anh-dai-dien-cua-nguoi-khac.png', fileName: 'cua-toi.png' })
     expect(res.status).toBe(200)
     expect(res.body.key).not.toBe('anh-dai-dien-cua-nguoi-khac.png')
     expect(res.body.key).toMatch(/^\d{10,}-cua-toi\.png$/)
   })
 
-  test('bỏ thành phần đường dẫn — khoá luôn phẳng', async () => {
+  test('bỏ thành phần đường dẫn - khoá luôn phẳng', async () => {
     const res = await presign({ fileName: '../../../etc/passwd' })
     expect(res.status).toBe(200)
     expect(res.body.key).not.toContain('/')

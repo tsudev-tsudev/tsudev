@@ -63,7 +63,7 @@ describe('băm mật khẩu', () => {
     await expect(verifyPassword('', 'gì-cũng-được')).resolves.toBe(false)
   })
 
-  // bcrypt cắt cụt im lặng ở 72 byte. Argon2id thì không — test này là lưới an
+  // bcrypt cắt cụt im lặng ở 72 byte. Argon2id thì không - test này là lưới an
   // toàn cho việc ai đó đổi thuật toán về sau.
   test('không cắt cụt ở 72 byte', async () => {
     const base = 'x'.repeat(72)

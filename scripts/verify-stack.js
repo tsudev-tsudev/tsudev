@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { loadTopology, internalUrl, publicUrl } = require('./topology/load');
 
-// Cổng lấy từ config/topology.json, không hardcode — đổi cổng ở một chỗ là
+// Cổng lấy từ config/topology.json, không hardcode - đổi cổng ở một chỗ là
 // script này đi theo. Xem docs/refactor-network-topology.md.
 const topo = loadTopology();
 const URL_OF = {
@@ -56,7 +56,7 @@ async function main() {
       await exec('docker-compose version');
       compose = 'docker-compose';
     } catch (e2) {
-      /* không có bản v1 lẫn v2 — báo ở bước dùng `compose` bên dưới */
+      /* không có bản v1 lẫn v2 - báo ở bước dùng `compose` bên dưới */
     }
   }
 

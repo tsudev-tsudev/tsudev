@@ -7,7 +7,7 @@
  *
  * CỐ Ý TÁCH KHỎI packages/db/prisma/seed.js, cùng lý do với
  * services/trust-service/scripts/seed-demo.js: seed chính thức chỉ chứa dữ
- * liệu tham chiếu — thứ mà MỌI môi trường, kể cả production, đều cần. Mật khẩu
+ * liệu tham chiếu - thứ mà MỌI môi trường, kể cả production, đều cần. Mật khẩu
  * đã biết trước thì ngược lại: đó chính xác là loại dữ liệu không bao giờ được
  * mọc lên ở production.
  *
@@ -23,7 +23,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 // CHẶN CỨNG, không phải cảnh báo. Nếu script này chạy nhầm ở production thì ba
-// tài khoản — trong đó có một ADMIN — sẽ có mật khẩu nằm công khai trong repo.
+// tài khoản - trong đó có một ADMIN - sẽ có mật khẩu nằm công khai trong repo.
 if (process.env.NODE_ENV === 'production') {
   console.error(
     '[seed-dev-users] TỪ CHỐI chạy ở production: script này đặt mật khẩu đã biết trước.'
@@ -35,7 +35,7 @@ const { prisma } = require('@tsudev/db')
 const { hashPassword } = require('../dist/password')
 
 // Mật khẩu dev, giống nhau cho cả ba. Dài hơn MIN_PASSWORD_LEN vì nó đi qua
-// đúng chính sách mà người dùng thật phải qua — không có đường vòng nào.
+// đúng chính sách mà người dùng thật phải qua - không có đường vòng nào.
 const DEV_PASSWORD = process.env.DEV_SEED_PASSWORD || 'tsudev-dev-2026!'
 
 const USERS = [

@@ -57,7 +57,7 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
     <Layout active="/" bare>
       <Seo
         path="/"
-        description="Dự án & bản quyền, blog kỹ thuật, tài liệu và con dấu tín nhiệm — website dự án cá nhân của tsudev."
+        description="Dự án & bản quyền, blog kỹ thuật, tài liệu và con dấu tín nhiệm - website dự án cá nhân của tsudev."
       />
 
       {/* ---------- HERO ---------- */}
@@ -86,7 +86,7 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
               <span className="text-brandink">từng dòng code</span>.
             </h1>
             <p className="mt-6 text-lg text-inksoft max-w-xl">
-              Dự án cá nhân của tsudev — tri thức kỹ thuật được chuẩn hoá, mã nguồn dùng được, và
+              Dự án cá nhân của tsudev - tri thức kỹ thuật được chuẩn hoá, mã nguồn dùng được, và
               con dấu tín nhiệm cho những website mang dấu ấn tsudev.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -288,7 +288,7 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
                   <Badge tone="teal" mono>
                     {/* certCard() của trust-service KHÔNG có trường `programCode`;
                         bản cũ đọc nó nên huy hiệu luôn rơi về 'SEAL'. Dùng tên
-                        chương trình — muốn mã hai chữ cái thì service phải phát
+                        chương trình - muốn mã hai chữ cái thì service phải phát
                         ra, đừng dựng lại logic sinh mã ở phía trang. */}
                     {c.program?.name || 'SEAL'}
                   </Badge>
@@ -307,7 +307,7 @@ export default function Home({ posts, certified, projects, totals }: HomeProps) 
                 Website của bạn dùng mã nguồn tsudev?
               </h2>
               <p className="mt-3 text-inksoft max-w-lg mx-auto">
-                Đăng ký cấp con dấu tín nhiệm — chứng chỉ ký số, xác minh quyền sở hữu tên miền và
+                Đăng ký cấp con dấu tín nhiệm - chứng chỉ ký số, xác minh quyền sở hữu tên miền và
                 giám sát định kỳ.
               </p>
               <div className="mt-7 flex justify-center gap-3">

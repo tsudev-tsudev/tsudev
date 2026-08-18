@@ -23,7 +23,7 @@ function _throttled(key, windowMs = 60000) {
 function _format({ service, level, message, error, context }) {
   const emoji = LEVELS[level] || 'ℹ️';
   const lines = [
-    `${emoji} *tsudev alert* — \`${service || 'unknown'}\``,
+    `${emoji} *tsudev alert* - \`${service || 'unknown'}\``,
     `*level:* ${level || 'info'}`,
     `*message:* ${message || '(no message)'}`,
   ];
@@ -41,7 +41,7 @@ async function _sendTelegram(text) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) {
-    console.log('[alert] TELEGRAM not configured — would send:\n' + text);
+    console.log('[alert] TELEGRAM not configured - would send:\n' + text);
     return { skipped: 'telegram' };
   }
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -56,7 +56,7 @@ async function _sendEmail(payload) {
   const hook = process.env.ALERT_EMAIL_WEBHOOK;
   const to = process.env.ALERT_EMAIL_TO || 'devnguyentrangtinhsu@gmail.com';
   if (!hook) {
-    console.log(`[alert] EMAIL not configured — would email ${to}`);
+    console.log(`[alert] EMAIL not configured - would email ${to}`);
     return { skipped: 'email' };
   }
   const res = await fetch(hook, {

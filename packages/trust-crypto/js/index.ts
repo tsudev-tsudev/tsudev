@@ -5,7 +5,7 @@
 // bằng `WebAssembly.instantiate` trần ở mọi runtime.
 //
 // Artifact `.wasm` được COMMIT vào repo, không dựng lúc cài đặt. Lý do là hình
-// trạng phát hành: Render dựng image Docker TỪ GIT, và image không có Rust —
+// trạng phát hành: Render dựng image Docker TỪ GIT, và image không có Rust -
 // nên "dựng artifact trong CI" không với tới được nơi cần nó. Bù lại, CI dựng
 // lại và đối chiếu để chứng minh artifact khớp mã nguồn.
 import { readFileSync } from 'fs';
@@ -43,7 +43,7 @@ const wasmPath = () => join(__dirname, '..', 'pkg', 'trust_crypto.wasm');
  * Nạp module. Đồng bộ có chủ đích: 60KB biên dịch trong vài mili giây, và ba
  * service đều nạp nó ở thời điểm khởi động chứ không phải trên đường phục vụ.
  *
- * `bytes` cho phép nơi gọi tự cung cấp artifact — đó là đường dùng ở Cloudflare
+ * `bytes` cho phép nơi gọi tự cung cấp artifact - đó là đường dùng ở Cloudflare
  * Workers, nơi không có `fs`.
  */
 export function loadWasm(bytes?: BufferSource): void {
@@ -62,7 +62,7 @@ function wasm(): WasmExports {
 /**
  * Chép dữ liệu vào bộ nhớ tuyến tính của WASM và LUÔN giải phóng lại.
  *
- * `dealloc` phía Rust ghi đè vùng nhớ bằng 0 trước khi trả về bộ cấp phát —
+ * `dealloc` phía Rust ghi đè vùng nhớ bằng 0 trước khi trả về bộ cấp phát -
  * quan trọng ở đây vì một trong các vùng này chứa PEM khoá RIÊNG.
  */
 function withBytes<T>(ex: WasmExports, chunks: Uint8Array[], fn: (ptrs: number[]) => T): T {
@@ -143,7 +143,7 @@ export function publicKeyFromPublicPem(pem: string): Uint8Array {
 /**
  * Xác minh chữ ký.
  *
- * Ném lỗi khi ĐẦU VÀO hỏng, trả `false` khi chữ ký không khớp — hai chuyện khác
+ * Ném lỗi khi ĐẦU VÀO hỏng, trả `false` khi chữ ký không khớp - hai chuyện khác
  * nhau, và trang xác minh phải nói được sự khác nhau đó.
  */
 export function verifyWithPublicKey(

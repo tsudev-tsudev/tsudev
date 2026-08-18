@@ -1,8 +1,8 @@
 # =============================================================================
-# BÍ MẬT — đọc trước khi sửa
+# BÍ MẬT - đọc trước khi sửa
 #
 # `docker/e2e-runner.Dockerfile` dùng `COPY . /work`, tức là chép NGUYÊN REPO
-# vào image. Trước tệp này, chỉ `.env` bị chặn — nên `backup/`
+# vào image. Trước tệp này, chỉ `.env` bị chặn - nên `backup/`
 # (có production-env-*.txt chứa cả TRUST_SIGNING_KEY), `.env.bak-<timestamp>` và
 # `apps/*/.env.local` đều đi thẳng vào layer của image.
 #
@@ -44,11 +44,11 @@ backup/
 *.sqlite3
 
 # =============================================================================
-# SẢN PHẨM DỰNG — image tự dựng lại, chép vào chỉ làm phình và có thể ghi đè
+# SẢN PHẨM DỰNG - image tự dựng lại, chép vào chỉ làm phình và có thể ghi đè
 # bản dựng đúng bằng bản dựng cũ của máy dev.
 #
 # NGOẠI LỆ: packages/trust-crypto/pkg/*.wasm PHẢI vào được image (image không có
-# Rust để dựng lại). Nó nằm ngoài mọi mẫu dưới đây — đừng thêm mẫu chạm vào nó.
+# Rust để dựng lại). Nó nằm ngoài mọi mẫu dưới đây - đừng thêm mẫu chạm vào nó.
 # =============================================================================
 node_modules
 **/node_modules

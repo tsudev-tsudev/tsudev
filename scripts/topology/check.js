@@ -29,7 +29,7 @@ const SCAN_DIRS = [
   'docker',
   '.github',
   // Tài liệu cũng phải khớp topology. Giai đoạn 3 đổi hình trạng mạng và bốn file
-  // trong docs/ lặng lẽ nói sai — không cổng chặn nào bắt được, vì hồi đó docs/
+  // trong docs/ lặng lẽ nói sai - không cổng chặn nào bắt được, vì hồi đó docs/
   // nằm ngoài phạm vi quét.
   'docs',
   'infrastructure',
@@ -48,7 +48,7 @@ const SKIP_DIR = new Set([
   'test-results',
 ]);
 
-// [::1] gộp vào vì `*.localhost` phân giải ra IPv6 — xem §2.2 của kế hoạch.
+// [::1] gộp vào vì `*.localhost` phân giải ra IPv6 - xem §2.2 của kế hoạch.
 const LITERAL = /(?:localhost|127\.0\.0\.1|\[::1\]):(\d{2,5})/g;
 
 function loadAllow() {
@@ -126,11 +126,11 @@ function checkCompose(topo, errors) {
       if (!m) return;
       const [, host, container] = m.map(Number);
       const n = byPort.get(container);
-      if (!n) return; // cổng container không thuộc topology — không phải việc của check này
+      if (!n) return; // cổng container không thuộc topology - không phải việc của check này
       const allowed = ov[n.id] && ov[n.id].port ? ov[n.id].port : n.port;
       if (host !== allowed) {
         errors.push(
-          `docker-compose.yml:${i + 1} — "${
+          `docker-compose.yml:${i + 1} - "${
             n.id
           }" công bố ${host}:${container}, topology nói ${allowed}. ` +
             `Sửa compose, hoặc khai overrides.docker.${n.id} kèm lý do.`
@@ -151,7 +151,7 @@ function main() {
 
   hits.forEach((h) => {
     if (!ports.has(h.port)) {
-      errors.push(`${h.rel}:${h.line} — cổng ${h.port} KHÔNG có trong topology.\n      ${h.text}`);
+      errors.push(`${h.rel}:${h.line} - cổng ${h.port} KHÔNG có trong topology.\n      ${h.text}`);
       return;
     }
     if (allow.has(h.rel)) {
@@ -164,7 +164,7 @@ function main() {
 
   unlisted.forEach((list, rel) => {
     errors.push(
-      `${rel} — hardcode cổng ${[...new Set(list.map((h) => h.port))].join(', ')} ` +
+      `${rel} - hardcode cổng ${[...new Set(list.map((h) => h.port))].join(', ')} ` +
         `(dòng ${list.map((h) => h.line).join(', ')}).\n` +
         `      Lấy từ scripts/topology/load.js, hoặc thêm vào config/topology.allow kèm lý do.`
     );
@@ -172,7 +172,7 @@ function main() {
 
   checkCompose(topo, errors);
 
-  // Mục allow không còn hit nào là rác — dọn để danh sách miễn trừ không phình.
+  // Mục allow không còn hit nào là rác - dọn để danh sách miễn trừ không phình.
   // Chỉ báo khi không còn lỗi nào khác: một hardcode sai cổng cũng làm mục allow
   // của chính file đó "hết tác dụng", báo kèm chỉ khiến lỗi thật bị loãng.
   const stale = errors.length ? [] : [...allow].filter((a) => !usedAllow.has(a));
@@ -184,13 +184,13 @@ function main() {
   }
 
   if (errors.length) {
-    console.error(`\n✗ topology:check — ${errors.length} vấn đề\n`);
+    console.error(`\n✗ topology:check - ${errors.length} vấn đề\n`);
     errors.forEach((e) => console.error(`  • ${e}\n`));
     process.exit(1);
   }
 
   console.log(
-    `✓ topology:check — ${hits.length} literal cổng, tất cả khớp topology ` +
+    `✓ topology:check - ${hits.length} literal cổng, tất cả khớp topology ` +
       `(${allow.size} file được miễn trừ có chủ ý)`
   );
 }

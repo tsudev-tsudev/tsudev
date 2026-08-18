@@ -1,5 +1,5 @@
 // Khai báo kiểu viết tay cho singleton Prisma. `src/index.js` là CommonJS thuần
-// và cố ý giữ nguyên như vậy — file này chỉ mô tả hình dạng của nó cho
+// và cố ý giữ nguyên như vậy - file này chỉ mô tả hình dạng của nó cho
 // TypeScript, không sinh ra mã và không đổi hành vi lúc chạy.
 //
 // Nhờ nó mà ba service nhận kiểu Prisma đầy đủ (tên bảng, tên cột, kiểu trả về)

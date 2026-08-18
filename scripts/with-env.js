@@ -2,7 +2,7 @@
 'use strict';
 // Chạy một lệnh với .env Ở GỐC REPO đã được nạp.
 //
-// npm KHÔNG đọc .env, và Prisma CLI chỉ tìm .env cạnh schema (packages/db/) —
+// npm KHÔNG đọc .env, và Prisma CLI chỉ tìm .env cạnh schema (packages/db/) -
 // nên `npm run db:migrate` chết với "Environment variable not found:
 // DATABASE_URL" trên máy sạch, dù đó là bước nằm giữa `npm run dev:full`, lệnh
 // chạy-lần-đầu được ghi trong CLAUDE.md.

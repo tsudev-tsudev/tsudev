@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 const { loadTopology, publicUrl } = require('../../scripts/topology/load');
 
-// Cần full stack (MinIO + storage-service) — chạy qua docker-compose, không nằm
+// Cần full stack (MinIO + storage-service) - chạy qua docker-compose, không nằm
 // trong CI. Xem project `full-stack` trong playwright.config.js.
 //
 // Tên cũ là `sso-upload`: nó đăng nhập qua Keycloak, rồi rơi về provider

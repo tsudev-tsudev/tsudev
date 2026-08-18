@@ -30,7 +30,7 @@ function parseEnv(content) {
   return out;
 }
 
-// Cổng/URL lấy từ config/topology.json — không hardcode. Ở chế độ proxy, URL
+// Cổng/URL lấy từ config/topology.json - không hardcode. Ở chế độ proxy, URL
 // công khai phân biệt bằng subdomain qua dev-proxy chứ không bằng số cổng.
 const { loadTopology, publicUrl } = require('./topology/load');
 const TOPO = loadTopology();
@@ -45,7 +45,7 @@ const APPS = [
 
 function writeEnvLocal() {
   if (!fs.existsSync(ROOT_ENV)) {
-    console.warn('Không thấy .env ở gốc — bỏ qua sinh .env.local');
+    console.warn('Không thấy .env ở gốc - bỏ qua sinh .env.local');
     return;
   }
   const content = fs.readFileSync(ROOT_ENV, 'utf8');
@@ -61,7 +61,7 @@ function writeEnvLocal() {
       .replace(/\n+$/, '\n');
 
     const out = `${body}
-# --- Sinh tự động bởi scripts/write-env-local.js — đừng sửa tay ---
+# --- Sinh tự động bởi scripts/write-env-local.js - đừng sửa tay ---
 # NEXTAUTH_URL riêng cho ${dir}, lấy từ ${urlKey}.
 NEXTAUTH_URL=${appUrl}
 `;

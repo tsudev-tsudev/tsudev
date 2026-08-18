@@ -16,7 +16,7 @@ import React from 'react';
  * Vì sao gắn cứng chứ không cho truyền màu: khi mỗi trang tự chọn, cùng một
  * hành động "xoá" sẽ đỏ ở trang này và xám ở trang kia, và người dùng mất khả
  * năng đọc màu như một tín hiệu. Cần một sắc khác nghĩa là cần một CHỨC NĂNG
- * khác — thêm vào bảng, đừng ghi đè tại chỗ gọi.
+ * khác - thêm vào bảng, đừng ghi đè tại chỗ gọi.
  *
  * Sáu màu được canh tương phản ≥4.5:1 với cả ba tầng bề mặt ở CẢ HAI chế độ
  * (packages/ui/test/contrast.test.ts). Icon ở đây mang thông tin, nên nó chịu

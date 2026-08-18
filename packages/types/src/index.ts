@@ -2,7 +2,7 @@
 
 export const ROLES = ['GUEST', 'MEMBER', 'VIP', 'MODERATOR', 'ADMIN'] as const;
 
-/** Vai trò hợp lệ. Là union chứ không phải `string` — xem ghi chú ở hasAtLeastRole. */
+/** Vai trò hợp lệ. Là union chứ không phải `string` - xem ghi chú ở hasAtLeastRole. */
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_RANK: Readonly<Record<Role, number>> = {
@@ -30,7 +30,7 @@ export function isRole(value: unknown): value is Role {
  *
  * Bản JS cũ nhận cả hai là `string` và tra bảng bằng `ROLE_RANK[required] ?? 0`.
  * Hệ quả: gõ nhầm `required` (ví dụ 'MODERATR') làm vế phải thành 0 và hàm trả
- * TRUE với mọi vai trò — fail open. Cả 7 nơi gọi hiện tại đều truyền literal
+ * TRUE với mọi vai trò - fail open. Cả 7 nơi gọi hiện tại đều truyền literal
  * đúng nên chưa từng kích hoạt, nhưng nó chờ sẵn ở đó. Union type dập lớp lỗi
  * này tại thời điểm biên dịch thay vì trông vào việc gõ đúng.
  *

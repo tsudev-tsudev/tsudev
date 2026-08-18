@@ -101,7 +101,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
   const program = programs.find((p) => p.slug === programSlug) || null;
 
   /**
-   * Gọi BFF. Trả về `null` khi thất bại (đã hiện lỗi cho người dùng) — nên nơi
+   * Gọi BFF. Trả về `null` khi thất bại (đã hiện lỗi cho người dùng) - nên nơi
    * gọi BẮT BUỘC kiểm null trước khi đọc trường, và giờ trình biên dịch ép điều đó.
    */
   const call = async (
@@ -443,7 +443,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                   onChange={(e) => setProgramSlug(e.target.value)}
                   className={inputCls}
                 >
-                  <option value="">— chọn —</option>
+                  <option value="">- chọn -</option>
                   {programs.map((p) => (
                     <option key={p.slug} value={p.slug}>
                       {p.name}

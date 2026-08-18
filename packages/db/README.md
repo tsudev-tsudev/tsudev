@@ -1,11 +1,11 @@
 # @tsudev/db
 
 Nguồn dữ liệu duy nhất của cả hệ thống: schema Prisma, migration, seed. Bốn
-service dùng **chung** một database và một schema — đây là microservice về mặt
+service dùng **chung** một database và một schema - đây là microservice về mặt
 tiến trình, không phải về mặt dữ liệu.
 
 ```bash
-npm run db:generate   # sinh lại Prisma client — BẮT BUỘC sau khi đổi schema
+npm run db:generate   # sinh lại Prisma client - BẮT BUỘC sau khi đổi schema
 npm run db:migrate    # prisma migrate deploy
 npm run db:seed
 npm run db:reset      # xoá sạch + migrate + seed (chỉ dùng ở local)
@@ -25,7 +25,7 @@ Migration hiện có: `init` → `moderation` → `messaging_marketplace` →
 
 Hai migration cuối là đợt chuyển thành website dự án cá nhân: một cái DROP 14
 bảng của Diễn đàn/Chợ/Tin nhắn/Kiểm duyệt, một cái thêm `Project`. Migration cũ
-**không** bị sửa — checksum còn nguyên.
+**không** bị sửa - checksum còn nguyên.
 
 ## Đổi schema
 
@@ -38,12 +38,12 @@ Bỏ bước 3 là job **build frontends** trong CI đỏ, dù chẳng đụng g
 ## Vai trò
 
 `enum Role`: `GUEST` · `MEMBER` · `VIP` · `MODERATOR` · `ADMIN`, mặc định
-`MEMBER`. Đây là NGUỒN SỰ THẬT DUY NHẤT về phân quyền — claim `role` trong khẳng định danh tính chỉ để tham khảo và không nâng được quyền —
+`MEMBER`. Đây là NGUỒN SỰ THẬT DUY NHẤT về phân quyền - claim `role` trong khẳng định danh tính chỉ để tham khảo và không nâng được quyền -
 xem [../../docs/auth.md](../../docs/auth.md).
 
 `TrustInvite` / `TrustInviteRedemption` là đường DUY NHẤT nâng vai trò bằng dữ
 liệu, và nó chỉ nâng được tới `VIP`. Trần đó nằm trong mã
-(`services/auth-service/src/invite.ts`), KHÔNG trong bảng — cố ý, vì bậc vai trò
+(`services/auth-service/src/invite.ts`), KHÔNG trong bảng - cố ý, vì bậc vai trò
 do dữ liệu quyết định nghĩa là ai ghi được vào bảng đó là tự cấp được ADMIN.
 `codeHash` chỉ lưu SHA-256, cùng lý do với `AuthToken.tokenHash`.
 
@@ -53,6 +53,6 @@ do dữ liệu quyết định nghĩa là ai ghi được vào bảng đó là t
 `alice` (MEMBER), `bob` (VIP). Chạy được ở mọi môi trường.
 
 Dữ liệu **giả** để xem giao diện trust nằm riêng ở
-`services/trust-service/scripts/seed-demo.js` — cố ý tách ra, nhét vào seed
+`services/trust-service/scripts/seed-demo.js` - cố ý tách ra, nhét vào seed
 chính thì một ngày nào đó thư mục công khai ở production sẽ liệt kê những
 website không tồn tại.

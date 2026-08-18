@@ -5,7 +5,7 @@
  *
  *   node packages/brand/build-assets.js
  *
- * Yêu cầu: `sharp` (không nằm trong dependency của repo — cài tạm khi cần:
+ * Yêu cầu: `sharp` (không nằm trong dependency của repo - cài tạm khi cần:
  * `npm i --no-save sharp`). Kết quả đã được commit sẵn nên chỉ cần chạy lại
  * script này khi thay ảnh gốc.
  *
@@ -239,7 +239,7 @@ async function removeBackground(inputPath, { inner = 40, outer = 58 } = {}) {
 
   const pct = ((removed / (W * H)) * 100).toFixed(1);
   console.log(
-    `  nền #${bg.map((v) => v.toString(16).padStart(2, '0')).join('')} — xoá ${pct}% pixel`
+    `  nền #${bg.map((v) => v.toString(16).padStart(2, '0')).join('')} - xoá ${pct}% pixel`
   );
 
   // trim() cắt bỏ viền trong suốt thừa quanh nội dung.
@@ -274,7 +274,7 @@ async function splitMarkFromWordmark(pngBuf) {
   }
   if (best && best.len >= 6) return best.start + Math.floor(best.len / 2);
 
-  // Quầng sáng của logo khiến hiếm khi có dải hàng trống hẳn — lùi về cách chắc
+  // Quầng sáng của logo khiến hiếm khi có dải hàng trống hẳn - lùi về cách chắc
   // chắn hơn: chọn hàng có ít pixel đục nhất trong dải giữa.
   let minY = lo;
   for (let y = lo; y <= hi; y++) if (rowOpaque[y] < rowOpaque[minY]) minY = y;
@@ -284,8 +284,8 @@ async function splitMarkFromWordmark(pngBuf) {
 
 /**
  * Dải chữ (wordmark) là hình phẳng, không có quầng sáng, nên có thể dọn bằng
- * ngưỡng màu toàn cục. Nhờ vậy lòng các chữ kín như "d"/"e" — vùng nền bị bao
- * kín mà flood fill từ viền không với tới — cũng trở thành trong suốt.
+ * ngưỡng màu toàn cục. Nhờ vậy lòng các chữ kín như "d"/"e" - vùng nền bị bao
+ * kín mà flood fill từ viền không với tới - cũng trở thành trong suốt.
  */
 async function clearEnclosedInBand(pngBuf, fromY, { inner = 40, outer = 58 } = {}) {
   const { data, info } = await sharp(pngBuf)
@@ -316,7 +316,7 @@ async function clearEnclosedInBand(pngBuf, fromY, { inner = 40, outer = 58 } = {
     .toBuffer();
 }
 
-/** PNG nén bảng màu — logo là hình đồ hoạ nên giảm được rất nhiều dung lượng. */
+/** PNG nén bảng màu - logo là hình đồ hoạ nên giảm được rất nhiều dung lượng. */
 const pngOpts = { palette: true, quality: 90, effort: 10, compressionLevel: 9 };
 
 /** Dựng file .ico thật (container nhiều độ phân giải, dữ liệu PNG bên trong). */
@@ -346,7 +346,7 @@ function buildIco(entries) {
 async function main() {
   for (const pub of APPS) ensureDir(pub);
 
-  console.log('\n[1/5] Logo — xoá nền');
+  console.log('\n[1/5] Logo - xoá nền');
   const logoTransparent = await removeBackground(path.join(SRC, 'logo.jpeg'));
   let logoTrimmed = await sharp(logoTransparent).trim().png().toBuffer();
 
@@ -389,7 +389,7 @@ async function main() {
     );
   }
 
-  console.log('\n[2/5] Avatar mặc định — quả cầu lưới, 6 tông × 2 mức chi tiết');
+  console.log('\n[2/5] Avatar mặc định - quả cầu lưới, 6 tông × 2 mức chi tiết');
   for (const d of [DETAIL.lg, DETAIL.sm]) {
     for (const v of AVATAR_VARIANTS) {
       const svg = networkGlobeSvg({ hue: BASE_HUE + v.hue, size: d.size, detail: d });
@@ -400,7 +400,7 @@ async function main() {
     }
   }
 
-  console.log('\n[3/5] Favicon — xoá nền trắng, sinh mọi cỡ từ bản 512');
+  console.log('\n[3/5] Favicon - xoá nền trắng, sinh mọi cỡ từ bản 512');
   // Bộ favicon gốc bị nung sẵn nền trắng (0% pixel trong suốt). Tách nền trên
   // bản 512 rồi thu nhỏ xuống các cỡ còn lại: hạ cỡ từ ảnh ĐÃ có alpha cho biên
   // mượt, tốt hơn nhiều so với tách nền trực tiếp trên ảnh 16px.
@@ -419,14 +419,14 @@ async function main() {
   emit('favicon-32x32.png', await iconAt(32));
   emit('favicon-16x16.png', await iconAt(16));
 
-  // File .ico gốc trong bộ nguồn thực chất là PNG đổi đuôi — dựng lại ICO thật.
+  // File .ico gốc trong bộ nguồn thực chất là PNG đổi đuôi - dựng lại ICO thật.
   const icoEntries = [];
   for (const size of [16, 32, 48]) icoEntries.push({ size, data: await iconAt(size) });
   emit('favicon.ico', buildIco(icoEntries));
 
   console.log('\n[4/5] Web app manifest');
   const manifest = {
-    name: 'tsudev — Dự án, bản quyền và con dấu tín nhiệm',
+    name: 'tsudev - Dự án, bản quyền và con dấu tín nhiệm',
     short_name: 'tsudev',
     description: 'Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, con dấu tín nhiệm.',
     start_url: '/',
@@ -434,7 +434,7 @@ async function main() {
     // Khớp với giao diện tối duy nhất của site (xem packages/ui/src/tokens.css).
     // Chế độ SÁNG là mặc định của site, nên màu khởi động của PWA phải là
     // --surface của chế độ sáng. Để '#000000' thì màn hình chờ đen chuyển sang
-    // trang sáng — một cú nháy ngược, ở đúng khoảnh khắc đầu tiên người dùng nhìn.
+    // trang sáng - một cú nháy ngược, ở đúng khoảnh khắc đầu tiên người dùng nhìn.
     theme_color: '#eef3fa',
     background_color: '#eef3fa',
     icons: [
@@ -453,7 +453,7 @@ async function main() {
   const OG_H = 630;
   // Nền CỐ Ý dùng bảng màu TỐI, không bám theo --surface (nay là màu sáng).
   // Ảnh xem trước được các nền tảng chia sẻ cache lại và hiển thị giống nhau cho
-  // mọi người — nó không thể đi theo lựa chọn sáng/tối của từng người đọc, nên
+  // mọi người - nó không thể đi theo lựa chọn sáng/tối của từng người đọc, nên
   // nó là một hằng thương hiệu.
   const ogBackdrop = Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_W}" height="${OG_H}">

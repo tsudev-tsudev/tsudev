@@ -1,6 +1,6 @@
 require('source-map-support').install()
 require('dotenv').config()
-// npm workspace đặt cwd ở thư mục service, nơi không có .env — nạp thêm .env ở
+// npm workspace đặt cwd ở thư mục service, nơi không có .env - nạp thêm .env ở
 // gốc repo. Thiếu bước này thì `npm --workspace ... test` chạy không có
 // DATABASE_URL và mọi route chạm DB đều trả 500.
 if (!process.env.DATABASE_URL) {
@@ -25,11 +25,11 @@ const MAX_KEY_LEN = 200
  *
  * Vì sao cần: `POST /api/presign` trước đây nhận `key` từ thân request và dùng
  * NGUYÊN XI, còn `POST /api/upload` dùng thẳng header `x-filename`. Nghĩa là bất
- * kỳ ai đăng nhập được cũng chọn được khoá tuỳ ý — ghi đè object của người khác,
+ * kỳ ai đăng nhập được cũng chọn được khoá tuỳ ý - ghi đè object của người khác,
  * hoặc viết ra ngoài tiền tố mong đợi. Không có gì chặn, và không có gì báo lỗi.
  *
  * Ba việc hàm này làm:
- *  1. Bỏ mọi thành phần đường dẫn (`a/b/../c` → `c`) — khoá luôn phẳng.
+ *  1. Bỏ mọi thành phần đường dẫn (`a/b/../c` → `c`) - khoá luôn phẳng.
  *  2. Ràng bộ ký tự và cắt độ dài.
  *  3. Gắn dấu thời gian ở đầu, nên KHÔNG BAO GIỜ trùng khoá đã có. Chính điều
  *     này loại bỏ khả năng ghi đè, chứ không phải việc lọc ký tự.
@@ -54,7 +54,7 @@ function safeObjectKey(raw: unknown, opts: { allowIssued?: boolean } = {}): stri
 /** Thông điệp lỗi từ một giá trị `catch` (luôn là `unknown`). */
 const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
-/** Hình dạng nội bộ của một lớp router Express — chỉ phần thực sự được đọc. */
+/** Hình dạng nội bộ của một lớp router Express - chỉ phần thực sự được đọc. */
 type RouterLayer = {
   name?: string
   route?: { path?: string; methods?: Record<string, boolean> }
@@ -66,7 +66,7 @@ const errStack = (e: unknown): string => (e instanceof Error ? e.stack || e.mess
  * Thông điệp lỗi trả cho CLIENT.
  *
  * Ở production luôn là chuỗi chung: `err.message` của Node hay mang theo đường
- * dẫn tệp trên máy chủ, tên bảng, hoặc cả chuỗi kết nối — thứ giúp người dò tìm
+ * dẫn tệp trên máy chủ, tên bảng, hoặc cả chuỗi kết nối - thứ giúp người dò tìm
  * dựng bản đồ hệ thống. Chi tiết vẫn được ghi đầy đủ vào log phía máy chủ.
  */
 const clientError = (e: unknown): string =>
@@ -92,7 +92,7 @@ import { createAuthMiddleware, requireRole } from '@tsudev/auth'
 
 const app = express()
 const port = process.env.PORT || process.env.PORT_STORAGE_SERVICE || 4002
-// Mặc định 0.0.0.0 — đừng đổi: bind loopback bên trong container là tự cắt liên
+// Mặc định 0.0.0.0 - đừng đổi: bind loopback bên trong container là tự cắt liên
 // lạc giữa các container. Máy dev đặt BIND_HOST=127.0.0.1 qua .env (topology).
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
@@ -102,7 +102,7 @@ app.use((req, res, next) => {
   next()
 })
 
-// Trước giai đoạn 4 đây là `cors()` mở cho MỌI origin — service duy nhất trình
+// Trước giai đoạn 4 đây là `cors()` mở cho MỌI origin - service duy nhất trình
 // duyệt gọi thẳng, và cũng là service ký được URL ghi vào object storage.
 // Danh sách lấy từ CORS_ALLOWED_ORIGINS (sinh bởi config/topology.json).
 // Rỗng = không cấp header CORS cho ai: đúng cho production, nơi trình duyệt đi
@@ -145,14 +145,14 @@ app.use((req, res, next) => {
       console.log('[storage] request body:', JSON.stringify(req.body))
     }
   } catch (e) {
-    /* body không tuần tự hoá được — chỉ là log gỡ rối, không chặn request */
+    /* body không tuần tự hoá được - chỉ là log gỡ rối, không chặn request */
   }
   next()
 })
 
 // Helper to wrap async route handlers and forward errors to express
 // Bọc handler async: Promise bị từ chối mà không có .catch sẽ không bao giờ tới
-// được error handler của Express — request treo cho tới khi client bỏ cuộc.
+// được error handler của Express - request treo cho tới khi client bỏ cuộc.
 const asyncHandler =
   (fn: (req: Request, res: Response, next: NextFunction) => unknown): RequestHandler =>
   (req, res, next) =>
@@ -227,7 +227,7 @@ async function ensureBucket() {
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'storage-service' }))
 
-// Ba service backend nằm trên URL Render CÔNG KHAI — không giấu sau mạng nội bộ
+// Ba service backend nằm trên URL Render CÔNG KHAI - không giấu sau mạng nội bộ
 // được, vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render. Cổng
 // chặn này là lớp bù: chỉ ai biết INTERNAL_API_TOKEN mới gọi được /api.
 //
@@ -312,7 +312,7 @@ app.post(
     //
     // Lưu ý phạm vi: đây mới chỉ là chuẩn hoá KIỂU. Việc làm sạch nội dung khoá
     // (chặn '../', ký tự điều khiển, khoá rỗng) vẫn chưa có và thuộc pha siết
-    // bảo mật — ghi ra để nó không bị tưởng là đã xong.
+    // bảo mật - ghi ra để nó không bị tưởng là đã xong.
     const headerName = req.headers['x-filename']
     const fromHeader = Array.isArray(headerName) ? headerName[0] : headerName
     const keyQuery = qStr(req.query?.key)
@@ -412,7 +412,7 @@ async function startServer() {
       const routes: string[] = []
       if (app && app._router && app._router.stack) {
         // `_router` là nội bộ của Express, không có trong kiểu công khai. Mô tả
-        // đúng phần hình dạng được đọc tới thay vì `any` — nếu Express đổi cấu
+        // đúng phần hình dạng được đọc tới thay vì `any` - nếu Express đổi cấu
         // trúc, chỗ hỏng hiện ra ở đây chứ không im lặng trả danh sách rỗng.
         const stack =
           (app as unknown as { _router?: { stack: RouterLayer[] } })._router?.stack ?? []

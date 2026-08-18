@@ -14,7 +14,7 @@ async function main() {
       email: 'devnguyentrangtinhsu@gmail.com',
       displayName: 'Nguyễn Trang Tình Sử',
       role: 'ADMIN',
-      bio: 'Founder của tsudev — Decoding the Future, One Commit at a Time.',
+      bio: 'Founder của tsudev - Decoding the Future, One Commit at a Time.',
     },
   })
   await prisma.user.upsert({
@@ -46,7 +46,7 @@ async function main() {
       excerpt: 'Dự án & bản quyền, blog, tài liệu và con dấu tín nhiệm.',
       tags: ['thông báo', 'giới thiệu'],
       contentMd:
-        '# Chào mừng\n\ntsudev là website dự án cá nhân: nơi công bố **dự án & bản quyền**, viết **blog** kỹ thuật, lưu **tài liệu**, và vận hành **con dấu tín nhiệm** — dịch vụ cấp chứng chỉ Ed25519 cho website, xác minh được ngoại tuyến bằng khoá công khai.\n\n> Decoding the Future, One Commit at a Time.',
+        '# Chào mừng\n\ntsudev là website dự án cá nhân: nơi công bố **dự án & bản quyền**, viết **blog** kỹ thuật, lưu **tài liệu**, và vận hành **con dấu tín nhiệm** - dịch vụ cấp chứng chỉ Ed25519 cho website, xác minh được ngoại tuyến bằng khoá công khai.\n\n> Decoding the Future, One Commit at a Time.',
     },
     {
       slug: 'kien-truc-microservices',
@@ -88,7 +88,7 @@ async function main() {
       category: 'reference',
       position: 2,
       contentMd:
-        '## Endpoint công khai\n\nCon dấu tín nhiệm là phần duy nhất của tsudev có API mở cho bên thứ ba — huy hiệu nhúng trên website khách phải gọi được mà không cần khoá nào.\n\n- `GET /api/trust/programs` — các chương trình cấp dấu\n- `GET /api/trust/directory` — website đang được cấp dấu\n- `GET /api/trust/verify/:serial` — tra cứu một chứng chỉ\n- `GET /api/trust/seal/:serial.svg` — huy hiệu SVG để nhúng\n- `GET /api/trust/jwks` — khoá công khai, dùng để xác minh chữ ký ngoại tuyến\n\nCác đường dẫn nội dung (`/api/posts`, `/api/docs`, `/api/projects`) **không** mở ra ngoài: chúng chỉ phục vụ lớp render của chính site và nằm sau cổng chặn `INTERNAL_API_TOKEN`.',
+        '## Endpoint công khai\n\nCon dấu tín nhiệm là phần duy nhất của tsudev có API mở cho bên thứ ba - huy hiệu nhúng trên website khách phải gọi được mà không cần khoá nào.\n\n- `GET /api/trust/programs` - các chương trình cấp dấu\n- `GET /api/trust/directory` - website đang được cấp dấu\n- `GET /api/trust/verify/:serial` - tra cứu một chứng chỉ\n- `GET /api/trust/seal/:serial.svg` - huy hiệu SVG để nhúng\n- `GET /api/trust/jwks` - khoá công khai, dùng để xác minh chữ ký ngoại tuyến\n\nCác đường dẫn nội dung (`/api/posts`, `/api/docs`, `/api/projects`) **không** mở ra ngoài: chúng chỉ phục vụ lớp render của chính site và nằm sau cổng chặn `INTERNAL_API_TOKEN`.',
     },
   ]
   for (const d of docs) {
@@ -208,7 +208,7 @@ async function main() {
       summary:
         'Dịch vụ cấp và xác thực huy hiệu tín nhiệm cho website: ký Ed25519, xác minh tên miền, giám sát định kỳ.',
       descriptionMd:
-        '## Con dấu tín nhiệm\n\nCấp huy hiệu cho website dùng mã nguồn tsudev, và chứng nhận cho website do đội ngũ tsudev thực hiện.\n\nMỗi chứng chỉ mang một chữ ký Ed25519 xác minh được độc lập qua JWKS công khai — không cần tin vào máy chủ tsudev để kiểm tra tính toàn vẹn.\n',
+        '## Con dấu tín nhiệm\n\nCấp huy hiệu cho website dùng mã nguồn tsudev, và chứng nhận cho website do đội ngũ tsudev thực hiện.\n\nMỗi chứng chỉ mang một chữ ký Ed25519 xác minh được độc lập qua JWKS công khai - không cần tin vào máy chủ tsudev để kiểm tra tính toàn vẹn.\n',
       kind: 'SERVICE',
       status: 'BETA',
       version: '0.1.0',

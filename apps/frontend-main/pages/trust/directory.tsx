@@ -61,7 +61,7 @@ export default function TrustDirectory({
         <div className="divide-y divide-[color:var(--border)]">
           {/* Hàng KHÔNG còn là một thẻ <a> bọc ngoài: nó chứa hai đích khác nhau
               (chứng chỉ và hồ sơ tổ chức), mà <a> lồng trong <a> là HTML không
-              hợp lệ — trình duyệt tự gỡ và cả hai link cùng hỏng. */}
+              hợp lệ - trình duyệt tự gỡ và cả hai link cùng hỏng. */}
           {certificates.map((c) => (
             <div
               key={c.serial}

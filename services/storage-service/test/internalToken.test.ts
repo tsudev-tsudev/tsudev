@@ -1,5 +1,5 @@
 // Cổng chặn x-internal-token (giai đoạn 5). Bốn service backend nằm ở URL Render
-// công khai vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render —
+// công khai vì frontend-main chạy trên Cloudflare Workers, ngoài mạng Render -
 // đây là lớp bù cho việc không giấu được chúng sau mạng nội bộ.
 //
 // Đặt biến TRƯỚC khi require app: giá trị được đọc lúc module nạp.
@@ -10,19 +10,19 @@ const { app } = require('../src/index')
 
 const { signIdentity } = require('@tsudev/identity-token')
 
-/** Header Authorization như BFF sẽ gửi — thay cho header `x-dev-user` đã gỡ. */
+/** Header Authorization như BFF sẽ gửi - thay cho header `x-dev-user` đã gỡ. */
 const asUser = async (sub: string) => ({
   Authorization: `Bearer ${await signIdentity({ sub }, process.env.INTERNAL_IDENTITY_SECRET)}`,
 })
 
 // process.env dùng chung giữa các file test khi jest chạy --runInBand, nên phải
-// trả lại nguyên trạng — nếu không, file chạy sau sẽ bị cổng chặn này mà không
+// trả lại nguyên trạng - nếu không, file chạy sau sẽ bị cổng chặn này mà không
 // hiểu vì sao 401.
 afterAll(() => {
   delete process.env.INTERNAL_API_TOKEN
 })
 
-describe('storage-service — cổng chặn x-internal-token', () => {
+describe('storage-service - cổng chặn x-internal-token', () => {
   test('thiếu header ⇒ 401', async () => {
     const res = await request(app)
       .get('/api/files')
@@ -46,7 +46,7 @@ describe('storage-service — cổng chặn x-internal-token', () => {
     expect(res.status).not.toBe(401)
   })
 
-  test('/health đứng ngoài cổng chặn — health check của Render phải chạy', async () => {
+  test('/health đứng ngoài cổng chặn - health check của Render phải chạy', async () => {
     const res = await request(app).get('/health')
     expect(res.status).toBe(200)
   })

@@ -6,8 +6,8 @@ import type { AuthTokenPurpose } from '@prisma/client'
 /**
  * Token một lần gửi qua email (xác minh địa chỉ, đặt lại mật khẩu).
  *
- * DB chỉ giữ SHA-256 của token, không giữ token. Một bản sao DB bị rò — qua
- * backup, qua log truy vấn, qua một lỗ đọc tuỳ ý — không được phép biến thành
+ * DB chỉ giữ SHA-256 của token, không giữ token. Một bản sao DB bị rò - qua
+ * backup, qua log truy vấn, qua một lỗ đọc tuỳ ý - không được phép biến thành
  * khả năng đặt lại mật khẩu của mọi tài khoản đang chờ. Cùng lý do với việc
  * không lưu mật khẩu dạng thô.
  *

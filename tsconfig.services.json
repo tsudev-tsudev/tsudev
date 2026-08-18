@@ -1,10 +1,10 @@
 {
   // Solution file RIÊNG cho backend. Image ở docker/backend-service.Dockerfile
-  // chỉ COPY `packages/` và `services/` — không có `apps/`, nên không có `next`,
+  // chỉ COPY `packages/` và `services/` - không có `apps/`, nên không có `next`,
   // và `@types/react` (vốn chỉ tới được qua hoisting transitive từ next) cũng
   // không có. Dựng `packages/ui` trong image đó vừa vô ích vừa vỡ build.
   //
-  // `tsconfig.json` gốc vẫn dựng TẤT CẢ — đó là thứ CI và máy dev dùng.
+  // `tsconfig.json` gốc vẫn dựng TẤT CẢ - đó là thứ CI và máy dev dùng.
   "files": [],
   "references": [
     { "path": "packages/types" },
@@ -15,6 +15,7 @@
     { "path": "services/storage-service" },
     { "path": "services/trust-service" },
     { "path": "services/auth-service" },
+    { "path": "services/newsroom-service" },
     { "path": "services/backend-bundle" }
   ]
 }

@@ -78,7 +78,7 @@ const server = http.createServer((req, res) => {
 });
 
 // Next dev đẩy hot-reload qua WebSocket. Quên nhánh upgrade này thì trang vẫn
-// chạy nhưng sửa file không tự nạp lại — triệu chứng rất dễ chẩn nhầm thành lỗi
+// chạy nhưng sửa file không tự nạp lại - triệu chứng rất dễ chẩn nhầm thành lỗi
 // của Next chứ không phải của proxy.
 server.on('upgrade', (req, socket, head) => {
   const route = ROUTES.get(hostnameOf(req));
@@ -94,7 +94,7 @@ server.on('upgrade', (req, socket, head) => {
 
   upstream.on('upgrade', (upRes, upSocket, upHead) => {
     // Dữ liệu đã đọc lỡ qua phần header thì đẩy ngược vào đầu socket tương ứng,
-    // rồi mới nối hai chiều — bỏ sót bước này là mất frame WebSocket đầu tiên.
+    // rồi mới nối hai chiều - bỏ sót bước này là mất frame WebSocket đầu tiên.
     if (upHead && upHead.length) upSocket.unshift(upHead);
     if (head && head.length) socket.unshift(head);
 

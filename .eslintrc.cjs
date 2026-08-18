@@ -22,7 +22,7 @@ module.exports = {
   rules: {
     'react/react-in-jsx-scope': 'off',
 
-    // TẮT CÓ CHỦ ĐÍCH — đây là quyết định chính sách, không phải "đã sửa".
+    // TẮT CÓ CHỦ ĐÍCH - đây là quyết định chính sách, không phải "đã sửa".
     //
     // Repo thuần JS và chưa bao giờ phụ thuộc `prop-types`: luật này kêu ở 271
     // chỗ, tức là chưa từng có tệp nào thoả mãn nó. Khai đủ 271 chỗ sẽ tạo ra
@@ -55,13 +55,13 @@ module.exports = {
     {
       // Các script là CommonJS thuần. Luật no-var-requires sinh ra để chặn
       // `require()` lọt vào mã TypeScript, nhưng ở đây nó kêu trên mọi tệp .js
-      // đúng chuẩn — hơn 40 lỗi giả làm chìm mất lỗi thật.
+      // đúng chuẩn - hơn 40 lỗi giả làm chìm mất lỗi thật.
       //
       // `services/**/*.ts` cũng được miễn, nhưng vì LÝ DO KHÁC: những require()
       // còn sót lại trong service đều là require CÓ ĐIỀU KIỆN, nằm trong
       // try/catch (observability, authMiddleware) hoặc chỉ chạy vì tác dụng phụ
       // (source-map-support, dotenv). Chuyển chúng thành `import` là đổi hành vi
-      // — import bị nâng lên đầu và ném lỗi lúc nạp module, đúng thứ mà các
+      // - import bị nâng lên đầu và ném lỗi lúc nạp module, đúng thứ mà các
       // try/catch đó sinh ra để tránh.
       files: ['**/*.js', '**/*.cjs', 'services/**/*.ts'],
       rules: { '@typescript-eslint/no-var-requires': 'off' },

@@ -4,7 +4,7 @@ import { createCipheriv, createDecipheriv, createHmac, randomBytes, scryptSync }
  * TOTP (RFC 6238) và mã dự phòng.
  *
  * TỰ CÀI, KHÔNG DÙNG THƯ VIỆN. Thuật toán là HMAC-SHA1 trên một bộ đếm 8 byte
- * cộng phép rút gọn động — khoảng ba mươi dòng, và `crypto` của Node đã lo phần
+ * cộng phép rút gọn động - khoảng ba mươi dòng, và `crypto` của Node đã lo phần
  * mật mã thật sự. Cùng lý do với ba phụ thuộc của packages/trust-crypto: mỗi
  * gói thêm vào đường xác thực là một mặt tiếp xúc chuỗi cung ứng nữa, đổi lấy
  * việc tiết kiệm ba mươi dòng.
@@ -18,7 +18,7 @@ const PERIOD_S = 30
  *
  * Cần vì đồng hồ điện thoại lệch, và vì người dùng gõ xong mã thì nó vừa đổi.
  * Rộng hơn nữa thì mỗi mã sống lâu hơn, tức là cửa sổ dùng lại mã bắt được
- * cũng rộng hơn — 1 là mức mà cả RFC lẫn thực tế đều dừng lại.
+ * cũng rộng hơn - 1 là mức mà cả RFC lẫn thực tế đều dừng lại.
  */
 const WINDOW = 1
 
@@ -64,7 +64,7 @@ function hotp(key: Buffer, counter: number): string {
  * Sinh mã TOTP cho một thời điểm.
  *
  * Xuất ra để test dùng được. Bản test trước tự dò cạn từ 000000 cho tới khi
- * `verifyTotp` chịu — tới một triệu lần HMAC, đủ chậm để vượt quá timeout của
+ * `verifyTotp` chịu - tới một triệu lần HMAC, đủ chậm để vượt quá timeout của
  * jest VÀ đủ chậm để trôi qua ranh giới cửa sổ 30 giây giữa chừng, khiến kết
  * quả phụ thuộc vào lúc chạy.
  */
@@ -76,7 +76,7 @@ export function totpCode(secretB32: string, now = Date.now()): string {
  * Kiểm mã TOTP.
  *
  * So sánh theo THỜI GIAN HẰNG với từng mã ứng viên. So bằng `===` rò rỉ số ký
- * tự khớp đầu tiên qua thời gian trả lời — với không gian chỉ một triệu giá
+ * tự khớp đầu tiên qua thời gian trả lời - với không gian chỉ một triệu giá
  * trị, đó là một rò rỉ có ý nghĩa.
  */
 export function verifyTotp(secretB32: string, code: string, now = Date.now()): boolean {
@@ -121,7 +121,7 @@ export function otpauthUri(secretB32: string, account: string, issuer = 'tsudev'
 // ---------------------------------------------------------------------------
 // Mã hoá bí mật khi lưu
 //
-// Bí mật TOTP KHÔNG băm được — kiểm mã cần chính giá trị đó. Nên nó phải được
+// Bí mật TOTP KHÔNG băm được - kiểm mã cần chính giá trị đó. Nên nó phải được
 // MÃ HOÁ, và khoá nằm ngoài DB. Một bản sao DB bị rò mà không kèm khoá ứng dụng
 // thì không sinh được mã của ai cả.
 // ---------------------------------------------------------------------------
@@ -143,7 +143,7 @@ export function encryptSecret(plain: string): string {
   const iv = randomBytes(12)
   const cipher = createCipheriv(ALGO, encKey(), iv)
   const enc = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()])
-  // iv.tag.ciphertext — GCM cần cả ba để giải và để phát hiện sửa đổi.
+  // iv.tag.ciphertext - GCM cần cả ba để giải và để phát hiện sửa đổi.
   return [
     iv.toString('base64'),
     cipher.getAuthTag().toString('base64'),
@@ -162,7 +162,7 @@ export function decryptSecret(stored: string): string | null {
       decipher.final(),
     ]).toString('utf8')
   } catch {
-    // Khoá sai hoặc dữ liệu bị sửa — GCM phát hiện được, và cả hai đều là
+    // Khoá sai hoặc dữ liệu bị sửa - GCM phát hiện được, và cả hai đều là
     // "không dùng được", không phải "sập".
     return null
   }

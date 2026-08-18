@@ -4,7 +4,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { Layout, Card, Button, SectionHeading, Badge } from '@tsudev/ui';
 
 // Bảng điều khiển quản trị. Trước đây trang này lấy số liệu từ /api/mod/summary
-// (báo cáo chờ, tài khoản bị cấm, bài đã gỡ, chủ đề bị khoá) — toàn bộ là số đo
+// (báo cáo chờ, tài khoản bị cấm, bài đã gỡ, chủ đề bị khoá) - toàn bộ là số đo
 // của diễn đàn. Diễn đàn không còn nên hệ kiểm duyệt cũng không còn đối tượng;
 // trang chuyển thành cổng vào các khu quản trị đang có.
 const AREAS = [
@@ -12,6 +12,12 @@ const AREAS = [
     href: '/admin/trust',
     title: 'Con dấu tín nhiệm',
     desc: 'Thẩm định hồ sơ, cấp/đình chỉ/thu hồi chứng chỉ, tái kiểm tên miền.',
+    ready: true,
+  },
+  {
+    href: '/admin/newsroom',
+    title: 'Toà soạn Agent AI',
+    desc: 'Sàn làm việc của đội ngũ AI, luồng sản xuất bài viết, nhật ký kiểm toán và mức tự chủ theo chuyên mục.',
     ready: true,
   },
   {

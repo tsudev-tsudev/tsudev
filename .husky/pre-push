@@ -1,12 +1,12 @@
 #!/bin/sh
-# Chặn push thẳng lên main — GitHub Free không hỗ trợ branch protection cho
+# Chặn push thẳng lên main - GitHub Free không hỗ trợ branch protection cho
 # repo private (cần Pro/Team) nên đây là lớp chắn phía client thay thế.
 # Vượt qua khi thật sự cần: ALLOW_MAIN_FORCE=1 git push
 
 # Hợp đồng cổng/tên miền chạy TRƯỚC cờ vượt: ALLOW_MAIN_FORCE là ngoại lệ cho
 # quy tắc nhánh, không phải giấy phép đẩy cổng hardcode lên remote.
 if ! npm run --silent topology:check; then
-  echo "🚫 topology:check đỏ — xem docs/refactor-network-topology.md" >&2
+  echo "🚫 topology:check đỏ - xem docs/refactor-network-topology.md" >&2
   exit 1
 fi
 

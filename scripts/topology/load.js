@@ -39,7 +39,7 @@ function port(topo, id, env = 'dev') {
 }
 
 /**
- * URL tầng INTERNAL — SSR, BFF, service gọi service. Không bao giờ đi qua proxy:
+ * URL tầng INTERNAL - SSR, BFF, service gọi service. Không bao giờ đi qua proxy:
  * vòng lại qua cổng vào công khai chỉ thêm một điểm hỏng.
  */
 function internalUrl(topo, id, env = 'dev') {
@@ -47,7 +47,7 @@ function internalUrl(topo, id, env = 'dev') {
 }
 
 /**
- * URL tầng PUBLIC — cái trình duyệt gõ. Hai hình trạng:
+ * URL tầng PUBLIC - cái trình duyệt gõ. Hai hình trạng:
  *   mode=ports  → http://localhost:3000        (hiện trạng)
  *   mode=proxy  → http://<sub>.tsudev.localhost:8080
  */
@@ -82,12 +82,12 @@ function managedEnv(topo, env = 'dev') {
   });
   // Cả lý do tồn tại của dev-proxy: cookie phiên đặt trên .tsudev.localhost thì
   // app và các subdomain (auth, cdn) dùng chung, y như .tsudev.com trên
-  // production. Ở chế độ ports thì để trống — mọi thứ đã ở trên localhost nên
+  // production. Ở chế độ ports thì để trống - mọi thứ đã ở trên localhost nên
   // vốn chung kho cookie, đặt domain vào chỉ tổ sai.
   out.NEXTAUTH_COOKIE_DOMAIN = topo.dev.mode === 'proxy' ? `.${topo.dev.domain}` : '';
 
   // Origin được phép gọi CHÉO tới service. Sau giai đoạn 4 trình duyệt đi qua BFF
-  // nên danh sách này gần như không dùng tới — giữ lại như lưới chắn, và để
+  // nên danh sách này gần như không dùng tới - giữ lại như lưới chắn, và để
   // trống ở production là khoá hẳn (BFF không bị ảnh hưởng, nó gọi server↔server).
   out.CORS_ALLOWED_ORIGINS = topo.nodes
     .filter((n) => n.public && n.id === 'main')
@@ -96,7 +96,7 @@ function managedEnv(topo, env = 'dev') {
 
   // URL presign trả về cho TRÌNH DUYỆT, nên phải là host công khai. Bỏ trống thì
   // storage-service rơi về S3_ENDPOINT nội bộ và trình duyệt nhận URL trỏ
-  // `http://minio:9000` — đúng cái bẫy S3_ENDPOINT/S3_PUBLIC_ENDPOINT mà
+  // `http://minio:9000` - đúng cái bẫy S3_ENDPOINT/S3_PUBLIC_ENDPOINT mà
   // CLAUDE.md cảnh báo. Ở dev, cdn.<domain> do dev-proxy chuyển tới MinIO.
   out.S3_PUBLIC_ENDPOINT = publicUrl(topo, 'cdn', env);
 
@@ -111,13 +111,13 @@ function managedEnv(topo, env = 'dev') {
  * lúc `next build`, nên không đặt được từ dashboard Cloudflare lúc chạy: giá trị
  * phải nằm sẵn trong apps/frontend-main/.env.production được commit. Quên nó thì
  * sitemap, thẻ canonical và ảnh OG của production phát ra
- * http://tsudev.localhost:8080 — sai mà không có gì báo lỗi.
+ * http://tsudev.localhost:8080 - sai mà không có gì báo lỗi.
  */
 function managedProdEnv(topo) {
   return { NEXT_PUBLIC_MAIN_URL: prodUrl(topo, 'main') };
 }
 
-/** Mọi cổng hợp lệ ở mọi môi trường — check.js dùng để bắt số lạ. */
+/** Mọi cổng hợp lệ ở mọi môi trường - check.js dùng để bắt số lạ. */
 function knownPorts(topo) {
   const set = new Set(topo.nodes.map((n) => n.port));
   Object.values(topo.overrides || {}).forEach((envOv) => {

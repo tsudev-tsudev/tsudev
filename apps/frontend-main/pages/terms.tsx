@@ -10,7 +10,7 @@ const SECTIONS = [
       <>
         <p>
           Điều khoản sử dụng này là thỏa thuận giữa bạn và <strong>{OPERATOR.legalName}</strong> (mã
-          số {OPERATOR.taxCode}), địa chỉ {OPERATOR.address}, bên vận hành website tsudev — sau đây
+          số {OPERATOR.taxCode}), địa chỉ {OPERATOR.address}, bên vận hành website tsudev - sau đây
           gọi là “chúng tôi”.
         </p>
         <p>
@@ -34,20 +34,20 @@ const SECTIONS = [
         <p>tsudev là website dự án cá nhân về công nghệ, bao gồm:</p>
         <ul>
           <li>
-            <strong>Dự án mã nguồn</strong> — ứng dụng, thư viện và công cụ do tsudev phát triển.
+            <strong>Dự án mã nguồn</strong> - ứng dụng, thư viện và công cụ do tsudev phát triển.
           </li>
           <li>
-            <strong>Blog và Tài liệu</strong> — bài viết, hướng dẫn và kho tri thức chuẩn hóa.
+            <strong>Blog và Tài liệu</strong> - bài viết, hướng dẫn và kho tri thức chuẩn hóa.
           </li>
           <li>
-            <strong>Chợ</strong> — nơi đăng và trao đổi sản phẩm, dịch vụ công nghệ giữa các thành
+            <strong>Chợ</strong> - nơi đăng và trao đổi sản phẩm, dịch vụ công nghệ giữa các thành
             viên.
           </li>
           <li>
-            <strong>Tin nhắn</strong> — trao đổi riêng giữa các thành viên.
+            <strong>Tin nhắn</strong> - trao đổi riêng giữa các thành viên.
           </li>
           <li>
-            <strong>Con dấu tín nhiệm</strong> — chứng chỉ tín nhiệm cấp cho tổ chức đã qua thẩm
+            <strong>Con dấu tín nhiệm</strong> - chứng chỉ tín nhiệm cấp cho tổ chức đã qua thẩm
             định và xác minh quyền kiểm soát tên miền.
           </li>
         </ul>
@@ -101,7 +101,7 @@ const SECTIONS = [
           </li>
           <li>
             Đưa thông tin sai sự thật, bịa đặt gây hoang mang trong nhân dân hoặc gây thiệt hại cho
-            hoạt động kinh tế — xã hội.
+            hoạt động kinh tế - xã hội.
           </li>
           <li>
             Xúc phạm danh dự, nhân phẩm, uy tín của tổ chức, cá nhân; làm nhục, vu khống người khác.
@@ -274,14 +274,14 @@ const SECTIONS = [
           lực.
         </p>
         <p>
-          Liên hệ: <strong>{OPERATOR.email}</strong> — điện thoại {OPERATOR.phone} — địa chỉ{' '}
+          Liên hệ: <strong>{OPERATOR.email}</strong> - điện thoại {OPERATOR.phone} - địa chỉ{' '}
           {OPERATOR.address}. Người chịu trách nhiệm quản lý nội dung: {OPERATOR.owner}.
         </p>
         <h3>Cơ sở pháp lý</h3>
         <ul>
           {LEGAL_BASIS.map((l) => (
             <li key={l.title}>
-              <strong>{l.title}</strong> — {l.note}
+              <strong>{l.title}</strong> - {l.note}
             </li>
           ))}
         </ul>

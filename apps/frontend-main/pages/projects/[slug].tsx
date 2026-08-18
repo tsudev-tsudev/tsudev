@@ -9,7 +9,7 @@ import type { Project } from '../../lib/types';
 import { routeParam } from '../../lib/identity';
 
 const fmt = (d: string | Date | null | undefined): string =>
-  d ? new Date(d).toLocaleDateString('vi-VN') : '—';
+  d ? new Date(d).toLocaleDateString('vi-VN') : '-';
 
 type RowProps = { label: React.ReactNode; children?: React.ReactNode };
 
