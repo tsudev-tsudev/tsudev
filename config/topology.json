@@ -84,12 +84,6 @@
       "label": "PostgreSQL",
       "port": 5433,
       "public": false
-    },
-    {
-      "id": "cache",
-      "label": "Redis",
-      "port": 6379,
-      "public": false
     }
   ],
   "overrides": {
