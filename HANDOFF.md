@@ -15,15 +15,16 @@
 
 ## ✅ Bắt đầu từ đâu
 
-**Không còn việc chặn nào.** Site đã có nội dung trở lại, Con dấu chạy chế độ
-mời, Keycloak đã sạch hoàn toàn.
+**Không còn việc chặn nào.** Bốn lỗi production của phiên 6 đã sửa và đã nghiệm
+thu trên `tsudev.com` (chi tiết §0):
 
-Việc chặn của phiên 6 - Neon thiếu 6 migration ⇒ toàn bộ nội dung trống - **đã
-sửa 19/08/2026**. Nghiệm thu đếm bằng nội dung chứ không bằng mã 200:
-
-```
-bài trên /blog: 3 · mục trên /docs: 2 · dự án trên /projects: 4
-```
+- Nội dung site trở lại - `/blog` **3 bài** · `/docs` **2 mục** · `/projects`
+  **4 dự án**. Đếm bằng NỘI DUNG, không bằng mã 200.
+- Mọi đường ghi đã xác thực chạy lại: sửa hồ sơ, đổi mật khẩu, upload, ghi nội
+  dung admin. Trước đó **toàn bộ** chúng trả 401 trên HTTPS.
+- Trang `/trust/*` phân biệt đúng hai đích: khách → `/login`, người đã đăng nhập
+  chưa đạt VIP → `/trust`.
+- Keycloak sạch hoàn toàn, kể cả cột DB và secret cuối cùng ở hạ tầng.
 
 ### Còn lại đúng MỘT việc cần tay chủ dự án: bật Toà soạn Agent AI
 
@@ -129,70 +130,59 @@ Ba thứ mất là không sinh lại được:
 
 ## 0. Nhật ký phiên 6 (19/08/2026)
 
-Phiên dài nhất tới nay: sáu PR gộp (#15-#20), hai lần phát hành thật, và **ba lỗi
-production được tìm ra - cả ba đều đã chạy im lặng từ trước khi phiên bắt đầu**.
+Phiên dài nhất tới nay: **mười PR gộp (#15-#24)**, ba lần phát hành thật, và
+**bốn lỗi production được tìm ra - cả bốn đều đã chạy im lặng từ trước khi phiên
+bắt đầu**. Không lỗi nào do công việc của phiên gây ra; công việc của phiên chỉ
+làm chúng lộ ra.
+
+### Bốn lỗi production, xếp theo mức độ
+
+**1. `getToken()` tìm sai tên cookie trên HTTPS** ⇒ _mọi_ đường ghi đã xác thực
+trên production trả 401: upload, ghi nội dung admin, toà soạn, mọi route tài
+khoản, và các trang `/trust/*` đá cả VIP về `/login`. Đây là lỗi nặng nhất, và
+nó chỉ được báo lên dưới dạng "đổi tên hiển thị không lưu được". Cơ chế và cách
+canh: §0.7. Vá ở PR #23.
+
+**2. Neon thiếu 6 migration** ⇒ toàn bộ nội dung site trống từ 18/08 lúc 01:55.
+Render chạy mã SELECT những cột chưa tồn tại, `lib/api.ts` nuốt lỗi thành `[]`,
+nên triệu chứng là trang trống chứ không phải trang lỗi. Phiếu phiên 4 có ghi
+"kiểm Neon đã áp migration chưa" như một câu hỏi mở và **nó chưa bao giờ được
+trả lời**.
+
+**3. `INTERNAL_IDENTITY_SECRET` chưa bao giờ được đặt ở Render** ⇒ mọi đường ghi
+đã xác thực trả 503. Ba thứ che nó: đăng nhập không dùng khẳng định danh tính
+nên vẫn chạy; ba service kia dính cổng `INTERNAL_API_TOKEN` trước và trả 401 nên
+không bao giờ chạm tới tầng danh tính; `/health` vẫn 200. Phép chẩn đoán duy nhất
+không bị che đã ghi vào `docs/deployment.md`.
+
+**4. `/settings/security` là trang chết** - không được nhắc tới ở bất kỳ đâu
+trong giao diện, chỉ vào được bằng cách gõ URL. Trang dựng ra để 2FA và passkey
+không thành mã chết thì chính nó mắc đúng số phận đó.
+
+Ba mảnh nhỏ hơn cũng đã sửa: `Makefile e2e-up` gọi một container không còn tồn
+tại · `scripts/verify-stack.ps1` gọi log của hai service đã xoá · Worker giữ một
+secret `KEYCLOAK_CLIENT_SECRET` chết.
 
 ### Đã phát hành
 
-| Việc                                  | Trạng thái                                         |
-| ------------------------------------- | -------------------------------------------------- |
-| Con dấu về chế độ mời (§1.9, 3/3 đợt) | ✅ gộp + phát hành                                 |
-| Gỡ sạch Keycloak khỏi dự án           | ✅ gộp; migration xoá cột **chờ lệnh ở đầu phiếu** |
-| Worker frontend                       | ✅ hết cảnh backend-mới/Worker-cũ kéo dài từ 18/08 |
-| Worker cron giữ ấm (§1.1)             | ✅ deploy, kèm khung nghỉ đêm                      |
-| Trang tài khoản (§1.7 đợt A)          | ✅ trừ ảnh đại diện                                |
-| CI thôi chạy trùng mỗi lượt đẩy       | ✅ ~360 phút/tháng thôi bị đốt                     |
+| Việc                                  | Trạng thái                                              |
+| ------------------------------------- | ------------------------------------------------------- |
+| Con dấu về chế độ mời (§1.9, 3/3 đợt) | ✅ gộp + phát hành                                      |
+| Gỡ Keycloak khỏi dự án                | ✅ **hoàn toàn** - mã, tài liệu, schema, cột DB, secret |
+| Xoá cột `User.keycloakId` (§1.6)      | ✅ trọn ba bước, kể cả migration lên Neon               |
+| Worker frontend                       | ✅ hai lần: đợt 2+3, rồi bản vá cookie                  |
+| Worker cron giữ ấm (§1.1)             | ✅ deploy, kèm khung nghỉ đêm 01:00-06:00 giờ VN        |
+| Trang tài khoản (§1.7 đợt A)          | ✅ trừ ảnh đại diện                                     |
+| CI thôi chạy trùng                    | ✅ ~360 phút/tháng thôi bị đốt                          |
+| Dữ liệu tham chiếu Toà soạn           | ✅ seed lên Neon (4 agent · 4 chuyên mục · 9 nguồn)     |
 
-Nghiệm thu sau phát hành: `/trust/redeem` **200** (trước 404) · `/trust/directory`
-và `/trust/verify` **307 → /login** với khách · `sitemap.xml` **0 dòng**
-`/trust/` · `/api/auth/providers` chỉ `credentials, passkey` · `noindex` có ở
-nhánh **khách vãng lai** của cả bốn trang riêng tư - vế cuối là thứ commit
-`ed3a6f4` sửa, nay đã kiểm được trên production thật chứ không chỉ trong E2E.
+### Nghiệm thu trên production
 
-### Ba lỗi production, không cái nào do phiên này gây ra
+Nội dung: `/blog` **3 bài** · `/docs` **2 mục** · `/projects` **4 dự án** - đếm
+bằng nội dung, không bằng mã 200.
 
-1. **`INTERNAL_IDENTITY_SECRET` chưa bao giờ được đặt ở Render** ⇒ mọi đường ghi
-   đã xác thực trả 503. Đã sửa (sinh khoá mới, đặt đồng thời hai nơi); đo lại
-   `/api/trust/programs` cho **401** thay vì 503. Ba thứ che nó suốt thời gian
-   đó, và phép chẩn đoán duy nhất không bị che, đã ghi vào `docs/deployment.md`.
-2. **Neon thiếu 6 migration** ⇒ site trống. Xem đầu phiếu.
-3. **`/settings/security` là TRANG CHẾT** - không được nhắc tới ở bất kỳ đâu
-   trong giao diện, chỉ vào được bằng cách gõ URL. Trang dựng ra để 2FA và
-   passkey không thành mã chết thì chính nó mắc đúng số phận đó. Đã nối vào
-   `SiteHeader` và menu di động.
-
-Kèm ba thứ nhỏ hơn, đã sửa hoặc đã ghi: `Makefile e2e-up` gọi một container
-không còn tồn tại nên lệnh đó chết · `scripts/verify-stack.ps1` gọi log của hai
-service đã xoá · Worker còn giữ một secret `KEYCLOAK_CLIENT_SECRET` chết mà dọn
-repo không với tới được - **xoá tay khi tiện**
-(`npx wrangler secret delete KEYCLOAK_CLIENT_SECRET` trong `apps/frontend-main`).
-
-### Cuối phiên: việc chặn đã sửa, toà soạn đã chuẩn bị xong
-
-Chủ dự án cho phép chạy tiếp, nên phần còn lại đã làm nốt:
-
-- **Chạy 6 migration lên Neon** ⇒ site có nội dung trở lại (3 bài · 2 tài liệu ·
-  4 dự án). Nghiệm thu đếm bằng nội dung, không bằng mã 200.
-- **Xoá secret `KEYCLOAK_CLIENT_SECRET`** khỏi Worker. Keycloak nay sạch hoàn
-  toàn: mã, tài liệu, schema, cột DB, và mảnh cuối cùng ở hạ tầng sống. Worker
-  chỉ còn ba secret, đều đang được dùng thật.
-- **Seed dữ liệu tham chiếu của toà soạn lên Neon** (4 agent · 4 chuyên mục ·
-  9 nguồn). Bảng vừa được tạo nên chúng rỗng; không có agent thì bật
-  `NEWSROOM_ENABLED` cũng không có gì chạy. Seed là idempotent, chạy lại vô hại.
-  Đã đếm lại TRÊN NEON sau khi seed để chắc nó không ghi nhầm vào DB dev - đúng
-  bẫy §0.8.
-
-Còn lại năm biến ở Render mà chỉ chủ dự án đặt được - bảng ở đầu phiếu.
-
-### Bổ sung sau khi chủ dự án thử bấm thật
-
-Báo cáo "đổi tên hiển thị bị lỗi, đổi mật khẩu báo sai mật khẩu" hoá ra là **một
-lỗi lớn hơn nhiều và có từ trước**: `getToken()` tìm sai tên cookie trên HTTPS
-nên **mọi đường ghi đã xác thực trên production đều 401**, và `/trust/*` đá cả
-VIP về `/login`. Chi tiết ở §0.7; bản vá là PR #23.
-
-Đã nghiệm thu trên production sau khi phát hành, bằng một tài khoản dùng-một-lần
-đi đúng luồng người dùng thật:
+Xác thực và gác, đo bằng một tài khoản dùng-một-lần đi đúng luồng người dùng
+thật (đã xoá sau khi xong; bảng `User` còn đúng 1 dòng thật):
 
 | Thao tác                     | Trước     | Sau                           |
 | ---------------------------- | --------- | ----------------------------- |
@@ -200,16 +190,22 @@ VIP về `/login`. Chi tiết ở §0.7; bản vá là PR #23.
 | đổi tên hiển thị             | 401       | **200**, tên đã đổi           |
 | đổi mật khẩu SAI             | 401 mơ hồ | **401 `invalid_credentials`** |
 | đổi mật khẩu ĐÚNG            | 401       | **200**, `sessionVersion` 0→1 |
-| MEMBER mở `/trust/directory` | → /login  | **→ /trust** (đúng)           |
+| MEMBER mở `/trust/directory` | → /login  | **→ /trust**                  |
+| khách mở `/trust/directory`  | → /login  | → /login (đúng)               |
 
-Tài khoản thử đã xoá khỏi Neon; bảng `User` còn đúng 1 dòng thật.
+Vế cuối hai dòng là toàn bộ ý nghĩa của `trustRedirect()`: khách đi đăng nhập,
+người đã đăng nhập đi đọc giải thích về mã mời. Trước bản vá chúng gộp làm một.
+
+Còn lại: `/trust/redeem` **200** (trước 404) · `sitemap.xml` **0 dòng** `/trust/`
+· `/api/auth/providers` chỉ `credentials, passkey` · `noindex` có ở nhánh **khách
+vãng lai** của cả bốn trang riêng tư.
 
 ### Số đo cuối phiên
 
 - **287 test** trên **tám** workspace (auth 61 · bundle 14 · content 26 ·
   newsroom 25 · storage 13 · trust 57 · ui 68 · frontend-main 23).
-- Bốn cổng gốc xanh · `main` xanh · `tsudev-sso` đã xác nhận **không còn** trên
-  Render.
+- Bốn cổng gốc xanh · `main` xanh · một nhánh cục bộ duy nhất.
+- `tsudev-sso` đã xác nhận **không còn** trên Render.
 
 ---
 
