@@ -39,7 +39,8 @@
     "typecheck": "npm run build:ts && npm --workspace apps/frontend-main run typecheck && npm run cron:typecheck",
     "build:ts": "tsc -b",
     "build:services": "tsc -b tsconfig.services.json",
-    "db:seed:dev": "node scripts/with-env.js node services/auth-service/scripts/seed-dev-users.js"
+    "db:seed:dev": "node scripts/with-env.js node services/auth-service/scripts/seed-dev-users.js",
+    "newsroom:check": "bash scripts/kiem-toa-soan.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
