@@ -15,12 +15,12 @@
 // `update()` của useSession ngay sau khi đổi, và trang `/trust` gọi lại một lần
 // nữa cho người tới bằng liên kết cũ - nếu không, đổi mã xong vẫn bị đá ra và
 // trông y hệt như mã không có tác dụng.
-import { getToken } from 'next-auth/jwt';
 import { hasAtLeastRole } from '@tsudev/types';
 
 import type { GetServerSidePropsContext, Redirect } from 'next';
 
 import { identityHeaders } from './identity';
+import { readSessionToken } from './sessionCookie';
 
 /** Bậc tối thiểu để thấy bề mặt Con dấu. Một chỗ duy nhất, mọi trang đọc từ đây. */
 export const TRUST_MIN_ROLE = 'VIP' as const;
@@ -37,7 +37,7 @@ export type TrustAccess =
   | { ok: false; reason: 'not-invited' };
 
 export async function trustAccess(ctx: GetServerSidePropsContext): Promise<TrustAccess> {
-  const token = await getToken({ req: ctx.req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await readSessionToken(ctx.req);
   if (!token) return { ok: false, reason: 'anonymous' };
   if (!hasAtLeastRole(token.role, TRUST_MIN_ROLE)) return { ok: false, reason: 'not-invited' };
   return {

@@ -9,12 +9,12 @@
 // trang xác minh. Cái giá bằng không - lúc quyết định có 0 chứng chỉ đang chạy.
 //
 // Danh sách dưới đây là MẶC ĐỊNH ĐÓNG: tiền tố lạ nhận 404 chứ không đi tiếp.
-import { getToken } from 'next-auth/jwt';
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { TRUST } from '../../../lib/services';
 import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
+import { readSessionToken } from '../../../lib/sessionCookie';
 
 const ALLOWED_PREFIXES = new Set([
   'programs',
@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Referer/Origin cho cơ chế phát hiện huy hiệu gắn sai tên miền đã được GỠ ở
   // đợt này: chỉ người đã đăng nhập mới tải được huy hiệu, nên nó không còn
   // ràng buộc được gì - để lại là để một lớp phòng thủ giả nằm trong mã.
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await readSessionToken(req);
   if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
   const headers: Record<string, string> = {
     ...(await identityHeaders(token)),

@@ -34,7 +34,43 @@ const post = async (path: string, body?: unknown) => {
     body: JSON.stringify(body ?? {}),
   });
   const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, data } as { ok: boolean; data: Record<string, unknown> };
+  // `status` được trả ra chứ không nuốt: 401 và "sai mật khẩu" là HAI chuyện
+  // khác nhau, và gộp chúng vào một thông điệp đã khiến một sự cố phiên bị chẩn
+  // thành lỗi mật khẩu.
+  return { ok: res.ok, status: res.status, data } as {
+    ok: boolean;
+    status: number;
+    data: Record<string, unknown>;
+  };
+};
+
+/**
+ * Dịch lỗi thành câu người dùng đọc được - và KHÔNG nói dối.
+ *
+ * Bản đầu của trang này gộp mọi lỗi chưa nhận ra thành "Mật khẩu hiện tại không
+ * đúng". Khi phiên bị từ chối ở tầng proxy (401), người dùng nhận đúng câu đó và
+ * gõ lại mật khẩu ĐÚNG nhiều lần trong khi vấn đề nằm ở chỗ hoàn toàn khác. Một
+ * thông điệp lỗi đoán bừa còn tệ hơn một thông điệp chung chung.
+ */
+const SESSION_EXPIRED = 'Phiên đăng nhập không còn hợp lệ. Hãy đăng nhập lại rồi thử lại.';
+
+const saveError = (status: number): string =>
+  status === 401 ? SESSION_EXPIRED : 'Không lưu được. Hãy thử lại.';
+
+const passwordError = (status: number, code: string): string => {
+  if (code === 'no_password_set') {
+    return 'Tài khoản này chưa từng đặt mật khẩu. Hãy dùng "Quên mật khẩu" để đặt lần đầu.';
+  }
+  if (code === 'weak_password') {
+    return 'Mật khẩu mới chưa đủ mạnh. Cần ít nhất 12 ký tự và không nằm trong danh sách phổ biến.';
+  }
+  // 401 có HAI nguồn nói hai chuyện khác nhau: `invalid_credentials` là
+  // auth-service đã kiểm mật khẩu và từ chối; mọi 401 khác nghĩa là request chưa
+  // bao giờ tới được chỗ kiểm mật khẩu.
+  if (status === 401) {
+    return code === 'invalid_credentials' ? 'Mật khẩu hiện tại không đúng.' : SESSION_EXPIRED;
+  }
+  return 'Không đổi được mật khẩu. Hãy thử lại.';
 };
 
 const Section = ({
@@ -118,10 +154,12 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     setSaving(true);
-    const { ok } = await post('profile/update', { displayName, bio });
+    // Đặt tên khác `status` của useSession có chủ đích: hai thứ này khác nhau
+    // hoàn toàn, và để chúng cùng tên trong một hàm là mời một lỗi đọc nhầm.
+    const { ok, status: httpStatus } = await post('profile/update', { displayName, bio });
     setSaving(false);
     if (!ok) {
-      setMsg({ kind: 'error', text: 'Không lưu được. Hãy thử lại.' });
+      setMsg({ kind: 'error', text: saveError(httpStatus) });
       return;
     }
     setMsg({ kind: 'ok', text: 'Đã lưu hồ sơ.' });
@@ -134,20 +172,15 @@ export default function ProfilePage() {
       return;
     }
     setChanging(true);
-    const { ok, data } = await post('password/change', { currentPassword, newPassword });
+    const {
+      ok,
+      status: httpStatus,
+      data,
+    } = await post('password/change', { currentPassword, newPassword });
     setChanging(false);
 
     if (!ok) {
-      const code = String(data.error || '');
-      setMsg({
-        kind: 'error',
-        text:
-          code === 'no_password_set'
-            ? 'Tài khoản này chưa từng đặt mật khẩu. Hãy dùng "Quên mật khẩu" để đặt lần đầu.'
-            : code === 'weak_password'
-            ? 'Mật khẩu mới chưa đủ mạnh. Cần ít nhất 12 ký tự và không nằm trong danh sách phổ biến.'
-            : 'Mật khẩu hiện tại không đúng.',
-      });
+      setMsg({ kind: 'error', text: passwordError(httpStatus, String(data.error || '')) });
       return;
     }
 

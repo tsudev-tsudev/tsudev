@@ -1,15 +1,15 @@
 // Factory for authenticated BFF proxies: forwards to content-service under a
 // base path, injecting the caller identity from the next-auth session so the
 // browser never talks to the service directly (no CORS, no token exposure).
-import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { CONTENT, internalHeaders } from './services';
 import { catchAllSegments, identityHeaders, queryStringOf } from './identity';
+import { readSessionToken } from './sessionCookie';
 
 export function makeAuthedProxy(base: string) {
   return async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = await readSessionToken(req);
     if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
     const path = catchAllSegments(req.query.path).join('/');
     const qs = queryStringOf(req.url);
