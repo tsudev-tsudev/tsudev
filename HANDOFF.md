@@ -15,102 +15,50 @@
 
 ## ✅ Bắt đầu từ đâu
 
-**Không còn việc chặn nào.** Bốn lỗi production của phiên 6 đã sửa và đã nghiệm
-thu trên `tsudev.com` (chi tiết §0):
+**Không còn việc chặn nào. Production chạy đủ và chi phí bằng 0.** Đo cuối phiên 6
+(19/08/2026):
 
-- Nội dung site trở lại - `/blog` **3 bài** · `/docs` **2 mục** · `/projects`
-  **4 dự án**. Đếm bằng NỘI DUNG, không bằng mã 200.
-- Mọi đường ghi đã xác thực chạy lại: sửa hồ sơ, đổi mật khẩu, upload, ghi nội
-  dung admin. Trước đó **toàn bộ** chúng trả 401 trên HTTPS.
-- Trang `/trust/*` phân biệt đúng hai đích: khách → `/login`, người đã đăng nhập
-  chưa đạt VIP → `/trust`.
-- Keycloak sạch hoàn toàn, kể cả cột DB và secret cuối cùng ở hạ tầng.
+| Vùng     | Trạng thái                                                     |
+| -------- | -------------------------------------------------------------- |
+| Nội dung | `/blog` 3 bài · `/docs` 2 mục · `/projects` 4 dự án            |
+| Xác thực | mọi đường ghi chạy: sửa hồ sơ, đổi mật khẩu, upload, ghi admin |
+| Con dấu  | chế độ mời: khách → `/login`, đã đăng nhập chưa VIP → `/trust` |
+| Toà soạn | đang sản xuất - 11 bản sửa, hàng đợi ổn định ở trần 12         |
+| Chi phí  | 2.041 Neuron/ngày trên trần 8.000 · Render ~589/750 giờ        |
+| Keycloak | sạch hoàn toàn - mã, tài liệu, schema, cột DB, secret hạ tầng  |
 
-### ✅ Toà soạn Agent AI ĐÃ CHẠY (19/08/2026)
+Nghiệm thu **đếm nội dung, không đếm mã 200** - lý do ở §0.7.
 
-Ba biến cuối đã được đặt ở Render và toà soạn sản xuất thật. Đo bằng
-`npm run newsroom:check` - script này đếm **việc đã chạy**, không đếm mã HTTP,
-vì `POST /api/newsroom/tick` trả 202 NGAY rồi mới chạy nền:
+### Việc còn lại, theo thứ tự đề nghị
 
-```
-AgentRun trước: 8  →  tick 202  →  AgentRun sau: 14
-✔ Toà soạn ĐANG CHẠY THẬT
-```
+Không việc nào chặn việc nào. Ba việc đầu cần MẮT NGƯỜI hoặc QUYẾT ĐỊNH của chủ
+dự án, nên phiên mới đọc xong nên hỏi trước khi tự chọn.
 
-Trạng thái đường ống lúc chốt phiên: **18 nháp · 2 bản sửa · 3 bài đăng**
-(3 bài là nội dung cũ, agent chưa xuất bản bài nào). Bản sửa đầu tiên dài 4.046
-ký tự, 37 dòng, có tiêu đề Markdown thật.
+1. **§1.5 - rà giao diện bằng MẮT.** Việc lớn nhất còn lại và chưa ai làm. Nay có
+   thêm ba thứ mới chưa từng được nhìn: trang mời `/trust`, `/settings/profile`,
+   và điều hướng đã đổi (tên người dùng thành liên kết, menu di động thêm 2 mục).
+2. **§1.7 ảnh đại diện** - chủ dự án chốt một trong ba đường. Bảng đánh đổi đã
+   ghi sẵn; đề nghị là dùng chữ cái đầu (component `Avatar` đã có), 0 hạ tầng.
+3. **§1.10 dọn service Render trùng** - 10 phút ở dashboard, cần tay chủ dự án.
+4. **§1.4 CSP** - cần mở site thao tác thật vài phút rồi đọc Console. Đọc kỹ ghi
+   chú về script nội tuyến chống nháy màu trước khi bật.
+5. **§1.3 npm audit** - phải là đợt `next@16` riêng có test đầy đủ. `npm audit fix`
+   KHÔNG chạy được (vướng nợ react đã đăng ký ở §2).
+6. **§1.7 đợt B** (đổi email, xem/thu hồi phiên, xoá tài khoản) · **§1.8**.
 
-**Chi phí vẫn bằng 0**: 714 Neuron hôm nay trên trần 8.000 (hạn mức Cloudflare
-10.000/ngày), trung bình 26 Neuron mỗi lượt agent. Dự phóng ~2.500/ngày ở nhịp
-19 lần/ngày - biên còn rất rộng.
+### Hai việc nhỏ nên làm khi tiện
 
-✅ **Hàng đợi ý tưởng đã có trần** (trước đó lớn một chiều: 25 PENDING và tăng
-đều). `scanSources()` nay ngừng quét khi hàng đợi chạm `IDEA_QUEUE_CAP = 12`.
-
-Đo trên production sau khi phát hành, sáu nhịp liên tiếp:
-
-```
-trước:  ý tưởng chờ=23  scan.skipped=0  bản sửa=3
-lượt 1: 21  1  5      lượt 4:  8  4  6   ← dưới trần, quét TỰ BẬT LẠI
-lượt 2: 17  2  5      lượt 5: 11  4  6
-lượt 3: 13  3  6      lượt 6: 12  4  8
-```
-
-Hàng đợi nay **dao động quanh trần** thay vì lớn một chiều, và bản sửa vẫn tăng
-đều - tức van chặn đúng chỗ cần chặn mà không chặn nhầm Writer.
-
-Chọn áp lực ngược thay vì tăng `batch` cho vừa là có lý do: tốc độ sinh phụ thuộc
-nguồn tin bên ngoài, nên tăng số chỉ dời điểm vỡ. Van đặt TRƯỚC lượt gọi mô hình
-đầu tiên - đặt sau thì hàng đợi bị chặn mà Neuron vẫn tiêu đều.
-
-#### Lỗi đã sửa để tới được đây
-
-Toà soạn bật lên rồi vẫn **không ra bài nào** trong khi vẫn tiêu Neuron:
-`event.failed` lặp lại với `"Writer trả về bài rỗng hoặc quá ngắn"`. Nguyên nhân:
-Llama 70B được yêu cầu trả `{"contentMd":"<cả bài Markdown>"}` thì xuống dòng
-NGUYÊN VĂN trong chuỗi, mà JSON không cho phép ký tự điều khiển thô ⇒
-`JSON.parse` ném ⇒ `parseJsonLoose` trả null ⇒ Writer ném ⇒ sự kiện quay lại
-PENDING. Vòng lặp không tự thoát được vì cùng prompt cho cùng dạng đầu ra.
-
-Vá ở PR #28: `escapeRawControlChars` (máy trạng thái, không phải regex - phải
-biết đang trong hay ngoài chuỗi). Test hồi quy dùng **đầu ra thật của mô hình**
-bắt được lúc truy nguyên.
-
-### Rồi tới, theo thứ tự
-
-1. **§1.5 - rà giao diện bằng MẮT.** Việc lớn nhất còn lại, và chưa ai nhìn.
-   Nay có thêm ba thứ mới: trang mời `/trust`, `/settings/profile`, điều hướng
-   đã đổi.
-2. **§1.7 ảnh đại diện** - cần chủ dự án chốt một trong ba đường; bảng đánh đổi
-   và đề nghị đã ghi sẵn.
-3. **§1.10** dọn service Render trùng · **§1.4** CSP · **§1.3** npm audit ·
-   **§1.7 đợt B** · **§1.8**.
-
-### ✅ Bản sao lưu biến production đã được dựng lại
-
-`backup/production-env-2026-08-19.txt` - **21 biến, không còn chỗ giữ chỗ**, và
-cả ba cặp dùng chung (`INTERNAL_API_TOKEN`, `INTERNAL_IDENTITY_SECRET`,
-`NEWSROOM_TICK_TOKEN`) đều chỉ có ĐÚNG MỘT giá trị, tức bản ghi tự nhất quán.
-
-Bản 16/08 (nên xoá nếu còn) sai theo ba kiểu, và đáng ghi lại vì mỗi kiểu đều
-từng gây sự cố:
-
-- **Thiếu `INTERNAL_IDENTITY_SECRET`** ⇒ biến đó chưa bao giờ được đặt ở Render
-  ⇒ mọi đường ghi đã xác thực trả 503 trong nhiều ngày.
-- **Thiếu `TOTP_ENCRYPTION_KEY`** - mất là MỌI thiết bị 2FA đang dùng hỏng, và
-  không sinh lại được. Chưa gây sự cố, nhưng đây là loại thiếu sót chỉ lộ ra vào
-  đúng ngày tệ nhất.
-- **Hai giá trị `INTERNAL_API_TOKEN` khác nhau** cho hai nơi bắt buộc phải trùng.
-  Hạ tầng vẫn đúng (đã đo: giá trị nào qua được cổng backend), chỉ bản ghi sai -
-  nhưng một bản ghi sai thì lần khôi phục sau sẽ đặt nhầm.
+- **Xoay `CF_AI_TOKEN`** - token hiện tại đã đi qua một kênh chat. Quy trình
+  ở [`docs/deployment.md`](docs/deployment.md) §Biến môi trường; chỉ nằm ở Render
+  nên không có cửa sổ hỏng.
+- **Xoá `backup/production-env-2026-08-16.txt`** nếu còn. Bản 19/08 đã đủ 21 biến
+  và tự nhất quán; giữ bản cũ chỉ tạo lại đúng sự nhầm lẫn đã gây sự cố.
 
 ⚠️ **Ba thứ mất là không sinh lại được**: `TRUST_SIGNING_KEY` ·
-`TOTP_ENCRYPTION_KEY` · (và `INTERNAL_IDENTITY_SECRET` sinh lại được nhưng phải
-đổi ĐỒNG THỜI hai nơi). Sao lưu chúng ra một chỗ thứ hai, ngoài máy này.
+`TOTP_ENCRYPTION_KEY` · (`INTERNAL_IDENTITY_SECRET` sinh lại được nhưng phải đổi
+ĐỒNG THỜI ở Render và Cloudflare). Sao lưu ra một chỗ thứ hai ngoài máy này.
 
-Quy trình xoay secret dùng chung và phép đo cho từng cặp:
-[`docs/deployment.md`](docs/deployment.md) §Biến môi trường.
+---
 
 ## Đang chạy
 
@@ -138,58 +86,42 @@ Ba thứ mất là không sinh lại được:
 
 ## 0. Nhật ký phiên 6 (19/08/2026)
 
-Phiên dài nhất tới nay: **mười PR gộp (#15-#24)**, ba lần phát hành thật, và
-**bốn lỗi production được tìm ra - cả bốn đều đã chạy im lặng từ trước khi phiên
-bắt đầu**. Không lỗi nào do công việc của phiên gây ra; công việc của phiên chỉ
-làm chúng lộ ra.
+Phiên dài nhất tới nay: **20 PR (#15-#34)**, năm lần phát hành thật, và **sáu lỗi
+production** - trong đó **năm cái đã chạy im lặng từ trước khi phiên bắt đầu**.
+Công việc của phiên không gây ra chúng; nó chỉ làm chúng lộ ra.
 
-### Bốn lỗi production, xếp theo mức độ
+### Sáu lỗi, xếp theo mức độ
 
-**1. `getToken()` tìm sai tên cookie trên HTTPS** ⇒ _mọi_ đường ghi đã xác thực
-trên production trả 401: upload, ghi nội dung admin, toà soạn, mọi route tài
-khoản, và các trang `/trust/*` đá cả VIP về `/login`. Đây là lỗi nặng nhất, và
-nó chỉ được báo lên dưới dạng "đổi tên hiển thị không lưu được". Cơ chế và cách
-canh: §0.7. Vá ở PR #23.
+| #   | Lỗi                                                  | Triệu chứng nó tạo ra                                               |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------- |
+| 1   | `getToken()` tìm sai tên cookie **trên HTTPS**       | MỌI đường ghi đã xác thực trả 401; `/trust/*` đá cả VIP về `/login` |
+| 2   | Neon thiếu 6 migration                               | toàn bộ nội dung site trống, **mà mọi trang vẫn trả 200**           |
+| 3   | `INTERNAL_IDENTITY_SECRET` chưa bao giờ đặt ở Render | mọi đường ghi đã xác thực trả 503                                   |
+| 4   | Writer nhận JSON có xuống dòng thô                   | toà soạn chạy, tiêu Neuron, **không bài nào ra đời**                |
+| 5   | `/settings/security` không có liên kết nào           | trang dựng để 2FA khỏi thành mã chết thì chính nó là mã chết        |
+| 6   | `--with-deps` của Playwright kéo 21 MB phông qua apt | CI treo **bốn lần**, mỗi lần có thể đốt 18% hạn mức tháng           |
 
-**2. Neon thiếu 6 migration** ⇒ toàn bộ nội dung site trống từ 18/08 lúc 01:55.
-Render chạy mã SELECT những cột chưa tồn tại, `lib/api.ts` nuốt lỗi thành `[]`,
-nên triệu chứng là trang trống chứ không phải trang lỗi. Phiếu phiên 4 có ghi
-"kiểm Neon đã áp migration chưa" như một câu hỏi mở và **nó chưa bao giờ được
-trả lời**.
-
-**3. `INTERNAL_IDENTITY_SECRET` chưa bao giờ được đặt ở Render** ⇒ mọi đường ghi
-đã xác thực trả 503. Ba thứ che nó: đăng nhập không dùng khẳng định danh tính
-nên vẫn chạy; ba service kia dính cổng `INTERNAL_API_TOKEN` trước và trả 401 nên
-không bao giờ chạm tới tầng danh tính; `/health` vẫn 200. Phép chẩn đoán duy nhất
-không bị che đã ghi vào `docs/deployment.md`.
-
-**4. `/settings/security` là trang chết** - không được nhắc tới ở bất kỳ đâu
-trong giao diện, chỉ vào được bằng cách gõ URL. Trang dựng ra để 2FA và passkey
-không thành mã chết thì chính nó mắc đúng số phận đó.
-
-Ba mảnh nhỏ hơn cũng đã sửa: `Makefile e2e-up` gọi một container không còn tồn
-tại · `scripts/verify-stack.ps1` gọi log của hai service đã xoá · Worker giữ một
-secret `KEYCLOAK_CLIENT_SECRET` chết.
+Điểm chung, và là thứ đáng mang sang phiên sau: **cả sáu đều im lặng**, mỗi cái
+theo một kiểu khác nhau. Không cái nào làm gì đỏ lên. Đó là lý do §0.7 dài thêm
+bốn mục trong phiên này.
 
 ### Đã phát hành
 
-| Việc                                  | Trạng thái                                              |
-| ------------------------------------- | ------------------------------------------------------- |
-| Con dấu về chế độ mời (§1.9, 3/3 đợt) | ✅ gộp + phát hành                                      |
-| Gỡ Keycloak khỏi dự án                | ✅ **hoàn toàn** - mã, tài liệu, schema, cột DB, secret |
-| Xoá cột `User.keycloakId` (§1.6)      | ✅ trọn ba bước, kể cả migration lên Neon               |
-| Worker frontend                       | ✅ hai lần: đợt 2+3, rồi bản vá cookie                  |
-| Worker cron giữ ấm (§1.1)             | ✅ deploy, kèm khung nghỉ đêm 01:00-06:00 giờ VN        |
-| Trang tài khoản (§1.7 đợt A)          | ✅ trừ ảnh đại diện                                     |
-| CI thôi chạy trùng                    | ✅ ~360 phút/tháng thôi bị đốt                          |
-| Dữ liệu tham chiếu Toà soạn           | ✅ seed lên Neon (4 agent · 4 chuyên mục · 9 nguồn)     |
+| Việc                                  | Ghi chú                                                     |
+| ------------------------------------- | ----------------------------------------------------------- |
+| Con dấu về chế độ mời (§1.9, 3/3 đợt) | gộp + phát hành                                             |
+| Gỡ Keycloak                           | **hoàn toàn** - mã, tài liệu, schema, cột DB, secret sống   |
+| Xoá cột `User.keycloakId` (§1.6)      | trọn ba bước, kể cả migration lên Neon                      |
+| Worker frontend                       | hai lần: đợt 2+3, rồi bản vá cookie                         |
+| Worker cron giữ ấm (§1.1)             | deploy, kèm khung nghỉ đêm 01:00-06:00 giờ VN               |
+| Trang tài khoản (§1.7 đợt A)          | trừ ảnh đại diện                                            |
+| Toà soạn Agent AI                     | seed + bật + vá Writer + áp lực ngược hàng đợi              |
+| CI                                    | thôi chạy trùng · trần thời gian · cache · bỏ `--with-deps` |
+| Dọn dẹp                               | Redis chết · 5 phụ thuộc thừa · 2 thư mục rác               |
 
 ### Nghiệm thu trên production
 
-Nội dung: `/blog` **3 bài** · `/docs` **2 mục** · `/projects` **4 dự án** - đếm
-bằng nội dung, không bằng mã 200.
-
-Xác thực và gác, đo bằng một tài khoản dùng-một-lần đi đúng luồng người dùng
+Xác thực và gác, đo bằng **tài khoản dùng-một-lần** đi đúng luồng người dùng
 thật (đã xoá sau khi xong; bảng `User` còn đúng 1 dòng thật):
 
 | Thao tác                     | Trước     | Sau                           |
@@ -201,41 +133,71 @@ thật (đã xoá sau khi xong; bảng `User` còn đúng 1 dòng thật):
 | MEMBER mở `/trust/directory` | → /login  | **→ /trust**                  |
 | khách mở `/trust/directory`  | → /login  | → /login (đúng)               |
 
-Vế cuối hai dòng là toàn bộ ý nghĩa của `trustRedirect()`: khách đi đăng nhập,
-người đã đăng nhập đi đọc giải thích về mã mời. Trước bản vá chúng gộp làm một.
+Toà soạn, sáu nhịp liên tiếp sau khi lắp áp lực ngược:
+
+```
+ý tưởng chờ: 23 → 21 → 17 → 13 → 8 → 11 → 12     scan.skipped: 0 1 2 3 4 4 4
+```
+
+Xuống dưới trần thì quét TỰ BẬT LẠI. Hàng đợi dao động quanh trần thay vì lớn
+một chiều, và bản sửa vẫn tăng đều - van chặn đúng chỗ mà không chặn nhầm Writer.
 
 Còn lại: `/trust/redeem` **200** (trước 404) · `sitemap.xml` **0 dòng** `/trust/`
 · `/api/auth/providers` chỉ `credentials, passkey` · `noindex` có ở nhánh **khách
 vãng lai** của cả bốn trang riêng tư.
 
-### Dọn dẹp và chuẩn hoá (cuối phiên 6)
+### Hai lỗi thao tác của tôi, ghi để phiên sau khỏi lặp
 
-- **Redis bị gỡ hẳn.** Dựng ở dev, khai ở ba tệp env, chiếm một nút trong hợp
-  đồng cổng - và KHÔNG dòng mã nào đụng tới. Nếu sau này cần giới hạn tần suất
-  dùng chung giữa nhiều bản chạy thì Redis là câu trả lời (§1.2), nhưng giữ một
-  service không ai dùng chạy sẵn không làm điều đó đến gần hơn.
-- **Năm phụ thuộc thừa** đã gỡ (`cors`, `@tsudev/types` ×2, `jose` ×2), mỗi cái
-  kiểm riêng. ⚠️ `react-dom` cũng bị công cụ báo thừa nhưng ĐƯỢC GIỮ - nó là peer
-  dependency của Next. Đừng gỡ theo danh sách của công cụ dò phụ thuộc.
-- **CI: job treo ba lần** (18/08 một, 19/08 hai). Truy ra bằng API trạng thái
-  từng bước lúc job còn chạy: nó treo ở `npx playwright install`, KHÔNG phải ở
-  test - đó là lý do cả ba lần không có dòng log test nào. Đã lắp ba lớp: trần
-  10 phút cho bước đó · cache `~/.cache/ms-playwright` · trần 25 phút cho cả năm
-  job. Trần mặc định của GitHub là 360 phút, tức một job treo tiêu 18% hạn mức
-  tháng mà không sinh kết quả nào.
+- **Chồng nhánh nhầm hai lần**: tạo nhánh mới khi đang đứng trên một nhánh chưa
+  gộp, nên bản squash sau nuốt luôn công việc của PR trước (#31 và #33 phải đóng
+  vì nội dung đã vào `main` qua PR khác). Không mất gì, nhưng để lại hai PR thừa.
+  **Cách tránh: luôn `git checkout main` trước khi `git checkout -b`.**
+- **Suýt giao một script nghiệm thu nói dối**: bản đầu của `newsroom:check` ghi
+  "202 = toà soạn đã bật", trong khi `tick` trả 202 NGAY rồi mới chạy nền - 202
+  chỉ chứng minh token khớp. Đã sửa thành đếm `AgentRun` trước/sau.
 
 ### Số đo cuối phiên
 
 - **296 test** trên **tám** workspace (auth 61 · bundle 14 · content 26 ·
   newsroom 34 · storage 13 · trust 57 · ui 68 · frontend-main 23).
-- Bốn cổng gốc xanh · `main` xanh · một nhánh cục bộ duy nhất.
-- `tsudev-sso` đã xác nhận **không còn** trên Render.
+- Bốn cổng gốc xanh · `main` = `81a174c` · một nhánh cục bộ duy nhất.
+- E2E trên CI nay **4 phút 43 giây**, nhanh hơn cả trước khi có sự cố treo.
 
 ---
 
 ## 0.7 Kỹ thuật đã trả giá để học - dùng lại được
 
-Tám thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+Chín thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+
+### Một tiến trình TREO không để lại log - và trần thời gian là thứ tạo ra log
+
+Job E2E của CI treo **bốn lần**. Cả bốn đều không có một dòng log test nào, nên
+nhìn qua ai cũng nghĩ bộ test chậm. Hai kỹ thuật gỡ ra:
+
+**1. Job đang treo thì hỏi TRẠNG THÁI TỪNG BƯỚC, đừng đợi log.** GitHub chỉ trả
+log khi job kết thúc, nhưng API trạng thái trả lời ngay:
+
+```bash
+gh api /repos/<owner>/<repo>/actions/jobs/<id> -q '.steps[] | "\(.status)  \(.name)"'
+```
+
+Kết quả chỉ thẳng vào bước đang `in_progress` - ở đây là `npx playwright install`,
+không phải bộ test. Đó là lần đầu biết mình đang tìm sai chỗ.
+
+**2. Trần thời gian không chỉ chặn thiệt hại, nó SINH RA bằng chứng.** Lắp
+`timeout-minutes: 10` khiến job kết thúc thay vì treo ⇒ lần đầu tiên có log để
+đọc ⇒ log nói thẳng nguyên nhân:
+
+```
+Get:4 fonts-tlwg-loma-otf  107 kB   ← 6 phút cho 107 KB
+```
+
+`--with-deps` kéo 21 MB phông CJK/Thái qua mirror Ubuntu. Bộ smoke khẳng định
+trên DOM chứ không so pixel nên chúng vô dụng ở đây. Bỏ đi: E2E còn **4 phút 43**.
+
+Hệ quả tổng quát: **mọi bước phụ thuộc mạng ngoài phải có trần**. Trần mặc định
+của GitHub là 360 phút - một job treo tiêu 18% hạn mức tháng của repo private mà
+không sinh kết quả nào.
 
 ### Lỗi CHỈ tồn tại trên HTTPS thì không bộ test nào ở đây bắt được
 

@@ -9,19 +9,21 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
 ⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay** - mục "Bắt đầu từ đâu"
-cho thứ tự việc còn dở. Tính tới 19/08/2026 **không còn việc chặn nào**;
-production chạy đủ và có nội dung thật. Việc duy nhất cần tay chủ dự án là **ba
-biến môi trường ở Render** để bật Toà soạn Agent AI, liệt kê sẵn ở đầu phiếu.
+cho trạng thái đã đo và thứ tự việc còn dở. Tính tới 19/08/2026 **không còn việc
+chặn nào**: production chạy đủ, Toà soạn Agent AI đang sản xuất, chi phí bằng 0.
+Việc còn lại phần lớn cần MẮT NGƯỜI (rà giao diện) hoặc QUYẾT ĐỊNH của chủ dự án.
 
-Kế hoạch ba đợt cho Con dấu tín nhiệm
-([`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md))
-đã **XONG cả ba đợt và đã phát hành** 19/08.
+`HANDOFF.md` §0.7 ghi **chín kỹ thuật đã trả giá để học**. Ba cái đắt nhất, vì
+mỗi cái đều từng để một sự cố sống nhiều ngày mà không ai biết:
 
-`HANDOFF.md` §0.7 ghi sáu kỹ thuật đã trả giá để học: mã 200 không chứng minh
-trang có nội dung · dấu hiệu "bản mới đã lên sóng" phải là thứ THAY ĐỔI giữa hai
-bản · bẫy `--shadow-database-url` · khảo sát bằng grep trên cả cây · tệp test
-mới phải có `export {}` (và `tsc -b` giấu lỗi đó ở máy dev) · `wrangler.jsonc`
-không được sinh tự động. Xong hết §1 thì xoá file và xoá cả đoạn này.
+- **Mã 200 không chứng minh trang có nội dung** - `lib/api.ts` nuốt lỗi thành
+  `[]`, nên backend 500 vẫn cho ra trang 200 rỗng.
+- **Lỗi chỉ tồn tại trên HTTPS thì không bộ test nào ở đây bắt được** - dev và
+  E2E chạy `http://localhost`; canh những thứ đó bằng test quét NGUỒN.
+- **Một tiến trình treo không để lại log** - hỏi trạng thái từng bước, và lắp
+  trần thời gian vì nó SINH RA bằng chứng chứ không chỉ chặn thiệt hại.
+
+Xong hết §1 thì xoá `HANDOFF.md` và xoá cả đoạn này.
 
 ## Bản đồ
 
