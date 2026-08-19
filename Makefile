@@ -12,7 +12,7 @@ ci:
 	npm run lint
 
 e2e-up:
-	docker compose up -d minio postgres redis content-service storage-service trust-service frontend-main
+	docker compose up -d minio postgres content-service storage-service trust-service frontend-main
 
 e2e-run:
 	docker compose build e2e-runner
