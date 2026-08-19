@@ -28,6 +28,7 @@ jobs:
   lint:
     name: Lint & format
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,6 +53,7 @@ jobs:
   wasm:
     name: WASM con dấu - artifact phải khớp mã nguồn
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: packages/trust-crypto
@@ -84,6 +86,7 @@ jobs:
   test:
     name: Migrate & test services
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16-alpine
@@ -129,6 +132,7 @@ jobs:
   e2e-app:
     name: E2E - smoke các trang được giữ
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16-alpine
@@ -152,9 +156,25 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      # Cache trình duyệt của Playwright. Không cache thì mỗi lượt chạy tải lại
+      # Chromium (~140MB) qua mạng, và ĐÓ LÀ CHỖ CI ĐÃ TREO BA LẦN - xem
+      # timeout-minutes ngay dưới.
+      - name: Cache trình duyệt Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
       # Chỉ chromium: bộ `app` không cần engine khác, tải đủ ba là thêm vài phút
       # mỗi lần chạy CI mà không đổi kết quả.
+      #
+      # ⚠️ timeout 10 phút. Bước này bình thường xong trong 1-2 phút, nhưng đã
+      # TREO ba lần (18/08 một lần, 19/08 hai lần) - lần lâu nhất 20+ phút trước
+      # khi bị huỷ tay. Không có trần thì nó chạy tới trần mặc định 360 phút của
+      # GitHub, tức 18% hạn mức tháng của repo private cho MỘT job không sinh kết
+      # quả nào. Thà đỏ nhanh rồi chạy lại còn hơn treo im lặng.
       - run: npx playwright install --with-deps chromium
+        timeout-minutes: 10
       # Smoke khẳng định NỘI DUNG THẬT (tiêu đề bài lấy từ DB), nên phải có DB đã
       # migrate + seed. Không có nó thì getServerSideProps nuốt lỗi, trang rỗng
       # vẫn trả 200 và test xanh mà chẳng chứng minh được gì.
@@ -190,6 +210,7 @@ jobs:
   build:
     name: Build frontends
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
