@@ -325,8 +325,54 @@ Bắt buộc theo service:
 | Worker - `vars`            | `*_SERVICE_URL` ×4, `NEXTAUTH_URL`, `NEXTAUTH_COOKIE_DOMAIN` - khai trong `wrangler.jsonc`                                                                                                                                                                         |
 | Worker - `wrangler secret` | `NEXTAUTH_SECRET`, `INTERNAL_IDENTITY_SECRET`, `INTERNAL_API_TOKEN`, `GITHUB_*`, `GOOGLE_*` - **không** commit                                                                                                                                                     |
 
-`INTERNAL_IDENTITY_SECRET` phải GIỐNG NHAU ở Worker và Render. Lệch nhau là mọi
-đường ghi đã xác thực trả 401, và triệu chứng là "đăng nhập rồi mà vẫn 401".
+Nhánh Toà soạn Agent AI thêm bốn biến ở `tsudev-backend`: `NEWSROOM_ENABLED`,
+`NEWSROOM_TICK_TOKEN`, `CF_ACCOUNT_ID`, `CF_AI_TOKEN` (và `GEMINI_API_KEY` tuỳ
+chọn). Worker cron `tsudev-newsroom-cron` giữ đúng một secret:
+`NEWSROOM_TICK_TOKEN`.
+
+### ⚠️ Ba cặp biến PHẢI TRÙNG NGUYÊN VĂN giữa hai nơi
+
+Đây là bảng đáng nhớ nhất ở tệp này: cả ba cặp đều hỏng **im lặng**, và ba kiểu
+hỏng khác nhau nên đừng chẩn đoán bằng cảm giác.
+
+| Cặp                        | Ở đâu                    | Lệch nhau ⇒ triệu chứng                                            | Phép đo                                                            |
+| -------------------------- | ------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `INTERNAL_API_TOKEN`       | Render + Worker `tsudev` | SSR không đọc được nội dung ⇒ **trang TRỐNG mà vẫn trả 200**       | `curl -s https://tsudev.com/blog \| grep -c 'href="/blog/'`        |
+| `INTERNAL_IDENTITY_SECRET` | Render + Worker `tsudev` | **mọi đường ghi đã xác thực trả 401** - "đăng nhập rồi mà vẫn 401" | đăng nhập rồi lưu `/settings/profile`; hoặc §Phép chẩn đoán ở trên |
+| `NEWSROOM_TICK_TOKEN`      | Render + Worker cron     | mỗi nhịp giờ trả 401, **toà soạn đứng yên**, không có gì đỏ lên    | `POST /api/newsroom/tick` kèm token: **202** khớp, **401** lệch    |
+
+Không đọc lại được giá trị secret của Cloudflare Worker (`wrangler secret list`
+chỉ in TÊN). Nên khi nghi lệch, đừng đi tìm cách so hai chuỗi - **đặt lại một giá
+trị mới ở CẢ HAI nơi** là xong, rẻ hơn mọi cách khác.
+
+### Xoay một secret dùng chung - thứ tự để không có cửa sổ hỏng
+
+Ví dụ với `CF_AI_TOKEN` (chỉ nằm ở Render nên đơn giản nhất):
+
+1. Tạo token MỚI ở dashboard, **chưa xoá token cũ**.
+2. Kiểm nó gọi được, trước khi đụng vào production:
+   ```bash
+   curl -s -o /dev/null -w '%{http_code}\n' \
+     https://api.cloudflare.com/client/v4/accounts/<CF_ACCOUNT_ID>/ai/run/@cf/meta/llama-3.1-8b-instruct-fp8-fast \
+     -H 'Authorization: Bearer <TOKEN_MỚI>' -H 'content-type: application/json' \
+     -d '{"messages":[{"role":"user","content":"ping"}],"max_tokens":8}'
+   # phải là 200
+   ```
+3. Dán vào Render → service khởi động lại.
+4. Nghiệm thu toà soạn chạy được, **rồi mới** thu hồi token cũ ở dashboard.
+
+Với cặp nằm ở HAI nơi (`INTERNAL_API_TOKEN`, `INTERNAL_IDENTITY_SECRET`,
+`NEWSROOM_TICK_TOKEN`) thì có một cửa sổ hỏng không tránh được, vì hai bên không
+đổi cùng lúc. Chọn thứ tự theo thứ hỏng nhẹ hơn:
+
+- **Worker trước, Render sau**: cửa sổ hỏng nằm ở phía Worker gọi backend.
+- Đặt secret Worker bằng `wrangler secret put` có hiệu lực gần như tức thì và
+  **không cần deploy lại**; Render thì khởi động lại service (~1-2 phút).
+- Vì thế nên làm **Render trước** rồi Worker ngay sau: cửa sổ hỏng ngắn hơn.
+
+Sau khi xong, cập nhật `backup/production-env-*.txt` **ngay trong cùng lượt**.
+Bản 16/08 thiếu `INTERNAL_IDENTITY_SECRET` và `TOTP_ENCRYPTION_KEY`, và chính chỗ
+thiếu đó là lý do biến đầu chưa bao giờ được đặt ở Render.
 
 ⚠️ Hai cờ bỏ qua xác thực thời dev (`AUTH_DEV_BYPASS` và cờ dành cho E2E) **đã bị gỡ khỏi mã nguồn**; đặt lại không có tác dụng gì.
 Chúng cho phép đăng nhập bằng bất kỳ username nào.
