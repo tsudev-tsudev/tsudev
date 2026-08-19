@@ -37,13 +37,22 @@ Mọi thứ làm được bằng mã đã xong. Dữ liệu tham chiếu **đã 
 | `NEWSROOM_TICK_TOKEN` | ✅ **đã đặt** - đo được vì tick trả 401 chứ không còn 503           |
 | `NEWSROOM_ENABLED`    | 🟠 đặt `true`; để `false` thì dispatcher trả về ngay dòng đầu       |
 | `CF_ACCOUNT_ID`       | 🟠 `9541f44e84433a32b013ec31bae14848`                               |
-| `CF_AI_TOKEN`         | 🟠 token mới, quyền **Workers AI** (403 thì nâng Read → Edit)       |
+| `CF_AI_TOKEN`         | 🟠 chủ dự án đã cấp token, **đã kiểm chứng gọi được** (xem dưới)    |
 | `GEMINI_API_KEY`      | _(tuỳ chọn)_ dự phòng khi cạn Neuron; **project KHÔNG bật billing** |
 
 ⚠️ **401 chỉ chứng minh biến CÓ, không chứng minh nó KHỚP** với secret của Worker
 cron. Lệch nhau thì mỗi nhịp giờ đều 401 và toà soạn đứng yên trong im lặng -
 không có gì đỏ lên. Phép thử duy nhất là gọi tick bằng chính chuỗi đã nhập cho
 Worker: ra **202** là khớp, ra **401** là lệch.
+
+✅ **`CF_AI_TOKEN` đã được kiểm chứng 19/08** - gọi thật
+`POST /accounts/<id>/ai/run/@cf/meta/llama-3.1-8b-instruct-fp8-fast` trả **200**
+kèm nội dung sinh ra. Nên nếu toà soạn không chạy sau khi bật thì nguyên nhân
+KHÔNG nằm ở token này - loại nó ra trước khi đi tìm chỗ khác.
+
+⚠️ Token đó đã đi qua một kênh chat. Sau khi toà soạn chạy ổn, **xoay một token
+mới** ở dashboard rồi cập nhật Render là xong - Workers AI không lưu trạng thái
+gì theo token.
 
 Tạo `CF_AI_TOKEN`: dash.cloudflare.com → My Profile → API Tokens → Create Token
 → Custom token → Permissions: **Account · Workers AI**. `wrangler` không tạo
@@ -175,10 +184,30 @@ Chủ dự án cho phép chạy tiếp, nên phần còn lại đã làm nốt:
 
 Còn lại năm biến ở Render mà chỉ chủ dự án đặt được - bảng ở đầu phiếu.
 
+### Bổ sung sau khi chủ dự án thử bấm thật
+
+Báo cáo "đổi tên hiển thị bị lỗi, đổi mật khẩu báo sai mật khẩu" hoá ra là **một
+lỗi lớn hơn nhiều và có từ trước**: `getToken()` tìm sai tên cookie trên HTTPS
+nên **mọi đường ghi đã xác thực trên production đều 401**, và `/trust/*` đá cả
+VIP về `/login`. Chi tiết ở §0.7; bản vá là PR #23.
+
+Đã nghiệm thu trên production sau khi phát hành, bằng một tài khoản dùng-một-lần
+đi đúng luồng người dùng thật:
+
+| Thao tác                     | Trước     | Sau                           |
+| ---------------------------- | --------- | ----------------------------- |
+| đọc hồ sơ                    | 401       | **200** kèm dữ liệu thật      |
+| đổi tên hiển thị             | 401       | **200**, tên đã đổi           |
+| đổi mật khẩu SAI             | 401 mơ hồ | **401 `invalid_credentials`** |
+| đổi mật khẩu ĐÚNG            | 401       | **200**, `sessionVersion` 0→1 |
+| MEMBER mở `/trust/directory` | → /login  | **→ /trust** (đúng)           |
+
+Tài khoản thử đã xoá khỏi Neon; bảng `User` còn đúng 1 dòng thật.
+
 ### Số đo cuối phiên
 
-- **283 test** trên **tám** workspace (auth 61 · bundle 14 · content 26 ·
-  newsroom 25 · storage 13 · trust 57 · ui 68 · frontend-main 19).
+- **287 test** trên **tám** workspace (auth 61 · bundle 14 · content 26 ·
+  newsroom 25 · storage 13 · trust 57 · ui 68 · frontend-main 23).
 - Bốn cổng gốc xanh · `main` xanh · `tsudev-sso` đã xác nhận **không còn** trên
   Render.
 
@@ -186,7 +215,49 @@ Còn lại năm biến ở Render mà chỉ chủ dự án đặt được - b�
 
 ## 0.7 Kỹ thuật đã trả giá để học - dùng lại được
 
-Sáu thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+Tám thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+
+### Lỗi CHỈ tồn tại trên HTTPS thì không bộ test nào ở đây bắt được
+
+Cookie phiên khai tường minh trong `[...nextauth].ts` (bắt buộc, để đặt được
+`domain`) nên nó KHÔNG mang tiền tố `__Secure-`, còn `getToken()` thì đi theo
+quy ước của next-auth và tự thêm tiền tố đó khi `NEXTAUTH_URL` là https:
+
+| Môi trường   | Cookie thật được đặt      | Tên `getToken` đi tìm              | Kết quả  |
+| ------------ | ------------------------- | ---------------------------------- | -------- |
+| dev (http)   | `next-auth.session-token` | `next-auth.session-token`          | khớp     |
+| prod (https) | `next-auth.session-token` | `__Secure-next-auth.session-token` | **null** |
+
+Hậu quả: **mọi đường ghi đã xác thực trên production trả 401** trong nhiều ngày -
+upload, ghi nội dung admin, toà soạn, mọi route tài khoản - và các trang
+`/trust/*` đá cả VIP về `/login`. Không lỗi nào được ném, không log nào đỏ.
+
+Hai điều rút ra, dùng được cho mọi lỗi cùng họ:
+
+1. **Dev và E2E chạy `http://localhost`.** Mọi thứ phân nhánh theo `https` -
+   tiền tố cookie, `secure`, `SameSite=None`, HSTS, CSP `upgrade-insecure-requests` -
+   đều KHÔNG được kiểm ở đây. 20 test E2E xanh trong khi production hỏng hoàn toàn.
+2. **Vì thế phải canh bằng test quét NGUỒN, không phải quét hành vi.**
+   `apps/frontend-main/test/sessionCookie.test.ts` đỏ khi có chỗ gọi thẳng
+   `getToken`, khi cấu hình NextAuth viết lại chuỗi tên thay vì dùng hằng chung,
+   hoặc khi tên cookie mọc tiền tố. Hình dạng của mã là thứ duy nhất kiểm được
+   khi hành vi chỉ sai ở một môi trường không tái hiện được.
+
+### Tái hiện lỗi production bằng một tài khoản dùng-một-lần
+
+Khi triệu chứng chỉ xảy ra với người đã đăng nhập mà bạn không có mật khẩu của
+ai, đừng đoán từ xa. Đường đăng ký là công khai:
+
+```bash
+curl -sX POST https://tsudev.com/api/identity/register -H 'content-type: application/json' \
+  -d '{"username":"chan-doan-...","email":"...@tsudev.local","password":"..."}'
+# rồi lấy csrf → POST /api/auth/callback/credentials với cookie jar của curl
+# rồi gọi đúng endpoint đang hỏng bằng cookie đó
+```
+
+Đó là cách sự cố cookie ở trên được tìm ra trong vài phút, sau khi đoán mò không
+ra. **Nhớ xoá tài khoản khỏi Neon sau khi xong** - đã xoá, còn đúng 1 tài khoản
+thật trong bảng.
 
 ### Mã 200 KHÔNG chứng minh trang có nội dung
 
