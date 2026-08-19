@@ -45,10 +45,24 @@ ký tự, 37 dòng, có tiêu đề Markdown thật.
 10.000/ngày), trung bình 26 Neuron mỗi lượt agent. Dự phóng ~2.500/ngày ở nhịp
 19 lần/ngày - biên còn rất rộng.
 
-⚠️ **Một thứ cần theo dõi, chưa phải lỗi:** `idea.created` còn **25 PENDING** và
-số đó đang tăng. Mỗi lượt quét sinh ý tưởng nhanh hơn tốc độ viết. Chưa chặn gì
-(hàng đợi có thể chờ), nhưng nếu sau vài ngày nó vẫn chỉ dài thêm thì phải giới
-hạn số ý tưởng mỗi lượt quét, hoặc tăng số bài xử lý mỗi nhịp.
+✅ **Hàng đợi ý tưởng đã có trần** (trước đó lớn một chiều: 25 PENDING và tăng
+đều). `scanSources()` nay ngừng quét khi hàng đợi chạm `IDEA_QUEUE_CAP = 12`.
+
+Đo trên production sau khi phát hành, sáu nhịp liên tiếp:
+
+```
+trước:  ý tưởng chờ=23  scan.skipped=0  bản sửa=3
+lượt 1: 21  1  5      lượt 4:  8  4  6   ← dưới trần, quét TỰ BẬT LẠI
+lượt 2: 17  2  5      lượt 5: 11  4  6
+lượt 3: 13  3  6      lượt 6: 12  4  8
+```
+
+Hàng đợi nay **dao động quanh trần** thay vì lớn một chiều, và bản sửa vẫn tăng
+đều - tức van chặn đúng chỗ cần chặn mà không chặn nhầm Writer.
+
+Chọn áp lực ngược thay vì tăng `batch` cho vừa là có lý do: tốc độ sinh phụ thuộc
+nguồn tin bên ngoài, nên tăng số chỉ dời điểm vỡ. Van đặt TRƯỚC lượt gọi mô hình
+đầu tiên - đặt sau thì hàng đợi bị chặn mà Neuron vẫn tiêu đều.
 
 #### Lỗi đã sửa để tới được đây
 
@@ -194,10 +208,26 @@ Còn lại: `/trust/redeem` **200** (trước 404) · `sitemap.xml` **0 dòng** 
 · `/api/auth/providers` chỉ `credentials, passkey` · `noindex` có ở nhánh **khách
 vãng lai** của cả bốn trang riêng tư.
 
+### Dọn dẹp và chuẩn hoá (cuối phiên 6)
+
+- **Redis bị gỡ hẳn.** Dựng ở dev, khai ở ba tệp env, chiếm một nút trong hợp
+  đồng cổng - và KHÔNG dòng mã nào đụng tới. Nếu sau này cần giới hạn tần suất
+  dùng chung giữa nhiều bản chạy thì Redis là câu trả lời (§1.2), nhưng giữ một
+  service không ai dùng chạy sẵn không làm điều đó đến gần hơn.
+- **Năm phụ thuộc thừa** đã gỡ (`cors`, `@tsudev/types` ×2, `jose` ×2), mỗi cái
+  kiểm riêng. ⚠️ `react-dom` cũng bị công cụ báo thừa nhưng ĐƯỢC GIỮ - nó là peer
+  dependency của Next. Đừng gỡ theo danh sách của công cụ dò phụ thuộc.
+- **CI: job treo ba lần** (18/08 một, 19/08 hai). Truy ra bằng API trạng thái
+  từng bước lúc job còn chạy: nó treo ở `npx playwright install`, KHÔNG phải ở
+  test - đó là lý do cả ba lần không có dòng log test nào. Đã lắp ba lớp: trần
+  10 phút cho bước đó · cache `~/.cache/ms-playwright` · trần 25 phút cho cả năm
+  job. Trần mặc định của GitHub là 360 phút, tức một job treo tiêu 18% hạn mức
+  tháng mà không sinh kết quả nào.
+
 ### Số đo cuối phiên
 
-- **287 test** trên **tám** workspace (auth 61 · bundle 14 · content 26 ·
-  newsroom 25 · storage 13 · trust 57 · ui 68 · frontend-main 23).
+- **296 test** trên **tám** workspace (auth 61 · bundle 14 · content 26 ·
+  newsroom 34 · storage 13 · trust 57 · ui 68 · frontend-main 23).
 - Bốn cổng gốc xanh · `main` xanh · một nhánh cục bộ duy nhất.
 - `tsudev-sso` đã xác nhận **không còn** trên Render.
 

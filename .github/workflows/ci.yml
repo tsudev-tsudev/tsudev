@@ -168,12 +168,26 @@ jobs:
       # Chỉ chromium: bộ `app` không cần engine khác, tải đủ ba là thêm vài phút
       # mỗi lần chạy CI mà không đổi kết quả.
       #
-      # ⚠️ timeout 10 phút. Bước này bình thường xong trong 1-2 phút, nhưng đã
-      # TREO ba lần (18/08 một lần, 19/08 hai lần) - lần lâu nhất 20+ phút trước
-      # khi bị huỷ tay. Không có trần thì nó chạy tới trần mặc định 360 phút của
-      # GitHub, tức 18% hạn mức tháng của repo private cho MỘT job không sinh kết
-      # quả nào. Thà đỏ nhanh rồi chạy lại còn hơn treo im lặng.
-      - run: npx playwright install --with-deps chromium
+      # ⚠️ KHÔNG `--with-deps`. Đó là thứ đã treo CI bốn lần liền, và trần 10 phút
+      # ở dưới chính là cái làm nó lộ ra: lần đầu có log để đọc, log nói rõ
+      #
+      #     Get:3 fonts-freefont-ttf   5641 kB   12:06:07
+      #     Get:4 fonts-tlwg-loma-otf   107 kB   12:12:03   ← 6 phút cho 107 KB
+      #
+      # `--with-deps` chạy `apt-get install` kéo về phông CJK/Thái (ipafont,
+      # unifont, wqy-zenhei, xfonts-*) để Chromium dựng được chữ không phải Latin
+      # khi CHỤP ẢNH. Bộ smoke ở đây khẳng định trên DOM chứ không so pixel, nên
+      # 21 MB phông đó không đổi kết quả một phép kiểm nào - nó chỉ mua thêm một
+      # phụ thuộc vào mirror Ubuntu, thứ chậm bất thường ở các lần vừa rồi.
+      #
+      # Không có `--with-deps` thì bước này chỉ tải nhị phân Chromium từ CDN của
+      # Playwright, và bản tải đó nằm trong cache ở trên nên lần sau không tải
+      # lại. Thư viện hệ thống mà Chromium cần đã có sẵn trong ảnh ubuntu-latest.
+      #
+      # Trần 10 phút giữ nguyên làm lưới an toàn: thà đỏ nhanh rồi chạy lại còn
+      # hơn treo im lặng tới trần mặc định 360 phút của GitHub - tức 18% hạn mức
+      # tháng cho MỘT job không sinh kết quả nào.
+      - run: npx playwright install chromium
         timeout-minutes: 10
       # Smoke khẳng định NỘI DUNG THẬT (tiêu đề bài lấy từ DB), nên phải có DB đã
       # migrate + seed. Không có nó thì getServerSideProps nuốt lỗi, trang rỗng
