@@ -92,7 +92,37 @@ async function withRun<T>(
 // Săn tin
 // --------------------------------------------------------------------------
 
+/**
+ * Trần hàng đợi ý tưởng. Chạm trần thì NGỪNG QUÉT, không sinh thêm.
+ *
+ * ⚠️ Không có van này thì hàng đợi lớn vô hạn, và đó không phải giả thuyết - đo
+ * trên production 19/08/2026: 25 `idea.created` còn PENDING và tăng đều.
+ *
+ * Số học: mỗi nhịp quét tối đa 3 nguồn, mỗi nguồn tới 20 tiêu đề, scout chọn ra
+ * vài ý tưởng - trong khi `tick()` chỉ xử lý `batch` sự kiện. Sinh nhanh hơn
+ * tiêu thì phần dư không bao giờ được tiêu.
+ *
+ * Vì sao chọn áp lực ngược thay vì tăng `batch` cho vừa: tăng số chỉ dời điểm
+ * vỡ, vì tốc độ sinh phụ thuộc nguồn tin bên ngoài chứ không phải hằng số ở đây.
+ * Áp lực ngược thì đúng ở mọi tốc độ - hết việc tồn thì quét lại, còn tồn thì
+ * thôi. Nó cũng tiết kiệm Neuron: lượt quét nào cũng gọi scout.
+ */
+const IDEA_QUEUE_CAP = 12
+
 async function scanSources(): Promise<void> {
+  // Đếm TRƯỚC khi gọi bất cứ mô hình nào - đây là chỗ rẻ nhất để dừng.
+  const pending = await prisma.newsroomEvent.count({
+    where: { type: 'idea.created', status: 'PENDING' },
+  })
+  if (pending >= IDEA_QUEUE_CAP) {
+    await emit(
+      'scan.skipped',
+      { pending, cap: IDEA_QUEUE_CAP, reason: 'hàng đợi ý tưởng đã đầy' },
+      { terminal: true, actorKind: 'system' }
+    )
+    return
+  }
+
   const due = await prisma.newsroomSource.findMany({
     where: {
       enabled: true,
@@ -525,7 +555,15 @@ export interface TickResult {
   skipped?: string
 }
 
-export async function tick(batch = 3): Promise<TickResult> {
+/**
+ * `batch` = số sự kiện xử lý mỗi nhịp.
+ *
+ * 5 chứ không phải 3: đo 19/08/2026 cho 26 Neuron trung bình mỗi lượt agent và
+ * 714 Neuron cả ngày, trên trần 8.000 (hạn mức Cloudflare 10.000). Biên đủ rộng
+ * để tiêu hàng đợi nhanh hơn, và trần Neuron vẫn là van chặn thật sự - nó được
+ * kiểm ở đầu mỗi lượt gọi mô hình, không phải ở đây.
+ */
+export async function tick(batch = 5): Promise<TickResult> {
   if (process.env.NEWSROOM_ENABLED !== 'true') {
     return { processed: 0, reclaimed: 0, skipped: 'NEWSROOM_ENABLED chưa bật' }
   }
