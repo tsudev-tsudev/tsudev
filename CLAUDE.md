@@ -10,8 +10,8 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 
 ⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay** - mục "Bắt đầu từ đâu"
 cho thứ tự việc còn dở. Tính tới 19/08/2026 **không còn việc chặn nào**;
-production chạy đủ và có nội dung thật. Việc duy nhất cần tay chủ dự án là năm
-biến môi trường để bật Toà soạn Agent AI, liệt kê sẵn ở đầu phiếu.
+production chạy đủ và có nội dung thật. Việc duy nhất cần tay chủ dự án là **ba
+biến môi trường ở Render** để bật Toà soạn Agent AI, liệt kê sẵn ở đầu phiếu.
 
 Kế hoạch ba đợt cho Con dấu tín nhiệm
 ([`docs/refactor-trust-invite-access.md`](docs/refactor-trust-invite-access.md))
