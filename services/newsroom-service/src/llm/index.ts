@@ -92,15 +92,71 @@ export function parseJsonLoose<T>(raw: string): T | null {
   if (last <= first) return null
   s = s.slice(first, last + 1)
 
-  try {
-    return JSON.parse(s) as T
-  } catch {
-    // Một lần thử nữa sau khi bỏ dấu phẩy thừa trước } hoặc ] - lỗi phổ biến
-    // nhất của mô hình nhỏ, và sửa được mà không cần thư viện nào.
+  const attempts = [
+    (x: string) => x,
+    // Bỏ dấu phẩy thừa trước } hoặc ] - lỗi phổ biến của mô hình nhỏ.
+    (x: string) => x.replace(/,\s*([}\]])/g, '$1'),
+    // Escape ký tự điều khiển THÔ nằm trong chuỗi.
+    escapeRawControlChars,
+    (x: string) => escapeRawControlChars(x).replace(/,\s*([}\]])/g, '$1'),
+  ]
+  for (const fix of attempts) {
     try {
-      return JSON.parse(s.replace(/,\s*([}\]])/g, '$1')) as T
+      return JSON.parse(fix(s)) as T
     } catch {
-      return null
+      // thử cách tiếp theo
     }
   }
+  return null
+}
+
+/**
+ * Escape xuống dòng / tab THÔ nằm bên trong chuỗi JSON.
+ *
+ * ⚠️ Đây là đường NÓNG, không phải ca hiếm - và nó đã làm Toà soạn đứng im trên
+ * production. Llama 70B được yêu cầu trả `{"contentMd":"<cả bài Markdown>"}` thì
+ * xuống dòng nguyên văn:
+ *
+ *     "contentMd": "
+ *     # Tiêu đề
+ *
+ *     Đoạn văn...
+ *     "
+ *
+ * JSON KHÔNG cho phép ký tự điều khiển thô trong chuỗi, nên `JSON.parse` ném,
+ * `parseJsonLoose` trả null, Writer ném "bài rỗng hoặc quá ngắn", và sự kiện
+ * quay lại PENDING. Triệu chứng: agent chạy đều, Neuron bị tiêu, mà không bài
+ * nào ra đời - hàng đợi chỉ dài thêm.
+ *
+ * Máy trạng thái chứ không phải regex: phải biết đang ở TRONG hay NGOÀI chuỗi,
+ * vì xuống dòng giữa các trường là hợp lệ và không được đụng tới. Dấu `\` bật
+ * cờ thoát để `\"` không bị hiểu là kết thúc chuỗi.
+ */
+export function escapeRawControlChars(src: string): string {
+  let out = ''
+  let inString = false
+  let escaped = false
+  for (const ch of src) {
+    if (escaped) {
+      out += ch
+      escaped = false
+      continue
+    }
+    if (ch === '\\') {
+      out += ch
+      escaped = true
+      continue
+    }
+    if (ch === '"') {
+      inString = !inString
+      out += ch
+      continue
+    }
+    if (inString && (ch === '\n' || ch === '\r' || ch === '\t')) {
+      out += ch === '\n' ? '\\n' : ch === '\r' ? '\\r' : '\\t'
+      continue
+    }
+    out += ch
+  }
+  return out
 }
