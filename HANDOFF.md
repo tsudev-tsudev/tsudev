@@ -26,58 +26,42 @@ thu trên `tsudev.com` (chi tiết §0):
   chưa đạt VIP → `/trust`.
 - Keycloak sạch hoàn toàn, kể cả cột DB và secret cuối cùng ở hạ tầng.
 
-### Còn lại đúng MỘT việc cần tay chủ dự án: bật Toà soạn Agent AI
+### ✅ Toà soạn Agent AI ĐÃ CHẠY (19/08/2026)
 
-Mọi thứ làm được bằng mã đã xong. Dữ liệu tham chiếu **đã seed lên Neon**
-(4 agent · 4 chuyên mục · 9 nguồn), Worker cron đã chạy, bảng đã có, và
-`NEWSROOM_TICK_TOKEN` đã được đặt. Còn ba biến ở
-**Render → `tsudev-backend` → Environment**:
+Ba biến cuối đã được đặt ở Render và toà soạn sản xuất thật. Đo bằng
+`npm run newsroom:check` - script này đếm **việc đã chạy**, không đếm mã HTTP,
+vì `POST /api/newsroom/tick` trả 202 NGAY rồi mới chạy nền:
 
-| Biến                  | Trạng thái 19/08                                                    |
-| --------------------- | ------------------------------------------------------------------- |
-| `NEWSROOM_TICK_TOKEN` | ✅ **đã đặt** - đo được vì tick trả 401 chứ không còn 503           |
-| `NEWSROOM_ENABLED`    | 🟠 đặt `true`; để `false` thì dispatcher trả về ngay dòng đầu       |
-| `CF_ACCOUNT_ID`       | 🟠 `9541f44e84433a32b013ec31bae14848`                               |
-| `CF_AI_TOKEN`         | 🟠 chủ dự án đã cấp token, **đã kiểm chứng gọi được** (xem dưới)    |
-| `GEMINI_API_KEY`      | _(tuỳ chọn)_ dự phòng khi cạn Neuron; **project KHÔNG bật billing** |
-
-⚠️ **401 chỉ chứng minh biến CÓ, không chứng minh nó KHỚP** với secret của Worker
-cron. Lệch nhau thì mỗi nhịp giờ đều 401 và toà soạn đứng yên trong im lặng -
-không có gì đỏ lên. Phép thử duy nhất là gọi tick bằng chính chuỗi đã nhập cho
-Worker: ra **202** là khớp, ra **401** là lệch.
-
-✅ **`CF_AI_TOKEN` đã được kiểm chứng 19/08** - gọi thật
-`POST /accounts/<id>/ai/run/@cf/meta/llama-3.1-8b-instruct-fp8-fast` trả **200**
-kèm nội dung sinh ra. Nên nếu toà soạn không chạy sau khi bật thì nguyên nhân
-KHÔNG nằm ở token này - loại nó ra trước khi đi tìm chỗ khác.
-
-⚠️ Token đó đã đi qua một kênh chat. Sau khi toà soạn chạy ổn, **xoay một token
-mới** ở dashboard rồi cập nhật Render là xong - Workers AI không lưu trạng thái
-gì theo token.
-
-Tạo `CF_AI_TOKEN`: dash.cloudflare.com → My Profile → API Tokens → Create Token
-→ Custom token → Permissions: **Account · Workers AI**. `wrangler` không tạo
-được token, nên bước này bắt buộc qua dashboard.
-
-**Nghiệm thu, theo đúng thứ tự:**
-
-```bash
-# 1. Cổng token: chưa đặt biến ⇒ 503, đặt sai ⇒ 401, đặt đúng ⇒ 202
-curl -s -X POST https://tsudev-backend.onrender.com/api/newsroom/tick \
-  -H "x-newsroom-token: <chuỗi vừa đặt>" -H 'content-type: application/json' -d '{}'
-
-# 2. Sau vài nhịp giờ, đếm NỘI DUNG chứ không đếm mã 200
-curl -s https://tsudev.com/blog | grep -c 'href="/blog/'    # phải > 3
+```
+AgentRun trước: 8  →  tick 202  →  AgentRun sau: 14
+✔ Toà soạn ĐANG CHẠY THẬT
 ```
 
-⚠️ Nhịp toà soạn chạy **mỗi giờ, phút thứ 7, và nghỉ 01:00-06:00 giờ VN**. Đặt
-biến lúc 2 giờ sáng thì lượt đầu tiên là 06:07 - đừng tưởng nó hỏng.
+Trạng thái đường ống lúc chốt phiên: **18 nháp · 2 bản sửa · 3 bài đăng**
+(3 bài là nội dung cũ, agent chưa xuất bản bài nào). Bản sửa đầu tiên dài 4.046
+ký tự, 37 dòng, có tiêu đề Markdown thật.
 
-⚠️ **Chi phí vẫn bằng 0 sau khi bật**, nhưng chỉ vì ba van đã lắp sẵn:
-`NEWSROOM_DAILY_NEURON_BUDGET=8000` trên hạn mức 10.000 Neuron/ngày ·
-`NEWSROOM_MAX_REVISIONS=2` chặn vòng Writer↔Editor · Gemini chỉ là dự phòng và
-phải lấy khoá từ project không bật billing. Đừng nới van nào mà không đọc
-[`docs/free-tier.md`](docs/free-tier.md) trước.
+**Chi phí vẫn bằng 0**: 714 Neuron hôm nay trên trần 8.000 (hạn mức Cloudflare
+10.000/ngày), trung bình 26 Neuron mỗi lượt agent. Dự phóng ~2.500/ngày ở nhịp
+19 lần/ngày - biên còn rất rộng.
+
+⚠️ **Một thứ cần theo dõi, chưa phải lỗi:** `idea.created` còn **25 PENDING** và
+số đó đang tăng. Mỗi lượt quét sinh ý tưởng nhanh hơn tốc độ viết. Chưa chặn gì
+(hàng đợi có thể chờ), nhưng nếu sau vài ngày nó vẫn chỉ dài thêm thì phải giới
+hạn số ý tưởng mỗi lượt quét, hoặc tăng số bài xử lý mỗi nhịp.
+
+#### Lỗi đã sửa để tới được đây
+
+Toà soạn bật lên rồi vẫn **không ra bài nào** trong khi vẫn tiêu Neuron:
+`event.failed` lặp lại với `"Writer trả về bài rỗng hoặc quá ngắn"`. Nguyên nhân:
+Llama 70B được yêu cầu trả `{"contentMd":"<cả bài Markdown>"}` thì xuống dòng
+NGUYÊN VĂN trong chuỗi, mà JSON không cho phép ký tự điều khiển thô ⇒
+`JSON.parse` ném ⇒ `parseJsonLoose` trả null ⇒ Writer ném ⇒ sự kiện quay lại
+PENDING. Vòng lặp không tự thoát được vì cùng prompt cho cùng dạng đầu ra.
+
+Vá ở PR #28: `escapeRawControlChars` (máy trạng thái, không phải regex - phải
+biết đang trong hay ngoài chuỗi). Test hồi quy dùng **đầu ra thật của mô hình**
+bắt được lúc truy nguyên.
 
 ### Rồi tới, theo thứ tự
 
@@ -89,20 +73,30 @@ phải lấy khoá từ project không bật billing. Đừng nới van nào mà
 3. **§1.10** dọn service Render trùng · **§1.4** CSP · **§1.3** npm audit ·
    **§1.7 đợt B** · **§1.8**.
 
-### ⚠️ Bản sao lưu biến production đã LẠC HẬU
+### ✅ Bản sao lưu biến production đã được dựng lại
 
-`backup/production-env-2026-08-16.txt` **không chứa `INTERNAL_IDENTITY_SECRET`**
+`backup/production-env-2026-08-19.txt` - **21 biến, không còn chỗ giữ chỗ**, và
+cả ba cặp dùng chung (`INTERNAL_API_TOKEN`, `INTERNAL_IDENTITY_SECRET`,
+`NEWSROOM_TICK_TOKEN`) đều chỉ có ĐÚNG MỘT giá trị, tức bản ghi tự nhất quán.
 
-- đó chính là lý do biến này chưa bao giờ được đặt ở Render và gây sự cố 503 của
-  phiên 6. Nó cũng còn bốn mục Keycloak đã chết (`KEYCLOAK_ISSUER`,
-  `KEYCLOAK_ADMIN_PASSWORD`, `KC_DB_*`, `KEYCLOAK_CLIENT_SECRET`) và **hai** giá
-  trị `INTERNAL_API_TOKEN` khác nhau - chỉ một cái đúng.
+Bản 16/08 (nên xoá nếu còn) sai theo ba kiểu, và đáng ghi lại vì mỗi kiểu đều
+từng gây sự cố:
 
-Nên tạo bản sao lưu mới ngay sau khi bật toà soạn, gồm cả `INTERNAL_IDENTITY_SECRET`
-mới sinh 19/08. Mất nó thì phải xoay đồng thời ở Cloudflare và Render, vì secret
-của Worker **không đọc lại được**.
+- **Thiếu `INTERNAL_IDENTITY_SECRET`** ⇒ biến đó chưa bao giờ được đặt ở Render
+  ⇒ mọi đường ghi đã xác thực trả 503 trong nhiều ngày.
+- **Thiếu `TOTP_ENCRYPTION_KEY`** - mất là MỌI thiết bị 2FA đang dùng hỏng, và
+  không sinh lại được. Chưa gây sự cố, nhưng đây là loại thiếu sót chỉ lộ ra vào
+  đúng ngày tệ nhất.
+- **Hai giá trị `INTERNAL_API_TOKEN` khác nhau** cho hai nơi bắt buộc phải trùng.
+  Hạ tầng vẫn đúng (đã đo: giá trị nào qua được cổng backend), chỉ bản ghi sai -
+  nhưng một bản ghi sai thì lần khôi phục sau sẽ đặt nhầm.
 
----
+⚠️ **Ba thứ mất là không sinh lại được**: `TRUST_SIGNING_KEY` ·
+`TOTP_ENCRYPTION_KEY` · (và `INTERNAL_IDENTITY_SECRET` sinh lại được nhưng phải
+đổi ĐỒNG THỜI hai nơi). Sao lưu chúng ra một chỗ thứ hai, ngoài máy này.
+
+Quy trình xoay secret dùng chung và phép đo cho từng cặp:
+[`docs/deployment.md`](docs/deployment.md) §Biến môi trường.
 
 ## Đang chạy
 
