@@ -12,11 +12,11 @@
 // `/api/newsroom/tick` CỐ Ý không có ở đây: nhịp đập là máy gọi máy, đi thẳng
 // từ Worker cron tới backend bằng NEWSROOM_TICK_TOKEN. Mở nó qua proxy trình
 // duyệt là cho bất kỳ ai đã đăng nhập ép toà soạn đốt hạn mức Neuron.
-import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { NEWSROOM, internalHeaders } from '../../../lib/services';
 import { catchAllSegments, identityHeaders } from '../../../lib/identity';
+import { readSessionToken } from '../../../lib/sessionCookie';
 
 // Danh sách TRẮNG theo tiền tố, không phải danh sách đen: nhánh chưa khai thì
 // 404. Bỏ sót một nhánh là nó không chạy - an toàn hơn lỡ mở cả /api.
@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Không tìm thấy' });
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await readSessionToken(req);
   if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
 
   const method = req.method || 'GET';

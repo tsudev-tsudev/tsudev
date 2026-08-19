@@ -7,12 +7,12 @@
 //   POST /api/storage/presign              → POST {STORAGE}/api/presign
 //   POST /api/storage/upload?key=…         → POST {STORAGE}/api/upload?…
 //   GET  /api/storage/files                → GET  {STORAGE}/api/files
-import { getToken } from 'next-auth/jwt';
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { STORAGE, internalHeaders } from '../../../lib/services';
 import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
+import { readSessionToken } from '../../../lib/sessionCookie';
 
 /** Lỗi có mã HTTP đi kèm - readBody() ném ra khi thân request vượt MAX_BODY. */
 type SizedError = Error & { status?: number };
@@ -65,7 +65,7 @@ function buildHeaders(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await readSessionToken(req);
   if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
 
   const path = catchAllSegments(req.query.path).join('/');

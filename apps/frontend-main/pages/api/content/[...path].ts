@@ -6,12 +6,12 @@
 // chặn, và cổng service không lộ ra ngoài ở production). Danh tính người dùng
 // được lấy từ phiên next-auth rồi tiêm vào header cho service - trình duyệt
 // không tự khai được vai trò của mình.
-import { getToken } from 'next-auth/jwt';
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { CONTENT, internalHeaders } from '../../../lib/services';
 import { catchAllSegments, identityHeaders, queryStringOf } from '../../../lib/identity';
+import { readSessionToken } from '../../../lib/sessionCookie';
 
 // Danh sách trắng, không phải danh sách đen: thêm nhánh mới phải khai ở đây.
 // Bỏ sót một nhánh thì nó 404 - an toàn hơn là lỡ mở cả /api.
@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Không tìm thấy' });
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await readSessionToken(req);
   if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
 
   const headers: Record<string, string> = {

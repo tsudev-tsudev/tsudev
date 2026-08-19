@@ -12,6 +12,7 @@ import type { Provider } from 'next-auth/providers/index';
 
 import { IDENTITY, internalHeaders } from '../../../lib/services';
 import { identityHeaders } from '../../../lib/identity';
+import { SESSION_COOKIE_NAME } from '../../../lib/sessionCookie';
 
 /**
  * Xác thực do codebase tự quản lý.
@@ -246,7 +247,10 @@ export const authOptions: NextAuthOptions = {
   },
   cookies: {
     sessionToken: {
-      name: process.env.NEXTAUTH_COOKIE_NAME || 'next-auth.session-token',
+      // Cùng hằng với mọi nơi đọc phiên. Khai lại chuỗi ở đây là mở đúng
+      // khoảng cách đã làm hỏng toàn bộ đường ghi trên production - xem
+      // lib/sessionCookie.ts.
+      name: SESSION_COOKIE_NAME,
       options: {
         // httpOnly PHẢI khai tường minh ở đây.
         //

@@ -6,11 +6,11 @@
 //
 // Gộp chung rồi rẽ nhánh bên trong là cách để một ngày nào đó thêm nhầm một
 // route vào nhánh sai - và không có gì báo lỗi.
-import { getToken } from 'next-auth/jwt';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { IDENTITY, internalHeaders } from '../../../lib/services';
 import { catchAllSegments, identityHeaders } from '../../../lib/identity';
+import { readSessionToken } from '../../../lib/sessionCookie';
 
 const ALLOWED = new Set([
   // Hồ sơ của chính mình. `profile/get` là POST chứ không phải GET để đi chung
@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Không tìm thấy' });
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await readSessionToken(req);
   if (!token) return res.status(401).json({ error: 'Bạn cần đăng nhập' });
 
   try {
