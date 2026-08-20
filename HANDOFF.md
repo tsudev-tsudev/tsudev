@@ -550,6 +550,14 @@ Cùng họ với "công cụ ĐO có thể sai theo kiểu trông y hệt lỗi 
 ngược chiều: ở đây phép đo sai theo kiểu trông y hệt **thành công**. Chiều này
 nguy hơn - không ai đi điều tra một kết quả tốt.
 
+Cùng phiên, cùng cái bẫy, lần thứ hai: để chứng minh bản sửa frontend đã lên,
+grep chuỗi tiếng Việt trong chunk JS production trả **0** - kể cả chuỗi vốn có ở
+CẢ HAI bản. Bundle của Next escape các ký tự **Latin-1** (`đã` → `đ\xe3`,
+`nhà` → `nh\xe0`) nhưng giữ nguyên ký tự ngoài Latin-1 (`ừ`, `ồ`, `ạ`), nên grep
+một câu tiếng Việt đầy đủ **luôn trượt**. Đọc số 0 đó thành "deploy hỏng" là sai
+hoàn toàn. Thứ cứu được lần này vẫn là **đường đối chứng**: một chuỗi chắc chắn
+phải có mà cũng trả 0 thì lỗi nằm ở phép đo, không ở thứ đang đo.
+
 Backend repo này hiện **không có** bề mặt công khai nào phân biệt hai bản dựng.
 Tới khi có (một `/health` mang commit SHA chẳng hạn), câu "Render đã Live chưa"
 phải hỏi dashboard Render, không suy ra từ mã HTTP.

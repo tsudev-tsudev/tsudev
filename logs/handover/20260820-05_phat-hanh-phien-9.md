@@ -71,13 +71,20 @@ quét NGUỒN) — đã kiểm chứng nó **đỏ trên mã cũ, xanh trên mã
 không có test kết xuất và hồi quy kiểu đó không làm gì đỏ lên: trang vẫn dựng,
 vẫn 200, chỉ thiếu một cái nút.
 
-**Bước tiếp theo:** deploy lại frontend rồi bấm nút.
+**Đã deploy** bản sửa: Worker version **`d2a0640a-7840-41ad-b53e-19346a8f0d16`**
+(hai commit `59a5724` + `b47da52` trên nhánh `fix/nut-hoi-sinh-viec-da-dung`).
 
-```bash
-npm --workspace apps/frontend-main run deploy
-```
+Nghiệm thu **không dừng ở mã 200**: tải chính chunk mà trình duyệt tải,
+`/_next/static/chunks/pages/admin/newsroom-30277cf9d6427320.js`, và tìm thấy câu
+chỉ tồn tại ở bản sửa — `" việc đang nằm ở trạng th\xe1i đ\xe3 dừng."`.
 
-Rồi vào `https://tsudev.com/admin/newsroom` bấm **"Hồi sinh việc đã dừng (16)"**.
+⚠️ Lần đầu grep trả **0** cho cả chuỗi vốn có ở CẢ HAI bản, tức phép đo hỏng chứ
+không phải bản dựng: bundle escape các ký tự **Latin-1** (`đã` → `đ\xe3`,
+`nhà` → `nh\xe0`) nhưng giữ nguyên ký tự ngoài Latin-1 (`ừ`, `ồ`, `ạ`). Grep
+chuỗi tiếng Việt đầy đủ trong bundle Next vì thế **luôn trượt**. Đây là lần thứ
+hai trong một phiên một phép đo suýt bị đọc thành kết luận — xem §5.
+
+**Bước tiếp theo:** vào `https://tsudev.com/admin/newsroom` bấm **"Hồi sinh việc đã dừng (16)"**.
 Endpoint phía sau: `POST /api/newsroom/admin/events/revive` → `{ revived: n }`.
 Nó chỉ hồi sinh `NewsroomEvent` `DEAD` **có dấu vân tay cạn hạn mức**; lỗi thật
 vẫn nằm yên ở `DEAD` (`dispatcher.ts:70`).

@@ -7,13 +7,11 @@
 
 ## Hàng đợi task (làm từ trên xuống)
 
-- [ ] **🔴 BƯỚC 3: deploy lại frontend rồi bấm nút hồi sinh.** Nút bị lồng trong
-      thẻ cảnh báo `exhausted.length > 0` nên biến mất khi hạn mức đã đặt lại —
-      đúng lúc cần nó. Production có `deadEvents: 16` mà trang không vẽ nút nào.
-      **Đã sửa + có test canh** (`apps/frontend-main/test/newsroomRevive.test.ts`),
-      **chưa deploy**. Chạy `npm --workspace apps/frontend-main run deploy` rồi vào
-      `/admin/newsroom` bấm **"Hồi sinh việc đã dừng (16)"** (cần phiên ADMIN
-      production nên agent không bấm thay được). Chi tiết: phiếu 20260820-05 §2.1.
+- [ ] **🔴 BƯỚC 3: bấm nút "Hồi sinh việc đã dừng (16)"** ở
+      `https://tsudev.com/admin/newsroom`. Cần phiên ADMIN production nên agent
+      không bấm thay được. Bản sửa nút **đã deploy** (Worker `d2a0640a`) và đã
+      kiểm chứng có mặt trong chunk JS production, không chỉ mã 200.
+      Sau khi bấm: chạy `npm run newsroom:check`, `AgentRun` phải tiếp tục tăng.
 
 - [ ] **🔴 GitHub Actions không chạy được — vấn đề TÀI KHOẢN, không phải mã.**
       Cả 5 job của PR #36 đỏ trong 2 giây: _"recent account payments have failed
