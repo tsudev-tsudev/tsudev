@@ -3,7 +3,7 @@
 - **Mã phiếu**: 20260820-02
 - **Từ**: phiên 7 (20/08/2026) — **Đến**: phiên 8
 - **Thời điểm**: 16:41 20/08/2026
-- **Trạng thái**: MỞ
+- **Trạng thái**: HOÀN THÀNH (đóng 20:40 20/08/2026, xem §6)
 
 > Đợt giao diện **đã commit xong** trên nhánh `refactor/giao-dien-quy-uoc-v1`,
 > cây làm việc sạch. Việc còn lại: push/PR (§1.1) rồi bốn mục §1.2-§1.6.
@@ -159,4 +159,17 @@ lặp lại ở đây.
 
 ## 6. Kết quả xử lý
 
-_(phiên 8 điền)_
+**Phiên 8 điền, 20:40 20/08/2026. Phiếu ĐÓNG.**
+
+| Mục                         | Kết quả                                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| §1.1 push + PR              | ✅ đã push, PR **#36** đã mở. Khâu GỘP bị chặn — xem phiếu 20260820-04 §2.1                                                            |
+| §1.2 hai mã màu vá          | ⏳ chưa làm, còn trong hàng đợi `STATE.md`                                                                                             |
+| §1.3 e2e không lặp lại được | ✅ **đã sửa** (`4b3dc42`) — `role` thiếu ở nhánh `update` của upsert. Chứng minh: seed → 20/20 → seed lại → chạy lại `invite` vẫn xanh |
+| §1.4 Storybook              | ⏳ chưa làm, còn trong hàng đợi                                                                                                        |
+| §1.5 `PROJECT_STRUCTURE.md` | ⏳ cần quyết định của chủ dự án, còn trong hàng đợi                                                                                    |
+| §1.6 rà bằng MẮT NGƯỜI      | ⏳ chưa làm, còn trong hàng đợi                                                                                                        |
+| §1.7 `packages/utils`       | ⏳ chưa làm, còn trong hàng đợi                                                                                                        |
+
+Mọi mục ⏳ đã có mặt nguyên vẹn trong hàng đợi `logs/STATE.md`, nên phiếu này
+không còn giữ thông tin nào độc quyền. Đóng để phiên sau chỉ phải đọc một chỗ.

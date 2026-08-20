@@ -1,28 +1,31 @@
 # STATE.md — Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
 > **Phiên 9 bắt đầu ở đây**: đọc
-> [`logs/handover/20260820-03`](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md)
-> trước (việc phát hành đang chặn), rồi
-> [`20260820-02`](handover/20260820-02_viec-con-lai-sau-giao-dien.md) cho phần còn lại.
+> [`logs/handover/20260820-04`](handover/20260820-04_ket-phien-8.md) — phiếu vào
+> cửa duy nhất. Việc đầu hàng đợi là **chuỗi phát hành ba bước**; chưa làm bước 1
+> thì `/admin/newsroom` trên production vẫn chạy mã cũ và vẫn lỗi.
 
 ## Hàng đợi task (làm từ trên xuống)
 
-- [ ] **🔴 GỘP PR #36 vào `main`** — đã push, đã mở PR, cổng local xanh hết
-      (kể cả e2e 20/20). Hai thứ CHẶN, cả hai đều ngoài tầm agent:
-      (a) chính sách phân quyền của phiên chặn lệnh gộp; (b) **GitHub Actions
-      không chạy được** — "recent account payments have failed or your spending
-      limit needs to be increased", cả 5 job đỏ trong 2 giây mà không chạy dòng
-      nào. Kiểm mục Billing & plans của GitHub.
-- [ ] **🔴 Deploy frontend sau khi gộp** — `npm --workspace apps/frontend-main run deploy`
-      (đi qua `scripts/deploy-frontend.js`, ĐỪNG gọi thẳng opennextjs-cloudflare).
-      Render tự dựng backend từ `main`; frontend thì không tự.
+- [ ] **🔴 CHUỖI PHÁT HÀNH — ba bước, đúng thứ tự này.** Đây là việc duy nhất
+      còn chặn; mọi thứ khác trong hàng đợi đều làm được song song.
 
-- [ ] **🔴 Phát hành bản vá hạn mức LLM** — lỗi ở `/admin/newsroom` chỉ hết sau khi
-      backend lên Render. Rồi bấm "Hồi sinh việc đã dừng" trên bảng điều khiển.
-      Phiếu 20260820-03 §1.1.
-- [ ] **🟠 Quyết định: có đặt `GEMINI_API_KEY` không?** Không có đường dự phòng thì
-      mỗi ngày cạn Neuron toà soạn đứng im tới 00:00 UTC (đứng im êm, không mất
-      bài). Bậc Free của Gemini tốn 0đ. Phiếu 20260820-03 §1.2.
+      1. `gh pr merge 36 --merge` → Render tự dựng backend từ `main`.
+      2. Chờ Render báo **Live**, rồi `npm --workspace apps/frontend-main run deploy`
+         (đi qua `scripts/deploy-frontend.js`, **đừng** gọi thẳng
+         `opennextjs-cloudflare` — xem gotcha `.env.local` thắng `.env.production`).
+      3. Vào `/admin/newsroom` bấm **"Hồi sinh việc đã dừng (N)"**.
+
+      Chưa làm bước 1 thì `/admin/newsroom` trên production **vẫn chạy mã cũ và
+      vẫn lỗi**. Phiên 8 bị chặn ở bước 1 bởi chính sách phân quyền của phiên.
+
+- [ ] **🔴 GitHub Actions không chạy được — vấn đề TÀI KHOẢN, không phải mã.**
+      Cả 5 job của PR #36 đỏ trong 2 giây: _"recent account payments have failed
+      or your spending limit needs to be increased"_. Không job nào chạy một dòng
+      nào. Repo private + GitHub Free = 2.000 phút/tháng (`docs/free-tier.md`).
+      Kiểm _Settings → Billing & plans_. Tới khi sửa xong thì **cổng kiểm duy
+      nhất là chạy tay ở local** — danh sách lệnh ở phiếu 20260820-04 §5.
+
 - [ ] **🟠 Đẩy hai mã màu vá lên repo token trung tâm** — `text-muted` và
       `border-strong` của bảng chuẩn v1.0.0 không đạt WCAG AA/1.4.11; tsudev-web
       đang vá cục bộ. Chi tiết: `$accessibility_gap` trong `tokens/design-tokens.json`.
@@ -45,6 +48,9 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 20/08/2026 — **Kết phiên 8**. Phiếu: `logs/handover/20260820-04`. Ba đợt việc
+  đã commit và push (PR #36, 5 commit): chuẩn hoá URL · van hạn mức LLM · e2e
+  lặp lại được. Chặn ở khâu gộp + GitHub Actions không chạy được vì tài khoản.
 - 20/08/2026 — **Bộ e2e lặp lại được**: seed dev nay đặt lại `User.role` (trước
   chỉ có ở nhánh `create` của upsert) và dọn tài khoản `e2e-*`. Chứng minh bằng
   vòng seed → 20/20 → seed → chạy lại invite vẫn xanh.

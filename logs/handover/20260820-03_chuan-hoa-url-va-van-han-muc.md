@@ -3,7 +3,9 @@
 - **Mã phiếu**: 20260820-03
 - **Từ**: phiên 8 (20/08/2026) — **Đến**: phiên 9
 - **Thời điểm**: 18:10 20/08/2026
-- **Trạng thái**: MỞ — mã xong, cổng xanh hết, PR #36 đã mở. Chặn ở khâu GỘP + PHÁT HÀNH (xem §5)
+- **Trạng thái**: HOÀN THÀNH — giữ lại làm **hồ sơ kỹ thuật** của hai đợt việc.
+  Việc còn dở đã chuyển sang [`20260820-04`](20260820-04_ket-phien-8.md), là
+  phiếu vào cửa của phiên 9.
 
 ## 1. Việc dang dở + bước tiếp theo CỤ THỂ
 
