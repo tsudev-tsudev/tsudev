@@ -20,24 +20,24 @@
       Kiểm _Settings → Billing & plans_. Tới khi sửa xong thì **cổng kiểm duy
       nhất là chạy tay ở local** — danh sách lệnh ở phiếu 20260820-04 §5.
 
+- [ ] **🔴 GỘP PR #37** — `fix/nut-hoi-sinh-viec-da-dung` → `main`. Đã chạy tay đủ
+      năm hạng mục CI + e2e 20/20 (bảng số trong phiếu 20260820-06). Phiên 10
+      **không gộp được**: chính sách phân quyền của phiên chặn lệnh gộp, y như
+      phiên 8. Gộp xong Render tự dựng lại backend.
+- [ ] **🟠 GỘP nhánh `chore/storybook-chay-duoc`** (4 commit, xếp chồng trên #37).
+      Mở PR sau khi #37 vào `main` thì diff chỉ còn phần Storybook/dọn dẹp.
+- [ ] **🟠 Gửi hai gói đẩy ngược lên repo quy ước trung tâm** —
+      `docs/token-upstream-proposal.md` (hai mã màu không đạt WCAG, số đo đầy đủ)
+      và `docs/structure-upstream-proposal.md` (thêm hình trạng monorepo). Cả hai
+      dán thẳng vào issue được, không phải đo/soạn lại.
 - [ ] **🟠 Cân nhắc xoay `NEWSROOM_TICK_TOKEN`** — `wrangler deploy` in nguyên giá
       trị token ra terminal phiên 9. Không vào git, nhưng đã nằm trong scrollback.
       Xoay thì đổi **đồng thời** ở Render và `npm run cron:secret`; lệch nhau là mỗi
       nhịp giờ trả 401 và toà soạn đứng yên không có gì đỏ lên. Chi tiết: phiếu
       20260820-05 §2.3.
-- [ ] **🟠 Đẩy hai mã màu vá lên repo token trung tâm** — `text-muted` và
-      `border-strong` của bảng chuẩn v1.0.0 không đạt WCAG AA/1.4.11; tsudev-web
-      đang vá cục bộ. Chi tiết: `$accessibility_gap` trong `tokens/design-tokens.json`.
-- [ ] **🟡 Storybook chưa chạy được**: `storybook: not found` - devDependencies của
-      `packages/ui` không có trong `node_modules`. Cấu hình 3 chế độ đã viết
-      (`.storybook/preview.js`, nút "Giao diện") nhưng CHƯA ai nhìn thấy nó chạy.
-      Cần `npm i` trong workspace đó rồi `npm --workspace packages/ui run storybook`.
-- [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** — phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa".
-- [ ] 🟡 Cân nhắc áp `docs/PROJECT_STRUCTURE.md` cho monorepo — cây `src/` của quy
-      ước không khớp npm workspaces. Cần quyết định của chủ dự án: sửa quy ước
-      cho phép hình trạng monorepo, hay chấp nhận repo này lệch chuẩn ở điểm đó.
-- [ ] ⚪ `packages/utils` (`@tsudev/utils`) không ai dùng — cân nhắc gỡ, hoặc chuyển
-      `apps/frontend-main/lib/format.ts` vào đó khi có nơi thứ hai cần định dạng ngày.
+- [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** — phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa". Nay đã có công
+      cụ: `npm --workspace packages/ui run storybook`, nút **Giao diện** đổi ba
+      chế độ ngay trên thanh công cụ.
 
 ## Đang thực hiện
 
@@ -47,6 +47,18 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 20/08/2026 — **Storybook chạy được lần đầu**: hàng đợi ghi "thiếu
+  devDependencies, `npm i` là xong" — đó mới là tầng thứ nhất trong **bốn** tầng
+  hỏng, ba tầng còn lại không làm lệnh nào thất bại (glob extglob dùng dấu phẩy ⇒
+  khớp 0/9 file · `@tsudev/types` CommonJS qua `/@fs` ⇒ mọi khung story rỗng ·
+  `next-auth` đòi `process` + `SessionProvider`). Nghiệm thu **36/36 lượt**
+  (12 story × 3 chế độ) vẽ ra nội dung, 0 lỗi console, 0 ảnh 404. Đóng luôn món
+  nợ ghim `react@18` ở root.
+- 20/08/2026 — **Gỡ `@tsudev/utils`** (một hàm, không nơi nào dùng) và dòng
+  `references` của nó trong `tsconfig.json` gốc.
+- 20/08/2026 — **Hai gói đẩy ngược lên repo quy ước trung tâm đã soạn xong**:
+  `docs/token-upstream-proposal.md` · `docs/structure-upstream-proposal.md`.
+  Điểm lệch cấu trúc ghi vào `docs/architecture.md` thay vì để im lặng.
 - 20/08/2026 — **Sổ Neuron đếm ĐỦ cả khi lượt chạy hỏng**: chi phí nay ghi tại
   ranh giới nhà cung cấp vào sổ theo ngữ cảnh (`withCostLedger`, AsyncLocalStorage),
   `withRun()` đọc sổ ở **cả hai** nhánh try/catch. Đường trả chi phí cũ
@@ -90,6 +102,14 @@
 
 ## Quyết định quan trọng
 
+- 20/08/2026 — **"Lệnh chạy xong" không chứng minh công cụ chạy được.** Storybook
+  lên server, `index.json` liệt kê đủ 12 story, `storybook build` xanh — mà cả 36
+  lượt mở story đều RỖNG. Cùng họ với "mã 200 không chứng minh trang có nội dung":
+  phép nghiệm thu phải đếm THỨ CÔNG CỤ SINH RA, không đếm việc nó khởi động.
+- 20/08/2026 — **Điểm lệch bộ quy ước chung phải được GHI, kèm gói đẩy ngược.**
+  File quy ước bất khả xâm phạm ⇒ repo con không sửa được ⇒ lệch là chuyện sẽ xảy
+  ra. Lệch mà im lặng thì phiên sau tưởng là quên; lệch mà chỉ ghi chú thì lỗi
+  gốc sống mãi ở trung tâm. Hai gói `docs/*-upstream-proposal.md` là đường ra.
 - 20/08/2026 — **Sổ đo phải ghi ở NƠI PHÁT SINH, không ở đường `return`.** Chỗ
   kết quả về đích và chỗ chi phí phát sinh chỉ trùng nhau khi không có gì hỏng;
   agent hay hỏng NGAY SAU lượt gọi mô hình, nên sổ cũ đếm thiếu đúng ở nhánh hay
@@ -141,13 +161,14 @@
 
 ## Phiếu bàn giao
 
-| Mã                                                                  | Chủ đề                                     | Trạng thái |
-| ------------------------------------------------------------------- | ------------------------------------------ | ---------- |
-| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production            | **MỞ**     |
-| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành              | HOÀN THÀNH |
-| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM            | HOÀN THÀNH |
-| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện             | HOÀN THÀNH |
-| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0 | HOÀN THÀNH |
+| Mã                                                                  | Chủ đề                                      | Trạng thái |
+| ------------------------------------------------------------------- | ------------------------------------------- | ---------- |
+| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ | **MỞ**     |
+| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production             | HOÀN THÀNH |
+| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành               | HOÀN THÀNH |
+| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM             | HOÀN THÀNH |
+| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện              | HOÀN THÀNH |
+| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0  | HOÀN THÀNH |
 
 ## Ghi chú vận hành
 
