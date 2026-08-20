@@ -128,8 +128,9 @@ lúc đêm hiện lệch một ngày giữa hai lần vẽ.
 
 ## Storybook
 
-`npm --workspace packages/ui run storybook` → <http://localhost:6006>. Thanh công
-cụ có nút **Giao diện** đổi giữa ba chế độ. Storybook **không** nằm trong CI - nó
+`npm --workspace packages/ui run storybook` - lệnh tự in địa chỉ ra terminal
+(cổng của Storybook cố ý KHÔNG khai trong `config/topology.json`: nó là công cụ
+dev, không phải một thành phần của hệ). Thanh công cụ có nút **Giao diện** đổi giữa ba chế độ. Storybook **không** nằm trong CI - nó
 là công cụ rà bằng mắt, cổng thật là `contrast.test.ts`.
 
 Chạy được từ 20/08/2026. Trước đó nó hỏng ở **bốn** tầng chồng lên nhau, và mỗi
