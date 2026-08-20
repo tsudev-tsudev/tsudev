@@ -51,7 +51,25 @@ async function main() {
       where: { username: u.username },
       // Email đã xác minh sẵn: luồng xác minh cần gửi thư thật, và dev không
       // có RESEND_API_KEY. Đây là điều DUY NHẤT script này bỏ qua.
-      update: { passwordHash, emailVerifiedAt: new Date(), failedLoginCount: 0, lockedUntil: null },
+      //
+      // `role` PHẢI có mặt ở nhánh update, không chỉ ở create.
+      //
+      // Thiếu nó thì mọi thứ nâng vai trò giữa chừng đều VĨNH VIỄN, và bộ e2e
+      // tự bắn vào chân mình: `invite.spec.js` nâng alice MEMBER→VIP để chứng
+      // minh mã mời chạy, nên lần chạy THỨ HAI trên cùng một DB luôn đỏ. Tệ hơn
+      // là triệu chứng: nó đỏ ở một bước KHÔNG liên quan (bob mở
+      // /trust/redeem), nên rất dễ chẩn thành lỗi giao diện. Đã mất một vòng
+      // chạy vì chuyện này ở phiên 7, và suýt mất vòng nữa ở phiên 8.
+      //
+      // Đây là seed DEV: ba tài khoản này phải trở về đúng bậc ban đầu ở mỗi
+      // lượt chạy, đó mới là "trạng thái đã biết" mà test dựa vào.
+      update: {
+        passwordHash,
+        role: u.role,
+        emailVerifiedAt: new Date(),
+        failedLoginCount: 0,
+        lockedUntil: null,
+      },
       create: {
         username: u.username,
         email: `${u.username}@tsudev.local`,
@@ -62,7 +80,12 @@ async function main() {
       },
     })
   }
+  // Tài khoản rác do e2e tạo ra: xoá để lần chạy sau bắt đầu từ cùng một chỗ.
+  // Chỉ nhận diện theo tiền tố cố định của bộ test, không quét rộng hơn.
+  const { count } = await prisma.user.deleteMany({ where: { username: { startsWith: 'e2e-' } } })
+
   console.log(`Đặt mật khẩu dev cho: ${USERS.map((u) => `${u.username} (${u.role})`).join(', ')}`)
+  if (count) console.log(`Đã xoá ${count} tài khoản e2e-* tồn đọng.`)
   console.log(`Mật khẩu: ${DEV_PASSWORD}`)
 }
 
