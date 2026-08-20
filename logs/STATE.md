@@ -25,9 +25,6 @@
       Xoay thì đổi **đồng thời** ở Render và `npm run cron:secret`; lệch nhau là mỗi
       nhịp giờ trả 401 và toà soạn đứng yên không có gì đỏ lên. Chi tiết: phiếu
       20260820-05 §2.3.
-- [ ] **🟠 Sổ Neuron của ta vẫn đếm THIẾU** — `withRun()` chỉ ghi `neuronsUsed` ở
-      nhánh THÀNH CÔNG. Không còn chặn (bản vá phiên 8 không dựa vào con số đó).
-      Cách vá: phiếu 20260820-04 §2.3.
 - [ ] **🟠 Đẩy hai mã màu vá lên repo token trung tâm** — `text-muted` và
       `border-strong` của bảng chuẩn v1.0.0 không đạt WCAG AA/1.4.11; tsudev-web
       đang vá cục bộ. Chi tiết: `$accessibility_gap` trong `tokens/design-tokens.json`.
@@ -50,6 +47,12 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 20/08/2026 — **Sổ Neuron đếm ĐỦ cả khi lượt chạy hỏng**: chi phí nay ghi tại
+  ranh giới nhà cung cấp vào sổ theo ngữ cảnh (`withCostLedger`, AsyncLocalStorage),
+  `withRun()` đọc sổ ở **cả hai** nhánh try/catch. Đường trả chi phí cũ
+  (`AgentCost` trong `agents.ts`) đã bỏ hẳn — một sổ, không phải hai.
+  Canh bằng `services/newsroom-service/test/costLedger.test.ts` (7 test, đã kiểm
+  chứng đỏ trên mã cũ). Newsroom 42 → **49 xanh**; bundle 14; format/lint/typecheck sạch.
 - 20/08/2026 — **PHÁT HÀNH phiên 9**: PR #36 gộp vào `main` (`12987d0`), Render dựng
   lại backend, frontend lên Cloudflare Workers (version `d59853a7`). Nghiệm thu
   **đếm hành vi**: `/api/auth/providers` chỉ `credentials`+`passkey` · `www` → 308
@@ -87,6 +90,10 @@
 
 ## Quyết định quan trọng
 
+- 20/08/2026 — **Sổ đo phải ghi ở NƠI PHÁT SINH, không ở đường `return`.** Chỗ
+  kết quả về đích và chỗ chi phí phát sinh chỉ trùng nhau khi không có gì hỏng;
+  agent hay hỏng NGAY SAU lượt gọi mô hình, nên sổ cũ đếm thiếu đúng ở nhánh hay
+  xảy ra nhất. Đầy đủ: `HANDOFF.md` §0.7 (mục thứ 16).
 - 20/08/2026 — **Điều kiện hiện một nút phải là điều kiện nút đó CHỮA, không phải
   triệu chứng đi kèm.** Nút "Hồi sinh việc đã dừng" từng lồng trong thẻ "hôm nay
   cạn hạn mức", nên nó biến mất đúng lúc cần: hạn mức reset xong mới là lúc đi dọn

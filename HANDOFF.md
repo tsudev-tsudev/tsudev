@@ -564,6 +564,36 @@ phải hỏi dashboard Render, không suy ra từ mã HTTP.
 
 ---
 
+### Sổ đo phải ghi ở NƠI PHÁT SINH, không ở đường `return`
+
+`withRun()` của toà soạn ghi `neuronsUsed` từ giá trị agent **trả về**. Nghe hợp
+lý cho tới khi nhìn xem agent hỏng ở đâu: ba trong bốn agent `throw` **ngay sau**
+lượt gọi mô hình - JSON parse hỏng, bài quá ngắn, phán quyết không đọc được.
+Neuron đã tiêu thật, nhưng đường `return` không bao giờ chạy, nên `AgentRun` ghi
+**0**. Sổ đếm thiếu đúng ở nhánh hay xảy ra nhất, và van ngân sách hằng ngày đọc
+chính cái sổ đó - tức nó mù nhất vào đúng ngày mô hình trả lời tệ nhất.
+
+Quy tắc: **đo tại ranh giới nơi chi phí phát sinh** (chỗ nhà cung cấp trả lời),
+không tại chỗ kết quả về đích. Hai chỗ đó chỉ trùng nhau khi không có gì hỏng.
+
+Cách làm ở đây: một sổ chi phí đặt trong `AsyncLocalStorage` (`withCostLedger`
+trong `services/newsroom-service/src/llm/index.ts`). `complete()` cộng vào sổ
+ngay khi có phản hồi; `withRun()` đọc sổ ở **cả hai** nhánh try/catch. Chọn
+ngữ cảnh thay vì truyền tay qua bốn hàm agent vì truyền tay thì agent thứ năm
+viết sau này quên truyền là sổ thủng lại, im lặng - còn ngữ cảnh thì mọi lượt
+gọi đều được đếm, sâu bao nhiêu tầng cũng vậy.
+
+Kèm theo: bỏ hẳn đường trả chi phí cũ (`AgentCost` trong `agents.ts`) thay vì để
+song song. Hai sổ cùng đếm một thứ là cách chúng lệch nhau mà không ai biết -
+cùng họ với bài học "phân quyền chỉ có MỘT nguồn" ở `CLAUDE.md`.
+
+Canh bằng `services/newsroom-service/test/costLedger.test.ts`: bốn test hành vi
+(ném lỗi sau lượt gọi vẫn giữ chi phí · cộng dồn nhiều lượt · ghi việc chuyển
+dự phòng · gọi ngoài lượt chạy không nổ) và ba test quét nguồn khoá hình dạng
+`withRun()`.
+
+---
+
 ---
 
 ## 0.8 Bài học: "đặt mật khẩu thành công mà production vẫn rỗng"
