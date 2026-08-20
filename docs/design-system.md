@@ -128,6 +128,29 @@ lúc đêm hiện lệch một ngày giữa hai lần vẽ.
 
 ## Storybook
 
-`npm --workspace packages/ui run storybook`. Thanh công cụ có nút **Giao diện**
-đổi giữa ba chế độ. Storybook **không** nằm trong CI - nó là công cụ rà bằng mắt,
-cổng thật là `contrast.test.ts`.
+`npm --workspace packages/ui run storybook` → <http://localhost:6006>. Thanh công
+cụ có nút **Giao diện** đổi giữa ba chế độ. Storybook **không** nằm trong CI - nó
+là công cụ rà bằng mắt, cổng thật là `contrast.test.ts`.
+
+Chạy được từ 20/08/2026. Trước đó nó hỏng ở **bốn** tầng chồng lên nhau, và mỗi
+tầng đều hỏng theo kiểu IM LẶNG - đây là lý do phần cấu hình có nhiều chú thích
+hơn mã:
+
+| Hỏng ở đâu                                                             | Trông như thế nào                                          |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------- |
+| thiếu gói CLI `storybook`, `framework` khai theo kiểu bản 6            | `storybook: not found`                                     |
+| glob `@(js,jsx,ts,tsx)` - extglob phân nhánh bằng `\|`, không phải `,` | một dòng WARN, giao diện rỗng như "chưa ai viết story"     |
+| `@tsudev/types` là CommonJS, Vite phục vụ thẳng qua `/@fs`             | server lên, `index.json` đủ 12 story, MỌI khung story rỗng |
+| `next-auth/react` đọc `process` + đòi `SessionProvider`                | vẫn rỗng, lỗi chỉ nằm trong console                        |
+
+Cả bốn đều KHÔNG làm `storybook build` thất bại. Nên phép nghiệm thu ở đây phải
+là **đếm story vẽ ra được**, không phải "lệnh chạy xong": mở
+`iframe.html?id=<story>&globals=theme:<chế độ>` cho từng story ở cả ba chế độ và
+kiểm `#storybook-root` có nội dung. Lần nghiệm thu 20/08/2026: **36/36 lượt**
+(12 story × 3 chế độ) vẽ ra nội dung, đúng `data-theme`, 0 lỗi console, 0 ảnh 404.
+
+⚠️ Component nào của `@tsudev/ui` kéo theo `next-auth` (`SiteHeader`,
+`SiteFooter`, `useTrustNav`) thì chỉ dựng được nhờ hai mảnh vá trong
+`.storybook/`: shim `window.process` ở `preview-head.html` và decorator
+`SessionProvider` ở `preview.js`. Thêm component mới phụ thuộc thứ Next-only thì
+phải nghĩ tới chỗ này.
