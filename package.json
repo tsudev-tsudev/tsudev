@@ -28,6 +28,8 @@
     "e2e:app": "npm run build:services && playwright test --config=e2e/playwright.config.js --project=app",
     "topology:gen": "node scripts/topology/gen-env.js",
     "topology:check": "node scripts/topology/check.js && node scripts/topology/gen-env.js --check",
+    "tokens:sync": "node scripts/sync-tokens.js",
+    "tokens:check": "node scripts/sync-tokens.js --check",
     "db:up": "bash scripts/start-db.sh",
     "minio:up": "bash scripts/start-minio.sh",
     "db:migrate": "node scripts/with-env.js npm --workspace packages/db run migrate:deploy",

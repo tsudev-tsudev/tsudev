@@ -38,6 +38,13 @@ jobs:
       - run: npm ci
       - name: Hợp đồng mạng (cổng/tên miền)
         run: npm run topology:check
+      # Cổng token giao diện. `packages/ui/src/tokens.css` là bản SINH RA từ
+      # `tokens/design-tokens.json`; sửa tay nó thì thay đổi sống ở local mà biến
+      # mất ở lần chạy `tokens:sync` kế tiếp - im lặng, không ai báo lỗi. Bước này
+      # cũng bắt luôn trường hợp `tokens/tokens.css` (bản chuẩn dùng chung của cả
+      # hệ sinh thái) trôi lệch khỏi file JSON.
+      - name: Token giao diện khớp nguồn chân lý
+        run: npm run tokens:check
       - run: npm run format:check
       - run: npm run lint --silent
       # Cổng kiểm kiểu. Trước đây repo có typescript trong devDependencies

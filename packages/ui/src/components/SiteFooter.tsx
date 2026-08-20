@@ -52,18 +52,18 @@ const columns = (canSeeTrust: boolean): Col[] => [
 export const SiteFooter = () => {
   const COLS = columns(useCanSeeTrust());
   return (
-    <footer className="mt-16 border-t border-hairstrong">
+    <footer className="mt-16 border-t border-line-strong">
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-6 grid gap-x-8 gap-y-7 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div>
           <Logo />
-          <p className="mt-2.5 text-sm text-muted max-w-xs leading-relaxed">
+          <p className="mt-2.5 text-sm text-fg-muted max-w-xs leading-relaxed">
             Hệ sinh thái công nghệ đa nền tảng cho developer. Decoding the Future, One Commit at a
             Time.
           </p>
         </div>
         {COLS.map((c) => (
           <div key={c.title}>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted font-mono">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-muted font-mono">
               {c.title}
             </h4>
             <ul className="mt-2.5 space-y-1.5">
@@ -71,7 +71,7 @@ export const SiteFooter = () => {
                 <li key={label}>
                   <a
                     href={href}
-                    className="text-sm text-inksoft hover:text-brandink transition-colors"
+                    className="text-sm text-fg-secondary hover:text-link transition-colors"
                   >
                     {label}
                   </a>
@@ -81,7 +81,7 @@ export const SiteFooter = () => {
           </div>
         ))}
       </div>
-      <div className="max-w-6xl mx-auto px-4 pb-6 flex flex-col sm:flex-row justify-between gap-1.5 text-xs text-muted font-mono">
+      <div className="max-w-6xl mx-auto px-4 pb-6 flex flex-col sm:flex-row justify-between gap-1.5 text-xs text-fg-muted font-mono">
         <span>© {new Date().getFullYear()} tsudev - Nguyễn Trang Tình Sử</span>
         <span>Built with Next.js · Node · PostgreSQL</span>
       </div>

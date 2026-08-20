@@ -38,7 +38,7 @@ export default function AdminHome() {
     return (
       <Layout>
         <Seo title="Quản trị" path="/admin" noindex />
-        <Card className="p-8 text-center text-muted">Đang tải…</Card>
+        <Card className="p-8 text-center text-fg-muted">Đang tải…</Card>
       </Layout>
     );
 
@@ -47,10 +47,10 @@ export default function AdminHome() {
       <Layout>
         <Seo title="Quản trị" path="/admin" noindex />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-ink mb-2">Khu vực quản trị</h1>
-          <p className="text-muted mb-4">
+          <h1 className="text-2xl font-bold text-fg mb-2">Khu vực quản trị</h1>
+          <p className="text-fg-muted mb-4">
             Đăng nhập bằng tài khoản quản trị (ví dụ{' '}
-            <code className="font-mono text-brandink">tsudev</code>).
+            <code className="font-mono text-link">tsudev</code>).
           </p>
           <Button onClick={() => signIn()}>Đăng nhập</Button>
         </div>
@@ -75,16 +75,16 @@ export default function AdminHome() {
           {AREAS.map((a) =>
             a.ready ? (
               <Card key={a.href} as="a" href={a.href} hover className="p-5 block group">
-                <h3 className="font-semibold text-ink group-hover:text-brandink transition-colors">
+                <h3 className="font-semibold text-fg group-hover:text-link transition-colors">
                   {a.title} →
                 </h3>
-                <p className="text-sm text-muted mt-1">{a.desc}</p>
+                <p className="text-sm text-fg-muted mt-1">{a.desc}</p>
               </Card>
             ) : (
               <Card key={a.href} className="p-5 opacity-60">
-                <h3 className="font-semibold text-ink">{a.title}</h3>
-                <p className="text-sm text-muted mt-1">{a.desc}</p>
-                <span className="inline-block mt-2 text-xs uppercase tracking-wider text-muted">
+                <h3 className="font-semibold text-fg">{a.title}</h3>
+                <p className="text-sm text-fg-muted mt-1">{a.desc}</p>
+                <span className="inline-block mt-2 text-xs uppercase tracking-wider text-fg-muted">
                   Sắp có
                 </span>
               </Card>

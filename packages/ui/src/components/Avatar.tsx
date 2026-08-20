@@ -35,7 +35,7 @@ export const Avatar = ({ name = '?', src, size = 40, className = '' }: AvatarPro
   // nếu không có viền sẽ tan vào card tối.
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 bg-panel2 ring-1 ring-[color:var(--border-strong)] ${className}`}
+      className={`inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 bg-subtle ring-1 ring-line-strong ${className}`}
       style={{ width: size, height: size }}
       aria-hidden="true"
     >

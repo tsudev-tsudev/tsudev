@@ -15,6 +15,7 @@
 // quên nó thành lỗi BIÊN DỊCH thay vì một trang trống ở production.
 import { TRUST } from './services';
 import type { CertificateCard, TrustProfile, TrustProgram, VerifyOutcome } from './types';
+import { formatDateVN } from './format';
 
 /** Header danh tính do `lib/trustGate.ts` dựng. */
 export type TrustAuth = Record<string, string>;
@@ -118,7 +119,7 @@ export const basisMeta = (basis: string | null | undefined): BasisMeta =>
     detail: '',
   };
 
-export const fmtDate = (d: string | number | Date | null | undefined): string =>
-  d
-    ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    : '-';
+// Giữ tên cũ để các trang con dấu không phải sửa hàng loạt, nhưng uỷ quyền cho
+// bản dùng chung: ghim múi giờ Asia/Ho_Chi_Minh và trả '-' khi ngày không hợp lệ,
+// hai thứ mà bản cục bộ ở đây không làm.
+export const fmtDate = formatDateVN;

@@ -44,7 +44,7 @@ export default function VerifyEmailPage() {
   if (state === 'checking') {
     return (
       <AuthShell title="Đang xác minh…">
-        <p className="text-sm text-muted">Chờ một chút.</p>
+        <p className="text-sm text-fg-muted">Chờ một chút.</p>
       </AuthShell>
     );
   }

@@ -7,17 +7,18 @@ import { KIND_LABEL, STATUS_LABEL, copyrightMeta } from '../../lib/projectLabels
 import type { GetServerSidePropsContext } from 'next';
 import type { Project } from '../../lib/types';
 import { routeParam } from '../../lib/identity';
+import { formatDateVN } from '../../lib/format';
 
-const fmt = (d: string | Date | null | undefined): string =>
-  d ? new Date(d).toLocaleDateString('vi-VN') : '-';
+// Định dạng ngày dùng chung, không định nghĩa lại tại chỗ - xem lib/format.ts.
+const fmt = formatDateVN;
 
 type RowProps = { label: React.ReactNode; children?: React.ReactNode };
 
 function Row({ label, children }: RowProps) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-2 border-b border-hairline last:border-0">
-      <dt className="text-sm text-muted shrink-0">{label}</dt>
-      <dd className="text-sm text-inksoft text-right">{children}</dd>
+    <div className="flex items-baseline justify-between gap-4 py-2 border-b border-line last:border-0">
+      <dt className="text-sm text-fg-muted shrink-0">{label}</dt>
+      <dd className="text-sm text-fg-secondary text-right">{children}</dd>
     </div>
   );
 }
@@ -28,7 +29,7 @@ export default function ProjectDetail({ project, slug }: ProjectDetailProps) {
   if (!project)
     return (
       <Layout active="/projects">
-        <Card className="p-8 text-center text-muted">Không tìm thấy dự án.</Card>
+        <Card className="p-8 text-center text-fg-muted">Không tìm thấy dự án.</Card>
       </Layout>
     );
 
@@ -42,11 +43,12 @@ export default function ProjectDetail({ project, slug }: ProjectDetailProps) {
         description={project.summary || undefined}
       />
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <nav className="text-sm text-muted mb-4">
-          <a href="/projects" className="hover:text-brandink">
+        <nav className="text-sm text-fg-muted mb-4">
+          <a href="/projects" className="hover:text-link">
             Dự án
           </a>{' '}
-          <span className="mx-1.5">/</span> <span className="text-inksoft">{project.name}</span>
+          <span className="mx-1.5">/</span>{' '}
+          <span className="text-fg-secondary">{project.name}</span>
         </nav>
 
         <div className="flex flex-wrap items-center gap-1.5 mb-4">
@@ -55,10 +57,10 @@ export default function ProjectDetail({ project, slug }: ProjectDetailProps) {
           <Badge tone={cr.tone}>{cr.label}</Badge>
         </div>
 
-        <h1 className="text-3xl md:text-4xl font-extrabold text-ink text-balance leading-tight">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-fg text-balance leading-tight">
           {project.name}
         </h1>
-        <p className="mt-3 text-lg text-muted max-w-2xl">{project.summary}</p>
+        <p className="mt-3 text-lg text-fg-muted max-w-2xl">{project.summary}</p>
 
         <div className="mt-6 flex flex-wrap gap-3">
           {project.repoUrl && (
@@ -86,13 +88,13 @@ export default function ProjectDetail({ project, slug }: ProjectDetailProps) {
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(project.descriptionMd) }}
               />
             ) : (
-              <p className="text-muted">Chưa có mô tả chi tiết.</p>
+              <p className="text-fg-muted">Chưa có mô tả chi tiết.</p>
             )}
           </div>
 
           <aside className="space-y-4">
             <Card className="p-5">
-              <h2 className="text-sm font-semibold text-ink mb-2">Phát hành</h2>
+              <h2 className="text-sm font-semibold text-fg mb-2">Phát hành</h2>
               <dl>
                 <Row label="Phiên bản">
                   {project.version ? (
@@ -113,7 +115,7 @@ export default function ProjectDetail({ project, slug }: ProjectDetailProps) {
             </Card>
 
             <Card className="p-5">
-              <h2 className="text-sm font-semibold text-ink mb-2">Bản quyền</h2>
+              <h2 className="text-sm font-semibold text-fg mb-2">Bản quyền</h2>
               <dl>
                 <Row label="Trạng thái">
                   <Badge tone={cr.tone}>{cr.label}</Badge>
@@ -131,7 +133,7 @@ export default function ProjectDetail({ project, slug }: ProjectDetailProps) {
               {project.trustProgramSlug && (
                 <a
                   href={`/trust/programs/${project.trustProgramSlug}`}
-                  className="mt-3 inline-block text-sm text-brandink hover:underline"
+                  className="mt-3 inline-block text-sm text-link hover:underline"
                 >
                   Chương trình dấu liên quan →
                 </a>

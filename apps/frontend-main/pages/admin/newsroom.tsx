@@ -102,7 +102,7 @@ interface State {
 // --- Bản đồ hiển thị -------------------------------------------------------
 //
 // Màu lấy TỪ TOKEN của design system qua `tone` của Badge. Không cắm cứng mã
-// hex: `--on-vivid` đảo theo chế độ sáng/tối còn hex thì không, và mọi cặp màu
+// hex: `--on-status` đảo theo chế độ sáng/tối còn hex thì không, và mọi cặp màu
 // đang bị packages/ui/test/contrast.test.ts canh ở ngưỡng WCAG AA.
 
 const DEPTS: { key: Agent['dept']; label: string }[] = [
@@ -167,7 +167,7 @@ function AgentAvatar({ seed, dimmed }: { seed: string; dimmed: boolean }) {
   return (
     <div
       aria-hidden
-      className={`h-10 w-10 shrink-0 rounded-sm border border-hairstrong grid place-items-center font-mono text-xs font-bold ${
+      className={`h-10 w-10 shrink-0 rounded-sm border border-line-strong grid place-items-center font-mono text-xs font-bold ${
         dimmed ? 'opacity-40' : ''
       }`}
       style={{ background: `hsl(${h % 360} 45% 50% / 0.18)` }}
@@ -238,7 +238,7 @@ export default function NewsroomPage() {
     return (
       <Layout>
         <Seo title="Toà soạn Agent AI" path="/admin/newsroom" noindex />
-        <Card className="p-8 text-center text-muted">Đang tải…</Card>
+        <Card className="p-8 text-center text-fg-muted">Đang tải…</Card>
       </Layout>
     );
 
@@ -247,8 +247,8 @@ export default function NewsroomPage() {
       <Layout>
         <Seo title="Toà soạn Agent AI" path="/admin/newsroom" noindex />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-ink mb-2">Toà soạn Agent AI</h1>
-          <p className="text-muted mb-4">Khu vực quản trị — cần đăng nhập.</p>
+          <h1 className="text-2xl font-bold text-fg mb-2">Toà soạn Agent AI</h1>
+          <p className="text-fg-muted mb-4">Khu vực quản trị — cần đăng nhập.</p>
           <Button onClick={() => signIn()}>Đăng nhập</Button>
         </div>
       </Layout>
@@ -284,10 +284,10 @@ export default function NewsroomPage() {
 
         {!state?.enabled && !err && (
           <Card className="p-4 mt-6">
-            <p className="text-sm text-muted">
+            <p className="text-sm text-fg-muted">
               Toà soạn đang tắt. Đặt{' '}
-              <code className="font-mono text-brandink">NEWSROOM_ENABLED=true</code> ở biến môi
-              trường của backend để agent bắt đầu quét nguồn và viết bài.
+              <code className="font-mono text-link">NEWSROOM_ENABLED=true</code> ở biến môi trường
+              của backend để agent bắt đầu quét nguồn và viết bài.
             </p>
           </Card>
         )}
@@ -299,9 +299,9 @@ export default function NewsroomPage() {
               value={`${state?.budget.used ?? 0}`}
               label={`/ ${state?.budget.limit ?? 0} Neuron hôm nay`}
             />
-            <div className="mt-2 h-1 w-full bg-panel2 rounded-sm overflow-hidden">
+            <div className="mt-2 h-1 w-full bg-subtle rounded-sm overflow-hidden">
               <div
-                className={budgetPct > 85 ? 'h-full bg-warning' : 'h-full bg-teal'}
+                className={budgetPct > 85 ? 'h-full bg-warning' : 'h-full bg-accent'}
                 style={{ width: `${budgetPct}%` }}
               />
             </div>
@@ -327,11 +327,13 @@ export default function NewsroomPage() {
         </div>
 
         {/* --- Sàn ảo --- */}
-        <h2 className="text-lg font-bold text-ink mt-10 mb-3">Sàn làm việc</h2>
+        <h2 className="text-lg font-bold text-fg mt-10 mb-3">Sàn làm việc</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {DEPTS.map((dept) => (
             <Card key={dept.key} className="p-4">
-              <div className="text-xs uppercase tracking-wider text-muted mb-3">{dept.label}</div>
+              <div className="text-xs uppercase tracking-wider text-fg-muted mb-3">
+                {dept.label}
+              </div>
               <div className="space-y-3">
                 {agents
                   .filter((a) => a.dept === dept.key)
@@ -343,17 +345,19 @@ export default function NewsroomPage() {
                       <div key={a.id} className="flex gap-3">
                         <AgentAvatar seed={a.avatarSeed} dimmed={idle} />
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold text-ink truncate">
+                          <div className="text-sm font-semibold text-fg truncate">
                             {a.displayName}
                           </div>
-                          <div className="text-xs text-muted truncate">{a.title}</div>
+                          <div className="text-xs text-fg-muted truncate">{a.title}</div>
                           <div className="mt-1">
                             <Badge tone={st.tone}>{st.label}</Badge>
                           </div>
                           {a.statusNote && (
-                            <div className="text-xs text-muted mt-1 truncate">{a.statusNote}</div>
+                            <div className="text-xs text-fg-muted mt-1 truncate">
+                              {a.statusNote}
+                            </div>
                           )}
-                          <div className="text-xs text-muted mt-1 font-mono tabular-nums">
+                          <div className="text-xs text-fg-muted mt-1 font-mono tabular-nums">
                             {m?.tokensPerMin ?? 0} tok/phút
                             {m?.avgMs ? ` · ${(m.avgMs / 1000).toFixed(1)}s/lượt` : ''}
                           </div>
@@ -365,7 +369,7 @@ export default function NewsroomPage() {
                                 suspend: !a.suspendedAt,
                               })
                             }
-                            className="text-xs underline text-muted hover:text-ink mt-1"
+                            className="text-xs underline text-fg-muted hover:text-fg mt-1"
                           >
                             {a.suspendedAt ? 'Mở lại' : 'Tạm treo'}
                           </button>
@@ -374,7 +378,7 @@ export default function NewsroomPage() {
                     );
                   })}
                 {!agents.some((a) => a.dept === dept.key) && (
-                  <p className="text-xs text-muted">Chưa có nhân sự.</p>
+                  <p className="text-xs text-fg-muted">Chưa có nhân sự.</p>
                 )}
               </div>
             </Card>
@@ -382,20 +386,24 @@ export default function NewsroomPage() {
         </div>
 
         {/* --- Kanban --- */}
-        <h2 className="text-lg font-bold text-ink mt-10 mb-3">Luồng sản xuất</h2>
+        <h2 className="text-lg font-bold text-fg mt-10 mb-3">Luồng sản xuất</h2>
         <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-3">
           {COLUMNS.map((col) => {
             const items = drafts.filter((d) => col.key.includes(d.status));
             return (
               <Card key={col.label} className="p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs uppercase tracking-wider text-muted">{col.label}</span>
-                  <span className="text-xs font-mono tabular-nums text-muted">{items.length}</span>
+                  <span className="text-xs uppercase tracking-wider text-fg-muted">
+                    {col.label}
+                  </span>
+                  <span className="text-xs font-mono tabular-nums text-fg-muted">
+                    {items.length}
+                  </span>
                 </div>
                 <div className="space-y-2">
                   {items.slice(0, 12).map((d) => (
-                    <div key={d.id} className="rounded-sm border border-hairline bg-panel2 p-2">
-                      <div className="text-xs text-ink line-clamp-3">{d.title}</div>
+                    <div key={d.id} className="rounded-sm border border-line bg-subtle p-2">
+                      <div className="text-xs text-fg line-clamp-3">{d.title}</div>
                       <div className="flex items-center gap-1 mt-1 flex-wrap">
                         <Badge tone="neutral">{d.target}</Badge>
                         {d.revisionCount > 0 && (
@@ -404,8 +412,8 @@ export default function NewsroomPage() {
                       </div>
                       {d.reviewFeedback && (
                         <details className="mt-1">
-                          <summary className="text-xs text-muted cursor-pointer">Góp ý</summary>
-                          <p className="text-xs text-muted mt-1 whitespace-pre-wrap">
+                          <summary className="text-xs text-fg-muted cursor-pointer">Góp ý</summary>
+                          <p className="text-xs text-fg-muted mt-1 whitespace-pre-wrap">
                             {d.reviewFeedback}
                           </p>
                         </details>
@@ -422,7 +430,7 @@ export default function NewsroomPage() {
                       )}
                     </div>
                   ))}
-                  {!items.length && <p className="text-xs text-muted">—</p>}
+                  {!items.length && <p className="text-xs text-fg-muted">—</p>}
                 </div>
               </Card>
             );
@@ -432,14 +440,14 @@ export default function NewsroomPage() {
         {/* --- Nhật ký + nguồn --- */}
         <div className="grid lg:grid-cols-3 gap-4 mt-10">
           <Card className="p-4 lg:col-span-2">
-            <h2 className="text-lg font-bold text-ink mb-3">Nhật ký hoạt động</h2>
+            <h2 className="text-lg font-bold text-fg mb-3">Nhật ký hoạt động</h2>
             <div className="space-y-1 max-h-96 overflow-y-auto">
               {log.map((e) => (
-                <div key={e.id} className="text-xs flex gap-2 py-1 border-b border-hairline">
-                  <span className="font-mono tabular-nums text-muted shrink-0">
+                <div key={e.id} className="text-xs flex gap-2 py-1 border-b border-line">
+                  <span className="font-mono tabular-nums text-fg-muted shrink-0">
                     {timeOf(e.createdAt)}
                   </span>
-                  <span className="text-ink">
+                  <span className="text-fg">
                     <strong>{e.actorKind === 'human' ? 'Bạn' : nameOf(e.agentId)}</strong>{' '}
                     {EVENT_LABEL[e.type] ?? e.type}
                     {typeof e.payload?.title === 'string' && ` — ${e.payload.title}`}
@@ -449,34 +457,34 @@ export default function NewsroomPage() {
                   </span>
                 </div>
               ))}
-              {!log.length && <p className="text-xs text-muted">Chưa có hoạt động nào.</p>}
+              {!log.length && <p className="text-xs text-fg-muted">Chưa có hoạt động nào.</p>}
             </div>
           </Card>
 
           <Card className="p-4">
-            <h2 className="text-lg font-bold text-ink mb-3">Nguồn săn tin</h2>
+            <h2 className="text-lg font-bold text-fg mb-3">Nguồn săn tin</h2>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {(state?.sources ?? []).map((s) => (
-                <div key={s.id} className="text-xs border-b border-hairline pb-2">
+                <div key={s.id} className="text-xs border-b border-line pb-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-ink truncate">{s.label}</span>
+                    <span className="text-fg truncate">{s.label}</span>
                     <Badge tone={s.lastError ? 'warning' : s.enabled ? 'teal' : 'outline'}>
                       {s.kind}
                     </Badge>
                   </div>
                   {s.lastError && <p className="text-warning mt-1">{s.lastError}</p>}
                   {s.lastScanAt && !s.lastError && (
-                    <p className="text-muted mt-1">quét lúc {timeOf(s.lastScanAt)}</p>
+                    <p className="text-fg-muted mt-1">quét lúc {timeOf(s.lastScanAt)}</p>
                   )}
                 </div>
               ))}
             </div>
 
-            <h2 className="text-lg font-bold text-ink mt-6 mb-3">Mức tự chủ</h2>
+            <h2 className="text-lg font-bold text-fg mt-6 mb-3">Mức tự chủ</h2>
             <div className="space-y-2">
               {(state?.channels ?? []).map((c) => (
                 <div key={c.target} className="flex items-center justify-between text-xs">
-                  <span className="text-ink">{c.target}</span>
+                  <span className="text-fg">{c.target}</span>
                   <Badge tone={c.autonomy === 'FULL_AUTO' ? 'brand' : 'outline'}>
                     {c.autonomy === 'FULL_AUTO' ? 'tự động' : 'cần duyệt'} · {c.dailyPostCap}/ngày
                   </Badge>

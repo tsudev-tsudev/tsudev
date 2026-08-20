@@ -28,16 +28,16 @@ Script ghi vào `public/` của `frontend-main`. Muốn thêm app, bổ sung và
 
 ### Đầu ra
 
-| File                                                            | Nguồn                        | Ghi chú                                         |
-| --------------------------------------------------------------- | ---------------------------- | ----------------------------------------------- |
-| `brand/logo-full.png`                                           | `logo.jpeg`                  | logo đầy đủ, nền trong suốt                     |
-| `brand/logo-mark.png`                                           | `logo.jpeg`                  | chỉ biểu tượng cú - dùng ở `SiteHeader`         |
-| `brand/logo-wordmark.png`                                       | `logo.jpeg`                  | chỉ phần chữ                                    |
-| `avatars/default-0N.webp`                                       | vẽ bằng vector trong script  | 6 tông, 256×256, 3 kinh + 5 vĩ                  |
-| `avatars/sm/default-0N.webp`                                    | vẽ bằng vector trong script  | 6 tông, 128×128, 2 kinh + 3 vĩ                  |
-| `favicon.ico`                                                   | `android-chrome-512x512.png` | ICO thật, 3 độ phân giải 16/32/48               |
-| `favicon-*.png`, `apple-touch-icon.png`, `android-chrome-*.png` | `android-chrome-512x512.png` | đã xoá nền trắng                                |
-| `site.webmanifest`                                              | script                       | `theme_color` khớp `--surface` trong tokens.css |
+| File                                                            | Nguồn                        | Ghi chú                                                  |
+| --------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------- |
+| `brand/logo-full.png`                                           | `logo.jpeg`                  | logo đầy đủ, nền trong suốt                              |
+| `brand/logo-mark.png`                                           | `logo.jpeg`                  | chỉ biểu tượng cú - dùng ở `SiteHeader`                  |
+| `brand/logo-wordmark.png`                                       | `logo.jpeg`                  | chỉ phần chữ                                             |
+| `avatars/default-0N.webp`                                       | vẽ bằng vector trong script  | 6 tông, 256×256, 3 kinh + 5 vĩ                           |
+| `avatars/sm/default-0N.webp`                                    | vẽ bằng vector trong script  | 6 tông, 128×128, 2 kinh + 3 vĩ                           |
+| `favicon.ico`                                                   | `android-chrome-512x512.png` | ICO thật, 3 độ phân giải 16/32/48                        |
+| `favicon-*.png`, `apple-touch-icon.png`, `android-chrome-*.png` | `android-chrome-512x512.png` | đã xoá nền trắng                                         |
+| `site.webmanifest`                                              | script                       | `theme_color` khớp `--bg-base` chế độ Sáng; có test canh |
 
 ## Vài quyết định kỹ thuật
 

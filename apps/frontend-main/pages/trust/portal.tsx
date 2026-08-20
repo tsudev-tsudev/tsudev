@@ -64,8 +64,8 @@ export default function TrustPortal() {
       <Layout active="/trust" bare>
         <Seo title="Hồ sơ con dấu" path="/trust/portal" noindex />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-ink mb-2">Hồ sơ con dấu của bạn</h1>
-          <p className="text-inksoft mb-6">
+          <h1 className="text-2xl font-bold text-fg mb-2">Hồ sơ con dấu của bạn</h1>
+          <p className="text-fg-secondary mb-6">
             Đăng nhập để xem tổ chức, tên miền và chứng chỉ của bạn.
           </p>
           <Button onClick={() => signIn()} size="lg">
@@ -96,7 +96,7 @@ export default function TrustPortal() {
           <p
             className="mb-8 rounded-lg px-4 py-3 text-sm"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--success) 12%, var(--panel))',
+              backgroundColor: 'var(--success-tint)',
               color: 'var(--success)',
             }}
           >
@@ -105,17 +105,17 @@ export default function TrustPortal() {
         )}
 
         <section className="mb-12">
-          <h2 className="text-lg font-semibold text-ink mb-1">Chứng chỉ</h2>
-          <p className="text-sm text-muted mb-4">Bấm một chứng chỉ để lấy mã nhúng huy hiệu.</p>
+          <h2 className="text-lg font-semibold text-fg mb-1">Chứng chỉ</h2>
+          <p className="text-sm text-fg-muted mb-4">Bấm một chứng chỉ để lấy mã nhúng huy hiệu.</p>
           {certificates.length === 0 && (
-            <p className="py-8 text-muted text-sm">Chưa có chứng chỉ nào.</p>
+            <p className="py-8 text-fg-muted text-sm">Chưa có chứng chỉ nào.</p>
           )}
-          <div className="divide-y divide-[color:var(--border)]">
+          <div className="divide-y divide-line">
             {certificates.map((c) => {
               const meta = statusMeta(c.status);
               return (
                 <div key={c.serial} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
-                  <span className="font-mono text-sm text-ink">{c.serial}</span>
+                  <span className="font-mono text-sm text-fg">{c.serial}</span>
                   <Badge
                     tone={
                       meta.tone === 'success'
@@ -128,9 +128,9 @@ export default function TrustPortal() {
                   >
                     {meta.label || c.status}
                   </Badge>
-                  <span className="font-mono text-sm text-inksoft">{c.hostname}</span>
-                  <span className="text-xs text-muted">{c.program?.name}</span>
-                  <span className="ml-auto text-xs text-muted">đến {fmtDate(c.expiresAt)}</span>
+                  <span className="font-mono text-sm text-fg-secondary">{c.hostname}</span>
+                  <span className="text-xs text-fg-muted">{c.program?.name}</span>
+                  <span className="ml-auto text-xs text-fg-muted">đến {fmtDate(c.expiresAt)}</span>
                   <div className="flex gap-2">
                     <Button size="sm" variant="ghost" onClick={() => showEmbed(c.serial)}>
                       Mã nhúng
@@ -145,12 +145,12 @@ export default function TrustPortal() {
           </div>
 
           {embed && (
-            <div className="mt-6 rounded-lg bg-panel2 p-4">
+            <div className="mt-6 rounded-lg bg-subtle p-4">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <span className="font-semibold text-ink text-sm">Mã nhúng - {embed.serial}</span>
+                <span className="font-semibold text-fg text-sm">Mã nhúng - {embed.serial}</span>
                 <button
                   onClick={() => setEmbed(null)}
-                  className="text-muted hover:text-ink text-sm"
+                  className="text-fg-muted hover:text-fg text-sm"
                   aria-label="Đóng"
                 >
                   ✕
@@ -158,23 +158,23 @@ export default function TrustPortal() {
               </div>
               {/* eslint-disable-next-line */}
               <img src={embed.sealUrl} alt={`Huy hiệu ${embed.serial}`} width={188} height={62} />
-              <pre className="mt-3 text-[11px] text-inksoft overflow-x-auto whitespace-pre-wrap break-all">
+              <pre className="mt-3 text-xs text-fg-secondary overflow-x-auto whitespace-pre-wrap break-all">
                 {embed.html}
               </pre>
               <div className="mt-3 flex items-center gap-3">
                 <Button size="sm" onClick={() => copy(embed.html)}>
                   {copied ? 'Đã sao chép' : 'Sao chép mã'}
                 </Button>
-                <span className="text-xs text-muted">{embed.note}</span>
+                <span className="text-xs text-fg-muted">{embed.note}</span>
               </div>
             </div>
           )}
         </section>
 
         <section className="mb-12">
-          <h2 className="text-lg font-semibold text-ink mb-4">Hồ sơ đã nộp</h2>
-          {apps.length === 0 && <p className="py-8 text-muted text-sm">Chưa có hồ sơ nào.</p>}
-          <div className="divide-y divide-[color:var(--border)]">
+          <h2 className="text-lg font-semibold text-fg mb-4">Hồ sơ đã nộp</h2>
+          {apps.length === 0 && <p className="py-8 text-fg-muted text-sm">Chưa có hồ sơ nào.</p>}
+          <div className="divide-y divide-line">
             {apps.map((a) => {
               const st = APP_STATUS[a.status] ?? { label: a.status, tone: 'outline' as BadgeTone };
               return (
@@ -183,23 +183,23 @@ export default function TrustPortal() {
                     <Badge tone={st.tone} mono>
                       {st.label}
                     </Badge>
-                    <span className="font-mono text-sm text-inksoft">{a.hostname}</span>
-                    <span className="text-sm text-ink">{a.program?.name}</span>
+                    <span className="font-mono text-sm text-fg-secondary">{a.hostname}</span>
+                    <span className="text-sm text-fg">{a.program?.name}</span>
                     {a.serial && (
                       <a
-                        className="font-mono text-xs text-brandink hover:underline"
+                        className="font-mono text-xs text-link hover:underline"
                         href={`/trust/verify/${a.serial}`}
                       >
                         {a.serial}
                       </a>
                     )}
                   </div>
-                  {a.scope && <p className="mt-1.5 text-sm text-muted">{a.scope}</p>}
+                  {a.scope && <p className="mt-1.5 text-sm text-fg-muted">{a.scope}</p>}
                   {a.reviewNote && (
                     <p
                       className="mt-2 text-sm rounded-lg px-3 py-2"
                       style={{
-                        backgroundColor: 'color-mix(in srgb, var(--warning) 10%, var(--panel))',
+                        backgroundColor: 'var(--warning-tint)',
                         color: 'var(--warning)',
                       }}
                     >
@@ -223,19 +223,21 @@ export default function TrustPortal() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-ink mb-4">Tổ chức &amp; tên miền</h2>
-          {orgs.length === 0 && <p className="py-8 text-muted text-sm">Chưa có tổ chức nào.</p>}
+          <h2 className="text-lg font-semibold text-fg mb-4">Tổ chức &amp; tên miền</h2>
+          {orgs.length === 0 && <p className="py-8 text-fg-muted text-sm">Chưa có tổ chức nào.</p>}
           <div className="space-y-6">
             {orgs.map((o) => (
               <div key={o.id}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-ink">{o.name}</span>
-                  <span className="text-xs text-muted">{o.contactEmail}</span>
+                  <span className="font-medium text-fg">{o.name}</span>
+                  <span className="text-xs text-fg-muted">{o.contactEmail}</span>
                 </div>
-                <div className="mt-2 divide-y divide-[color:var(--border)]">
+                <div className="mt-2 divide-y divide-line">
                   {(o.domains || []).map((d) => (
                     <div key={d.id} className="flex flex-wrap items-center gap-3 py-2.5">
-                      <span className="font-mono text-sm text-inksoft flex-1">{d.hostname}</span>
+                      <span className="font-mono text-sm text-fg-secondary flex-1">
+                        {d.hostname}
+                      </span>
                       <Badge
                         tone={
                           d.status === 'VERIFIED'
@@ -249,15 +251,17 @@ export default function TrustPortal() {
                         {d.status}
                       </Badge>
                       {d.verifiedAt && (
-                        <span className="text-xs text-muted">xác minh {fmtDate(d.verifiedAt)}</span>
+                        <span className="text-xs text-fg-muted">
+                          xác minh {fmtDate(d.verifiedAt)}
+                        </span>
                       )}
                       {d.lastError && (
-                        <span className="text-xs text-[var(--warning)] w-full">{d.lastError}</span>
+                        <span className="text-xs text-warning-ink w-full">{d.lastError}</span>
                       )}
                     </div>
                   ))}
                   {(o.domains || []).length === 0 && (
-                    <p className="py-2 text-sm text-muted">Chưa có tên miền.</p>
+                    <p className="py-2 text-sm text-fg-muted">Chưa có tên miền.</p>
                   )}
                 </div>
               </div>

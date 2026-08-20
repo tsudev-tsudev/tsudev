@@ -83,14 +83,14 @@ type SelectProps = {
 function Select({ id, label, value, onChange, options, labels }: SelectProps) {
   return (
     <div className="flex flex-col">
-      <label htmlFor={id} className="text-sm font-medium text-inksoft mb-1">
+      <label htmlFor={id} className="text-sm font-medium text-fg-secondary mb-1">
         {label}
       </label>
       <select
         id={id}
         value={value}
         onChange={onChange}
-        className="rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink outline-none focus:border-brand"
+        className="rounded-md border border-line bg-base px-3 py-2.5 text-sm text-fg outline-none focus:border-primary"
       >
         {options.map((o) => {
           const raw = labels?.[o];
@@ -207,7 +207,7 @@ export default function AdminProjects() {
     return (
       <Layout>
         <Seo title="Quản lý dự án" path="/admin/projects" noindex />
-        <Card className="p-8 text-center text-muted">Đang tải…</Card>
+        <Card className="p-8 text-center text-fg-muted">Đang tải…</Card>
       </Layout>
     );
 
@@ -216,8 +216,8 @@ export default function AdminProjects() {
       <Layout>
         <Seo title="Quản lý dự án" path="/admin/projects" noindex />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold text-ink mb-2">Quản lý dự án</h1>
-          <p className="text-muted mb-4">Cần đăng nhập bằng tài khoản quản trị.</p>
+          <h1 className="text-2xl font-bold text-fg mb-2">Quản lý dự án</h1>
+          <p className="text-fg-muted mb-4">Cần đăng nhập bằng tài khoản quản trị.</p>
           <Button onClick={() => signIn()}>Đăng nhập</Button>
         </div>
       </Layout>
@@ -236,17 +236,17 @@ export default function AdminProjects() {
             </Badge>
           }
         />
-        <nav className="-mt-2 mb-6 text-sm text-muted">
-          <a href="/admin" className="hover:text-brandink">
+        <nav className="-mt-2 mb-6 text-sm text-fg-muted">
+          <a href="/admin" className="hover:text-link">
             Bảng điều khiển
           </a>{' '}
-          <span className="mx-1.5">/</span> <span className="text-inksoft">Dự án</span>
+          <span className="mx-1.5">/</span> <span className="text-fg-secondary">Dự án</span>
         </nav>
 
         {msg && (
           <Card
             className={`p-4 mb-6 text-sm ${
-              msg.tone === 'error' ? 'text-[color:var(--error)]' : 'text-[color:var(--success)]'
+              msg.tone === 'error' ? 'text-danger-ink' : 'text-success-ink'
             }`}
           >
             {msg.text}
@@ -254,7 +254,7 @@ export default function AdminProjects() {
         )}
 
         <Card className="p-6 mb-8">
-          <h2 className="font-semibold text-ink mb-4">
+          <h2 className="font-semibold text-fg mb-4">
             {editingSlug ? `Sửa: ${editingSlug}` : 'Thêm dự án mới'}
           </h2>
           <form onSubmit={submit} className="grid md:grid-cols-2 gap-4">
@@ -270,7 +270,7 @@ export default function AdminProjects() {
             />
 
             <div className="flex flex-col md:col-span-2">
-              <label htmlFor="descriptionMd" className="text-sm font-medium text-inksoft mb-1">
+              <label htmlFor="descriptionMd" className="text-sm font-medium text-fg-secondary mb-1">
                 Mô tả (Markdown)
               </label>
               <textarea
@@ -278,7 +278,7 @@ export default function AdminProjects() {
                 rows={6}
                 value={form.descriptionMd}
                 onChange={set('descriptionMd')}
-                className="rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink font-mono outline-none focus:border-brand"
+                className="rounded-md border border-line bg-base px-3 py-2.5 text-sm text-fg font-mono outline-none focus:border-primary"
               />
             </div>
 
@@ -378,11 +378,11 @@ export default function AdminProjects() {
             />
 
             <div className="flex items-center gap-6 md:col-span-2">
-              <label className="flex items-center gap-2 text-sm text-inksoft">
+              <label className="flex items-center gap-2 text-sm text-fg-secondary">
                 <input type="checkbox" checked={form.featured} onChange={set('featured')} />
                 Nổi bật
               </label>
-              <label className="flex items-center gap-2 text-sm text-inksoft">
+              <label className="flex items-center gap-2 text-sm text-fg-secondary">
                 <input type="checkbox" checked={form.published} onChange={set('published')} />
                 Công bố
               </label>
@@ -402,25 +402,25 @@ export default function AdminProjects() {
         </Card>
 
         <div className="space-y-3">
-          {projects.length === 0 && <Card className="p-6 text-muted">Chưa có dự án nào.</Card>}
+          {projects.length === 0 && <Card className="p-6 text-fg-muted">Chưa có dự án nào.</Card>}
           {projects.map((p) => {
             const cr = copyrightMeta(p.copyrightStatus);
             return (
               <Card key={p.id} className="p-5 flex flex-wrap items-start gap-4">
                 <div className="flex-1 min-w-[16rem]">
                   <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                    <span className="font-semibold text-ink">{p.name}</span>
-                    <span className="font-mono text-xs text-muted">{p.slug}</span>
+                    <span className="font-semibold text-fg">{p.name}</span>
+                    <span className="font-mono text-xs text-fg-muted">{p.slug}</span>
                     {!p.published && <Badge tone="warning">Chưa công bố</Badge>}
                     {p.featured && <Badge tone="brand">Nổi bật</Badge>}
                   </div>
-                  <p className="text-sm text-muted">{p.summary}</p>
+                  <p className="text-sm text-fg-muted">{p.summary}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>
                     <Badge tone="outline">{STATUS_LABEL[p.status] || p.status}</Badge>
                     <Badge tone={cr.tone}>{cr.label}</Badge>
                     {p.copyrightNo && (
-                      <span className="font-mono text-xs text-muted">{p.copyrightNo}</span>
+                      <span className="font-mono text-xs text-fg-muted">{p.copyrightNo}</span>
                     )}
                   </div>
                 </div>

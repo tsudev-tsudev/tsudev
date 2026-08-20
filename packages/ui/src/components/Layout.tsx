@@ -9,7 +9,7 @@ type LayoutProps = {
 };
 
 export const Layout = ({ children, active = '/', bare = false }: LayoutProps) => (
-  <div className="min-h-screen flex flex-col bg-surface text-ink font-sans">
+  <div className="min-h-screen flex flex-col bg-base text-fg font-sans">
     <SiteHeader active={active} />
     <main
       id="main-content"

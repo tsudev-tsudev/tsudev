@@ -15,8 +15,8 @@ const METHOD_LABEL: Record<string, string> = {
 };
 
 const inputCls =
-  'w-full rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-brand outline-none transition-colors';
-const labelCls = 'block text-sm font-medium text-inksoft mb-1.5';
+  'w-full rounded-md border border-line bg-base px-3 py-2.5 text-sm text-fg placeholder:text-fg-muted focus:border-primary outline-none transition-colors';
+const labelCls = 'block text-sm font-medium text-fg-secondary mb-1.5';
 
 type StepProps = {
   n: number;
@@ -28,16 +28,16 @@ type StepProps = {
 
 function Step({ n, title, done, active, children }: StepProps) {
   return (
-    <section className={`py-8 border-t border-hairline ${!active && !done ? 'opacity-45' : ''}`}>
+    <section className={`py-8 border-t border-line ${!active && !done ? 'opacity-45' : ''}`}>
       <div className="flex items-center gap-3 mb-4">
         <span
           className={`font-mono text-sm font-bold ${
-            done ? 'text-[var(--success)]' : active ? 'text-teal' : 'text-muted'
+            done ? 'text-success-ink' : active ? 'text-accent' : 'text-fg-muted'
           }`}
         >
           {done ? '✓' : String(n).padStart(2, '0')}
         </span>
-        <h2 className="font-semibold text-ink">{title}</h2>
+        <h2 className="font-semibold text-fg">{title}</h2>
       </div>
       {children}
     </section>
@@ -184,8 +184,10 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
       <Layout active="/trust" bare>
         <Seo title="Đăng ký cấp dấu" path="/trust/apply" noindex />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-ink mb-2">Đăng ký cấp con dấu</h1>
-          <p className="text-inksoft mb-6">Bạn cần đăng nhập bằng tài khoản tsudev để nộp hồ sơ.</p>
+          <h1 className="text-2xl font-bold text-fg mb-2">Đăng ký cấp con dấu</h1>
+          <p className="text-fg-secondary mb-6">
+            Bạn cần đăng nhập bằng tài khoản tsudev để nộp hồ sơ.
+          </p>
           <Button onClick={() => signIn()} size="lg">
             Đăng nhập
           </Button>
@@ -212,8 +214,8 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
           <p
             className="mb-4 rounded-lg px-4 py-3 text-sm"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--error) 12%, var(--panel))',
-              color: 'var(--error)',
+              backgroundColor: 'var(--danger-tint)',
+              color: 'var(--danger)',
             }}
           >
             {err}
@@ -223,7 +225,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
           <p
             className="mb-4 rounded-lg px-4 py-3 text-sm"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--success) 12%, var(--panel))',
+              backgroundColor: 'var(--success-tint)',
               color: 'var(--success)',
             }}
           >
@@ -253,7 +255,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
             </label>
           )}
           <details open={orgs.length === 0}>
-            <summary className="text-sm text-inksoft cursor-pointer hover:text-brandink mb-3">
+            <summary className="text-sm text-fg-secondary cursor-pointer hover:text-link mb-3">
               Hoặc tạo tổ chức mới
             </summary>
             <form onSubmit={createOrg} className="grid sm:grid-cols-2 gap-4">
@@ -308,7 +310,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
           done={domainVerified}
         >
           {!orgId ? (
-            <p className="text-sm text-muted">Chọn hoặc tạo tổ chức trước.</p>
+            <p className="text-sm text-fg-muted">Chọn hoặc tạo tổ chức trước.</p>
           ) : (
             <>
               {org && (org.domains || []).length > 0 && (
@@ -318,7 +320,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                     {(org.domains ?? []).map((d) => (
                       <label
                         key={d.id}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-panel transition-colors cursor-pointer"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface transition-colors cursor-pointer"
                       >
                         <input
                           type="radio"
@@ -329,7 +331,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                             setInstructions(null);
                           }}
                         />
-                        <span className="font-mono text-sm text-ink flex-1">{d.hostname}</span>
+                        <span className="font-mono text-sm text-fg flex-1">{d.hostname}</span>
                         <Badge
                           tone={
                             d.status === 'VERIFIED'
@@ -342,7 +344,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                         >
                           {d.status}
                         </Badge>
-                        <span className="text-xs text-muted hidden sm:inline">
+                        <span className="text-xs text-fg-muted hidden sm:inline">
                           {d.method ? METHOD_LABEL[d.method] : ''}
                         </span>
                       </label>
@@ -351,7 +353,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                 </div>
               )}
               <details open={!org || (org.domains || []).length === 0}>
-                <summary className="text-sm text-inksoft cursor-pointer hover:text-brandink mb-3">
+                <summary className="text-sm text-fg-secondary cursor-pointer hover:text-link mb-3">
                   Thêm tên miền mới
                 </summary>
                 <form
@@ -389,35 +391,35 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
               </details>
 
               {instructions && (
-                <div className="mt-5 rounded-lg bg-panel2 p-4">
-                  <div className="font-semibold text-ink text-sm">{instructions.title}</div>
+                <div className="mt-5 rounded-lg bg-subtle p-4">
+                  <div className="font-semibold text-fg text-sm">{instructions.title}</div>
                   {instructions.record && (
                     <dl className="mt-3 font-mono text-xs space-y-1.5">
                       <div>
-                        <span className="text-muted">Loại: </span>
-                        <span className="text-ink">{instructions.record.type}</span>
+                        <span className="text-fg-muted">Loại: </span>
+                        <span className="text-fg">{instructions.record.type}</span>
                       </div>
                       <div>
-                        <span className="text-muted">Tên: </span>
-                        <span className="text-ink break-all">{instructions.record.name}</span>
+                        <span className="text-fg-muted">Tên: </span>
+                        <span className="text-fg break-all">{instructions.record.name}</span>
                       </div>
                       <div>
-                        <span className="text-muted">Giá trị: </span>
-                        <span className="text-ink break-all">{instructions.record.value}</span>
+                        <span className="text-fg-muted">Giá trị: </span>
+                        <span className="text-fg break-all">{instructions.record.value}</span>
                       </div>
                     </dl>
                   )}
                   {instructions.snippet && (
-                    <pre className="mt-3 text-xs text-ink overflow-x-auto whitespace-pre-wrap break-all">
+                    <pre className="mt-3 text-xs text-fg overflow-x-auto whitespace-pre-wrap break-all">
                       {instructions.snippet}
                     </pre>
                   )}
                   {instructions.path && (
-                    <div className="mt-2 font-mono text-xs text-muted break-all">
+                    <div className="mt-2 font-mono text-xs text-fg-muted break-all">
                       Đường dẫn: {instructions.path}
                     </div>
                   )}
-                  <p className="mt-3 text-xs text-muted">{instructions.note}</p>
+                  <p className="mt-3 text-xs text-fg-muted">{instructions.note}</p>
                 </div>
               )}
               {domainId && (
@@ -433,7 +435,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
 
         <Step n={3} title="Chọn chương trình và nộp hồ sơ" active={domainVerified} done={false}>
           {!domainVerified ? (
-            <p className="text-sm text-muted">Xác minh tên miền xong mới nộp được hồ sơ.</p>
+            <p className="text-sm text-fg-muted">Xác minh tên miền xong mới nộp được hồ sơ.</p>
           ) : (
             <form onSubmit={submitApplication} className="space-y-5">
               <label className="block">
@@ -465,18 +467,18 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                       className={inputCls + ' resize-y'}
                       placeholder="Ví dụ: Chuyên mục Kiến thức dịch từ tài liệu tsudev"
                     />
-                    <p className="mt-1.5 text-xs text-muted">
+                    <p className="mt-1.5 text-xs text-fg-muted">
                       Nội dung này in nguyên văn lên chứng chỉ và trang xác thực công khai.
                     </p>
                   </label>
 
                   <div className="space-y-4">
-                    <div className="text-sm font-medium text-inksoft">Bằng chứng</div>
+                    <div className="text-sm font-medium text-fg-secondary">Bằng chứng</div>
                     {(program.evidenceSpec || []).map((spec) => (
                       <label className="block" key={spec.kind}>
                         <span className={labelCls}>
                           {spec.label}{' '}
-                          {spec.required && <span className="text-[var(--warning)]">*</span>}
+                          {spec.required && <span className="text-warning-ink">*</span>}
                         </span>
                         <input
                           required={spec.required}
@@ -491,7 +493,7 @@ export default function TrustApply({ programs, preselect }: TrustApplyProps) {
                     ))}
                   </div>
 
-                  <p className="text-sm text-muted">
+                  <p className="text-sm text-fg-muted">
                     Nộp hồ sơ miễn phí. Nếu tsudev yêu cầu bổ sung thông tin, bạn nộp lại mà không
                     mất thêm bước nào.
                   </p>

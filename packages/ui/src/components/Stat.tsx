@@ -8,10 +8,10 @@ type StatProps = {
 
 export const Stat = ({ value, label, className = '' }: StatProps) => (
   <div className={className}>
-    <div className="text-2xl md:text-3xl font-bold tracking-tight text-ink font-mono tabular-nums">
+    <div className="text-2xl md:text-3xl font-bold tracking-tight text-fg font-mono tabular-nums">
       {value}
     </div>
-    <div className="text-xs uppercase tracking-wider text-muted mt-1">{label}</div>
+    <div className="text-xs uppercase tracking-wider text-fg-muted mt-1">{label}</div>
   </div>
 );
 

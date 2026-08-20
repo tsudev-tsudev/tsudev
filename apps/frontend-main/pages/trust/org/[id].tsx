@@ -18,9 +18,9 @@ type RowProps = { label: React.ReactNode; children?: React.ReactNode };
 
 function Row({ label, children }: RowProps) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-2 border-b border-hairline last:border-0">
-      <dt className="text-sm text-muted shrink-0">{label}</dt>
-      <dd className="text-sm text-inksoft text-right">{children}</dd>
+    <div className="flex items-baseline justify-between gap-4 py-2 border-b border-line last:border-0">
+      <dt className="text-sm text-fg-muted shrink-0">{label}</dt>
+      <dd className="text-sm text-fg-secondary text-right">{children}</dd>
     </div>
   );
 }
@@ -31,7 +31,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
   if (!profile)
     return (
       <Layout active="/trust">
-        <Card className="p-8 text-center text-muted">Không tìm thấy hồ sơ tổ chức.</Card>
+        <Card className="p-8 text-center text-fg-muted">Không tìm thấy hồ sơ tổ chức.</Card>
       </Layout>
     );
 
@@ -46,15 +46,16 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
         noindex
       />
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <nav className="text-sm text-muted mb-4">
-          <a href="/trust" className="hover:text-brandink">
+        <nav className="text-sm text-fg-muted mb-4">
+          <a href="/trust" className="hover:text-link">
             Con dấu
           </a>{' '}
           <span className="mx-1.5">/</span>{' '}
-          <a href="/trust/directory" className="hover:text-brandink">
+          <a href="/trust/directory" className="hover:text-link">
             Danh bạ
           </a>{' '}
-          <span className="mx-1.5">/</span> <span className="text-inksoft">{profile.name}</span>
+          <span className="mx-1.5">/</span>{' '}
+          <span className="text-fg-secondary">{profile.name}</span>
         </nav>
 
         <SectionHeading eyebrow="Hồ sơ tín nhiệm" title={profile.name} />
@@ -74,10 +75,12 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
 
         <div className="grid md:grid-cols-[1fr_18rem] gap-8 items-start">
           <div>
-            <h2 className="font-semibold text-ink mb-3">Chứng chỉ đang hiệu lực</h2>
+            <h2 className="font-semibold text-fg mb-3">Chứng chỉ đang hiệu lực</h2>
             <div className="space-y-3">
               {profile.certificates.length === 0 && (
-                <Card className="p-5 text-muted">Tổ chức này chưa có chứng chỉ nào hiệu lực.</Card>
+                <Card className="p-5 text-fg-muted">
+                  Tổ chức này chưa có chứng chỉ nào hiệu lực.
+                </Card>
               )}
               {profile.certificates.map((c) => (
                 <Card
@@ -91,8 +94,8 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
                     <Badge tone="success">{statusMeta('ACTIVE').label}</Badge>
                     {c.program && <Badge tone="neutral">{c.program.name}</Badge>}
                   </div>
-                  <div className="font-mono text-sm text-ink">{c.hostname}</div>
-                  <div className="mt-1 text-xs text-muted">
+                  <div className="font-mono text-sm text-fg">{c.hostname}</div>
+                  <div className="mt-1 text-xs text-fg-muted">
                     Cấp {fmtDate(c.issuedAt)} · hết hạn {fmtDate(c.expiresAt)} ·{' '}
                     <span className="font-mono">{c.serial}</span>
                   </div>
@@ -102,8 +105,8 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
 
             {profile.history.length > 0 && (
               <>
-                <h2 className="font-semibold text-ink mt-8 mb-3">Lịch sử</h2>
-                <p className="text-sm text-muted mb-3">
+                <h2 className="font-semibold text-fg mt-8 mb-3">Lịch sử</h2>
+                <p className="text-sm text-fg-muted mb-3">
                   Chứng chỉ đã hết hạn, bị đình chỉ hoặc thu hồi. Hiển thị công khai có chủ đích -
                   một hồ sơ tín nhiệm chỉ khoe phần đẹp thì không đáng tin.
                 </p>
@@ -115,8 +118,8 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
                         <Badge tone={meta.tone === 'error' ? 'warning' : 'outline'}>
                           {meta.label}
                         </Badge>
-                        <span className="font-mono text-sm text-inksoft">{c.hostname}</span>
-                        <span className="text-xs text-muted">
+                        <span className="font-mono text-sm text-fg-secondary">{c.hostname}</span>
+                        <span className="text-xs text-fg-muted">
                           {c.revokedAt ? `Thu hồi ${fmtDate(c.revokedAt)}` : fmtDate(c.expiresAt)}
                         </span>
                       </Card>
@@ -129,7 +132,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
 
           <aside className="space-y-4">
             <Card className="p-5">
-              <h2 className="text-sm font-semibold text-ink mb-2">Tổ chức</h2>
+              <h2 className="text-sm font-semibold text-fg mb-2">Tổ chức</h2>
               <dl>
                 {profile.legalName && <Row label="Tên pháp lý">{profile.legalName}</Row>}
                 {profile.country && <Row label="Quốc gia">{profile.country}</Row>}
@@ -140,7 +143,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
                       href={profile.websiteUrl}
                       rel="noopener noreferrer nofollow"
                       target="_blank"
-                      className="text-brandink hover:underline break-all"
+                      className="text-link hover:underline break-all"
                     >
                       {profile.websiteUrl}
                     </a>
@@ -150,7 +153,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
             </Card>
 
             <Card className="p-5">
-              <h2 className="text-sm font-semibold text-ink mb-2">Giám sát tên miền</h2>
+              <h2 className="text-sm font-semibold text-fg mb-2">Giám sát tên miền</h2>
               <dl>
                 <Row label="Lần kiểm gần nhất">{fmtDate(r.lastCheckedAt)}</Row>
                 <Row label="Số lần đã kiểm">{r.checksTotal}</Row>
@@ -160,7 +163,7 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
                 )}
               </dl>
               {r.checkPassRate === null && (
-                <p className="mt-3 text-xs text-muted">
+                <p className="mt-3 text-xs text-fg-muted">
                   Chưa có lần giám sát nào được ghi nhận. &quot;Chưa đo&quot; không phải là
                   &quot;đạt&quot;.
                 </p>
@@ -168,13 +171,13 @@ export default function OrgProfile({ profile, id }: OrgProfileProps) {
             </Card>
 
             <Card className="p-5">
-              <h2 className="text-sm font-semibold text-ink mb-2">Tên miền đã xác minh</h2>
+              <h2 className="text-sm font-semibold text-fg mb-2">Tên miền đã xác minh</h2>
               {profile.domains.length === 0 ? (
-                <p className="text-sm text-muted">Chưa có.</p>
+                <p className="text-sm text-fg-muted">Chưa có.</p>
               ) : (
                 <ul className="space-y-1">
                   {profile.domains.map((d) => (
-                    <li key={d.hostname} className="font-mono text-sm text-inksoft">
+                    <li key={d.hostname} className="font-mono text-sm text-fg-secondary">
                       {d.hostname}
                     </li>
                   ))}

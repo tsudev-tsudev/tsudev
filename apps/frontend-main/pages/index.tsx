@@ -59,9 +59,12 @@ export default function Home({ posts, projects, totals }: HomeProps) {
       />
 
       {/* ---------- HERO ---------- */}
-      <section className="relative overflow-hidden border-b border-hairline">
+      <section className="relative overflow-hidden border-b border-line">
         <div
           className="absolute inset-0 tsu-grid"
+          // `#000` ở đây KHÔNG phải màu hiển thị mà là kênh alpha của mặt nạ -
+          // nó quyết định phần nào của lưới còn nhìn thấy. Không thay bằng token
+          // được, và cũng không cần: nó không bao giờ được vẽ ra màn hình.
           style={{
             maskImage: 'radial-gradient(80% 80% at 60% 0%, #000 30%, transparent 75%)',
             WebkitMaskImage: 'radial-gradient(80% 80% at 60% 0%, #000 30%, transparent 75%)',
@@ -78,12 +81,12 @@ export default function Home({ posts, projects, totals }: HomeProps) {
             <Badge tone="teal" mono className="mb-5">
               {'// tsudev ecosystem v0.1'}
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-ink text-balance leading-[1.05]">
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-fg text-balance leading-[1.05]">
               Giải mã tương lai qua
               <br />
-              <span className="text-brandink">từng dòng code</span>.
+              <span className="text-link">từng dòng code</span>.
             </h1>
-            <p className="mt-6 text-lg text-inksoft max-w-xl">
+            <p className="mt-6 text-lg text-fg-secondary max-w-xl">
               Dự án cá nhân của tsudev - tri thức kỹ thuật được chuẩn hoá, mã nguồn dùng được, và
               con dấu tín nhiệm cho những website mang dấu ấn tsudev.
             </p>
@@ -105,24 +108,27 @@ export default function Home({ posts, projects, totals }: HomeProps) {
           {/* terminal-style card */}
           <div className="animate-fade-up hidden lg:block" style={{ animationDelay: '.1s' }}>
             <Card className="p-0 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 bg-panel2">
-                <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-                <span className="ml-2 font-mono text-xs text-muted">tsudev@ecosystem: ~</span>
+              <div className="flex items-center gap-2 px-4 py-3 bg-subtle">
+                {/* Chấm cửa sổ - dùng token trạng thái, không phải mã hex của
+                    macOS: hex cắm cứng không đổi theo ba chế độ, nên ở chế độ Ấm
+                    ba chấm bão hoà đó là ba vệt duy nhất phá tông sepia. */}
+                <span className="h-3 w-3 rounded-full bg-danger" />
+                <span className="h-3 w-3 rounded-full bg-warning" />
+                <span className="h-3 w-3 rounded-full bg-success" />
+                <span className="ml-2 font-mono text-xs text-fg-muted">tsudev@ecosystem: ~</span>
               </div>
-              <pre className="p-5 font-mono text-[13px] leading-relaxed text-inksoft overflow-x-auto">
-                <span className="text-teal">$</span> tsudev status --all{'\n'}
-                <span className="text-[var(--success)]">✔</span> content-service{' '}
-                <span className="text-muted">:4001 healthy</span>
+              <pre className="p-5 font-mono text-sm leading-relaxed text-fg-secondary overflow-x-auto">
+                <span className="text-accent">$</span> tsudev status --all{'\n'}
+                <span className="text-success-ink">✔</span> content-service{' '}
+                <span className="text-fg-muted">:4001 healthy</span>
                 {'\n'}
-                <span className="text-[var(--success)]">✔</span> storage-service{' '}
-                <span className="text-muted">:4002 healthy</span>
+                <span className="text-success-ink">✔</span> storage-service{' '}
+                <span className="text-fg-muted">:4002 healthy</span>
                 {'\n'}
-                <span className="text-[var(--success)]">✔</span> postgres{' '}
-                <span className="text-muted">:5433 connected</span>
+                <span className="text-success-ink">✔</span> postgres{' '}
+                <span className="text-fg-muted">:5433 connected</span>
                 {'\n'}
-                <span className="text-teal">$</span> _
+                <span className="text-accent">$</span> _
               </pre>
             </Card>
           </div>
@@ -138,13 +144,11 @@ export default function Home({ posts, projects, totals }: HomeProps) {
               <a
                 key={e.title}
                 href={e.href}
-                className="p-5 block group rounded-md transition-colors hover:bg-panel"
+                className="p-5 block group rounded-md transition-colors hover:bg-surface"
               >
                 <span
                   className={`inline-flex h-11 w-11 items-center justify-center rounded-lg mb-4 ${
-                    e.tone === 'teal'
-                      ? 'text-teal bg-[var(--glow)]'
-                      : 'text-brandink bg-[var(--glow)]'
+                    e.tone === 'teal' ? 'text-accent bg-glow' : 'text-link bg-glow'
                   }`}
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -157,10 +161,10 @@ export default function Home({ posts, projects, totals }: HomeProps) {
                     />
                   </svg>
                 </span>
-                <h3 className="font-semibold text-ink group-hover:text-brandink transition-colors">
+                <h3 className="font-semibold text-fg group-hover:text-link transition-colors">
                   {e.title}
                 </h3>
-                <p className="mt-1.5 text-sm text-muted">{e.desc}</p>
+                <p className="mt-1.5 text-sm text-fg-muted">{e.desc}</p>
               </a>
             ))}
           </div>
@@ -179,7 +183,7 @@ export default function Home({ posts, projects, totals }: HomeProps) {
           />
           <div className="grid md:grid-cols-3 gap-4">
             {projects.length === 0 && (
-              <p className="p-6 text-muted md:col-span-3">Chưa có dự án nào.</p>
+              <p className="p-6 text-fg-muted md:col-span-3">Chưa có dự án nào.</p>
             )}
             {projects.slice(0, 3).map((p: Project) => {
               const cr = copyrightMeta(p.copyrightStatus);
@@ -187,17 +191,17 @@ export default function Home({ posts, projects, totals }: HomeProps) {
                 <a
                   key={p.id}
                   href={`/projects/${p.slug}`}
-                  className="p-5 flex flex-col group rounded-md transition-colors hover:bg-panel"
+                  className="p-5 flex flex-col group rounded-md transition-colors hover:bg-surface"
                 >
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>
                     <Badge tone="outline">{STATUS_LABEL[p.status] || p.status}</Badge>
                   </div>
-                  <h3 className="font-semibold text-ink text-lg leading-snug group-hover:text-brandink transition-colors text-balance">
+                  <h3 className="font-semibold text-fg text-lg leading-snug group-hover:text-link transition-colors text-balance">
                     {p.name}
                   </h3>
-                  <p className="mt-2 text-sm text-muted flex-1">{p.summary}</p>
-                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <p className="mt-2 text-sm text-fg-muted flex-1">{p.summary}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
                     <Badge tone={cr.tone}>{cr.label}</Badge>
                     {p.license && <span className="font-mono">{p.license}</span>}
                   </div>
@@ -220,13 +224,13 @@ export default function Home({ posts, projects, totals }: HomeProps) {
           />
           <div className="grid md:grid-cols-3 gap-4">
             {posts.length === 0 && (
-              <p className="p-6 text-muted md:col-span-3">Chưa có bài viết.</p>
+              <p className="p-6 text-fg-muted md:col-span-3">Chưa có bài viết.</p>
             )}
             {posts.slice(0, 3).map((p: Post) => (
               <a
                 key={p.id}
                 href={`/blog/${p.slug}`}
-                className="p-5 flex flex-col group rounded-md transition-colors hover:bg-panel"
+                className="p-5 flex flex-col group rounded-md transition-colors hover:bg-surface"
               >
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {(p.tags || []).slice(0, 2).map((t: string) => (
@@ -235,11 +239,11 @@ export default function Home({ posts, projects, totals }: HomeProps) {
                     </Badge>
                   ))}
                 </div>
-                <h3 className="font-semibold text-ink text-lg leading-snug group-hover:text-brandink transition-colors text-balance">
+                <h3 className="font-semibold text-fg text-lg leading-snug group-hover:text-link transition-colors text-balance">
                   {p.title}
                 </h3>
-                <p className="mt-2 text-sm text-muted flex-1">{p.excerpt}</p>
-                <div className="mt-4 flex items-center gap-2 text-xs text-muted">
+                <p className="mt-2 text-sm text-fg-muted flex-1">{p.excerpt}</p>
+                <div className="mt-4 flex items-center gap-2 text-xs text-fg-muted">
                   <Avatar name={p.author?.displayName || 'tsudev'} size={22} />
                   <span>{p.author?.displayName || 'tsudev'}</span>
                   <span>·</span>
@@ -254,10 +258,10 @@ export default function Home({ posts, projects, totals }: HomeProps) {
         <section className="pb-20">
           <div className="p-10 md:p-14 text-center">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-ink text-balance">
+              <h2 className="text-2xl md:text-3xl font-bold text-fg text-balance">
                 Website của bạn dùng mã nguồn tsudev?
               </h2>
-              <p className="mt-3 text-inksoft max-w-lg mx-auto">
+              <p className="mt-3 text-fg-secondary max-w-lg mx-auto">
                 Con dấu tín nhiệm nay cấp theo lời mời: chứng chỉ ký số, xác minh quyền sở hữu tên
                 miền và giám sát định kỳ, dành cho tài khoản đã có mã mời.
               </p>

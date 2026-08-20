@@ -66,7 +66,7 @@ export default function SignupPage() {
         title="Kiểm tra hộp thư"
         description="Chúng tôi đã gửi một liên kết xác minh tới địa chỉ email của bạn."
         footer={
-          <a className="text-brandink hover:underline" href="/login">
+          <a className="text-link hover:underline" href="/login">
             Về trang đăng nhập
           </a>
         }
@@ -74,7 +74,7 @@ export default function SignupPage() {
         <Notice kind="ok">
           Liên kết có hiệu lực trong 24 giờ. Nếu không thấy thư, hãy kiểm tra mục spam.
         </Notice>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-fg-muted">
           Bạn vẫn đăng nhập được ngay bây giờ; xác minh email cần cho các thao tác nhạy cảm.
         </p>
       </AuthShell>
@@ -88,7 +88,7 @@ export default function SignupPage() {
       footer={
         <>
           Đã có tài khoản?{' '}
-          <a className="text-brandink hover:underline" href="/login">
+          <a className="text-link hover:underline" href="/login">
             Đăng nhập
           </a>
         </>
@@ -136,7 +136,7 @@ export default function SignupPage() {
             autoComplete="new-password"
             required
           />
-          <p className="mt-1.5 text-xs text-muted">
+          <p className="mt-1.5 text-xs text-fg-muted">
             Ít nhất {MIN_PASSWORD_LEN} ký tự. Một cụm từ dễ nhớ thường vừa mạnh hơn vừa dễ gõ hơn
             một chuỗi ký tự đặc biệt.
           </p>
@@ -146,13 +146,13 @@ export default function SignupPage() {
         </Button>
       </form>
 
-      <p className="mt-5 text-xs text-muted">
+      <p className="mt-5 text-xs text-fg-muted">
         Tạo tài khoản nghĩa là bạn đồng ý với{' '}
-        <a className="text-brandink hover:underline" href="/terms">
+        <a className="text-link hover:underline" href="/terms">
           Điều khoản
         </a>{' '}
         và{' '}
-        <a className="text-brandink hover:underline" href="/privacy">
+        <a className="text-link hover:underline" href="/privacy">
           Chính sách riêng tư
         </a>
         .

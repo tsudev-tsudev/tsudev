@@ -18,23 +18,23 @@ export default function DocPage({ doc, slug, toc }: DocPageProps) {
   if (!doc)
     return (
       <Layout>
-        <Card className="p-8 text-center text-muted">Không tìm thấy tài liệu.</Card>
+        <Card className="p-8 text-center text-fg-muted">Không tìm thấy tài liệu.</Card>
       </Layout>
     );
   return (
     <Layout active="/docs" bare>
       <Seo title={doc.title} path={`/docs/${slug}`} type="article" />
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <nav className="text-sm text-muted mb-4">
-          <a href="/docs" className="hover:text-brandink">
+        <nav className="text-sm text-fg-muted mb-4">
+          <a href="/docs" className="hover:text-link">
             Tài liệu
           </a>{' '}
-          <span className="mx-1.5">/</span> <span className="text-inksoft">{doc.title}</span>
+          <span className="mx-1.5">/</span> <span className="text-fg-secondary">{doc.title}</span>
         </nav>
         <Badge tone="teal" mono className="mb-3">
           {doc.category}
         </Badge>
-        <h1 className="text-3xl font-extrabold text-ink text-balance leading-tight mb-8">
+        <h1 className="text-3xl font-extrabold text-fg text-balance leading-tight mb-8">
           {doc.title}
         </h1>
         {/* Hai cột từ lg trở lên: thân bài giữ bề rộng đọc được, mục lục bám

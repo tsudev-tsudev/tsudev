@@ -21,7 +21,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
         <SectionHeading eyebrow="Blog" title="Bài viết & hướng dẫn" />
         <div className="grid md:grid-cols-2 gap-4">
           {posts.length === 0 && (
-            <Card className="p-6 text-muted md:col-span-2">Chưa có bài viết.</Card>
+            <Card className="p-6 text-fg-muted md:col-span-2">Chưa có bài viết.</Card>
           )}
           {posts.map((p: Post) => (
             <Card
@@ -38,11 +38,11 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
                   </Badge>
                 ))}
               </div>
-              <h2 className="text-xl font-bold text-ink leading-snug group-hover:text-brandink transition-colors text-balance">
+              <h2 className="text-xl font-bold text-fg leading-snug group-hover:text-link transition-colors text-balance">
                 {p.title}
               </h2>
-              <p className="mt-2 text-sm text-muted flex-1">{p.excerpt}</p>
-              <div className="mt-4 flex items-center gap-2 text-xs text-muted">
+              <p className="mt-2 text-sm text-fg-muted flex-1">{p.excerpt}</p>
+              <div className="mt-4 flex items-center gap-2 text-xs text-fg-muted">
                 <Avatar name={p.author?.displayName || 'tsudev'} size={22} />
                 {p.author?.displayName || 'tsudev'} · {timeAgo(p.createdAt)}
               </div>

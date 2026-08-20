@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
       <AuthShell
         title="Kiểm tra hộp thư"
         footer={
-          <a className="text-brandink hover:underline" href="/login">
+          <a className="text-link hover:underline" href="/login">
             Về trang đăng nhập
           </a>
         }
@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
           Nếu <strong>{email}</strong> có tài khoản tsudev, chúng tôi vừa gửi tới đó một liên kết
           đặt lại mật khẩu.
         </Notice>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-fg-muted">
           Liên kết có hiệu lực trong 1 giờ và chỉ dùng được một lần.
         </p>
       </AuthShell>
@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
       title="Quên mật khẩu"
       description="Nhập email của bạn, chúng tôi sẽ gửi liên kết đặt lại."
       footer={
-        <a className="text-brandink hover:underline" href="/login">
+        <a className="text-link hover:underline" href="/login">
           Về trang đăng nhập
         </a>
       }

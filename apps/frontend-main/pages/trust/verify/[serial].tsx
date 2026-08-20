@@ -8,10 +8,10 @@ import type { CertificateDetail } from '../../../lib/types';
 import { routeParam } from '../../../lib/identity';
 
 const TONE_CLASS: Record<string, string> = {
-  success: 'text-[var(--success)]',
-  warning: 'text-[var(--warning)]',
-  error: 'text-[var(--error)]',
-  muted: 'text-muted',
+  success: 'text-success-ink',
+  warning: 'text-warning-ink',
+  error: 'text-danger-ink',
+  muted: 'text-fg-muted',
 };
 
 type RowProps = { label: React.ReactNode; children?: React.ReactNode };
@@ -19,8 +19,8 @@ type RowProps = { label: React.ReactNode; children?: React.ReactNode };
 function Row({ label, children }: RowProps) {
   return (
     <div className="grid sm:grid-cols-[190px_1fr] gap-1 sm:gap-4 py-3">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="text-sm text-ink break-words">{children}</dd>
+      <dt className="text-sm text-fg-muted">{label}</dt>
+      <dd className="text-sm text-fg break-words">{children}</dd>
     </div>
   );
 }
@@ -44,23 +44,21 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
       <Layout active="/trust" bare>
         <Seo title={`Tra cứu ${serial}`} path={`/trust/verify/${serial}`} noindex />
         <div className="max-w-3xl mx-auto px-4 py-16">
-          <div className="font-mono text-xs uppercase tracking-wider text-teal font-semibold mb-3">
+          <div className="font-mono text-xs uppercase tracking-wider text-accent font-semibold mb-3">
             Xác thực con dấu
           </div>
           <h1
-            className={`text-3xl font-bold ${
-              unavailable ? 'text-[var(--warning)]' : 'text-[var(--error)]'
-            }`}
+            className={`text-3xl font-bold ${unavailable ? 'text-warning-ink' : 'text-danger-ink'}`}
           >
             {unavailable ? 'Chưa kiểm tra được' : 'Không tìm thấy chứng chỉ'}
           </h1>
-          <p className="mt-3 text-inksoft">
+          <p className="mt-3 text-fg-secondary">
             {unavailable ? (
               'Hệ thống tra cứu tạm thời không phản hồi. Đây KHÔNG có nghĩa là con dấu không hợp lệ - vui lòng thử lại sau.'
             ) : (
               <>
                 Không có chứng chỉ nào mang số hiệu{' '}
-                <span className="font-mono text-ink">{serial}</span>. Nếu bạn thấy huy hiệu tsudev
+                <span className="font-mono text-fg">{serial}</span>. Nếu bạn thấy huy hiệu tsudev
                 gắn số hiệu này trên một website, rất có thể đó là huy hiệu giả mạo.
               </>
             )}
@@ -92,14 +90,14 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
       />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="font-mono text-xs uppercase tracking-wider text-teal font-semibold mb-3">
+        <div className="font-mono text-xs uppercase tracking-wider text-accent font-semibold mb-3">
           Xác thực con dấu
         </div>
         <h1 className={`text-3xl md:text-4xl font-bold ${TONE_CLASS[meta.tone]}`}>{meta.label}</h1>
-        <p className="mt-2 text-inksoft">{meta.note}</p>
+        <p className="mt-2 text-fg-secondary">{meta.note}</p>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <span className="font-mono text-lg text-ink">{cert.serial}</span>
+          <span className="font-mono text-lg text-fg">{cert.serial}</span>
           <Badge tone="neutral" mono>
             {cert.program?.name}
           </Badge>
@@ -109,8 +107,8 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
           <p
             className="mt-6 rounded-lg px-4 py-3 text-sm"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--error) 12%, var(--panel))',
-              color: 'var(--error)',
+              backgroundColor: 'var(--danger-tint)',
+              color: 'var(--danger)',
             }}
           >
             <strong>Lý do thu hồi:</strong> {cert.revokeReason} - thu hồi ngày{' '}
@@ -118,16 +116,16 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
           </p>
         )}
 
-        <div className="mt-10 border-t border-hairstrong">
-          <dl className="divide-y divide-[color:var(--border)]">
+        <div className="mt-10 border-t border-line-strong">
+          <dl className="divide-y divide-line">
             <Row label="Cấp cho tên miền">
               <span className="font-mono">{cert.hostname}</span>
             </Row>
             <Row label="Tổ chức">{cert.organization}</Row>
             <Row label="Phạm vi khẳng định">{cert.scope}</Row>
             <Row label="Cơ sở đánh giá">
-              <span className="text-ink">{basis.label || cert.basis}</span>
-              {basis.detail && <span className="block text-muted mt-0.5">{basis.detail}</span>}
+              <span className="text-fg">{basis.label || cert.basis}</span>
+              {basis.detail && <span className="block text-fg-muted mt-0.5">{basis.detail}</span>}
             </Row>
             <Row label="Ngày cấp">{fmtDate(cert.issuedAt)}</Row>
             <Row label="Hiệu lực đến">{fmtDate(cert.expiresAt)}</Row>
@@ -136,9 +134,9 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
               <Row label="Tái kiểm gần nhất">
                 {fmtDate(cert.lastCheckAt)} -{' '}
                 {cert.lastCheckPassed ? (
-                  <span className="text-[var(--success)]">đạt</span>
+                  <span className="text-success-ink">đạt</span>
                 ) : (
-                  <span className="text-[var(--warning)]">không đạt</span>
+                  <span className="text-warning-ink">không đạt</span>
                 )}
               </Row>
             )}
@@ -147,21 +145,21 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
 
         {/* Chữ ký số - cho phép người đọc tự kiểm chứng, không cần tin trang này */}
         <div className="mt-10">
-          <h2 className="text-lg font-semibold text-ink">Chữ ký số</h2>
-          <p className="mt-1.5 text-sm text-muted">
+          <h2 className="text-lg font-semibold text-fg">Chữ ký số</h2>
+          <p className="mt-1.5 text-sm text-fg-muted">
             Nội dung chứng chỉ được ký bằng Ed25519. Bạn có thể tự xác minh bằng khoá công khai của
             tsudev mà không cần tin vào trang này.
           </p>
           <div className="mt-4 flex items-center gap-2 text-sm">
-            <span className={sigOk ? 'text-[var(--success)]' : 'text-[var(--error)]'}>
+            <span className={sigOk ? 'text-success-ink' : 'text-danger-ink'}>
               {sigOk
                 ? '✓ Chữ ký hợp lệ'
                 : `✕ Chữ ký không hợp lệ${
                     cert.signature?.reason ? ` - ${cert.signature.reason}` : ''
                   }`}
             </span>
-            <span className="text-muted">·</span>
-            <span className="font-mono text-xs text-muted">kid: {cert.signature?.keyId}</span>
+            <span className="text-fg-muted">·</span>
+            <span className="font-mono text-xs text-fg-muted">kid: {cert.signature?.keyId}</span>
           </div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button
@@ -186,18 +184,18 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
             </Button>
           </div>
           <details className="mt-4">
-            <summary className="text-sm text-inksoft cursor-pointer hover:text-brandink">
+            <summary className="text-sm text-fg-secondary cursor-pointer hover:text-link">
               Xem chuỗi JWS đã ký
             </summary>
-            <pre className="mt-2 bg-panel2 rounded-lg p-3 text-[11px] text-muted overflow-x-auto whitespace-pre-wrap break-all">
+            <pre className="mt-2 bg-subtle rounded-lg p-3 text-xs text-fg-muted overflow-x-auto whitespace-pre-wrap break-all">
               {cert.signature?.jws}
             </pre>
           </details>
         </div>
 
         <div className="mt-10">
-          <h2 className="text-lg font-semibold text-ink">Huy hiệu tương ứng</h2>
-          <p className="mt-1.5 text-sm text-muted">
+          <h2 className="text-lg font-semibold text-fg">Huy hiệu tương ứng</h2>
+          <p className="mt-1.5 text-sm text-fg-muted">
             Huy hiệu này do tsudev dựng tại thời điểm hiển thị, nên luôn phản ánh trạng thái ở trên.
           </p>
           <img
@@ -209,13 +207,10 @@ export default function VerifyCertificate({ state, cert, serial }: VerifyPagePro
           />
         </div>
 
-        <p className="mt-12 text-xs text-muted leading-relaxed border-t border-hairline pt-5">
+        <p className="mt-12 text-xs text-fg-muted leading-relaxed border-t border-line pt-5">
           Con dấu chỉ khẳng định đúng phạm vi ghi ở trên, tại thời điểm đánh giá, theo bộ tiêu chí
           công bố của chương trình{' '}
-          <a
-            className="text-brandink hover:underline"
-            href={`/trust/programs/${cert.program?.slug}`}
-          >
+          <a className="text-link hover:underline" href={`/trust/programs/${cert.program?.slug}`}>
             {cert.program?.name}
           </a>
           . Nó không phải là bảo đảm pháp lý cho toàn bộ hoạt động của website được cấp.

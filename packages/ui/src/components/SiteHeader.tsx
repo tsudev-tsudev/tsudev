@@ -29,8 +29,8 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-hairline backdrop-blur"
-      style={{ backgroundColor: 'color-mix(in srgb, var(--panel) 88%, transparent)' }}
+      className="sticky top-0 z-40 border-b border-line backdrop-blur"
+      style={{ backgroundColor: 'color-mix(in srgb, var(--bg-surface) 88%, transparent)' }}
     >
       <a href="#main-content" className="skip-link">
         Bỏ qua tới nội dung
@@ -47,8 +47,8 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
                 href={n.path}
                 className={`px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
                   isActive(n, active)
-                    ? 'text-brandink bg-panel2'
-                    : 'text-inksoft hover:text-ink hover:bg-panel2'
+                    ? 'text-link bg-subtle'
+                    : 'text-fg-secondary hover:text-fg hover:bg-subtle'
                 }`}
               >
                 {n.label}
@@ -58,7 +58,7 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <label className="hidden xl:flex items-center gap-2 h-9 px-3 rounded-md border border-hairline bg-surface text-muted focus-within:border-brand">
+          <label className="hidden xl:flex items-center gap-2 h-9 px-3 rounded-md border border-line bg-base text-fg-muted focus-within:border-primary">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" />
               <path
@@ -71,7 +71,7 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
             <input
               aria-label="Tìm kiếm"
               placeholder="Tìm kiếm…"
-              className="bg-transparent outline-none text-sm text-ink w-40 placeholder:text-muted"
+              className="bg-transparent outline-none text-sm text-fg w-40 placeholder:text-fg-muted"
             />
           </label>
           <ThemeToggle />
@@ -87,13 +87,13 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
               */}
               <a
                 href="/settings/profile"
-                className="hidden lg:inline text-sm text-inksoft max-w-[10rem] truncate rounded-md px-2 py-1 hover:bg-panel2 hover:text-ink transition-colors"
+                className="hidden lg:inline text-sm text-fg-secondary max-w-[10rem] truncate rounded-md px-2 py-1 hover:bg-subtle hover:text-fg transition-colors"
               >
                 {session.user?.name || session.user?.email}
               </a>
               <button
                 onClick={() => signOut()}
-                className="inline-flex items-center h-8 px-3 rounded-md text-sm font-medium text-inksoft hover:bg-panel2 hover:text-ink transition-colors"
+                className="inline-flex items-center h-8 px-3 rounded-md text-sm font-medium text-fg-secondary hover:bg-subtle hover:text-fg transition-colors"
               >
                 Đăng xuất
               </button>
@@ -104,13 +104,13 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
             // và hoạt động cả khi JavaScript chưa kịp tải.
             <a
               href="/login"
-              className="inline-flex items-center h-8 px-4 rounded-md text-sm font-semibold text-brandcontrast bg-brand hover:brightness-110 transition"
+              className="inline-flex items-center h-8 px-4 rounded-md text-sm font-semibold text-on-primary bg-primary hover:brightness-110 transition"
             >
               Đăng nhập
             </a>
           )}
           <button
-            className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-inksoft hover:bg-panel2 hover:text-ink transition-colors"
+            className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-md text-fg-secondary hover:bg-subtle hover:text-fg transition-colors"
             aria-label="Menu"
             onClick={() => setOpen(!open)}
           >
@@ -127,12 +127,12 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
       </div>
 
       {open && (
-        <nav className="md:hidden border-t border-hairline bg-panel px-4 py-2" aria-label="Di động">
+        <nav className="md:hidden border-t border-line bg-surface px-4 py-2" aria-label="Di động">
           {nav.map((n) => (
             <a
               key={n.key}
               href={n.path}
-              className="block px-2 py-2.5 rounded-md text-sm text-inksoft hover:bg-panel2"
+              className="block px-2 py-2.5 rounded-md text-sm text-fg-secondary hover:bg-subtle"
             >
               {n.label}
             </a>
@@ -143,16 +143,16 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
             người dùng điện thoại không có đường nào tới đó.
           */}
           {session && (
-            <div className="mt-1 border-t border-hairline pt-1">
+            <div className="mt-1 border-t border-line pt-1">
               <a
                 href="/settings/profile"
-                className="block px-2 py-2.5 rounded-md text-sm text-inksoft hover:bg-panel2"
+                className="block px-2 py-2.5 rounded-md text-sm text-fg-secondary hover:bg-subtle"
               >
                 Hồ sơ
               </a>
               <a
                 href="/settings/security"
-                className="block px-2 py-2.5 rounded-md text-sm text-inksoft hover:bg-panel2"
+                className="block px-2 py-2.5 rounded-md text-sm text-fg-secondary hover:bg-subtle"
               >
                 Bảo mật
               </a>

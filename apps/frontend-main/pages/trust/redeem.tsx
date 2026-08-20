@@ -37,7 +37,7 @@ export default function RedeemInvitePage() {
     return (
       <Layout active="/trust">
         <Seo title="Nhập mã mời" path="/trust/redeem" noindex />
-        <p className="text-sm text-muted">Đang tải…</p>
+        <p className="text-sm text-fg-muted">Đang tải…</p>
       </Layout>
     );
   }
@@ -47,8 +47,8 @@ export default function RedeemInvitePage() {
       <Layout active="/trust">
         <Seo title="Nhập mã mời" path="/trust/redeem" noindex />
         <div className="mx-auto max-w-md">
-          <h1 className="text-2xl font-bold text-ink">Nhập mã mời</h1>
-          <p className="mt-3 text-sm text-muted leading-relaxed">
+          <h1 className="text-2xl font-bold text-fg">Nhập mã mời</h1>
+          <p className="mt-3 text-sm text-fg-muted leading-relaxed">
             Mã mời gắn với một tài khoản, nên phải đăng nhập trước khi đổi. Chưa có tài khoản thì
             đăng ký trước - mã vẫn dùng được sau đó.
           </p>
@@ -96,8 +96,8 @@ export default function RedeemInvitePage() {
     <Layout active="/trust">
       <Seo title="Nhập mã mời" path="/trust/redeem" noindex />
       <div className="mx-auto max-w-md">
-        <h1 className="text-2xl font-bold text-ink">Nhập mã mời</h1>
-        <p className="mt-3 text-sm text-muted leading-relaxed">
+        <h1 className="text-2xl font-bold text-fg">Nhập mã mời</h1>
+        <p className="mt-3 text-sm text-fg-muted leading-relaxed">
           Con dấu tín nhiệm chỉ mở cho tài khoản được mời. Nhập mã bạn nhận được để mở quyền truy
           cập.
         </p>
@@ -112,7 +112,7 @@ export default function RedeemInvitePage() {
           <div className="mt-5">
             <Notice kind="ok">
               Tài khoản của bạn đã có quyền vào vùng Con dấu.{' '}
-              <a className="text-brandink hover:underline" href="/trust">
+              <a className="text-link hover:underline" href="/trust">
                 Mở trang Con dấu
               </a>
             </Notice>
@@ -135,7 +135,7 @@ export default function RedeemInvitePage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-xs text-muted leading-relaxed border-t border-hairline pt-4">
+        <p className="mt-6 text-xs text-fg-muted leading-relaxed border-t border-line pt-4">
           Chưa có mã? Con dấu được cấp cho đối tác và khách hàng của tsudev - hãy liên hệ trực tiếp
           với tsudev để trao đổi.
         </p>

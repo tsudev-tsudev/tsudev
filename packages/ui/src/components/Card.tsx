@@ -14,14 +14,16 @@ export const Card = ({ children, className = '', hover = false, as, ...props }: 
   return (
     <Tag
       // Viền hairline là BẮT BUỘC ở chế độ sáng, không phải trang trí: card
-      // (--panel, trắng) nằm trên nền trang (--surface, xanh rất nhạt), và hai
+      // (--bg-surface, trắng) nằm trên nền trang (--bg-base, xanh rất nhạt), và hai
       // màu đó chênh nhau quá ít để mắt tự dựng ra được cạnh. Ở chế độ tối viền
       // gần như vô hình và thứ bậc vẫn do độ sáng nền đảm nhiệm, đúng như trước.
       //
-      // rounded-md, không phải rounded-xl: khung vuông vắn đọc như giao diện sản
-      // phẩm; bo tròn nhiều đọc như trang tiếp thị.
-      className={`bg-panel border border-hairline rounded-md ${
-        hover ? 'transition-colors hover:bg-panel2 hover:border-hairstrong' : ''
+      // rounded-lg: §2 xếp card cùng bậc với modal lớn và khung bảng - mềm góc,
+      // không góc cạnh sắc. Bậc md dành cho button/input.
+      className={`bg-surface border border-line rounded-lg ${
+        hover
+          ? 'transition-colors duration-fast ease-standard hover:bg-hovered hover:border-line-strong'
+          : ''
       } ${className}`}
       {...props}
     >

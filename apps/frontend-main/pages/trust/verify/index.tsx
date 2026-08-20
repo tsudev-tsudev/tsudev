@@ -22,11 +22,11 @@ export default function VerifySearch() {
         noindex
       />
       <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="font-mono text-xs uppercase tracking-wider text-teal font-semibold mb-3">
+        <div className="font-mono text-xs uppercase tracking-wider text-accent font-semibold mb-3">
           Xác thực
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-ink">Tra cứu con dấu tín nhiệm</h1>
-        <p className="mt-3 text-inksoft">
+        <h1 className="text-3xl md:text-4xl font-bold text-fg">Tra cứu con dấu tín nhiệm</h1>
+        <p className="mt-3 text-fg-secondary">
           Nhập số hiệu ghi trên huy hiệu để kiểm tra chứng chỉ còn hiệu lực hay không. Bấm trực tiếp
           vào huy hiệu trên website cũng dẫn tới đây.
         </p>
@@ -36,15 +36,15 @@ export default function VerifySearch() {
             onChange={(e) => setSerial(e.target.value)}
             placeholder="TSU-CV-2026-000001"
             aria-label="Số hiệu chứng chỉ"
-            className="flex-1 rounded-lg border border-hairline bg-surface px-4 py-3 font-mono text-sm text-ink placeholder:text-muted focus:border-brand outline-none transition-colors"
+            className="flex-1 rounded-lg border border-line bg-base px-4 py-3 font-mono text-sm text-fg placeholder:text-fg-muted focus:border-primary outline-none transition-colors"
           />
           <Button type="submit" size="lg">
             Tra cứu
           </Button>
         </form>
-        <p className="mt-6 text-sm text-muted">
+        <p className="mt-6 text-sm text-fg-muted">
           Không có số hiệu? Xem{' '}
-          <a className="text-brandink hover:underline" href="/trust/directory">
+          <a className="text-link hover:underline" href="/trust/directory">
             thư mục công khai
           </a>{' '}
           các website đang được cấp dấu.

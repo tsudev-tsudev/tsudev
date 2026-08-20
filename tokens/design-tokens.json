@@ -1,0 +1,234 @@
+{
+  "$schema-note": "NGUỒN CHÂN LÝ DUY NHẤT (Single Source of Truth). Web/Electron đọc qua tokens.css; C#/Python/C++ parse trực tiếp file JSON này. Sửa 1 giá trị tại đây = toàn hệ sinh thái cập nhật.",
+  "meta": {
+    "name": "tsudev-design-tokens",
+    "version": "1.0.0",
+    "updated": "19/08/2026"
+  },
+  "color": {
+    "light": {
+      "bg-base": "#EEF4FB",
+      "bg-surface": "#FFFFFF",
+      "bg-subtle": "#E3EDF8",
+      "bg-hover": "#DCE8F6",
+      "border": "#C9D9EC",
+      "border-strong": "#9FB8D4",
+      "text-primary": "#1C2B3A",
+      "text-secondary": "#44607C",
+      "text-muted": "#5F7891",
+      "text-link": "#1D4ED8",
+      "primary": "#2563EB",
+      "primary-hover": "#1D4ED8",
+      "primary-active": "#1E40AF",
+      "on-primary": "#FFFFFF",
+      "focus-ring": "#2563EB",
+      "success": "#15803D",
+      "warning": "#B45309",
+      "danger": "#DC2626",
+      "info": "#0369A1",
+      "on-status": "#FFFFFF",
+      "overlay": "rgba(15,27,45,0.45)"
+    },
+    "warm": {
+      "bg-base": "#F6F1E6",
+      "bg-surface": "#FCF8EF",
+      "bg-subtle": "#EFE8D9",
+      "bg-hover": "#E9E1CF",
+      "border": "#DCD1BA",
+      "border-strong": "#BCAE90",
+      "text-primary": "#2E2A21",
+      "text-secondary": "#5B5342",
+      "text-muted": "#6E6552",
+      "text-link": "#1A56B8",
+      "primary": "#1E5FC2",
+      "primary-hover": "#174FA6",
+      "primary-active": "#123F86",
+      "on-primary": "#FFFFFF",
+      "focus-ring": "#1E5FC2",
+      "success": "#1B6E38",
+      "warning": "#9A4A07",
+      "danger": "#BE2020",
+      "info": "#0B5E86",
+      "on-status": "#FFFFFF",
+      "overlay": "rgba(46,42,33,0.45)"
+    },
+    "dark": {
+      "bg-base": "#0F1B2D",
+      "bg-surface": "#16263C",
+      "bg-subtle": "#1C2F4A",
+      "bg-hover": "#223A5A",
+      "border": "#2C4363",
+      "border-strong": "#3F5B80",
+      "text-primary": "#E6EDF5",
+      "text-secondary": "#A9BBD0",
+      "text-muted": "#8298B2",
+      "text-link": "#7FB2F7",
+      "primary": "#66A3F2",
+      "primary-hover": "#7FB2F7",
+      "primary-active": "#4E8FE6",
+      "on-primary": "#0C1930",
+      "focus-ring": "#66A3F2",
+      "success": "#4ADE80",
+      "warning": "#FBBF24",
+      "danger": "#F87171",
+      "info": "#38BDF8",
+      "on-status": "#0C1930",
+      "overlay": "rgba(0,0,0,0.6)"
+    }
+  },
+  "typography": {
+    "font-family": "'Inter', 'SF Pro Text', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif",
+    "font-family-mono": "'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace",
+    "size": {
+      "xs": "12px",
+      "sm": "13px",
+      "body-desktop": "14px",
+      "body-desktop-lg": "15px",
+      "body-web": "15px",
+      "body-web-lg": "16px",
+      "h4": "18px",
+      "h3": "20px",
+      "h2": "24px",
+      "h1": "30px"
+    },
+    "line-height": {
+      "heading": "1.3",
+      "body": "1.55",
+      "long-text": "1.6"
+    },
+    "weight": {
+      "regular": "400",
+      "medium": "500",
+      "semibold": "600",
+      "bold": "700"
+    },
+    "letter-spacing": {
+      "body": "0",
+      "heading": "-0.01em",
+      "caps-label": "0.04em"
+    }
+  },
+  "radius": {
+    "none": "0px",
+    "sm": "4px",
+    "md": "6px",
+    "lg": "8px",
+    "usage": "none=khung layout/sidebar/header (thẳng tắp) | sm=badge,checkbox,tag | md=button,input,dropdown,modal nhỏ | lg=modal lớn,table container,card"
+  },
+  "spacing": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "20px",
+    "6": "24px",
+    "8": "32px",
+    "10": "40px",
+    "12": "48px",
+    "usage": "bội số 4px. Padding button: 8px 16px. Padding modal: 24px. Gap giữa field trong form: 16px. Gap giữa section: 32px."
+  },
+  "shadow": {
+    "sm": "0 1px 2px rgba(15,27,45,0.06)",
+    "md": "0 2px 8px rgba(15,27,45,0.10)",
+    "lg": "0 8px 24px rgba(15,27,45,0.14)",
+    "usage": "sm=button/input | md=dropdown/toast/card nổi | lg=modal. Dark mode giữ nguyên giá trị."
+  },
+  "z-index": {
+    "dropdown": "1000",
+    "sticky": "1020",
+    "modal-overlay": "1040",
+    "modal": "1050",
+    "toast": "1080",
+    "tooltip": "1090"
+  },
+  "motion": {
+    "fast": "120ms",
+    "base": "180ms",
+    "slow": "260ms",
+    "easing": "cubic-bezier(0.2, 0, 0, 1)",
+    "usage": "hover/focus dùng fast; mở dropdown dùng base; mở modal dùng slow. Tôn trọng prefers-reduced-motion."
+  },
+  "format": {
+    "date": "DD/MM/YYYY hiển thị dạng SỐ, ví dụ 01/02/2027. TUYỆT ĐỐI không hiển thị chuỗi chữ 'dd/mm/yyyy' ra giao diện.",
+    "datetime": "HH:mm DD/MM/YYYY, ví dụ 14:30 19/08/2026",
+    "version-app": "{ten-app}_{YY}.{M}.{DD}{NN}_{arch}-setup.{ext} — xem docs/DESIGN_SYSTEM.md mục 6"
+  },
+  "extensions": {
+    "$note": "Token RIÊNG của tsudev-web, KHÔNG thuộc chuẩn hệ sinh thái v1.0.0. Khối `color` ở trên là bất khả xâm phạm và không bị sửa. Mọi giá trị dưới đây được packages/ui/test/contrast.test.ts canh ở ngưỡng WCAG AA cho CẢ BA chế độ.",
+    "tsudev-web": {
+      "$note": "accent = sắc phụ (teal) của con dấu tín nhiệm. icon-* = mã màu theo NHÓM HÀNH ĐỘNG: mắt nhận ra nhóm trước khi đọc nhãn, điều một hàng icon cùng màu xám không làm được. Sáu sắc, không nhiều hơn - quá bảy màu thì chúng thôi là mã và trở thành nhiễu. status-ink/status-tint = cặp cho badge: bảng `color` chỉ định nghĩa màu trạng thái ĐẶC (dùng với on-status), còn badge nền nhạt cần một sắc chữ ĐẬM HƠN mới đạt 4.5:1 - ở chế độ Light màu trạng thái gốc chỉ đạt 4.0-4.3:1 trên chính tint 12% của nó. text-muted/border-control = VÁ TIẾP CẬN, xem $accessibility-gap.",
+      "light": {
+        "accent": "#0A6A5B",
+        "glow": "rgba(37,99,235,0.14)",
+        "grid-line": "rgba(28,43,58,0.06)",
+        "icon-nav": "#1D4ED8",
+        "icon-create": "#146C37",
+        "icon-edit": "#7A4D00",
+        "icon-danger": "#B3243C",
+        "icon-info": "#4A4A8F",
+        "icon-trust": "#0A6A5B",
+        "success-ink": "#146C37",
+        "warning-ink": "#7A4D00",
+        "danger-ink": "#B3243C",
+        "info-ink": "#0369A1",
+        "success-tint": "#E3F0E8",
+        "warning-tint": "#F6EAE1",
+        "danger-tint": "#FBE5E5",
+        "info-tint": "#E1EDF4",
+        "text-muted": "#52627A",
+        "border-control": "#74899F"
+      },
+      "warm": {
+        "accent": "#0A5F52",
+        "glow": "rgba(30,95,194,0.12)",
+        "grid-line": "rgba(46,42,33,0.07)",
+        "icon-nav": "#1A56B8",
+        "icon-create": "#1B6E38",
+        "icon-edit": "#9A4A07",
+        "icon-danger": "#BE2020",
+        "icon-info": "#464678",
+        "icon-trust": "#0A5F52",
+        "success-ink": "#1B6E38",
+        "warning-ink": "#9A4A07",
+        "danger-ink": "#BE2020",
+        "info-ink": "#0B5E86",
+        "success-tint": "#E1E7D9",
+        "warning-tint": "#F0E3D3",
+        "danger-tint": "#F5DED6",
+        "info-tint": "#DFE6E2",
+        "text-muted": "#5E5646",
+        "border-control": "#8E8064"
+      },
+      "dark": {
+        "accent": "#3FDDC4",
+        "glow": "rgba(102,163,242,0.22)",
+        "grid-line": "rgba(230,237,245,0.06)",
+        "icon-nav": "#7FB2F7",
+        "icon-create": "#4ADE80",
+        "icon-edit": "#FBBF24",
+        "icon-danger": "#F87171",
+        "icon-info": "#B7B7F0",
+        "icon-trust": "#3FDDC4",
+        "success-ink": "#4ADE80",
+        "warning-ink": "#FBBF24",
+        "danger-ink": "#F87171",
+        "info-ink": "#38BDF8",
+        "success-tint": "#1C3C44",
+        "warning-tint": "#313839",
+        "danger-tint": "#312F42",
+        "info-tint": "#1A3853",
+        "text-muted": "#9BB0C9",
+        "border-control": "#6E88AE"
+      },
+      "$accessibility_gap": "Bảng `color` chuẩn v1.0.0 KHÔNG đạt chính quy tắc bắt buộc của DESIGN_SYSTEM.md §1 ở hai token, đo được bằng packages/ui/test/contrast.test.ts: (1) `text-muted` chỉ đạt 3.69-4.58:1 trên bốn tầng nền, dưới ngưỡng AA 4.5:1 - đây là token bị dùng nhiều nhất trong app (~200 chỗ); (2) `border-strong` chỉ đạt 1.65-2.49:1, dưới ngưỡng 3:1 của WCAG 1.4.11 cho ranh giới thành phần giao diện. Không sửa được khối `color` (bất khả xâm phạm), nên tsudev-web ghi đè `text-muted` và thêm vai trò mới `border-control` cho ranh giới VÙNG TƯƠNG TÁC (viền nút phụ, viền ô nhập). `border-strong` giữ nguyên giá trị chuẩn và chỉ dùng cho ranh giới trang trí. CẦN ĐẨY NGƯỢC LÊN repo token trung tâm.",
+      "typography": {
+        "$note": "Thang chữ của DESIGN_SYSTEM.md §4 dừng ở 30px (H1) - đủ cho giao diện công cụ, nhưng khối hero của một website cần bậc lớn hơn. Ba bậc dưới đây nối tiếp 30px theo lưới 4px và CHỈ dùng cho tiêu đề hero/marketing, không dùng trong luồng thao tác.",
+        "size": {
+          "display-sm": "36px",
+          "display-md": "48px",
+          "display-lg": "60px"
+        }
+      }
+    }
+  }
+}

@@ -55,11 +55,8 @@ export const TableOfContents = ({
   if (!items.length) return null;
 
   return (
-    <nav
-      aria-label={title}
-      className={`rounded-md border border-hairline bg-panel p-4 ${className}`}
-    >
-      <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-muted">{title}</p>
+    <nav aria-label={title} className={`rounded-md border border-line bg-surface p-4 ${className}`}>
+      <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-fg-muted">{title}</p>
       <ul className="flex flex-col gap-0.5">
         {items.map((item) => {
           const active = item.id === activeId;
@@ -74,8 +71,8 @@ export const TableOfContents = ({
                   item.level >= 3 ? 'pl-5' : 'pl-3'
                 } ${
                   active
-                    ? 'border-brand font-medium text-brandink'
-                    : 'border-transparent text-inksoft hover:border-hairstrong hover:text-ink'
+                    ? 'border-primary font-medium text-link'
+                    : 'border-transparent text-fg-secondary hover:border-line-strong hover:text-fg'
                 }`}
               >
                 {item.text}
