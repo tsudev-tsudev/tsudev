@@ -14,6 +14,7 @@ token trả tiền mà không dùng đến.
 | Repo này hiện thực quy tắc đó bằng file nào      | [design-system.md](design-system.md)                               |
 | Cấu trúc thư mục chuẩn (hệ sinh thái, KHÔNG SỬA) | [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)                       |
 | Hai mã màu chuẩn không đạt WCAG, gói đẩy ngược   | [token-upstream-proposal.md](token-upstream-proposal.md)           |
+| Vì sao cây thư mục lệch quy ước, gói đẩy ngược   | [structure-upstream-proposal.md](structure-upstream-proposal.md)   |
 | Đưa lên production, biến môi trường, CI          | [deployment.md](deployment.md)                                     |
 | Hạn mức gói miễn phí, van chi phí                | [free-tier.md](free-tier.md)                                       |
 | Con dấu tín nhiệm (trust-service)                | [trust-seal.md](trust-seal.md)                                     |
