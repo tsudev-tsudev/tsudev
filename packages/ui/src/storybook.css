@@ -1,14 +1,13 @@
 /* Vỏ ngoài cho Storybook - bám theo token của site.
-   Storybook hiện chỉ dựng chế độ SÁNG (mặc định của site). Muốn xem chế độ tối
-   thì đặt data-theme="dark" lên <html> bằng devtools; Storybook KHÔNG nằm trong
-   CI nên một nút chuyển ở đây sẽ không có gì canh nó.
-   Không khai báo lại --primary ở đây, nếu không sẽ ghi đè tokens.css. */
+   Ba chế độ đổi bằng nút "Giao diện" trên thanh công cụ (.storybook/preview.js).
+   Không khai báo lại token màu ở đây, nếu không sẽ ghi đè tokens.css và Storybook
+   hiện một bảng màu khác với site thật. */
 body {
-  font-family: var(--font-sans);
-  background: var(--surface);
-  color: var(--ink);
+  font-family: var(--font-family);
+  background: var(--bg-base);
+  color: var(--text-primary);
   margin: 0;
-  padding: 20px;
+  padding: var(--sp-5);
 }
 .sb-wrapper {
   max-width: 800px;
@@ -16,8 +15,9 @@ body {
 }
 .primary-btn {
   background: var(--primary);
-  color: var(--primary-contrast);
-  padding: 8px 12px;
-  border-radius: 6px;
+  color: var(--on-primary);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--radius-md);
   border: none;
+  font-weight: var(--fw-semibold);
 }

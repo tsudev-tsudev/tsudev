@@ -45,6 +45,10 @@ const GITHUB_ICON = (
   </svg>
 );
 
+// Bốn mã hex dưới đây là NGOẠI LỆ có chủ đích với luật "chỉ dùng token": đó là
+// màu thương hiệu của Google trong logo chính thức của họ, và điều kiện sử dụng
+// nhãn hiệu không cho phép tô lại. Chúng cố định ở cả ba chế độ - đúng như logo
+// Google xuất hiện ở mọi nơi khác. Đừng thay bằng token.
 const GOOGLE_ICON = (
   <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
     <path
@@ -172,7 +176,7 @@ export default function LoginPage({ oauth }: LoginProps) {
       footer={
         <>
           Chưa có tài khoản?{' '}
-          <a className="text-brandink hover:underline" href="/signup">
+          <a className="text-link hover:underline" href="/signup">
             Đăng ký
           </a>
         </>
@@ -202,7 +206,7 @@ export default function LoginPage({ oauth }: LoginProps) {
             required
           />
           <div className="mt-1.5 text-right">
-            <a className="text-sm text-muted hover:text-brandink" href="/forgot-password">
+            <a className="text-sm text-fg-muted hover:text-link" href="/forgot-password">
               Quên mật khẩu?
             </a>
           </div>
@@ -227,10 +231,10 @@ export default function LoginPage({ oauth }: LoginProps) {
         </Button>
       </form>
 
-      <div className="my-5 flex items-center gap-3 text-xs text-muted">
-        <span className="h-px flex-1 bg-hairline" />
+      <div className="my-5 flex items-center gap-3 text-xs text-fg-muted">
+        <span className="h-px flex-1 bg-line" />
         hoặc
-        <span className="h-px flex-1 bg-hairline" />
+        <span className="h-px flex-1 bg-line" />
       </div>
 
       <Button variant="secondary" className="w-full" onClick={onPasskey} disabled={busy}>
@@ -254,10 +258,10 @@ export default function LoginPage({ oauth }: LoginProps) {
 
       {oauth.length > 0 && (
         <>
-          <div className="my-5 flex items-center gap-3 text-xs text-muted">
-            <span className="h-px flex-1 bg-hairline" />
+          <div className="my-5 flex items-center gap-3 text-xs text-fg-muted">
+            <span className="h-px flex-1 bg-line" />
             hoặc
-            <span className="h-px flex-1 bg-hairline" />
+            <span className="h-px flex-1 bg-line" />
           </div>
           <div className="flex flex-col gap-2">
             {oauth.map((p) => (

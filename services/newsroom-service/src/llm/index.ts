@@ -5,7 +5,14 @@
 // phải nổi lên - âm thầm fallback khi cấu hình sai là cách chắc chắn nhất để
 // một lỗi cấu hình sống sót nhiều tháng mà không ai biết.
 import { prisma } from '@tsudev/db'
-import { CompleteInput, CompleteResult, LlmProvider, QuotaExhaustedError } from './types'
+import {
+  AllProvidersExhaustedError,
+  CompleteInput,
+  CompleteResult,
+  LlmProvider,
+  ProviderName,
+  QuotaExhaustedError,
+} from './types'
 import { WorkersAiProvider } from './workersAi'
 import { GeminiProvider } from './gemini'
 
@@ -18,16 +25,97 @@ const fallback: LlmProvider = new GeminiProvider()
 export const DAILY_NEURON_BUDGET = (): number =>
   parseInt(process.env.NEWSROOM_DAILY_NEURON_BUDGET || '8000', 10)
 
-/// Neuron đã tiêu hôm nay, tính theo mốc 00:00 UTC - ĐÚNG mốc reset của
-/// Cloudflare, không phải nửa đêm giờ Việt Nam. Lệch mốc là van mở sai 7 tiếng.
+/// Mốc 00:00 UTC của hôm nay - ĐÚNG mốc reset hạn mức của Cloudflare, không
+/// phải nửa đêm giờ Việt Nam. Lệch mốc là van mở sai 7 tiếng.
+export function utcDayStart(): Date {
+  const d = new Date()
+  d.setUTCHours(0, 0, 0, 0)
+  return d
+}
+
+/// Neuron đã tiêu hôm nay theo SỔ CỦA TA (tổng ước lượng của các lượt chạy).
 export async function neuronsUsedToday(): Promise<number> {
-  const since = new Date()
-  since.setUTCHours(0, 0, 0, 0)
   const agg = await prisma.agentRun.aggregate({
     _sum: { neuronsUsed: true },
-    where: { startedAt: { gte: since } },
+    where: { startedAt: { gte: utcDayStart() } },
   })
   return agg._sum.neuronsUsed ?? 0
+}
+
+/**
+ * Sổ CẠN HẠN MỨC THẬT, tách khỏi van ngân sách ước lượng.
+ *
+ * ⚠️ Đây là bài học đắt nhất của mảng này: `neuronsUsedToday()` đếm bằng BẢNG
+ * QUY ĐỔI CỦA TA, còn hạn mức thì Cloudflare đếm bằng sổ CỦA HỌ - và hai con số
+ * đó không bắt buộc phải bằng nhau. Sổ của ta chỉ cộng những lượt THÀNH CÔNG
+ * của chính service này; sổ của họ tính cho cả tài khoản, mọi model, mọi lượt
+ * gọi. Khi Cloudflare nói "đã dùng hết 10.000 Neuron" mà sổ ta mới ghi vài trăm
+ * thì van ngân sách KHÔNG BAO GIỜ đóng, và mọi nhịp còn lại trong ngày cứ đâm
+ * vào cùng một bức tường.
+ *
+ * Nên khi chính nhà cung cấp nói đã cạn, ta ghi lại lời nói đó và tin nó cho
+ * tới 00:00 UTC. Ghi bằng `NewsroomEvent` chứ không phải biến trong bộ nhớ:
+ * Render restart tiến trình bất cứ lúc nào, mà biến nhớ thì mất theo tiến trình
+ * - còn cái ta cần nhớ là một sự kiện của NGÀY.
+ */
+const EXHAUSTED_EVENT = 'provider.exhausted'
+
+export async function exhaustedToday(provider: ProviderName): Promise<boolean> {
+  const hit = await prisma.newsroomEvent.findFirst({
+    where: {
+      type: EXHAUSTED_EVENT,
+      createdAt: { gte: utcDayStart() },
+      payload: { path: ['provider'], equals: provider },
+    },
+    select: { id: true },
+  })
+  return Boolean(hit)
+}
+
+async function markExhausted(provider: ProviderName, message: string): Promise<void> {
+  if (await exhaustedToday(provider)) return
+  await prisma.newsroomEvent.create({
+    data: {
+      type: EXHAUSTED_EVENT,
+      status: 'DONE',
+      actorKind: 'system',
+      payload: { provider, message: message.slice(0, 300), resetsAt: '00:00 UTC' },
+    },
+  })
+}
+
+export interface ProviderHealth {
+  name: ProviderName
+  configured: boolean
+  exhaustedToday: boolean
+}
+
+/// Trạng thái nhà cung cấp cho dashboard - để bảng điều khiển nói "đang chờ hạn
+/// mức" thay vì đổ một chuỗi lỗi thô của Cloudflare vào mặt người đọc.
+export async function providerHealth(): Promise<ProviderHealth[]> {
+  const list = [primary, fallback]
+  return Promise.all(
+    list.map(async (p) => ({
+      name: p.name,
+      configured: p.isConfigured(),
+      exhaustedToday: await exhaustedToday(p.name),
+    }))
+  )
+}
+
+/// Còn đường nào gọi được mô hình trong hôm nay không. `tick()` hỏi câu này
+/// TRƯỚC khi nhận việc - nhận rồi mới biết không làm được thì sự kiện đã bị
+/// đánh dấu claimed một cách vô ích.
+export async function anyProviderAvailableToday(): Promise<boolean> {
+  const health = await providerHealth()
+  const usable = health.filter((h) => h.configured && !h.exhaustedToday)
+  if (!usable.length) return false
+  // Nhà cung cấp DUY NHẤT còn lại là Workers AI mà van ngân sách đã đóng ⇒ coi
+  // như hết đường: van đóng nghĩa là ta tự cấm mình gọi nó.
+  if (usable.every((h) => h.name === primary.name)) {
+    return (await neuronsUsedToday()) < DAILY_NEURON_BUDGET()
+  }
+  return true
 }
 
 export interface RouteOutcome extends CompleteResult {
@@ -42,33 +130,57 @@ export async function complete(input: CompleteInput): Promise<RouteOutcome> {
   const used = await neuronsUsedToday()
   const overBudget = used >= budget
 
-  if (!overBudget && primary.isConfigured()) {
+  const reasons: string[] = []
+  let primaryUsable = primary.isConfigured()
+  if (!primaryUsable) reasons.push('workers-ai chưa cấu hình')
+  else if (overBudget) {
+    primaryUsable = false
+    reasons.push(`đã tiêu ${used}/${budget} Neuron hôm nay`)
+  } else if (await exhaustedToday(primary.name)) {
+    primaryUsable = false
+    reasons.push('workers-ai đã báo cạn hạn mức hôm nay')
+  }
+
+  if (primaryUsable) {
     try {
       const r = await primary.complete(input)
       return { ...r, switched: false }
     } catch (err) {
+      // Chỉ chuyển khi cạn hạn mức. Lỗi khác (sai khoá, model không tồn tại,
+      // mạng hỏng) phải nổi lên - âm thầm fallback khi cấu hình sai là cách
+      // chắc chắn nhất để một lỗi cấu hình sống sót nhiều tháng mà không ai biết.
       if (!(err instanceof QuotaExhaustedError)) throw err
-      if (!fallback.isConfigured()) throw err
+      await markExhausted(primary.name, err.message)
+      reasons.push(`workers-ai cạn hạn mức: ${err.message}`)
+    }
+  }
+
+  const fallbackConfigured = fallback.isConfigured()
+  if (fallbackConfigured && !(await exhaustedToday(fallback.name))) {
+    try {
       const r = await fallback.complete(input)
-      return { ...r, switched: true, switchReason: `workers-ai cạn hạn mức: ${err.message}` }
+      return { ...r, switched: true, switchReason: reasons.join('; ') }
+    } catch (err) {
+      if (!(err instanceof QuotaExhaustedError)) throw err
+      await markExhausted(fallback.name, err.message)
+      reasons.push(`gemini cạn hạn mức: ${err.message}`)
     }
+  } else if (!fallbackConfigured) {
+    reasons.push('không có nhà cung cấp dự phòng (thiếu GEMINI_API_KEY)')
+  } else {
+    reasons.push('gemini đã báo cạn hạn mức hôm nay')
   }
 
-  if (fallback.isConfigured()) {
-    const r = await fallback.complete(input)
-    return {
-      ...r,
-      switched: true,
-      switchReason: overBudget
-        ? `đã tiêu ${used}/${budget} Neuron hôm nay`
-        : 'workers-ai chưa cấu hình',
-    }
+  // Không nhà cung cấp NÀO được cấu hình là lỗi CẤU HÌNH, không phải cạn hạn
+  // mức - phải ồn ào, vì hoãn lại đến ngày mai cũng không tự sửa được.
+  if (!primary.isConfigured() && !fallbackConfigured) {
+    throw new Error(
+      'Không nhà cung cấp LLM nào được cấu hình (thiếu CF_AI_TOKEN và GEMINI_API_KEY).'
+    )
   }
 
-  throw new Error(
-    overBudget
-      ? `Cạn ngân sách Neuron (${used}/${budget}) và không có nhà cung cấp dự phòng.`
-      : 'Không nhà cung cấp LLM nào được cấu hình (thiếu CF_AI_TOKEN và GEMINI_API_KEY).'
+  throw new AllProvidersExhaustedError(
+    `Cạn hạn mức LLM, hoãn tới 00:00 UTC - ${reasons.join('; ')}`
   )
 }
 

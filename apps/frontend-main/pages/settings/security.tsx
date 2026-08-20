@@ -5,6 +5,7 @@ import { Button, Input, Layout } from '@tsudev/ui';
 
 import Seo from '../../components/Seo';
 import { Notice } from '../../components/AuthShell';
+import { formatDateVN } from '../../lib/format';
 
 /**
  * Bảo mật tài khoản: bật 2FA và quản lý passkey.
@@ -26,8 +27,8 @@ const post = async (path: string, body?: unknown) => {
 };
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="rounded-lg border border-hairline bg-panel p-5 sm:p-6">
-    <h2 className="text-base font-semibold text-ink">{title}</h2>
+  <section className="rounded-lg border border-line bg-surface p-5 sm:p-6">
+    <h2 className="text-base font-semibold text-fg">{title}</h2>
     <div className="mt-4">{children}</div>
   </section>
 );
@@ -63,7 +64,7 @@ export default function SecurityPage() {
     return (
       <Layout active="/settings">
         <Seo title="Bảo mật" path="/settings/security" noindex />
-        <p className="text-sm text-muted">Đang tải…</p>
+        <p className="text-sm text-fg-muted">Đang tải…</p>
       </Layout>
     );
   }
@@ -150,8 +151,8 @@ export default function SecurityPage() {
     <Layout active="/settings">
       <Seo title="Bảo mật" path="/settings/security" noindex />
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-xl font-semibold text-ink">Bảo mật tài khoản</h1>
-        <p className="mt-1.5 text-sm text-muted">
+        <h1 className="text-xl font-semibold text-fg">Bảo mật tài khoản</h1>
+        <p className="mt-1.5 text-sm text-fg-muted">
           Passkey chống được trang giả mạo; mật khẩu và mã 2FA thì không, vì cả hai đều gõ lại được
           vào một trang giả.
         </p>
@@ -165,17 +166,17 @@ export default function SecurityPage() {
         <div className="mt-6 flex flex-col gap-5">
           <Section title="Passkey">
             {keys.length === 0 ? (
-              <p className="text-sm text-muted">Chưa có passkey nào.</p>
+              <p className="text-sm text-fg-muted">Chưa có passkey nào.</p>
             ) : (
-              <ul className="flex flex-col divide-y divide-hairline">
+              <ul className="flex flex-col divide-y divide-line">
                 {keys.map((k) => (
                   <li key={k.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-ink">{k.label || 'Không đặt tên'}</p>
-                      <p className="text-xs text-muted">
-                        Thêm ngày {new Date(k.createdAt).toLocaleDateString('vi-VN')}
+                      <p className="truncate text-sm text-fg">{k.label || 'Không đặt tên'}</p>
+                      <p className="text-xs text-fg-muted">
+                        Thêm ngày {formatDateVN(k.createdAt)}
                         {k.lastUsedAt
-                          ? ` · dùng lần cuối ${new Date(k.lastUsedAt).toLocaleDateString('vi-VN')}`
+                          ? ` · dùng lần cuối ${formatDateVN(k.lastUsedAt)}`
                           : ' · chưa dùng lần nào'}
                       </p>
                     </div>
@@ -206,9 +207,9 @@ export default function SecurityPage() {
                   Lưu mười mã dự phòng này ở nơi an toàn. Chúng chỉ hiện MỘT LẦN, và chúng là thứ
                   duy nhất cứu được tài khoản nếu bạn mất điện thoại.
                 </Notice>
-                <ul className="mt-3 grid grid-cols-2 gap-1.5 font-mono text-sm text-ink">
+                <ul className="mt-3 grid grid-cols-2 gap-1.5 font-mono text-sm text-fg">
                   {backupCodes.map((c) => (
-                    <li key={c} className="rounded-md bg-panel2 px-2.5 py-1.5">
+                    <li key={c} className="rounded-md bg-subtle px-2.5 py-1.5">
                       {c}
                     </li>
                   ))}
@@ -216,14 +217,14 @@ export default function SecurityPage() {
               </>
             ) : setupUri ? (
               <>
-                <p className="text-sm text-inksoft">
+                <p className="text-sm text-fg-secondary">
                   Quét mã trong ứng dụng xác thực, hoặc nhập tay khoá bên dưới, rồi nhập mã 6 chữ số
                   để xác nhận.
                 </p>
-                <p className="mt-2 break-all rounded-md bg-panel2 px-3 py-2 font-mono text-xs text-inksoft">
+                <p className="mt-2 break-all rounded-md bg-subtle px-3 py-2 font-mono text-xs text-fg-secondary">
                   {setupSecret}
                 </p>
-                <p className="mt-2 break-all text-xs text-muted">{setupUri}</p>
+                <p className="mt-2 break-all text-xs text-fg-muted">{setupUri}</p>
                 <div className="mt-4 flex items-end gap-2">
                   <Input
                     id="totp-code"
@@ -239,14 +240,14 @@ export default function SecurityPage() {
               </>
             ) : (
               <>
-                <p className="text-sm text-inksoft">
+                <p className="text-sm text-fg-secondary">
                   Thêm một mã dùng một lần từ ứng dụng xác thực khi đăng nhập bằng mật khẩu.
                 </p>
                 <Button variant="secondary" className="mt-4" onClick={startTotp}>
                   Bật xác thực hai bước
                 </Button>
-                <div className="mt-6 border-t border-hairline pt-4">
-                  <p className="text-sm text-muted">Đã bật rồi và muốn tắt?</p>
+                <div className="mt-6 border-t border-line pt-4">
+                  <p className="text-sm text-fg-muted">Đã bật rồi và muốn tắt?</p>
                   <div className="mt-2 flex items-end gap-2">
                     <Input
                       id="disable-pw"

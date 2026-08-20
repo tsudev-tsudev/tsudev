@@ -129,6 +129,21 @@ có ba van xếp chồng:
    bảng `AgentRun` theo mốc 00:00 UTC (đúng mốc reset của Cloudflare, không phải
    nửa đêm giờ Việt Nam). Chạm trần thì router chuyển sang Gemini; hết cả Gemini
    thì dừng và ghi event. 8000 trên 10.000 là chừa biên 20% cho vòng sửa lại.
+
+   ⚠️ **Đây là van PHỤ, không phải sổ chính.** Nó cộng con số do ta ước lượng từ
+   bảng quy đổi, chỉ tính các lượt THÀNH CÔNG của một service - còn Cloudflare
+   đếm cả tài khoản, mọi model, kể cả lượt hỏng giữa chừng sau khi mô hình đã
+   sinh xong chữ. Hai sổ lệch nhau là bình thường, và ngày 20/08/2026 chúng lệch
+   đủ để van không bao giờ đóng trong khi Cloudflare đã từ chối mọi request.
+   Sổ CHÍNH là lời của chính nhà cung cấp: khi API trả "cạn hạn mức", router ghi
+   một sự kiện `provider.exhausted` vào `NewsroomEvent` và không gọi lại nhà cung
+   cấp đó cho tới 00:00 UTC. Ghi vào DB chứ không vào biến nhớ - Render restart
+   tiến trình bất cứ lúc nào, mà thứ cần nhớ là một sự kiện của NGÀY.
+
+   Cạn hạn mức làm toà soạn **hoãn**, không phải **hỏng**: sự kiện đang chờ quay
+   về `PENDING` và được hoàn lại lần thử đã tính. Bản nháp chết trước bản vá này
+   hồi sinh bằng nút "Hồi sinh việc đã dừng" ở `/admin/newsroom`.
+
 3. **`NEWSROOM_MAX_REVISIONS`** (mặc định 2) - trần số vòng Writer↔Editor cho
    một bài. Không có trần này thì hai agent có thể quay vòng cho tới khi cạn
    hạn mức mà không ai thấy gì bất thường.

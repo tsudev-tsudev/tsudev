@@ -15,8 +15,15 @@
 
 ## ✅ Bắt đầu từ đâu
 
+> **Phiên 7 (20/08/2026) để lại nhánh `refactor/giao-dien-quy-uoc-v1` đã commit
+> nhưng CHƯA PUSH** - toàn bộ phần tái cấu trúc giao diện, 3 cụm commit, 82 file.
+> Việc đầu tiên của phiên sau là đọc
+> [`logs/handover/20260820-02`](logs/handover/20260820-02_viec-con-lai-sau-giao-dien.md)
+> và quyết định commit hay không, **trước khi** đụng vào bất cứ thứ gì khác.
+> Hàng đợi việc nay ở [`logs/STATE.md`](logs/STATE.md), không còn ở §1 phiếu này.
+
 **Không còn việc chặn nào. Production chạy đủ và chi phí bằng 0.** Đo cuối phiên 6
-(19/08/2026):
+(19/08/2026); phiên 7 không phát hành nên các con số dưới đây vẫn đúng:
 
 | Vùng     | Trạng thái                                                     |
 | -------- | -------------------------------------------------------------- |
@@ -84,7 +91,76 @@ Ba thứ mất là không sinh lại được:
 
 ---
 
-## 0. Nhật ký phiên 6 (19/08/2026)
+## 0. Nhật ký phiên 7 (20/08/2026) - tái cấu trúc giao diện theo bộ quy ước v1.0.0
+
+Phiên **một luồng việc duy nhất**, không phát hành: đưa toàn bộ giao diện về bộ
+quy ước dùng chung `tsudev-conventions v1.0.0`. **82 file, 3 cụm commit trên
+nhánh `refactor/giao-dien-quy-uoc-v1`, chưa push.** Chi tiết đầy đủ ở phiếu
+[`logs/handover/20260820-01`](logs/handover/20260820-01_tai-cau-truc-giao-dien.md);
+việc còn lại ở phiếu
+[`logs/handover/20260820-02`](logs/handover/20260820-02_viec-con-lai-sau-giao-dien.md).
+
+### Bộ quy ước đã vào repo
+
+`AGENTS.md` (gộp hai nguồn thành phần A/B), `docs/DESIGN_SYSTEM.md`,
+`docs/PROJECT_STRUCTURE.md`, `docs/templates/HANDOVER.md`, `tokens/`, `logs/`,
+`CHANGELOG.md`. **Kể từ nay `logs/STATE.md` là hàng đợi việc và `logs/LOCKS.md`
+là khoá file** - phiếu này không còn là nơi duy nhất để tra việc còn dở.
+
+### Ba thay đổi lớn
+
+1. **Chuỗi token có một nguồn duy nhất.** `tokens/design-tokens.json` →
+   `scripts/sync-tokens.js` → `packages/ui/src/tokens.css` (ARTIFACT, đừng sửa
+   tay). `npm run tokens:check` đã vào CI.
+2. **Ba chế độ Sáng / Ấm / Tối**, chọn bằng `data-theme`. `ThemeToggle` thành menu
+   bốn lựa chọn - thêm "Theo hệ thống".
+3. **Đổi tên toàn bộ token** (~615 chỗ, 48 file): `--surface`→`--bg-base`,
+   `--ink`→`--text-primary`, `--error`→`--danger`… Bản đồ đầy đủ ở
+   [`docs/design-system.md`](docs/design-system.md).
+
+### Sáu lỗi thật, xếp theo mức im lặng
+
+| #   | Lỗi                                                            | Vì sao không ai thấy                                                        |
+| --- | -------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | `.gitignore` nuốt trọn `logs/` bằng mẫu `logs`                 | Phiếu bàn giao viết xong **không bao giờ commit được**, không có gì báo lỗi |
+| 2   | Bảng màu **của chính bộ quy ước** không đạt WCAG ở 2 token     | `text-muted` 3.69-4.58:1, `border-strong` 1.65-2.49:1 - phải đo mới biết    |
+| 3   | Thang chữ mặc định Tailwind lọt qua **41 chỗ**                 | `fontSize` khai trong `extend` nên hai thang sống song song                 |
+| 4   | `site.webmanifest` trôi lệch màu nền (`#eef3fa` vs `#eef4fb`)  | Bản sao **thứ tư**, chỉ hiện ở màn hình chờ PWA                             |
+| 5   | `::placeholder` mang `#9ca3af` cắm cứng của preflight Tailwind | Giống nhau ở cả ba chế độ, không đi qua token                               |
+| 6   | `toLocaleDateString('vi-VN')` bỏ số 0 đầu → `5/8/2026`         | Sai §4, và chỉ lộ ra khi ngày rơi vào mùng 1-9                              |
+
+Cả sáu đã sửa. Lỗi #2 không sửa được tại chỗ (khối `color` bất khả xâm phạm) nên
+tsudev-web ghi đè trong `extensions.tsudev-web` - **cần đẩy ngược lên repo token
+trung tâm**, vì mọi repo khác trong hệ sinh thái đang mang cùng khiếm khuyết.
+
+### Ba bẫy đã trả giá để học - xem §0.7 để dùng lại
+
+- **Tailwind quét NGUYÊN VĂN file, kể cả chú thích.** Comment viết "đừng dùng
+  `text-[1.05rem]`" làm chính class đó được sinh ra CSS thật.
+- **`color(srgb 1 1 1 / 0.88)` không cùng thang với `rgb()`** - kênh màu 0..1 chứ
+  không phải 0..255. Bộ đo tương phản tự viết đọc sai đã cho ra 18 "lỗi" ở header
+  qua **ba lần chạy liên tiếp**, toàn bộ là ảo. Nền TRONG SUỐT phải được trộn lên
+  thứ nằm sau nó trước khi đo.
+- **Hai cổng kiểm có thể đá nhau vĩnh viễn.** `format:check` đòi sửa `tokens.css`
+  theo kiểu prettier, `tokens:check` thấy khác bản sinh ra nên đòi chạy lại
+  `tokens:sync`; chạy cái này thì cái kia đỏ. Lời giải: cho **bộ sinh** chạy đầu
+  ra qua chính prettier của repo.
+
+### Nghiệm thu
+
+12 trang × 3 chế độ (36 ảnh, đã đăng nhập ADMIN) → **0 vấn đề tương phản**.
+E2E **20/20**. `tokens:check` · `format:check` · `lint` · `typecheck` ·
+`topology:check` · ui 199 · frontend-main 29 - xanh hết. Bản dựng production
+không còn cỡ chữ hay mã màu nào ngoài token.
+
+⚠️ E2E lần đầu 6 đỏ, **không cái nào là hồi quy giao diện**: 5 cái là timeout biên
+dịch nguội (load average ~6.4 trên máy 4 nhân), 1 cái là `invite.spec.js` **không
+lặp lại được** - khiếm khuyết sẵn có, xem hàng đợi `logs/STATE.md`. Chạy e2e ở đây
+thì đừng chạy song song thứ gì khác.
+
+---
+
+## 0.5 Nhật ký phiên 6 (19/08/2026)
 
 Phiên dài nhất tới nay: **20 PR (#15-#34)**, năm lần phát hành thật, và **sáu lỗi
 production** - trong đó **năm cái đã chạy im lặng từ trước khi phiên bắt đầu**.
@@ -167,7 +243,83 @@ vãng lai** của cả bốn trang riêng tư.
 
 ## 0.7 Kỹ thuật đã trả giá để học - dùng lại được
 
-Chín thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+Mười bốn thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+
+### Van chi phí đọc SỔ CỦA TA, còn hạn mức thì nhà cung cấp đếm bằng sổ CỦA HỌ
+
+Toà soạn có `NEWSROOM_DAILY_NEURON_BUDGET=8000` để chặn trước hạn mức 10.000
+Neuron/ngày của Cloudflare. Van ấy cộng `AgentRun.neuronsUsed` - con số do CHÍNH
+TA ước lượng từ một bảng quy đổi. Ngày 20/08/2026 Cloudflare trả
+`"you have used up your daily free allocation of 10,000 neurons"` trong khi sổ
+của ta mới ghi vài trăm. Van không bao giờ đóng, nên **mọi** nhịp còn lại trong
+ngày đâm vào đúng bức tường đó.
+
+Hai sổ lệch nhau là chuyện bình thường, không phải bug hiếm: sổ của ta chỉ cộng
+các lượt THÀNH CÔNG của một service, sổ của họ tính cả tài khoản - mọi model,
+mọi lượt gọi, kể cả lượt hỏng giữa chừng sau khi mô hình đã sinh xong chữ.
+
+Rút ra: **ước lượng phía mình là van phụ; lời của chính nhà cung cấp là sổ
+chính.** Khi nhà cung cấp nói "hết", hãy ghi lại lời đó và tin nó cho tới mốc
+reset - và ghi vào DB chứ không vào biến nhớ, vì tiến trình bị restart bất cứ
+lúc nào còn thứ cần nhớ là một sự kiện của NGÀY.
+
+### Hết hạn mức KHÔNG phải lỗi, và trộn hai thứ đó thì hàng đợi tự sát
+
+Cùng sự cố trên, phần đắt hơn: dispatcher xử lý "cạn hạn mức" y như "lỗi thật" -
+sự kiện bị tính một lần thử hỏng, ba lần thì `DEAD` vĩnh viễn. Nhịp chạy mỗi
+giờ, nên một ngày cạn Neuron giết sạch mọi bản nháp đang chờ, vì một lý do sẽ tự
+hết lúc 00:00 UTC. Kèm theo là hai chỗ đổ oan: `NewsroomSource.lastError` bị dán
+chuỗi lỗi của Cloudflare (người đọc đi sửa nguồn RSS hoàn toàn lành), và nhật ký
+đầy 19 dòng `budget.exhausted` giống hệt nhau mỗi ngày, đẩy trôi những dòng đáng
+đọc ra khỏi 80 dòng mà bảng điều khiển lấy về.
+
+Rút ra: mọi hàng đợi có retry phải phân biệt **hoãn** với **thất bại**. Hoãn thì
+trả việc về `PENDING` và **hoàn lại** lần thử đã tính. Và sửa nguyên nhân không
+tự chữa cho người đã ốm - phải có đường hồi sinh riêng cho những việc đã chết
+trước bản vá (`reviveQuotaCasualties`, chỉ nhận diện theo dấu vết lỗi hạn mức,
+để lỗi thật vẫn nằm yên mà còn có người nhìn thấy).
+
+### Công cụ ĐO có thể sai, và nó sai theo kiểu trông rất giống lỗi thật
+
+Bộ đo tương phản tự viết ở phiên 7 báo 18 lỗi ở header qua **ba lần chạy liên
+tiếp**. Không lỗi nào có thật. Ba nguyên nhân chồng lên nhau, và cả ba đều cho ra
+những con số _hợp lý_ (1.15:1, 2.55:1) chứ không phải giá trị vô nghĩa - đó là lý
+do nó qua mặt được ba vòng:
+
+1. Nền **trong suốt** bị coi là đặc. `--glow` là `rgba(37,99,235,0.14)`; lấy
+   nguyên `[37,99,235]` ra một mảng xanh bão hoà thay vì xanh rất nhạt trên nền trắng.
+2. Alpha đọc thành `88` thay vì `0.88` khi chuỗi là `color-mix(… 88%, transparent)`.
+3. **`color(srgb 1 1 1 / 0.88)` không cùng thang với `rgb()`** - kênh màu 0..1 chứ
+   không phải 0..255, nên "1 1 1" thành gần như đen.
+
+Quy tắc rút ra: **khi số đo bất thường tập trung vào MỘT thành phần và biến mất ở
+một chế độ, hãy nghi công cụ trước khi nghi mã.** Ở đây chế độ Tối sạch trơn còn
+Sáng/Ấm đầy lỗi - chính sự bất đối xứng đó là bằng chứng, vì header dựng giống hệt
+nhau ở cả ba chế độ. Cách xác minh rẻ nhất: `getComputedStyle` đúng một phần tử
+rồi in ra chuỗi thô, thay vì đọc thêm một vòng báo cáo.
+
+### Tailwind quét NGUYÊN VĂN file, kể cả chú thích
+
+Chú thích viết `text-[1.05rem]` để giải thích **đừng dùng** giá trị đó đã làm
+chính class đó được sinh ra trong CSS production. Bộ quét không phân tích cú pháp,
+nó tìm chuỗi. Đừng viết một class bị cấm ra trong comment - mô tả nó bằng lời.
+
+Cùng họ với bẫy này: `fontSize` khai trong `extend` **không thay thế** thang mặc
+định của Tailwind, nó cộng thêm. Hậu quả ở phiên 7: 41 chỗ dùng `text-xl`…`text-6xl`
+lấy giá trị cắm cứng của Tailwind trong khi cả dự án tưởng đang dùng token. Muốn
+một thang token là thang DUY NHẤT thì phải **ghi đè**, để class ngoài bảng không
+sinh ra CSS và lộ ra ngay.
+
+### Hai cổng kiểm có thể đá nhau vĩnh viễn
+
+`format:check` đòi sửa `packages/ui/src/tokens.css` theo kiểu prettier;
+`tokens:check` thấy nó khác bản sinh ra nên đòi chạy `tokens:sync`. Chạy cái nào
+thì cái kia đỏ, mãi mãi. Lời giải không phải là loại bỏ một cổng, mà là cho **bộ
+sinh** chạy đầu ra qua chính prettier của repo - artifact sinh ra đã ở dạng chuẩn
+thì hai cổng đồng ý với nhau.
+
+Nguyên tắc chung: mỗi khi thêm một artifact được sinh ra vào repo, hỏi ngay
+_"cổng định dạng có đụng nó không?"_ trước khi hỏi _"cổng nào canh nó?"_.
 
 ### Một tiến trình TREO không để lại log - và trần thời gian là thứ tạo ra log
 

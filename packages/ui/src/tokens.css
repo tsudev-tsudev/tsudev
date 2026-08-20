@@ -1,147 +1,255 @@
-/* tsudev design tokens - HAI chế độ.
- *
- * Sáng là MẶC ĐỊNH: `:root` mang bảng màu sáng, và `[data-theme='dark']` ghi
- * đè. Không dùng `prefers-color-scheme` để chọn giúp người dùng - lựa chọn
- * hiển thị ở đây là một quyết định của sản phẩm, và một site đổi diện mạo tuỳ
- * theo cài đặt hệ điều hành thì hai người nhìn cùng một đường link sẽ thấy hai
- * thứ khác nhau. Người dùng bật chế độ tối bằng nút trên header; lựa chọn được
- * ghi vào localStorage và áp TRƯỚC khi vẽ (script trong pages/_document.tsx).
- *
- * Mọi cặp màu chữ/nền ở CẢ HAI chế độ được canh bởi packages/ui/test/
- * contrast.test.ts, đọc thẳng tệp này. Đổi một mã màu làm tụt xuống dưới ngưỡng
- * WCAG AA là CI đỏ.
- */
-:root {
+/* ============================================================
+   tsudev design tokens - BA chế độ: Sáng (mặc định) / Ấm / Tối.
+
+   FILE NÀY ĐƯỢC SINH RA. Đừng sửa tay - lần chạy `npm run tokens:sync` kế tiếp
+   ghi đè. Nguồn: tokens/design-tokens.json (nguồn chân lý duy nhất của cả hệ
+   sinh thái, xem docs/DESIGN_SYSTEM.md).
+
+   Chọn chế độ: thuộc tính `data-theme` trên <html>. Bảng màu ở đây KHÔNG treo
+   vào cài đặt hệ điều hành, và đó là cố ý - làm vậy thì hai người mở CÙNG một
+   đường link thấy hai giao diện khác nhau mà không ai chọn gì cả. Người dùng muốn
+   bám theo máy thì chọn "Theo hệ thống" trong nút đổi giao diện; lựa chọn đó được
+   giải ra thành một giá trị data-theme cụ thể trong pages/_document.tsx, TRƯỚC khi
+   trang được vẽ. (Test canh điều này bằng cách tìm câu lệnh media query trong file,
+   nên đừng viết tên câu lệnh đó ra đây kể cả trong chú thích.)
+
+   Mọi cặp chữ/nền ở CẢ BA chế độ bị packages/ui/test/contrast.test.ts canh ở
+   ngưỡng WCAG AA. Đổi một mã màu làm tụt tương phản là CI đỏ.
+   ============================================================ */
+
+/* Sáng - MẶC ĐỊNH. `:root` trần mang bảng này, nên lượt tải đầu tiên của một
+   khách vãng lai luôn là Sáng dù hệ điều hành của họ đặt gì. */
+:root,
+:root[data-theme='light'] {
   color-scheme: light;
 
-  /* Bề mặt. Thứ bậc dựng bằng độ sáng nền, không bằng viền/đổ bóng:
-     surface (nền trang, xanh rất nhạt) < panel (card & modal, trắng)
-     < panel-2 (hover và khối lồng nhau: code, badge, footer).
+  /* Bảng chuẩn hệ sinh thái - tokens/design-tokens.json > color.light */
+  --bg-base: #eef4fb;
+  --bg-surface: #ffffff;
+  --bg-subtle: #e3edf8;
+  --bg-hover: #dce8f6;
+  --border: #c9d9ec;
+  --border-strong: #9fb8d4;
+  --text-primary: #1c2b3a;
+  --text-secondary: #44607c;
+  --text-muted: #5f7891;
+  --text-link: #1d4ed8;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-active: #1e40af;
+  --on-primary: #ffffff;
+  --focus-ring: #2563eb;
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #dc2626;
+  --info: #0369a1;
+  --on-status: #ffffff;
+  --overlay: rgba(15, 27, 45, 0.45);
 
-     Ở chế độ sáng thứ tự độ sáng ĐẢO LẠI so với chế độ tối - card SÁNG hơn nền
-     trang. Giữ nguyên chiều "panel sáng hơn surface" của chế độ tối sẽ cho ra
-     card xám trên nền trắng, tức là card trông như bị vô hiệu hoá. */
-  --surface: #eef3fa;
-  --panel: #ffffff;
-  --panel-2: #e4ecf7;
-  --border: #ccd7e6;
-  --border-strong: #7889a2;
-
-  /* Chữ */
-  --ink: #101a26;
-  --ink-soft: #35455a;
-  --muted: #52627a;
-
-  /* Thương hiệu */
-  --primary: #0b5fad;
-  --primary-ink: #0a4f90;
-  --primary-contrast: #ffffff;
+  /* Mở rộng riêng của tsudev-web - > extensions.tsudev-web.light */
   --accent: #0a6a5b;
-
-  /* Ngữ nghĩa - sắc ĐẬM để nổi trên nền sáng; chữ đặt trên các màu này là
-     màu trắng (xem --on-vivid), ngược với chế độ tối. */
-  --success: #146c37;
-  --warning: #7a4d00;
-  --error: #b3243c;
-  --on-vivid: #ffffff;
-
-  /* Màu icon theo CHỨC NĂNG.
-     Mỗi nhóm hành động một sắc riêng để mắt nhận ra nhóm trước khi đọc nhãn -
-     đó là điều một hàng icon cùng màu xám không làm được. Sáu sắc, không nhiều
-     hơn: quá bảy màu thì chúng thôi là mã và trở thành nhiễu.
-
-     Tất cả đều được canh tương phản ≥4.5:1 so với cả ba tầng bề mặt, vì icon
-     mang thông tin chứ không phải trang trí (xem packages/ui/test/contrast). */
-  --icon-nav: #0b5fad; /* điều hướng, liên kết */
-  --icon-create: #146c37; /* tạo, thêm, tải lên */
-  --icon-edit: #7a4d00; /* sửa, cấu hình */
-  --icon-danger: #b3243c; /* xoá, thu hồi */
-  --icon-info: #4a4a8f; /* thông tin, siêu dữ liệu */
-  --icon-trust: #0a6a5b; /* con dấu, xác minh */
-
-  /* Hoạ tiết lưới kỹ thuật */
-  --grid-line: rgba(16, 26, 38, 0.06);
-  --glow: rgba(11, 95, 173, 0.16);
-
-  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas,
-    monospace;
-
-  /* Bo góc nhỏ, vuông vắn - hình ngôn ngữ của giao diện sản phẩm chuyên nghiệp.
-     Bo tròn nhiều đọc như trang tiếp thị, không như công cụ. */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  --glow: rgba(37, 99, 235, 0.14);
+  --grid-line: rgba(28, 43, 58, 0.06);
+  --icon-nav: #1d4ed8;
+  --icon-create: #146c37;
+  --icon-edit: #7a4d00;
+  --icon-danger: #b3243c;
+  --icon-info: #4a4a8f;
+  --icon-trust: #0a6a5b;
+  --success-ink: #146c37;
+  --warning-ink: #7a4d00;
+  --danger-ink: #b3243c;
+  --info-ink: #0369a1;
+  --success-tint: #e3f0e8;
+  --warning-tint: #f6eae1;
+  --danger-tint: #fbe5e5;
+  --info-tint: #e1edf4;
+  --text-muted: #52627a;
+  --border-control: #74899f;
 }
 
-/* Chế độ tối - bảng màu "developer console" nguyên bản: nền đen tuyền, điểm
-   nhấn Electric Blue & Teal. */
+/* Ấm (sepia) - cho phiên làm việc dài hoặc ánh sáng gắt. Chỉ đến bằng lựa chọn
+   thủ công; không có đường nào tự động rơi vào chế độ này. */
+:root[data-theme='warm'] {
+  color-scheme: light;
+
+  /* Bảng chuẩn hệ sinh thái - tokens/design-tokens.json > color.warm */
+  --bg-base: #f6f1e6;
+  --bg-surface: #fcf8ef;
+  --bg-subtle: #efe8d9;
+  --bg-hover: #e9e1cf;
+  --border: #dcd1ba;
+  --border-strong: #bcae90;
+  --text-primary: #2e2a21;
+  --text-secondary: #5b5342;
+  --text-muted: #6e6552;
+  --text-link: #1a56b8;
+  --primary: #1e5fc2;
+  --primary-hover: #174fa6;
+  --primary-active: #123f86;
+  --on-primary: #ffffff;
+  --focus-ring: #1e5fc2;
+  --success: #1b6e38;
+  --warning: #9a4a07;
+  --danger: #be2020;
+  --info: #0b5e86;
+  --on-status: #ffffff;
+  --overlay: rgba(46, 42, 33, 0.45);
+
+  /* Mở rộng riêng của tsudev-web - > extensions.tsudev-web.warm */
+  --accent: #0a5f52;
+  --glow: rgba(30, 95, 194, 0.12);
+  --grid-line: rgba(46, 42, 33, 0.07);
+  --icon-nav: #1a56b8;
+  --icon-create: #1b6e38;
+  --icon-edit: #9a4a07;
+  --icon-danger: #be2020;
+  --icon-info: #464678;
+  --icon-trust: #0a5f52;
+  --success-ink: #1b6e38;
+  --warning-ink: #9a4a07;
+  --danger-ink: #be2020;
+  --info-ink: #0b5e86;
+  --success-tint: #e1e7d9;
+  --warning-tint: #f0e3d3;
+  --danger-tint: #f5ded6;
+  --info-tint: #dfe6e2;
+  --text-muted: #5e5646;
+  --border-control: #8e8064;
+}
+
+/* Tối - cho phòng tối. Nền là navy #0F1B2D chứ KHÔNG phải đen tuyền: đen tuyệt
+   đối bị DESIGN_SYSTEM.md §1 cấm ở mọi chế độ vì độ chói giữa chữ và nền quá
+   gắt khi đọc lâu. */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --surface: #000000;
-  --panel: #121212;
-  --panel-2: #1c1c1c;
-  --border: #2b2b2b;
-  --border-strong: #666666;
+  /* Bảng chuẩn hệ sinh thái - tokens/design-tokens.json > color.dark */
+  --bg-base: #0f1b2d;
+  --bg-surface: #16263c;
+  --bg-subtle: #1c2f4a;
+  --bg-hover: #223a5a;
+  --border: #2c4363;
+  --border-strong: #3f5b80;
+  --text-primary: #e6edf5;
+  --text-secondary: #a9bbd0;
+  --text-muted: #8298b2;
+  --text-link: #7fb2f7;
+  --primary: #66a3f2;
+  --primary-hover: #7fb2f7;
+  --primary-active: #4e8fe6;
+  --on-primary: #0c1930;
+  --focus-ring: #66a3f2;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #38bdf8;
+  --on-status: #0c1930;
+  --overlay: rgba(0, 0, 0, 0.6);
 
-  /* Tránh trắng tinh trên nền đen tuyền để giảm loé chữ */
-  --ink: #ededed;
-  --ink-soft: #b4b4b4;
-  --muted: #9a9a9a;
-
-  --primary: #4c8bff;
-  --primary-ink: #82adff;
-  --primary-contrast: #06122a;
-  --accent: #2bd0b8;
-
-  /* Sắc SÁNG để nổi trên nền tối; chữ đặt trên chúng là màu tối. */
-  --success: #3ecf72;
-  --warning: #e0a53a;
-  --error: #ff6a6a;
-  --on-vivid: #06122a;
-
-  /* Cùng sáu chức năng, sắc SÁNG để nổi trên nền tối. Giữ nguyên bảng của chế
-     độ sáng ở đây sẽ cho ra sáu vệt tối gần như vô hình trên nền đen. */
-  --icon-nav: #6ba6ff;
-  --icon-create: #4fd98a;
-  --icon-edit: #e8b45c;
-  --icon-danger: #ff8a8a;
-  --icon-info: #a8a8ee;
+  /* Mở rộng riêng của tsudev-web - > extensions.tsudev-web.dark */
+  --accent: #3fddc4;
+  --glow: rgba(102, 163, 242, 0.22);
+  --grid-line: rgba(230, 237, 245, 0.06);
+  --icon-nav: #7fb2f7;
+  --icon-create: #4ade80;
+  --icon-edit: #fbbf24;
+  --icon-danger: #f87171;
+  --icon-info: #b7b7f0;
   --icon-trust: #3fddc4;
-
-  --grid-line: rgba(255, 255, 255, 0.05);
-  --glow: rgba(76, 139, 255, 0.22);
+  --success-ink: #4ade80;
+  --warning-ink: #fbbf24;
+  --danger-ink: #f87171;
+  --info-ink: #38bdf8;
+  --success-tint: #1c3c44;
+  --warning-tint: #313839;
+  --danger-tint: #312f42;
+  --info-tint: #1a3853;
+  --text-muted: #9bb0c9;
+  --border-control: #6e88ae;
 }
 
-/* Skip link for accessibility.
-   Trên nền đen tuyền, đổ bóng đen không tách lớp được nên dùng viền thương hiệu. */
-.skip-link {
-  position: absolute;
-  left: -9999px;
-  top: auto;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-.skip-link:focus {
-  position: fixed;
-  left: 16px;
-  top: 16px;
-  width: auto;
-  height: auto;
-  background: var(--panel);
-  padding: 8px 12px;
-  border-radius: 8px;
-  z-index: 9999;
-  color: var(--primary-ink);
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+/* ------------------------------------------------------------
+   Token không phụ thuộc chế độ.
+   ------------------------------------------------------------ */
+:root {
+  /* Chữ */
+  --font-family: 'Inter', 'SF Pro Text', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-body-desktop: 14px;
+  --fs-body-desktop-lg: 15px;
+  --fs-body-web: 15px;
+  --fs-body-web-lg: 16px;
+  --fs-h4: 18px;
+  --fs-h3: 20px;
+  --fs-h2: 24px;
+  --fs-h1: 30px;
+  --fs-display-sm: 36px;
+  --fs-display-md: 48px;
+  --fs-display-lg: 60px;
+  --lh-heading: 1.3;
+  --lh-body: 1.55;
+  --lh-long-text: 1.6;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --ls-body: 0;
+  --ls-heading: -0.01em;
+  --ls-caps-label: 0.04em;
+
+  /* Bo góc - none=khung layout/sidebar/header (thẳng tắp) | sm=badge,checkbox,tag | md=button,input,dropdown,modal nhỏ | lg=modal lớn,table container,card */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Khoảng cách - bội số 4px. Padding button: 8px 16px. Padding modal: 24px. Gap giữa field trong form: 16px. Gap giữa section: 32px. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* Đổ bóng - sm=button/input | md=dropdown/toast/card nổi | lg=modal. Dark mode giữ nguyên giá trị. */
+  --shadow-sm: 0 1px 2px rgba(15, 27, 45, 0.06);
+  --shadow-md: 0 2px 8px rgba(15, 27, 45, 0.1);
+  --shadow-lg: 0 8px 24px rgba(15, 27, 45, 0.14);
+
+  /* Tầng xếp lớp */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-modal-overlay: 1040;
+  --z-modal: 1050;
+  --z-toast: 1080;
+  --z-tooltip: 1090;
+
+  /* Chuyển động - hover/focus dùng fast; mở dropdown dùng base; mở modal dùng slow. Tôn trọng prefers-reduced-motion. */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 260ms;
+  --motion-easing: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Mật độ (DESIGN_SYSTEM.md §3). Comfortable là mặc định; Compact đặt bằng
+     data-density="compact" cho bảng nhiều dữ liệu. */
+  --control-h: 36px;
+  --row-h: 44px;
+  --cell-py: 12px;
+  --cell-px: 16px;
+  --list-item-h: 40px;
+  --measure: 72ch;
 }
 
-/* Faint technical grid used behind hero/section motifs */
-.tsu-grid {
-  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 44px 44px;
+:root[data-density='compact'] {
+  --control-h: 32px;
+  --row-h: 36px;
+  --cell-py: 8px;
+  --cell-px: 12px;
+  --list-item-h: 32px;
 }

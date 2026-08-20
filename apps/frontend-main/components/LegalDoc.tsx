@@ -41,18 +41,18 @@ export const LegalDoc = ({
         <Badge tone="teal" mono className="mb-4">
           {eyebrow}
         </Badge>
-        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-ink text-balance leading-tight">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-fg text-balance leading-tight">
           {title}
         </h1>
-        <p className="mt-5 text-lg text-inksoft leading-relaxed">{lead}</p>
-        <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm font-mono text-muted">
+        <p className="mt-5 text-lg text-fg-secondary leading-relaxed">{lead}</p>
+        <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-sm font-mono text-fg-muted">
           <div className="flex gap-2">
             <dt>Hiệu lực:</dt>
-            <dd className="text-inksoft">{effective}</dd>
+            <dd className="text-fg-secondary">{effective}</dd>
           </div>
           <div className="flex gap-2">
             <dt>Cập nhật:</dt>
-            <dd className="text-inksoft">{updated}</dd>
+            <dd className="text-fg-secondary">{updated}</dd>
           </div>
         </dl>
       </header>
@@ -62,14 +62,14 @@ export const LegalDoc = ({
           {sections.map((s, i) => (
             <section key={s.id} id={s.id} className="scroll-mt-24">
               <h2 className="flex items-baseline gap-3">
-                <span className="font-mono text-base text-teal shrink-0">{i + 1}.</span>
+                <span className="font-mono text-base text-accent shrink-0">{i + 1}.</span>
                 <span>{s.heading}</span>
               </h2>
               {s.body}
             </section>
           ))}
           {note && (
-            <aside className="mt-14 border-t border-hairstrong pt-6 text-sm text-muted">
+            <aside className="mt-14 border-t border-line-strong pt-6 text-sm text-fg-muted">
               {note}
             </aside>
           )}

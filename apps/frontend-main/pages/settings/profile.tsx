@@ -82,9 +82,9 @@ const Section = ({
   hint?: string;
   children: React.ReactNode;
 }) => (
-  <section className="rounded-lg border border-hairline bg-panel p-5 sm:p-6">
-    <h2 className="text-base font-semibold text-ink">{title}</h2>
-    {hint && <p className="mt-1 text-sm text-muted">{hint}</p>}
+  <section className="rounded-lg border border-line bg-surface p-5 sm:p-6">
+    <h2 className="text-base font-semibold text-fg">{title}</h2>
+    {hint && <p className="mt-1 text-sm text-fg-muted">{hint}</p>}
     <div className="mt-4">{children}</div>
   </section>
 );
@@ -92,8 +92,8 @@ const Section = ({
 /** Chỉ đọc: những thứ trang này CỐ Ý không cho sửa. */
 const ReadOnlyRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex flex-wrap items-baseline justify-between gap-2 py-2">
-    <span className="text-sm text-muted">{label}</span>
-    <span className="text-sm text-ink">{value}</span>
+    <span className="text-sm text-fg-muted">{label}</span>
+    <span className="text-sm text-fg">{value}</span>
   </div>
 );
 
@@ -133,7 +133,7 @@ export default function ProfilePage() {
     return (
       <Layout active="/settings">
         <Seo title="Hồ sơ" path="/settings/profile" noindex />
-        <p className="text-sm text-muted">Đang tải…</p>
+        <p className="text-sm text-fg-muted">Đang tải…</p>
       </Layout>
     );
   }
@@ -206,8 +206,8 @@ export default function ProfilePage() {
       <Seo title="Hồ sơ" path="/settings/profile" noindex />
 
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-semibold text-ink">Hồ sơ</h1>
-        <p className="mt-1 text-sm text-muted">
+        <h1 className="text-2xl font-semibold text-fg">Hồ sơ</h1>
+        <p className="mt-1 text-sm text-fg-muted">
           Tên hiển thị và giới thiệu là thông tin CÔNG KHAI - chúng xuất hiện dưới mỗi bài viết bạn
           đăng.
         </p>
@@ -229,7 +229,7 @@ export default function ProfilePage() {
                 maxLength={60}
               />
               <div className="flex flex-col">
-                <label htmlFor="bio" className="mb-1 text-sm font-medium text-inksoft">
+                <label htmlFor="bio" className="mb-1 text-sm font-medium text-fg-secondary">
                   Giới thiệu
                 </label>
                 <textarea
@@ -238,9 +238,9 @@ export default function ProfilePage() {
                   onChange={(e) => setBio(e.target.value)}
                   rows={4}
                   maxLength={MAX_BIO}
-                  className="rounded-md border border-hairline bg-surface px-3 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-brand"
+                  className="rounded-md border border-line bg-base px-3 py-2.5 text-sm text-fg outline-none transition-colors placeholder:text-fg-muted focus:border-primary"
                 />
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-sm text-fg-muted">
                   {bio.length}/{MAX_BIO} ký tự
                 </p>
               </div>
@@ -256,7 +256,7 @@ export default function ProfilePage() {
           >
             {profile && !profile.hasPassword ? (
               <div>
-                <p className="text-sm text-muted">
+                <p className="text-sm text-fg-muted">
                   Tài khoản này đăng nhập bằng passkey và chưa từng đặt mật khẩu.
                 </p>
                 <Button as="a" href="/forgot-password" variant="secondary" className="mt-3">
@@ -297,12 +297,12 @@ export default function ProfilePage() {
             title="Không đổi được ở đây"
             hint="Ba thứ này cố ý nằm ngoài trang hồ sơ - lý do ghi ngay bên cạnh."
           >
-            <div className="divide-y divide-hairline">
+            <div className="divide-y divide-line">
               <ReadOnlyRow label="Tên đăng nhập" value={profile?.username ?? '…'} />
               <ReadOnlyRow label="Email" value={profile?.email ?? '…'} />
               <ReadOnlyRow label="Vai trò" value={profile?.role ?? '…'} />
             </div>
-            <p className="mt-4 text-sm text-muted">
+            <p className="mt-4 text-sm text-fg-muted">
               Đổi email phải xác minh địa chỉ mới TRƯỚC khi thay - thay trước rồi mới gửi thư là mở
               một đường chiếm tài khoản. Vai trò chỉ nâng được bằng mã mời.
             </p>

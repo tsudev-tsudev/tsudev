@@ -42,7 +42,7 @@ export default function ProjectsIndex({ projects }: ProjectsIndexProps) {
             ) : null
           }
         />
-        <p className="-mt-2 mb-6 text-sm text-muted max-w-2xl">
+        <p className="-mt-2 mb-6 text-sm text-fg-muted max-w-2xl">
           Mỗi dự án ghi rõ giấy phép mã nguồn và trạng thái đăng ký quyền tác giả. Dự án đã đăng ký
           là căn cứ để cấp con dấu cho website sử dụng nó.
         </p>
@@ -54,10 +54,10 @@ export default function ProjectsIndex({ projects }: ProjectsIndexProps) {
               type="button"
               onClick={() => setKind(f.key)}
               aria-pressed={kind === f.key}
-              className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
                 kind === f.key
-                  ? 'border-transparent bg-panel2 text-brandink'
-                  : 'border-hairline text-muted hover:text-ink'
+                  ? 'border-transparent bg-subtle text-link'
+                  : 'border-line text-fg-muted hover:text-fg'
               }`}
             >
               {f.label}
@@ -67,7 +67,9 @@ export default function ProjectsIndex({ projects }: ProjectsIndexProps) {
 
         <div className="grid md:grid-cols-2 gap-4">
           {shown.length === 0 && (
-            <Card className="p-6 text-muted md:col-span-2">Chưa có dự án nào trong mục này.</Card>
+            <Card className="p-6 text-fg-muted md:col-span-2">
+              Chưa có dự án nào trong mục này.
+            </Card>
           )}
           {shown.map((p) => {
             const cr = copyrightMeta(p.copyrightStatus);
@@ -84,11 +86,11 @@ export default function ProjectsIndex({ projects }: ProjectsIndexProps) {
                   <Badge tone="outline">{STATUS_LABEL[p.status] || p.status}</Badge>
                   {p.featured && <Badge tone="brand">Nổi bật</Badge>}
                 </div>
-                <h2 className="text-xl font-bold text-ink leading-snug group-hover:text-brandink transition-colors text-balance">
+                <h2 className="text-xl font-bold text-fg leading-snug group-hover:text-link transition-colors text-balance">
                   {p.name}
                 </h2>
-                <p className="mt-2 text-sm text-muted flex-1">{p.summary}</p>
-                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted">
+                <p className="mt-2 text-sm text-fg-muted flex-1">{p.summary}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-fg-muted">
                   <Badge tone={cr.tone}>{cr.label}</Badge>
                   {p.license && <span className="font-mono">{p.license}</span>}
                   {p.version && <span className="font-mono">v{p.version}</span>}

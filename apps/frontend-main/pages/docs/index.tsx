@@ -13,11 +13,11 @@ export default function DocsIndex({ groups }: DocsIndexProps) {
       <Seo title="Tài liệu" path="/docs" description="Kho tri thức và hướng dẫn của tsudev." />
       <div className="max-w-4xl mx-auto px-4 py-10">
         <SectionHeading eyebrow="Tài liệu" title="Kho tri thức & hướng dẫn" />
-        {groups.length === 0 && <Card className="p-6 text-muted">Chưa có tài liệu.</Card>}
+        {groups.length === 0 && <Card className="p-6 text-fg-muted">Chưa có tài liệu.</Card>}
         <div className="space-y-8">
           {groups.map((g: DocGroup) => (
             <div key={g.category}>
-              <div className="font-mono text-xs uppercase tracking-wider text-teal font-semibold mb-3">
+              <div className="font-mono text-xs uppercase tracking-wider text-accent font-semibold mb-3">
                 {g.category}
               </div>
               <Card className="p-2">
@@ -25,14 +25,14 @@ export default function DocsIndex({ groups }: DocsIndexProps) {
                   <a
                     key={d.slug}
                     href={`/docs/${d.slug}`}
-                    className="flex items-center gap-3 px-5 py-3.5 rounded-lg hover:bg-panel2 transition group"
+                    className="flex items-center gap-3 px-5 py-3.5 rounded-lg hover:bg-subtle transition group"
                   >
                     <svg
                       width="18"
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      className="text-muted"
+                      className="text-fg-muted"
                     >
                       <path
                         d="M6 4h9l3 3v13H6zM15 4v3h3"
@@ -41,7 +41,7 @@ export default function DocsIndex({ groups }: DocsIndexProps) {
                         strokeLinejoin="round"
                       />
                     </svg>
-                    <span className="text-ink font-medium group-hover:text-brandink transition-colors">
+                    <span className="text-fg font-medium group-hover:text-link transition-colors">
                       {d.title}
                     </span>
                   </a>

@@ -19,11 +19,53 @@ import type { NextRequest } from 'next/server';
  * Hệ quả: `DEV_PROXY=0` (đường lui gõ thẳng cổng từng app) vẫn chạy nguyên vẹn,
  * vì lúc đó `NEXTAUTH_COOKIE_DOMAIN` rỗng nên không có gì để chuyển hướng.
  */
+/**
+ * Production: MỘT địa chỉ duy nhất là chính tắc, mọi bí danh chuyển hướng về đó.
+ *
+ * Vì sao cần, khi thẻ `<link rel="canonical">` đã trỏ về apex: thẻ canonical là
+ * một GỢI Ý cho công cụ tìm kiếm, không phải một quy tắc cho trình duyệt. Trước
+ * đây `www.tsudev.com` và `tsudev.com` cùng trả 200 với nội dung y hệt, nên:
+ *
+ *   - người dùng ở lại `www.` suốt phiên, và mọi liên kết họ chia sẻ mang một
+ *     tên miền thứ hai - đúng thứ "thống nhất URL" sinh ra để dẹp;
+ *   - `NEXTAUTH_URL` chỉ khai apex, nên đường quay lại sau đăng nhập nhảy host
+ *     giữa chừng;
+ *   - hai host là hai bản sao nội dung, và gợi ý canonical chỉ giảm nhẹ chứ
+ *     không xoá được chuyện đó.
+ *
+ * 308 chứ không phải 302: vĩnh viễn (công cụ tìm kiếm chuyển hẳn chỉ mục) và
+ * GIỮ NGUYÊN method + body, nên một POST gõ nhầm host không biến thành GET rồi
+ * mất dữ liệu.
+ *
+ * Bản xem trước `*.workers.dev` KHÔNG bị chuyển hướng - nó phải mở được thì mới
+ * nghiệm thu được. Nhưng nó vẫn là một bản sao của toàn site, nên gắn
+ * `X-Robots-Tag: noindex` để bản nháp không đi tranh chỉ mục với bản thật.
+ */
+function canonicalHost(req: NextRequest): NextResponse {
+  const canonical = process.env.NEXTAUTH_URL;
+  if (!canonical) return NextResponse.next();
+
+  const bare = new URL(canonical).hostname.toLowerCase();
+  const rawHost = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
+  const host = (rawHost.split(':')[0] ?? '').toLowerCase();
+  if (!host || host === bare) return NextResponse.next();
+
+  // Bí danh TRONG cùng tên miền (www.tsudev.com) ⇒ gộp về host chính tắc.
+  if (host.endsWith(`.${bare}`)) {
+    return NextResponse.redirect(
+      new URL(req.nextUrl.pathname + req.nextUrl.search, canonical),
+      308
+    );
+  }
+
+  // Host lạ (bản xem trước): phục vụ bình thường, nhưng không cho lập chỉ mục.
+  const res = NextResponse.next();
+  res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return res;
+}
+
 export function middleware(req: NextRequest) {
-  // Production tự có tên miền thật và chỉ phục vụ host nằm trong domain cookie.
-  // Bản xem trước (*.workers.dev) thì KHÔNG - nhưng chuyển hướng nó về production
-  // là sai, nên ở đó ta để yên và không giả vờ sửa.
-  if (process.env.NODE_ENV === 'production') return NextResponse.next();
+  if (process.env.NODE_ENV === 'production') return canonicalHost(req);
 
   const cookieDomain = process.env.NEXTAUTH_COOKIE_DOMAIN;
   const canonical = process.env.NEXTAUTH_URL;

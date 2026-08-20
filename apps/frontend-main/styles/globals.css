@@ -1,5 +1,10 @@
+/* Token trước Tailwind: mọi class bên dưới đều phân giải thành var(--…) khai ở
+   đây. packages/ui/src/tokens.css là ARTIFACT sinh từ tokens/design-tokens.json
+   (`npm run tokens:sync`) - đừng sửa nó, sửa file JSON. */
 @import '../../../packages/ui/src/tokens.css';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* Weight 300 cố ý KHÔNG được nạp: DESIGN_SYSTEM.md §4 cấm dùng nó vì nét mảnh
+   làm dấu tiếng Việt khó đọc. Nạp mà cấm dùng thì chỉ tổ mời người ta dùng. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,18 +15,20 @@ body,
 #__next {
   height: 100%;
 }
-/* color-scheme do tokens.css khai báo (:root { color-scheme: dark }) */
+/* color-scheme do tokens.css khai theo từng chế độ. */
 
 @layer base {
   body {
-    background: var(--surface);
-    color: var(--ink);
-    font-family: var(--font-sans);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: var(--fs-body-web);
+    line-height: var(--lh-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   a {
-    color: var(--primary);
+    color: var(--text-link);
   }
   ::selection {
     background: var(--glow);
@@ -29,17 +36,38 @@ body,
   * {
     border-color: var(--border);
   }
+  /* Vòng focus phải NHÌN THẤY ĐƯỢC ở mọi vùng tương tác (§5): 2px solid,
+     offset 2px. Khai một lần ở đây thay vì lặp trên từng component - thiếu ở một
+     chỗ là chỗ đó không dùng được bằng bàn phím, và đó là loại hỏng không ai
+     phát hiện bằng mắt. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  /* Chữ gợi ý trong ô nhập. Preflight của Tailwind đặt cứng #9ca3af cho
+     ::placeholder - một màu xám GIỐNG NHAU ở cả ba chế độ, tức là nó không đi
+     qua token và không ai canh nó. Ô nào quên đặt `placeholder:text-fg-muted`
+     sẽ lặng lẽ mang màu đó. Đặt lại ở đây để mặc định là đúng. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  /* Vùng bị vô hiệu hoá: mờ 0.5, con trỏ not-allowed, không nhận hover/focus. */
+  [disabled],
+  [aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-  .bg-brand {
-    background-color: var(--primary);
-  }
-  .bg-teal {
-    background-color: var(--accent);
+  /* Khối văn bản dài tối đa 72ch (§3) - quá đó thì mắt đảo dòng bị mỏi. */
+  .measure {
+    max-width: var(--measure);
   }
 }
 
@@ -52,18 +80,54 @@ body,
   }
 }
 
-/* Markdown content rendered from the DB */
+/* Liên kết bỏ qua điều hướng - ẩn cho tới khi được focus bằng bàn phím. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  position: fixed;
+  left: var(--sp-4);
+  top: var(--sp-4);
+  width: auto;
+  height: auto;
+  background: var(--bg-surface);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-tooltip);
+  color: var(--text-link);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Hoạ tiết lưới kỹ thuật sau khối hero. Thuần trang trí, aria-hidden ở nơi gọi. */
+.tsu-grid {
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Markdown dựng từ DB. Thang cỡ chữ và chiều cao dòng lấy thẳng từ token: văn
+   bản dài dùng --lh-long (1.6), tiêu đề dùng --lh-heading (1.3). */
 .prose-tsu {
-  color: var(--ink-soft);
-  line-height: 1.7;
+  color: var(--text-secondary);
+  line-height: var(--lh-long);
+  max-width: var(--measure);
 }
 .prose-tsu h1,
 .prose-tsu h2,
-.prose-tsu h3 {
-  color: var(--ink);
-  font-weight: 600;
+.prose-tsu h3,
+.prose-tsu h4 {
+  color: var(--text-primary);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-heading);
   margin: 1.6em 0 0.5em;
-  line-height: 1.3;
+  line-height: var(--lh-heading);
   /* Header dính ở đỉnh cao 4rem. Không có dòng này thì mọi liên kết neo - kể cả
      từ chính mục lục - cuộn tiêu đề vào ĐÚNG CHỖ header che mất, và người dùng
      thấy mình rơi vào giữa đoạn văn. */
@@ -74,23 +138,26 @@ body,
   margin-top: 0;
 }
 .prose-tsu h1 {
-  font-size: 1.75rem;
+  font-size: var(--fs-h1);
 }
 .prose-tsu h2 {
-  font-size: 1.5rem;
+  font-size: var(--fs-h2);
   /* Đường kẻ mảnh dưới h2: cách các trang tài liệu kỹ thuật phân đoạn bài dài.
      Nó làm ranh giới mục nhìn thấy được mà không cần thêm khoảng trắng. */
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.3em;
 }
 .prose-tsu h3 {
-  font-size: 1.15rem;
+  font-size: var(--fs-h3);
+}
+.prose-tsu h4 {
+  font-size: var(--fs-h4);
 }
 .prose-tsu p {
   margin: 0.8em 0;
 }
 .prose-tsu a {
-  color: var(--primary-ink);
+  color: var(--text-link);
   text-decoration: underline;
 }
 .prose-tsu ul {
@@ -98,19 +165,24 @@ body,
   padding-left: 1.4em;
   margin: 0.8em 0;
 }
+.prose-tsu ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+  margin: 0.8em 0;
+}
 .prose-tsu code {
   font-family: var(--font-mono);
   font-size: 0.88em;
-  background: var(--panel-2);
+  background: var(--bg-subtle);
   border: 1px solid var(--border);
   padding: 0.1em 0.35em;
   border-radius: var(--radius-sm);
 }
 .prose-tsu pre {
-  background: var(--panel-2);
+  background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: var(--sp-3) var(--sp-4);
   overflow-x: auto;
   margin: 1em 0;
 }
@@ -122,6 +194,24 @@ body,
 .prose-tsu blockquote {
   border-left: 3px solid var(--accent);
   padding-left: 1em;
-  color: var(--muted);
+  color: var(--text-muted);
   margin: 1em 0;
+}
+/* Bảng trong bài: container bo lg, header nền subtle, phân cách hàng 1px (§5). */
+.prose-tsu table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: var(--fs-sm);
+}
+.prose-tsu th,
+.prose-tsu td {
+  border-bottom: 1px solid var(--border);
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+}
+.prose-tsu th {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-weight: var(--fw-semibold);
 }

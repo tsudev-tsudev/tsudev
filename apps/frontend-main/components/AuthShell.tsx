@@ -22,12 +22,12 @@ export const AuthShell = ({ title, description, children, footer }: AuthShellPro
   <Layout active="/login">
     <Seo title={`${title} - tsudev`} description={description} />
     <div className="mx-auto w-full max-w-[26rem] py-6">
-      <div className="rounded-lg border border-hairline bg-panel p-6 sm:p-8">
-        <h1 className="text-xl font-semibold text-ink">{title}</h1>
-        {description && <p className="mt-1.5 text-sm text-muted">{description}</p>}
+      <div className="rounded-lg border border-line bg-surface p-6 sm:p-8">
+        <h1 className="text-xl font-semibold text-fg">{title}</h1>
+        {description && <p className="mt-1.5 text-sm text-fg-muted">{description}</p>}
         <div className="mt-6">{children}</div>
       </div>
-      {footer && <div className="mt-4 text-center text-sm text-muted">{footer}</div>}
+      {footer && <div className="mt-4 text-center text-sm text-fg-muted">{footer}</div>}
     </div>
   </Layout>
 );
@@ -43,7 +43,7 @@ export const Notice = ({ kind, children }: { kind: 'error' | 'ok'; children: Rea
   <div
     role="alert"
     className={`mb-4 rounded-md border px-3 py-2.5 text-sm ${
-      kind === 'error' ? 'border-error text-error' : 'border-hairline bg-panel2 text-ink'
+      kind === 'error' ? 'border-danger text-danger' : 'border-line bg-subtle text-fg'
     }`}
   >
     {children}

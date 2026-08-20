@@ -1,20 +1,35 @@
 import React from 'react';
 
-// Mọi màu chữ trên nền đặc đều đi qua token, không cắm cứng mã hex: `teal`
-// trước đây dùng #04231f - một màu chữ TỐI, đúng cho nền teal sáng của chế độ
-// tối, nhưng ở chế độ sáng thì nền teal là #0a6a5b (đậm) nên chữ tối trên nền
-// tối gần như không đọc được. Token --on-vivid đảo theo chế độ, mã hex thì không.
+/**
+ * Nút - DESIGN_SYSTEM.md §5.
+ *
+ * Bốn trạng thái BẮT BUỘC cho mọi vùng tương tác, và ba trong bốn cái chỉ hỏng
+ * với người không dùng chuột nên rất dễ lọt khi thử tay:
+ *   Default  - màu token gốc.
+ *   Hover    - nền `primary-hover`/`bg-hover`, con trỏ pointer, đổi màu 120ms.
+ *   Focus    - vòng 2px `focus-ring` offset 2px, luôn nhìn thấy bằng bàn phím.
+ *   Disabled - mờ 0.5, con trỏ not-allowed, KHÔNG nhận hover.
+ *
+ * Hover dùng token `primary-hover` chứ không phải `brightness-110` như bản
+ * trước: bộ lọc độ sáng nhân giá trị màu, nên ở chế độ Tối - nơi `primary` vốn
+ * đã sáng - nó đẩy nút gần về trắng và làm chữ `on-primary` tụt tương phản.
+ * Token thì được canh bởi contrast.test.ts ở cả ba chế độ, bộ lọc thì không.
+ */
 const VARIANTS = {
-  primary: 'text-brandcontrast bg-brand hover:brightness-110',
-  secondary: 'bg-panel border border-hairstrong text-ink hover:border-brand',
-  ghost: 'bg-transparent text-inksoft hover:bg-panel2 hover:text-ink',
-  teal: 'text-onvivid bg-teal hover:brightness-110',
-  danger: 'text-onvivid bg-error hover:brightness-110',
+  primary: 'bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-active',
+  secondary: 'bg-surface border border-line-control text-fg hover:bg-hovered hover:border-primary',
+  ghost: 'bg-transparent text-fg-secondary hover:bg-hovered hover:text-fg',
+  // Sắc phụ của con dấu tín nhiệm. Chữ dùng --on-status vì nền là màu ngữ nghĩa.
+  teal: 'bg-accent text-on-status hover:opacity-90',
+  danger: 'bg-danger text-on-status hover:opacity-90',
 } as const;
+
+// Chiều cao lấy từ token mật độ: Comfortable 36px, Compact 32px (data-density).
+// `sm`/`lg` là hai bậc phụ quanh nó, không phải một thang riêng.
 const SIZES = {
   sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
+  md: 'h-control px-sp4 text-sm',
+  lg: 'h-11 px-sp6 text-base',
 } as const;
 
 export type ButtonVariant = keyof typeof VARIANTS;
@@ -40,9 +55,16 @@ export const Button = ({
 }: ButtonProps) => {
   // Giữ `??` dự phòng dù kiểu đã ràng: các trang gọi component này hiện vẫn là
   // .js chưa được kiểm kiểu, nên giá trị ngoài union vẫn tới được đây lúc chạy.
-  const cls = `inline-flex items-center justify-center gap-2 rounded-md font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-    SIZES[size] ?? SIZES.md
-  } ${VARIANTS[variant] ?? VARIANTS.primary} ${className}`;
+  const cls = [
+    'inline-flex items-center justify-center gap-2 rounded-md font-semibold cursor-pointer',
+    'transition-colors duration-fast ease-standard',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus',
+    // Disabled thắng mọi biến thể: `:disabled` chặn cả hover lẫn đổ bóng.
+    'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none disabled:shadow-none',
+    SIZES[size] ?? SIZES.md,
+    VARIANTS[variant] ?? VARIANTS.primary,
+    className,
+  ].join(' ');
   const Tag = (as ?? 'button') as React.ElementType;
   return (
     <Tag className={cls} {...props}>

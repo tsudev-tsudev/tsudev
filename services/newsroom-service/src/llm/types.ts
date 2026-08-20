@@ -46,3 +46,21 @@ export class QuotaExhaustedError extends Error {
     this.provider = provider
   }
 }
+
+/// Cạn hạn mức ở MỌI nhà cung cấp - khác hẳn "hỏng".
+///
+/// Hạn mức miễn phí cạn mỗi ngày là chuyện BÌNH THƯỜNG của hệ này, không phải
+/// sự cố: 10.000 Neuron/ngày là thiết kế, và nó reset lúc 00:00 UTC. Trước khi
+/// có lớp phân biệt này, mọi lượt cạn hạn mức đều đi chung đường với lỗi thật:
+/// sự kiện bị tính một lần thử hỏng, ba lần thì DEAD vĩnh viễn, và bản nháp
+/// đang viết dở nằm lại mãi. Ba nhịp trong một ngày cạn Neuron là đủ giết một
+/// bài - đó chính là các "bài bị lỗi" ở /admin/newsroom.
+///
+/// Người gọi phải HOÃN việc lại (trả sự kiện về PENDING, không tăng attempts),
+/// chứ không được coi là thất bại.
+export class AllProvidersExhaustedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'AllProvidersExhaustedError'
+  }
+}

@@ -1,12 +1,103 @@
-# Phân vai agent - tsudev
+# AGENTS.md - tsudev
+
+> File này có HAI phần. **Phần A** là bộ quy ước v1.0.0 dùng chung cho mọi repo
+> trong hệ sinh thái tsudev - nguyên văn, bất khả xâm phạm. **Phần B** là phần
+> riêng của repo tsudev: bảng phân vai 8 agent và cách chạy song song. Phần B
+> tuân theo phần A, không ghi đè nó; chỗ nào cần nói rõ thêm thì nói rõ ở phần B.
+>
+> Ngữ cảnh kỹ thuật của repo (bản đồ cổng, gotcha, quy ước code) nằm ở
+> [`CLAUDE.md`](CLAUDE.md), không lặp lại ở đây.
+
+---
+
+# PHẦN A - Quy ước bắt buộc (bộ quy ước v1.0.0, KHÔNG SỬA)
+
+> **ĐỌC FILE NÀY ĐẦU TIÊN trong mọi phiên làm việc mới.** Áp dụng cho toàn bộ project.
+> Các file quy ước (`AGENTS.md`, `docs/*`, `tokens/*`, `.gitignore`) là **BẤT KHẢ XÂM PHẠM**: chỉ đọc-hiểu-tuân thủ, KHÔNG được sửa/xóa trừ khi chủ project yêu cầu trực tiếp.
+
+## 0. Câu lệnh khởi động phiên (dán vào đầu mỗi phiên terminal mới)
+
+```
+Đọc AGENTS.md, logs/STATE.md và phiếu bàn giao mới nhất trong logs/handover/.
+Tuân thủ toàn bộ quy ước. Nhận task tiếp theo trong hàng đợi của STATE.md,
+khóa file mình sẽ sửa vào logs/LOCKS.md rồi mới bắt đầu. Trả lời ngắn gọn,
+tiết kiệm token, không lặp lại nội dung đã có trong file quy ước.
+```
+
+## 1. Nguyên tắc tiết kiệm token / context
+
+- Không đọc lại file đã nắm nội dung trong cùng phiên; không in toàn bộ file dài ra hội thoại — chỉ trích phần liên quan.
+- Trả lời và ghi log **ngắn gọn, gạch đầu dòng, không văn mẫu**. Không lặp lại quy ước đã có sẵn trong docs.
+- Mọi tri thức dùng lại được (quyết định kiến trúc, cách chạy build, lỗi đã gặp) ghi vào file markdown tương ứng **một lần duy nhất**, các phiên sau chỉ tham chiếu đường dẫn.
+- Task lớn phải chia nhỏ; làm xong phần nào chốt phần đó vào log ngay để mất phiên không mất công.
+
+## 2. Đội ngũ agent & chống giẫm chân (File Lock + Phiếu bàn giao)
+
+- Mỗi agent nhận **một nhiệm vụ duy nhất** tại một thời điểm, ghi rõ trong `logs/STATE.md` (mục "Đang thực hiện").
+- **Trước khi sửa bất kỳ file nào**: kiểm tra `logs/LOCKS.md`. File chưa ai khóa → thêm dòng khóa `<đường dẫn> | <tên agent/nhiệm vụ> | <HH:mm DD/MM/YYYY>` rồi mới sửa. Sửa xong → xóa dòng khóa.
+- File **đang bị agent khác khóa** → TUYỆT ĐỐI không sửa. Thay vào đó tạo phiếu bàn giao tại `logs/handover/` theo mẫu `docs/templates/HANDOVER.md`, ghi rõ cần thay đổi gì, vì sao, tiêu chí hoàn thành.
+- Agent đang giữ khóa **có trách nhiệm đọc phiếu gửi đến mình trước khi nhả khóa** và thực hiện/ghi kết quả vào chính phiếu đó.
+- Không bao giờ tự ý can thiệp nhiệm vụ, nhánh git, hoặc file của agent khác đang thực hiện.
+
+## 3. Git, bảo mật & .gitignore
+
+- `.gitignore` gốc của repo là chuẩn tối thiểu. Trong quá trình làm việc, hễ **tạo ra** file/thư mục chứa secret, credential, cache, build output, dữ liệu cá nhân → **bổ sung ngay vào `.gitignore` trước khi commit**.
+- **Checklist bắt buộc trước mọi commit / PR / merge / deploy / push:**
+  1. `git status` — không có file lạ ngoài phạm vi task.
+  2. Không có secret/API key/token/mật khẩu/connection string trong diff (kể cả trong comment, log, file test). Secret chỉ nằm trong `.env*` (đã ignore) hoặc secret manager của nền tảng.
+  3. File mới thuộc nhóm nhạy cảm/cache đã vào `.gitignore`.
+  4. Build/test pass ở mức tối thiểu của task.
+  5. Commit message: `loại(phạm-vi): mô tả ngắn` — ví dụ `fix(auth): sửa hết hạn token`.
+- Lỡ commit secret → coi secret đã lộ: thu hồi/đổi khóa ngay, xóa khỏi lịch sử, ghi sự cố vào `logs/STATE.md`.
+- Không tắt HTTPS/SSL verify, không hạ cấp thuật toán mã hóa, không mở cổng/quyền rộng hơn mức task cần.
+
+## 4. Tiết kiệm chi phí hạ tầng (mặc định cho mọi project)
+
+- **Luôn ưu tiên gói miễn phí** trước khi cân nhắc trả phí: GitHub (repo/Actions/Pages), Cloudflare (Pages/Workers/R2/DNS), Vercel/Netlify free tier, Supabase/Neon free tier, Oracle Cloud Always Free… Chỉ đề xuất trả phí khi free tier chứng minh không đủ, kèm số liệu.
+- Chọn **region gần Việt Nam**: ưu tiên **Singapore**, kế đến **Nhật Bản (Tokyo/Osaka)** cho mọi dịch vụ có chọn vùng (server, DB, CDN origin, storage).
+- Tận dụng cache/CDN miễn phí, nén tài nguyên, tránh polling — giảm băng thông là giảm chi phí.
+- Trước khi thêm dependency/dịch vụ mới: kiểm tra đã có thứ tương đương trong project chưa; ưu tiên thư viện nhẹ, mã nguồn mở.
+
+## 5. Kết thúc phiên & bàn giao (bắt buộc)
+
+Khi (a) hàng đợi việc trong `logs/STATE.md` đã cạn, (b) được yêu cầu bàn giao, hoặc (c) context sắp cạn:
+
+1. Ghi vào `logs/STATE.md`: việc đã làm, việc dang dở + bước tiếp theo cụ thể, quyết định quan trọng.
+2. Tạo phiếu bàn giao `logs/handover/YYYYMMDD-NN_<chủ-đề>.md` theo mẫu (đủ để phiên sau làm tiếp **không cần hỏi lại**, kể cả khi máy tắt đột ngột).
+3. Nhả toàn bộ khóa của mình trong `logs/LOCKS.md`.
+4. Dọn tàn dư: xóa file tạm/scratch, không để thay đổi chưa commit ngoài phạm vi bàn giao — chuẩn hóa cây làm việc sạch để phiên sau không tốn "chi phí chết".
+5. Đề xuất chủ project **đóng terminal, mở phiên mới** cho task kế tiếp.
+
+## 6. Quy ước giao diện & phát hành
+
+- Mọi thay đổi UI phải dùng token trong `tokens/` — cấm hard-code màu/cỡ chữ/radius. Chi tiết: `docs/DESIGN_SYSTEM.md`.
+- Ngày tháng hiển thị dạng số `DD/MM/YYYY` (ví dụ `01/02/2027`).
+- Tên bản phát hành app/tool theo mục 6 của `docs/DESIGN_SYSTEM.md` (ví dụ `tsudev-swico_26.8.1901_x64-setup.exe`).
+- Cấu trúc thư mục chuẩn: `docs/PROJECT_STRUCTURE.md` — tạo file mới phải đặt đúng vị trí quy định.
+
+---
+
+# PHẦN B - Phân vai agent trong repo tsudev
+
+## Tám agent chuyên trách của repo này
 
 Repo này định nghĩa **8 agent chuyên trách** trong `.claude/agents/`. Mỗi agent
-sở hữu một vùng đường dẫn tách rời nhau - **quyền sở hữu theo đường dẫn là cơ chế
-tránh xung đột, không cần file khoá**.
+sở hữu một vùng đường dẫn tách rời nhau.
 
-Lưu ý phạm vi: quyền sở hữu đường dẫn tránh được việc **hai agent sửa cùng một
-file**. Nó **không** tránh được xung đột git khi nhiều terminal dùng chung một
-working tree. Muốn chạy song song thật thì đọc mục [Chạy song
+Quyền sở hữu đường dẫn và `logs/LOCKS.md` ở §2 giải quyết **hai** việc khác nhau,
+cần cả hai:
+
+- **Quyền sở hữu đường dẫn** trả lời "ai được sửa file này" - nó là quy tắc TĨNH,
+  đọc một lần là biết, không phải hỏi ai.
+- **`logs/LOCKS.md`** trả lời "ngay lúc này có ai đang sửa nó không" - đó là trạng
+  thái ĐỘNG, và quyền sở hữu đường dẫn không trả lời được: hai phiên cùng đóng vai
+  `frontend-web` trên hai terminal vẫn giẫm chân nhau, và một task xuyên vùng thì
+  một agent buộc phải chạm file của vùng khác.
+
+Quyền sở hữu nói ai ĐƯỢC sửa; khoá nói ai ĐANG sửa. Bỏ cái nào cũng hở.
+
+Lưu ý phạm vi: cả hai đều không tránh được xung đột git khi nhiều terminal dùng
+chung một working tree. Muốn chạy song song thật thì đọc mục [Chạy song
 song](#chạy-song-song) bên dưới.
 
 ## Bảng sở hữu
@@ -16,11 +107,21 @@ song](#chạy-song-song) bên dưới.
 | `backend-api`   | `services/{content,storage,auth}-service/`                                                                | route Express, truy vấn Prisma, hợp đồng API |
 | `trust-seal`    | `services/trust-service/`, `apps/frontend-main/pages/{trust,admin/trust}`                                 | ký Ed25519, vòng khoá, quy tắc giám sát      |
 | `frontend-web`  | `apps/frontend-main/` (trừ phần của trust-seal)                                                           | trang Next, route proxy, NextAuth            |
-| `design-system` | `packages/ui/`, `packages/brand/`                                                                         | token, component dùng chung, a11y, Storybook |
+| `design-system` | `packages/ui/`, `packages/brand/`, `tokens/`                                                              | token, component dùng chung, a11y, Storybook |
 | `data-schema`   | `packages/db/`                                                                                            | schema Prisma, migration, seed               |
 | `infra-deploy`  | `docker/`, `render.yaml`, `.github/`, `.husky/`, `scripts/`, `wrangler.jsonc`, `services/backend-bundle/` | build, phát hành, CI, biến môi trường        |
 | `qa-test`       | `services/*/test/`, `e2e/`, `packages/ui/test/`                                                           | unit + E2E, cổng tương phản, chẩn đoán CI    |
-| `docs-curator`  | `docs/`, mọi `README.md`, `AGENTS.md`                                                                     | giữ tài liệu đúng và gọn                     |
+| `docs-curator`  | `docs/` (trừ file viết HOA), mọi `README.md`, `CHANGELOG.md`                                              | giữ tài liệu đúng và gọn                     |
+
+> **Ba nhóm file KHÔNG agent nào sở hữu vì không agent nào được sửa**: `AGENTS.md`
+> phần A, `docs/DESIGN_SYSTEM.md`, `docs/PROJECT_STRUCTURE.md`, `tokens/tokens.css`
+> và `tokens/design-tokens.json` khối `color`. Chúng đến từ bộ quy ước dùng chung;
+> muốn đổi thì đổi ở repo token trung tâm rồi đồng bộ xuống. `design-system` được
+> ghi vào `tokens/design-tokens.json` **chỉ ở khối `extensions.tsudev-web`**.
+>
+> `logs/STATE.md` và `logs/LOCKS.md` thì ngược lại: **mọi** agent đều ghi, và đó là
+> điểm duy nhất trong repo mà việc ghi đồng thời là bình thường - thêm/xoá đúng
+> dòng của mình, đừng viết lại cả file.
 
 > **`services/backend-bundle/` là vùng giáp ranh nguy hiểm.** Nó không chứa
 > logic nghiệp vụ nào - chỉ mount bốn app Express của `backend-api` và
@@ -142,35 +243,6 @@ git worktree list                        # kiểm còn sót không
 làm lại token, `infra-deploy` đổi đường deploy). Việc ngắn thì chi phí
 dựng worktree lớn hơn lợi ích - làm tuần tự.
 
-## Kỷ luật token (áp dụng cho mọi agent)
-
-Ngân sách ngữ cảnh là tài nguyên chung. Bốn luật, xếp theo mức tiết kiệm:
-
-**1. Định vị trước, đọc sau.** `grep -n` để tìm dòng, rồi `sed -n 'X,Yp'` đọc
-đúng đoạn. `content-service/src/index.js` hơn 1000 dòng - đọc cả file là đốt
-ngân sách cho 95% thứ không dùng.
-
-**2. Đọc theo bảng định tuyến, không đọc cả `docs/`.** Mỗi agent đã liệt kê sẵn
-1–3 file cần nạp trong định nghĩa của mình. `docs/README.md` là mục lục cho
-trường hợp còn lại. Nạp thừa một file là trả tiền cho nó ở **mọi** lượt còn lại
-của phiên.
-
-**3. Không bao giờ đọc:** `node_modules/`, `.git/`, `.next/`, `dist/`, `build/`,
-`coverage/`, `package-lock.json`, file nhị phân/ảnh.
-
-**4. Gộp lượt.** Nhiều lệnh độc lập ⇒ một lượt nhiều tool call. Mỗi lượt qua lại
-là một lần trả tiền cho **toàn bộ** ngữ cảnh đã tích luỹ.
-
-Kèm theo:
-
-- Đừng đọc lại file vừa sửa để "kiểm tra" - công cụ đã báo lỗi nếu sửa hỏng.
-- Sửa hàng loạt theo khuôn mẫu ⇒ viết script biến đổi, chạy thử rồi mới áp dụng;
-  đừng sửa tay từng file.
-- Chạy cổng kiểm tra **một lần ở cuối** cụm thay đổi, không chạy sau mỗi file.
-- Đừng tóm tắt lại việc vừa làm ở mỗi lượt; báo cáo khi xong một pha.
-- Phiên dài thì đóng terminal mở phiên mới thay vì kéo dài - ngữ cảnh cũ là chi
-  phí chết ở mọi lượt sau. Tri thức đáng giữ thì ghi vào `docs/`.
-
 ## Cổng an toàn
 
 - **Xin xác nhận trước khi `git push` hoặc deploy.** Chỉ commit/push khi người
@@ -179,3 +251,14 @@ Kèm theo:
   đã sửa.
 - Không bao giờ chạy `npm run db:reset` với `DATABASE_URL` trỏ ra ngoài local.
 - Không ghi giá trị secret thật vào bất kỳ file nào được theo dõi bởi git.
+
+## Kỷ luật token
+
+Xem **§1 của phần A** - áp dụng nguyên vẹn cho mọi agent. Ba điểm riêng của repo này:
+
+- **Không bao giờ đọc**: `node_modules/`, `.git/`, `.next/`, `dist/`, `build/`,
+  `coverage/`, `package-lock.json`, file nhị phân/ảnh.
+- `content-service/src/index.js` hơn 1000 dòng. `grep -n` tìm dòng, rồi
+  `sed -n 'X,Yp'` đọc đúng đoạn - đọc cả file là đốt ngân sách cho 95% thứ không dùng.
+- Mỗi agent đã liệt kê sẵn 1-3 file cần nạp trong định nghĩa của mình ở
+  `.claude/agents/`. `docs/README.md` là mục lục cho trường hợp còn lại.

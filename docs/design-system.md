@@ -1,146 +1,133 @@
-# Hệ thống giao diện
+# Hệ thống giao diện - cách tsudev-web hiện thực bộ quy ước
 
-Nguồn duy nhất: `packages/ui` (`@tsudev/ui`). Cả hai app Next đều dùng nó. Viết
-component riêng trong `apps/*` chỉ được phép khi nó thật sự chỉ dùng ở một app.
+**Quy tắc là [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md)** (v1.0.0, dùng chung cho mọi
+repo trong hệ sinh thái, thuộc nhóm bất khả xâm phạm). File này chỉ trả lời một
+câu hỏi khác: _repo này hiện thực bộ quy ước đó bằng những file nào_. Đừng chép
+lại nội dung của nhau.
 
-## Token
+Component dùng chung nằm ở `packages/ui` (`@tsudev/ui`). Viết component riêng
+trong `apps/*` chỉ được phép khi nó thật sự chỉ dùng ở một app.
 
-`packages/ui/src/tokens.css` khai báo toàn bộ biến CSS. **HAI chế độ, Sáng là
-mặc định**: `:root` mang bảng màu sáng, `:root[data-theme='dark']` ghi đè.
-
-**Không dùng `prefers-color-scheme`.** Lựa chọn hiển thị là một quyết định của
-sản phẩm - một site đổi diện mạo theo cài đặt hệ điều hành thì hai người mở cùng
-một đường link sẽ thấy hai thứ khác nhau mà không ai chọn gì cả. Người dùng bật
-chế độ tối bằng nút trên header (`ThemeToggle`), lựa chọn ghi vào localStorage
-và được áp **trước khi vẽ** bởi script nội tuyến trong `pages/_document.tsx`.
-Script đó phải đồng bộ và nằm trong `<head>`; bất cứ thứ gì chạy sau lần vẽ đầu
-đều cho ra một khung hình sáng trắng trước khi chuyển sang tối.
-
-Nhóm biến chính:
-
-| Nhóm        | Biến                                                                 |
-| ----------- | -------------------------------------------------------------------- |
-| Bề mặt      | `--surface` < `--panel` < `--panel-2`, `--border`, `--border-strong` |
-| Chữ         | `--ink`, `--ink-soft`, `--muted`                                     |
-| Thương hiệu | `--primary`, `--primary-ink`, `--primary-contrast`, `--accent`       |
-| Ngữ nghĩa   | `--success`, `--warning`, `--error`, `--on-vivid`                    |
-| Icon        | `--icon-nav/create/edit/danger/info/trust`                           |
-| Hoạ tiết    | `--grid-line`, `--glow`                                              |
-| Chữ & hình  | `--font-sans`, `--font-mono`, `--radius-sm/md/lg`                    |
-
-### Cổng tương phản
-
-`packages/ui/test/contrast.test.ts` đọc **thẳng** `tokens.css` và kiểm mọi cặp
-chữ/nền ở CẢ HAI chế độ theo ngưỡng WCAG AA (4.5:1 cho chữ và icon mang thông
-tin, 3:1 cho viền). Đổi một mã màu làm tụt xuống dưới ngưỡng là **CI đỏ**, không
-phải một khiếu nại của người dùng vài tháng sau. Nó chạy trong job
-`Migrate & test services`.
-
-Hai chế độ nghĩa là mỗi cặp màu tồn tại hai lần, và một cặp đủ tương phản ở chế
-độ tối hoàn toàn có thể không đủ ở chế độ sáng. Kiểm bằng mắt bắt được cái chói,
-không bắt được cái vừa-đủ-trượt.
-
-### Luật dễ vi phạm
-
-- **Thứ bậc chủ yếu do độ sáng nền.** Card có thêm viền hairline vì ở chế độ
-  sáng, card (trắng) trên nền trang (xanh rất nhạt) chênh nhau quá ít để mắt tự
-  dựng ra cạnh. Ở chế độ tối viền gần như vô hình và thứ bậc vẫn do độ sáng nền
-  đảm nhiệm. Đừng thêm `box-shadow` để tạo chiều sâu.
-- **Chữ trên màu ngữ nghĩa luôn là `--on-vivid`**, đừng cắm cứng mã hex.
-  `--on-vivid` là màu TỐI ở chế độ tối (các sắc ngữ nghĩa sáng) và màu TRẮNG ở
-  chế độ sáng (các sắc ngữ nghĩa đậm) - một mã hex cắm cứng đúng ở một chế độ và
-  gần như không đọc được ở chế độ kia.
-- **Đừng khai lại bảng màu song song.** `tailwind.config.js` từng có một thang
-  `primary` 50→900 cắm cứng bên cạnh bảng token; thang đó không đổi theo chế độ,
-  nên `bg-primary-100` cho ra một mảng xanh nhạt chói giữa nền đen.
-
-## Icon
-
-`Icon` (`packages/ui/src/components/Icon.tsx`) - màu **đi theo chức năng**, gắn
-cứng với tên icon và không cho truyền từ nơi gọi:
-
-| Vai trò  | Màu        | Dùng cho                         |
-| -------- | ---------- | -------------------------------- |
-| `nav`    | xanh dương | điều hướng, liên kết, mở         |
-| `create` | xanh lá    | tạo, thêm, tải lên               |
-| `edit`   | hổ phách   | sửa, cấu hình                    |
-| `danger` | đỏ         | xoá, thu hồi, huỷ                |
-| `info`   | tím        | siêu dữ liệu, thời gian, số liệu |
-| `trust`  | ngọc       | con dấu, xác minh, chữ ký        |
-
-Khi mỗi trang tự chọn màu thì cùng một hành động "xoá" sẽ đỏ ở trang này và xám
-ở trang kia, và người dùng mất khả năng đọc màu như một tín hiệu. Cần một sắc
-khác nghĩa là cần một **chức năng** khác - thêm vào bảng, đừng ghi đè tại chỗ gọi.
-
-Icon không có prop `label` sẽ bị `aria-hidden`: icon trang trí mà lọt vào cây
-a11y sẽ được đọc thành một "graphic" vô nghĩa xen giữa câu chữ.
-
-## Mục lục
-
-`TableOfContents` dùng chung cho blog, tài liệu và ba trang pháp lý. Nó có nền
-và viền riêng vì mục lục là **điều hướng**, không phải nội dung - không tách ra
-khỏi thân bài bằng một bề mặt riêng thì ở chế độ sáng nó đọc như một danh sách
-gạch đầu dòng nằm giữa bài.
-
-Neo do `extractHeadings()` và `renderMarkdown()` sinh ra bằng **cùng một** bộ
-tạo slug (`apps/frontend-main/lib/md.ts`). Hai bên tính riêng thì mục lục trỏ
-tới những neo không tồn tại, và triệu chứng chỉ là "bấm vào không nhảy".
-
-## Cách app nạp
+## Đường đi của một giá trị màu
 
 ```
-apps/*/styles/globals.css   →  @import '../../../packages/ui/src/tokens.css'
-apps/*/next.config.js       →  transpilePackages: ['@tsudev/ui']
-apps/*/tailwind.config.js   →  màu Tailwind trỏ vào các biến CSS trên
+tokens/design-tokens.json          ← NGUỒN CHÂN LÝ DUY NHẤT (sửa ở đây)
+   │  npm run tokens:sync
+   ▼
+packages/ui/src/tokens.css         ← BẢN SINH RA, đừng sửa tay
+   │  @import
+   ▼
+apps/frontend-main/styles/globals.css
+   │  var(--…)
+   ▼
+apps/frontend-main/tailwind.config.js   ← mọi khoá trỏ về một biến CSS
+   │
+   ▼
+class trong .tsx  (bg-surface, text-fg-muted, border-line-control…)
 ```
 
-`@tsudev/ui` **không** được build sẵn (`main` trỏ thẳng `src/index.tsx`) - vì
-thế `transpilePackages` là bắt buộc. Thêm app mới thì phải khai cả ba dòng trên,
-thiếu một dòng là giao diện thô hoặc build đỏ.
+Ba cổng canh chuỗi này, và `npm run tokens:check` nằm trong CI:
 
-## Component
+| Cổng                                          | Bắt được gì                                                           |
+| --------------------------------------------- | --------------------------------------------------------------------- |
+| `npm run tokens:check`                        | `tokens.css` bị sửa tay, hoặc `tokens/tokens.css` trôi lệch khỏi JSON |
+| `packages/ui/test/contrast.test.ts`           | một mã màu làm tụt tương phản dưới WCAG AA, ở **bất kỳ** chế độ nào   |
+| `apps/frontend-main/test/themeTokens.test.ts` | ba bản sao màu nền ngoài `tokens.css` trôi lệch nhau                  |
 
-Export từ `packages/ui/src/index.tsx`:
+`tokens/tokens.css` là bản chuẩn của **hệ sinh thái** (C#/Python/Qt cũng đọc thư
+mục `tokens/`). Script đồng bộ **không** ghi đè nó - chỉ đối chiếu và báo lệch.
+Nó nằm trong `.prettierignore` cùng `docs/DESIGN_SYSTEM.md`: prettier hạ mã hex
+xuống chữ thường và tách danh sách selector xuống dòng, tức là làm bản ở repo này
+khác bản gốc, và một bộ token dùng chung mà mỗi repo một dạng thì hết là dùng chung.
 
-`SiteHeader` · `SiteFooter` · `Layout` (mặc định) · `Container` · `Button` ·
-`Input` · `Card` · `Modal` · `Toast` · `Badge` · `Avatar` · `Logo` ·
-`SectionHeading` · `Stat` · `Article` · `ThreadRow` · `Upload`
+## Ba chế độ, và chuyện `prefers-color-scheme`
 
-Kèm `MAIN_URL` - gốc tuyệt đối cho canonical/OG. Điều hướng trong site dùng
-href tương đối: tsudev chỉ còn MỘT origin.
+`data-theme` trên `<html>`: `light` (mặc định) · `warm` · `dark`.
 
-### Ràng buộc khi viết component
+Đây là chỗ hai tài liệu quy ước **mâu thuẫn nhau**, nên ghi rõ cách hoà giải đã chọn:
 
-- Component chỉ còn phải chạy trên Next 15 / React 19. Ràng buộc "cả React 18"
-  đã nghỉ hưu cùng `frontend-forum`. Root `package.json` **vẫn** ghim
-  `react@18.3.1` cho Storybook - nợ đã ghi, xem `next.config.js`.
-- Điều hướng trong site dùng href tương đối. `MAIN_URL` chỉ dành cho URL tuyệt
-  đối thật sự cần (canonical, OG, mã nhúng huy hiệu cho bên thứ ba).
-- `Avatar` chọn biến thể theo băm FNV-1a của username và **tự đổi bộ ảnh theo
-  `size`** (ngưỡng 48px). Đừng ép đường dẫn ảnh bằng tay - chi tiết ở
-  [../packages/brand/README.md](../packages/brand/README.md).
+- `DESIGN_SYSTEM.md` §1 muốn chế độ mặc định bám theo hệ điều hành.
+- `CLAUDE.md` cấm điều đó: một site đổi diện mạo theo cài đặt máy nghĩa là hai
+  người mở **cùng** một đường link thấy hai thứ khác nhau mà không ai chọn gì cả,
+  và người viết bài không biết bài mình trông ra sao.
+
+Cách hoà giải: **mặc định vẫn là Sáng**, nhưng "Theo hệ thống" có mặt như một
+**lựa chọn người dùng tự bật** - lựa chọn thứ tư trong `ThemeToggle`. Hệ quả về mã:
+
+- Bảng màu trong `tokens.css` **không** có media query nào treo vào cài đặt hệ
+  điều hành. `themeTokens.test.ts` canh điều này.
+- Việc hỏi cài đặt máy chỉ xảy ra trong JavaScript, ở đúng hai chỗ:
+  `pages/_document.tsx` (script đồng bộ, nội tuyến, trong `<head>` - chạy **trước
+  khi trang được vẽ**, nếu không sẽ có một khung hình sáng trắng ở mọi lần tải) và
+  `ThemeToggle.tsx` (theo dõi máy đổi cài đặt giữa chừng).
+- Giá trị lưu trong `localStorage['tsudev-theme']` là **lựa chọn** (`light`/`warm`/
+  `dark`/`system`), không phải bảng màu. Chỉ script boot mới giải nó thành `data-theme`.
+
+Màu nền của ba chế độ bị chép ra hai file `.tsx` vì cả hai chạy trước khi CSS
+được tính - `<meta name="theme-color">` không đọc được biến CSS. Đó là bản sao
+**bắt buộc**, và có test canh cho chúng bằng nhau.
+
+## Token riêng của repo này
+
+Bộ chuẩn v1.0.0 không có sẵn ba nhóm dưới đây; chúng nằm ở
+`extensions.tsudev-web` trong file JSON, tách bạch khỏi khối `color` bất khả xâm phạm.
+
+| Nhóm                                | Vì sao cần                                                                                                                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--icon-*` (6 màu)                  | Mã màu theo **nhóm hành động** - mắt nhận ra nhóm trước khi đọc nhãn. Sáu, không hơn: quá bảy màu thì chúng thôi là mã và thành nhiễu.                                  |
+| `--<trạng thái>-ink` / `-tint`      | §5 đòi badge "nền trạng thái nhạt 12% + chữ màu trạng thái đậm", nhưng ở chế độ Sáng cặp đó chỉ đạt ~4.1-4.3:1. `-ink` là sắc đậm hơn cho chữ, `-tint` là nền tính sẵn. |
+| `--accent`, `--glow`, `--grid-line` | Sắc phụ (teal) của con dấu tín nhiệm và hai hoạ tiết nền.                                                                                                               |
+
+⚠️ **Hai token của bộ chuẩn KHÔNG đạt chính quy tắc bắt buộc của §1**, đo được
+bằng `contrast.test.ts` - xem `$accessibility_gap` trong `tokens/design-tokens.json`:
+
+- `text-muted` chỉ đạt 3.69-4.58:1 (ngưỡng AA là 4.5:1), và đây là token bị dùng
+  nhiều nhất trong app.
+- `border-strong` chỉ đạt 1.65-2.49:1 (WCAG 1.4.11 đòi 3:1 cho ranh giới thành
+  phần giao diện).
+
+Không sửa được khối `color`, nên repo này **ghi đè `text-muted`** và thêm vai trò
+mới **`border-control`** cho ranh giới vùng tương tác (viền nút phụ, viền ô nhập).
+`border-strong` giữ giá trị chuẩn và từ nay chỉ dùng cho ranh giới trang trí.
+**Cần đẩy ngược lên repo token trung tâm.**
+
+## Bản đồ tên: token CSS ↔ class Tailwind
+
+Tailwind không giữ giá trị nào - mọi khoá trỏ về một biến CSS.
+
+| Biến CSS                                        | Class                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------ |
+| `--bg-base` / `-surface` / `-subtle` / `-hover` | `bg-base` / `bg-surface` / `bg-subtle` / `bg-hovered`        |
+| `--text-primary` / `-secondary` / `-muted`      | `text-fg` / `text-fg-secondary` / `text-fg-muted`            |
+| `--text-link`                                   | `text-link`                                                  |
+| `--border` / `-strong` / `-control`             | `border-line` / `border-line-strong` / `border-line-control` |
+| `--primary` / `-hover` / `-active`              | `bg-primary` / `bg-primary-hover` / `bg-primary-active`      |
+| `--on-primary`, `--on-status`                   | `text-on-primary`, `text-on-status`                          |
+| `--<trạng thái>-ink` / `-tint`                  | `text-danger-ink`, `bg-success-tint`…                        |
+| `--control-h`, `--row-h`                        | `h-control`, `h-row`                                         |
+| `--sp-1..12`                                    | `p-sp1` … `gap-sp6`                                          |
+
+Chữ nằm trong nhóm `fg` chứ không phẳng ra thành `text-primary`, vì bộ chuẩn có
+**cả** `--text-primary` (chữ thân bài) lẫn `--primary` (xanh thương hiệu) - phẳng
+ra thì `text-primary` mang hai nghĩa.
+
+## Mật độ
+
+`data-density="compact"` trên `<html>` đổi `--control-h` 36→32px, `--row-h`
+44→36px, `--list-item-h` 40→32px. Comfortable là mặc định cho web; Compact dành
+cho màn hình nhiều dữ liệu.
+
+## Ngày giờ
+
+`apps/frontend-main/lib/format.ts` - `formatDateVN` (`DD/MM/YYYY`) và
+`formatDateTimeVN` (`HH:mm DD/MM/YYYY`). **Đừng gọi thẳng
+`toLocaleDateString('vi-VN')`**: nó bỏ số 0 đầu nên 05/08/2026 in ra `5/8/2026`,
+và cột ngày trong bảng thôi thẳng hàng. Múi giờ ghim `Asia/Ho_Chi_Minh` vì trang
+dựng SSR trên Workers (UTC) rồi hydrate ở máy người đọc - để nó trôi thì bài đăng
+lúc đêm hiện lệch một ngày giữa hai lần vẽ.
 
 ## Storybook
 
-```bash
-npm --workspace packages/ui run storybook       # :6006
-npm --workspace packages/ui run build-storybook
-```
-
-Đã có story cho: Article, Button, Card, Header, Input, Layout, Modal, Toast,
-Upload. Thêm component mới thì thêm story - đó là nơi duy nhất xem được component
-tách khỏi trang.
-
-## Khả năng truy cập
-
-Mức nền: WCAG AA. `tokens.css` đã có `.skip-link` (dùng viền thương hiệu thay vì
-đổ bóng, vì bóng đen không tách lớp được trên nền đen tuyền).
-
-Khi thêm component: dùng HTML ngữ nghĩa, giữ điều hướng bằng bàn phím, có
-`:focus-visible` rõ ràng, gắn nhãn cho mọi input, quản lý focus khi mở modal.
-
-## Ảnh & thương hiệu
-
-Logo, favicon, avatar mặc định được **sinh tự động** từ `packages/brand/source/`.
-Đừng sửa file trong `apps/*/public/` - lần chạy script sau sẽ ghi đè. Quy trình:
-[../packages/brand/README.md](../packages/brand/README.md).
+`npm --workspace packages/ui run storybook`. Thanh công cụ có nút **Giao diện**
+đổi giữa ba chế độ. Storybook **không** nằm trong CI - nó là công cụ rà bằng mắt,
+cổng thật là `contrast.test.ts`.

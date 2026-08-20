@@ -8,13 +8,19 @@ Repo: private, `github.com/tsudev-tsudev/tsudev`.
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** - sửa là bust cache toàn
 > bộ phía sau. Cần sửa thì dồn về cuối phiên.
 
-⚠️ **Đọc [`HANDOFF.md`](HANDOFF.md) trước khi bắt tay** - mục "Bắt đầu từ đâu"
-cho trạng thái đã đo và thứ tự việc còn dở. Tính tới 19/08/2026 **không còn việc
-chặn nào**: production chạy đủ, Toà soạn Agent AI đang sản xuất, chi phí bằng 0.
-Việc còn lại phần lớn cần MẮT NGƯỜI (rà giao diện) hoặc QUYẾT ĐỊNH của chủ dự án.
+⚠️ **Bắt đầu phiên: đọc [`AGENTS.md`](AGENTS.md), rồi
+[`logs/STATE.md`](logs/STATE.md) và phiếu MỞ mới nhất trong `logs/handover/`.**
+Hàng đợi việc nằm ở đó, không còn ở `HANDOFF.md`. Khoá file mình sẽ sửa vào
+`logs/LOCKS.md` trước khi bắt tay.
 
-`HANDOFF.md` §0.7 ghi **chín kỹ thuật đã trả giá để học**. Ba cái đắt nhất, vì
-mỗi cái đều từng để một sự cố sống nhiều ngày mà không ai biết:
+[`HANDOFF.md`](HANDOFF.md) nay chỉ còn hai việc: nhật ký từng phiên (§0) và kho
+kỹ thuật đã trả giá để học (§0.7). Mục "Bắt đầu từ đâu" của nó cho trạng thái
+production đã đo. Tính tới 20/08/2026 **không còn việc chặn nào**: production
+chạy đủ, Toà soạn Agent AI đang sản xuất, chi phí bằng 0. Việc còn lại phần lớn
+cần MẮT NGƯỜI (rà giao diện) hoặc QUYẾT ĐỊNH của chủ dự án.
+
+`HANDOFF.md` §0.7 ghi **mười hai kỹ thuật đã trả giá để học**. Bốn cái đắt nhất,
+vì mỗi cái đều từng để một sự cố sống nhiều ngày mà không ai biết:
 
 - **Mã 200 không chứng minh trang có nội dung** - `lib/api.ts` nuốt lỗi thành
   `[]`, nên backend 500 vẫn cho ra trang 200 rỗng.
@@ -22,8 +28,11 @@ mỗi cái đều từng để một sự cố sống nhiều ngày mà không a
   E2E chạy `http://localhost`; canh những thứ đó bằng test quét NGUỒN.
 - **Một tiến trình treo không để lại log** - hỏi trạng thái từng bước, và lắp
   trần thời gian vì nó SINH RA bằng chứng chứ không chỉ chặn thiệt hại.
+- **Công cụ ĐO có thể sai theo kiểu trông y hệt lỗi thật** - số đo bất thường dồn
+  vào MỘT thành phần và biến mất ở một chế độ thì nghi công cụ trước, nghi mã sau.
 
-Xong hết §1 thì xoá `HANDOFF.md` và xoá cả đoạn này.
+Xong hết §1 thì xoá phần §1 của `HANDOFF.md`; giữ §0 và §0.7 - đó là nhật ký và
+kho bài học, không phải việc còn dở.
 
 ## Bản đồ
 
@@ -77,8 +86,9 @@ cookie phiên mang `Domain=.tsudev.localhost` nên không gắn được vào ho
 
 Test theo workspace, **không** có lệnh test ở gốc:
 `npm --workspace services/<tên> test`. `packages/ui` cũng có test - đó là cổng
-tương phản của hệ token màu. Cổng chung: `npm run format:check` · `npm run lint`
-· `npm run typecheck` · `npm run topology:check`.
+tương phản của hệ token màu, chạy trên cả ba chế độ. Cổng chung:
+`npm run format:check` · `npm run lint` · `npm run typecheck` ·
+`npm run topology:check` · `npm run tokens:check`.
 
 Chi tiết → `docs/development.md`.
 
@@ -115,14 +125,30 @@ nguồn là hiện trạng; TSD là đích đến.
 - **Điều hướng trong site dùng href tương đối** - tsudev chỉ còn MỘT origin.
   `MAIN_URL` của `@tsudev/ui` chỉ cho URL tuyệt đối thật sự cần (canonical, OG,
   mã nhúng huy hiệu).
-- **Giao diện có HAI chế độ, Sáng là mặc định.** `:root` = bảng sáng,
-  `:root[data-theme='dark']` ghi đè. KHÔNG dùng `prefers-color-scheme` - lựa
-  chọn hiển thị là quyết định của sản phẩm, không phải của hệ điều hành. Thứ bậc
-  chủ yếu bằng độ sáng nền (`--surface` < `--panel` < `--panel-2`); card có thêm
-  viền hairline vì ở chế độ sáng hai tầng đó chênh nhau quá ít để mắt dựng ra
-  cạnh. Đừng cắm cứng mã hex: `--on-vivid` đảo theo chế độ, mã hex thì không.
-  Mọi cặp màu bị `packages/ui/test/contrast.test.ts` canh ở ngưỡng WCAG AA -
-  đổi mã màu làm tụt tương phản là CI đỏ.
+- **Token giao diện: sửa `tokens/design-tokens.json`, KHÔNG sửa
+  `packages/ui/src/tokens.css`.** File CSS đó là ARTIFACT sinh ra bởi
+  `npm run tokens:sync`; sửa tay thì thay đổi sống ở local rồi biến mất ở lần
+  sinh kế tiếp, im lặng. `npm run tokens:check` canh trong CI. Khối `color` của
+  file JSON và `tokens/tokens.css` thuộc bộ quy ước dùng chung, **bất khả xâm
+  phạm** - token riêng của repo sống ở khối `extensions.tsudev-web`.
+- **Giao diện có BA chế độ: Sáng (mặc định) · Ấm · Tối**, chọn bằng `data-theme`
+  trên `<html>`. `:root` trần mang bảng Sáng, nên khách vãng lai luôn thấy Sáng.
+  Bảng màu KHÔNG treo vào `prefers-color-scheme` - hai người mở cùng một đường
+  link phải thấy cùng một trang. Ai muốn bám theo máy thì chọn "Theo hệ thống"
+  trong nút đổi giao diện; lựa chọn đó được giải thành `data-theme` cụ thể bởi
+  script đồng bộ trong `pages/_document.tsx`, TRƯỚC khi trang được vẽ. Việc hỏi
+  cài đặt hệ điều hành chỉ được phép nằm trong JavaScript, có test canh.
+  Thứ bậc bề mặt bằng độ sáng nền (`--bg-base` < `--bg-surface` < `--bg-subtle`);
+  card có thêm viền hairline vì ở chế độ Sáng và Ấm hai tầng đó chênh nhau quá ít
+  để mắt dựng ra cạnh. Đừng cắm cứng mã hex: `--on-primary`/`--on-status` đảo
+  theo chế độ, mã hex thì không. Mọi cặp màu ở CẢ BA chế độ bị
+  `packages/ui/test/contrast.test.ts` canh ở ngưỡng WCAG AA - đổi mã màu làm tụt
+  tương phản là CI đỏ.
+- **Ngày giờ hiển thị đi qua `apps/frontend-main/lib/format.ts`**
+  (`DD/MM/YYYY`, `HH:mm DD/MM/YYYY`). Đừng gọi thẳng
+  `toLocaleDateString('vi-VN')` - nó bỏ số 0 đầu nên 05/08/2026 in ra `5/8/2026`.
+- Bản đồ tên token ↔ class Tailwind, và hai chỗ bảng màu chuẩn không đạt WCAG:
+  `docs/design-system.md`.
 - **`apps/*/.env.local` được sinh tự động** - sửa tay vô ích, lần chạy dev sau
   ghi đè. Sửa `.env` gốc.
 - **Root `package.json` còn ghim `react@18.3.1`** - di sản của app diễn đàn đã

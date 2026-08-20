@@ -44,9 +44,17 @@ export const Modal = ({ open, onClose, title, children }: ModalProps) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- nền trang trí; Escape và nút Close là đường thoát bằng bàn phím */}
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" onClick={onClose} />
+      <div
+        className="absolute inset-0 z-modal-overlay"
+        // Lớp phủ dùng token --overlay, không phải bg-black/50: ở chế độ Ấm nền
+        // đen thuần kéo cả trang về xám lạnh và phá luôn tông sepia. Token đổi
+        // theo chế độ, tiện ích Tailwind thì không.
+        style={{ backgroundColor: 'var(--overlay)' }}
+        aria-hidden="true"
+        onClick={onClose}
+      />
       <div
         ref={panelRef}
         role="dialog"
@@ -57,21 +65,27 @@ export const Modal = ({ open, onClose, title, children }: ModalProps) => {
         // khối đệm đều. Đó là cấu trúc mà hộp thoại của giao diện sản phẩm dùng:
         // mắt biết ngay đâu là nội dung và đâu là chỗ bấm, kể cả khi thân dài
         // phải cuộn.
-        className="bg-panel border border-hairline rounded-md z-10 max-w-lg w-full outline-none shadow-lg"
+        // radius-lg + shadow-lg: hộp thoại là bề mặt nổi cao nhất (§5). Rộng
+        // 400-480px cho hộp nhỏ, 640-800px cho hộp lớn - `max-w-lg` (512px) là
+        // bậc mặc định ở giữa, nơi gọi truyền `className` để đổi.
+        className="relative z-modal w-full max-w-lg rounded-lg border border-line bg-surface shadow-lg outline-none"
       >
         {title && (
-          <div className="border-b border-hairline px-5 py-3.5">
-            <h3 className="text-base font-semibold text-ink">{title}</h3>
+          <div className="border-b border-line px-sp6 py-sp4">
+            {/* Tiêu đề 20px/600 - §5. */}
+            <h3 className="text-h3 font-semibold text-fg">{title}</h3>
           </div>
         )}
         {/* max-h + overflow: thân dài phải cuộn TRONG hộp thoại, không đẩy phần
             hành động ra ngoài màn hình. */}
-        <div className="max-h-[70vh] overflow-y-auto px-5 py-4 text-sm text-inksoft">
+        <div className="max-h-[70vh] overflow-y-auto px-sp6 py-sp5 text-sm text-fg-secondary">
           {children}
         </div>
-        <div className="flex justify-end border-t border-hairline px-5 py-3">
+        {/* Hành động căn PHẢI ở chân hộp thoại (§5). */}
+        <div className="flex justify-end gap-sp2 border-t border-line px-sp6 py-sp4">
           <button
-            className="inline-flex h-8 items-center rounded-md px-3 text-sm font-medium text-inksoft transition-colors hover:bg-panel2 hover:text-ink"
+            type="button"
+            className="inline-flex h-control items-center rounded-md px-sp4 text-sm font-semibold text-fg-secondary transition-colors duration-fast ease-standard hover:bg-hovered hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             onClick={onClose}
           >
             Đóng

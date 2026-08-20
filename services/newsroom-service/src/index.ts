@@ -17,8 +17,8 @@ import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Respon
 import cors from 'cors'
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, requireRole } from '@tsudev/auth'
-import { tick } from './dispatcher'
-import { DAILY_NEURON_BUDGET, neuronsUsedToday } from './llm'
+import { tick, reviveQuotaCasualties } from './dispatcher'
+import { DAILY_NEURON_BUDGET, neuronsUsedToday, providerHealth } from './llm'
 
 const app = express()
 app.use(cors())
@@ -109,28 +109,31 @@ app.get(
   asyncHandler(async (req, res) => {
     const since = typeof req.query.since === 'string' ? req.query.since : undefined
 
-    const [agents, drafts, channels, sources, budgetUsed] = await Promise.all([
-      prisma.agentProfile.findMany({ orderBy: { dept: 'asc' } }),
-      prisma.contentDraft.findMany({
-        where: { deletedAt: null, status: { not: 'ARCHIVED' } },
-        orderBy: { updatedAt: 'desc' },
-        take: 120,
-        select: {
-          id: true,
-          target: true,
-          status: true,
-          title: true,
-          slug: true,
-          revisionCount: true,
-          reviewFeedback: true,
-          authorAgentId: true,
-          updatedAt: true,
-        },
-      }),
-      prisma.newsroomChannel.findMany(),
-      prisma.newsroomSource.findMany({ orderBy: { label: 'asc' } }),
-      neuronsUsedToday(),
-    ])
+    const [agents, drafts, channels, sources, budgetUsed, providers, deadEvents] =
+      await Promise.all([
+        prisma.agentProfile.findMany({ orderBy: { dept: 'asc' } }),
+        prisma.contentDraft.findMany({
+          where: { deletedAt: null, status: { not: 'ARCHIVED' } },
+          orderBy: { updatedAt: 'desc' },
+          take: 120,
+          select: {
+            id: true,
+            target: true,
+            status: true,
+            title: true,
+            slug: true,
+            revisionCount: true,
+            reviewFeedback: true,
+            authorAgentId: true,
+            updatedAt: true,
+          },
+        }),
+        prisma.newsroomChannel.findMany(),
+        prisma.newsroomSource.findMany({ orderBy: { label: 'asc' } }),
+        neuronsUsedToday(),
+        providerHealth(),
+        prisma.newsroomEvent.count({ where: { status: 'DEAD' } }),
+      ])
 
     // Nhật ký: lấy các sự kiện MỚI HƠN con trỏ. Con trỏ là id của sự kiện cuối
     // cùng client đã thấy; dùng createdAt của nó làm mốc thay vì so id, vì cuid
@@ -177,6 +180,11 @@ app.get(
     res.json({
       enabled: process.env.NEWSROOM_ENABLED === 'true',
       budget: { used: budgetUsed, limit: DAILY_NEURON_BUDGET() },
+      // Trạng thái hạn mức là THÔNG TIN VẬN HÀNH, không phải lỗi. Bảng điều
+      // khiển cần nó để nói "đang chờ hạn mức, tiếp tục lúc 00:00 UTC" thay vì
+      // dán chuỗi lỗi thô của Cloudflare lên từng nguồn tin lành lặn.
+      providers,
+      deadEvents,
       agents,
       metrics,
       drafts,
@@ -274,6 +282,16 @@ app.post(
       },
     })
     res.json({ ok: true, queued: true })
+  })
+)
+
+/// Hồi sinh những sự kiện đã chết VÌ CẠN HẠN MỨC LLM (không phải vì lỗi thật).
+/// Đường dọn dẹp cho các bản nháp đã chết trước khi có van hoãn - sửa nguyên
+/// nhân không tự chữa cho người đã ốm. Lỗi thật vẫn nằm yên ở DEAD.
+app.post(
+  '/api/newsroom/admin/events/revive',
+  asyncHandler(async (req, res) => {
+    res.json(await reviveQuotaCasualties())
   })
 )
 

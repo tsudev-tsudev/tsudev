@@ -21,46 +21,46 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
         noindex
       />
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <nav className="text-sm text-muted mb-5">
-          <a href="/trust" className="hover:text-brandink">
+        <nav className="text-sm text-fg-muted mb-5">
+          <a href="/trust" className="hover:text-link">
             Con dấu tín nhiệm
           </a>
           <span className="mx-1.5">/</span>
-          <span className="text-inksoft">{program.name}</span>
+          <span className="text-fg-secondary">{program.name}</span>
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-ink">{program.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-fg">{program.name}</h1>
           {/* Mọi chương trình dấu đều miễn phí - cơ chế tín dụng đã được gỡ. */}
           <Badge tone="success" mono>
             miễn phí
           </Badge>
         </div>
-        <p className="mt-3 text-lg text-inksoft leading-relaxed">{program.summary}</p>
+        <p className="mt-3 text-lg text-fg-secondary leading-relaxed">{program.summary}</p>
 
-        <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 font-mono text-sm text-muted">
+        <div className="mt-6 flex flex-wrap gap-x-8 gap-y-2 font-mono text-sm text-fg-muted">
           <span>
-            Hiệu lực: <span className="text-ink">{program.validityDays} ngày</span>
+            Hiệu lực: <span className="text-fg">{program.validityDays} ngày</span>
           </span>
           <span>
-            Đang cấp: <span className="text-ink">{program.issuedCount}</span>
+            Đang cấp: <span className="text-fg">{program.issuedCount}</span>
           </span>
         </div>
 
         <section className="mt-12">
-          <h2 className="text-lg font-semibold text-ink">Tiêu chí đánh giá</h2>
-          <p className="mt-1.5 text-sm text-muted">
+          <h2 className="text-lg font-semibold text-fg">Tiêu chí đánh giá</h2>
+          <p className="mt-1.5 text-sm text-fg-muted">
             Toàn bộ tiêu chí được công bố công khai. Hồ sơ phải đáp ứng tất cả các mục dưới đây.
           </p>
-          <ol className="mt-5 divide-y divide-[color:var(--border)]">
+          <ol className="mt-5 divide-y divide-line">
             {(program.criteria || []).map((c, i) => (
               <li key={c.key || i} className="flex gap-4 py-3.5">
-                <span className="font-mono text-xs text-teal pt-0.5 shrink-0">
+                <span className="font-mono text-xs text-accent pt-0.5 shrink-0">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <div>
-                  <div className="text-ink text-sm">{c.label}</div>
-                  {c.detail && <div className="text-muted text-sm mt-0.5">{c.detail}</div>}
+                  <div className="text-fg text-sm">{c.label}</div>
+                  {c.detail && <div className="text-fg-muted text-sm mt-0.5">{c.detail}</div>}
                 </div>
               </li>
             ))}
@@ -68,15 +68,15 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
         </section>
 
         <section className="mt-12">
-          <h2 className="text-lg font-semibold text-ink">Bằng chứng cần nộp</h2>
-          <ul className="mt-5 divide-y divide-[color:var(--border)]">
+          <h2 className="text-lg font-semibold text-fg">Bằng chứng cần nộp</h2>
+          <ul className="mt-5 divide-y divide-line">
             {(program.evidenceSpec || []).map((e, i) => (
               <li key={e.kind || i} className="flex items-center gap-3 py-3.5">
-                <span className="text-sm text-ink flex-1">{e.label}</span>
+                <span className="text-sm text-fg flex-1">{e.label}</span>
                 <Badge tone={e.required ? 'warning' : 'outline'} mono>
                   {e.required ? 'bắt buộc' : 'tuỳ chọn'}
                 </Badge>
-                <span className="font-mono text-xs text-muted w-32 text-right hidden sm:block">
+                <span className="font-mono text-xs text-fg-muted w-32 text-right hidden sm:block">
                   {e.kind}
                 </span>
               </li>
@@ -99,9 +99,9 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
         </div>
 
         {projects.length > 0 && (
-          <section className="mt-12 border-t border-hairline pt-8">
-            <h2 className="font-semibold text-ink mb-1">Dự án tsudev thuộc chương trình này</h2>
-            <p className="text-sm text-muted mb-4">
+          <section className="mt-12 border-t border-line pt-8">
+            <h2 className="font-semibold text-fg mb-1">Dự án tsudev thuộc chương trình này</h2>
+            <p className="text-sm text-fg-muted mb-4">
               Website sử dụng các dự án dưới đây là ứng viên tự nhiên của chương trình.
             </p>
             <div className="grid sm:grid-cols-2 gap-3">
@@ -109,7 +109,7 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
                 <a
                   key={p.id}
                   href={`/projects/${p.slug}`}
-                  className="p-4 rounded-md transition-colors hover:bg-panel group"
+                  className="p-4 rounded-md transition-colors hover:bg-surface group"
                 >
                   <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
                     <Badge tone="neutral">{KIND_LABEL[p.kind] || p.kind}</Badge>
@@ -117,17 +117,17 @@ export default function ProgramDetail({ program, projects, slug }: ProgramDetail
                       {copyrightMeta(p.copyrightStatus).label}
                     </Badge>
                   </div>
-                  <div className="font-semibold text-ink group-hover:text-brandink transition-colors">
+                  <div className="font-semibold text-fg group-hover:text-link transition-colors">
                     {p.name}
                   </div>
-                  <p className="mt-1 text-sm text-muted">{p.summary}</p>
+                  <p className="mt-1 text-sm text-fg-muted">{p.summary}</p>
                 </a>
               ))}
             </div>
           </section>
         )}
 
-        <p className="mt-12 text-xs text-muted leading-relaxed border-t border-hairline pt-5">
+        <p className="mt-12 text-xs text-fg-muted leading-relaxed border-t border-line pt-5">
           Con dấu thuộc chương trình này chỉ khẳng định các tiêu chí liệt kê ở trên, tại thời điểm
           đánh giá. Mỗi chứng chỉ ghi rõ cơ sở đánh giá (tự khai / đã thẩm định bằng chứng / đã kiểm
           định) trên trang xác thực.

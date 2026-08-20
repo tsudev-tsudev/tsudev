@@ -431,12 +431,17 @@ async function main() {
     description: 'Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, con dấu tín nhiệm.',
     start_url: '/',
     display: 'standalone',
-    // Khớp với giao diện tối duy nhất của site (xem packages/ui/src/tokens.css).
     // Chế độ SÁNG là mặc định của site, nên màu khởi động của PWA phải là
-    // --surface của chế độ sáng. Để '#000000' thì màn hình chờ đen chuyển sang
-    // trang sáng - một cú nháy ngược, ở đúng khoảnh khắc đầu tiên người dùng nhìn.
-    theme_color: '#eef3fa',
-    background_color: '#eef3fa',
+    // `--bg-base` của chế độ Sáng. Đặt lệch thì màn hình chờ chuyển màu sang
+    // trang - một cú nháy, ở đúng khoảnh khắc đầu tiên người dùng nhìn.
+    //
+    // Đây là bản sao THỨ TƯ của màu đó (ba bản kia: tokens.css, _document.tsx,
+    // ThemeToggle.tsx) và nó đã từng trôi lệch thật: đợt đổi sang bảng màu quy
+    // ước v1.0.0, ba bản kia lên #eef4fb còn bản này ở lại #eef3fa - lệch một
+    // đơn vị ở hai kênh, không ai nhìn ra, và chỉ hiện trên màn hình chờ PWA.
+    // Nay `apps/frontend-main/test/themeTokens.test.ts` canh cả bản này.
+    theme_color: '#eef4fb',
+    background_color: '#eef4fb',
     icons: [
       { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
       { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },

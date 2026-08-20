@@ -20,8 +20,8 @@ const BASIS = [
 ];
 
 const inputCls =
-  'w-full rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand outline-none';
-const labelCls = 'block text-sm font-medium text-inksoft mb-1.5';
+  'w-full rounded-md border border-line bg-base px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-primary outline-none';
+const labelCls = 'block text-sm font-medium text-fg-secondary mb-1.5';
 
 export default function AdminTrust() {
   const { data: session, status } = useSession();
@@ -119,7 +119,9 @@ export default function AdminTrust() {
       <Layout active="/admin" bare>
         <Seo title="Quản trị con dấu" path="/admin/trust" noindex />
         <div className="max-w-xl mx-auto px-4 py-20 text-center">
-          <p className="text-inksoft mb-6">Bạn cần đăng nhập bằng tài khoản có quyền kiểm duyệt.</p>
+          <p className="text-fg-secondary mb-6">
+            Bạn cần đăng nhập bằng tài khoản có quyền kiểm duyệt.
+          </p>
           <Button onClick={() => signIn()} size="lg">
             Đăng nhập
           </Button>
@@ -146,8 +148,8 @@ export default function AdminTrust() {
           <p
             className="rounded-lg px-4 py-3 text-sm"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--error) 10%, var(--panel))',
-              color: 'var(--error)',
+              backgroundColor: 'var(--danger-tint)',
+              color: 'var(--danger)',
             }}
           >
             ⛔ Tài khoản hiện tại không có quyền kiểm duyệt.
@@ -157,8 +159,8 @@ export default function AdminTrust() {
           <p
             className="mb-4 rounded-lg px-4 py-3 text-sm"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--error) 12%, var(--panel))',
-              color: 'var(--error)',
+              backgroundColor: 'var(--danger-tint)',
+              color: 'var(--danger)',
             }}
           >
             {err}
@@ -168,7 +170,7 @@ export default function AdminTrust() {
           <p
             className="mb-4 rounded-lg px-4 py-3 text-sm"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--success) 12%, var(--panel))',
+              backgroundColor: 'var(--success-tint)',
               color: 'var(--success)',
             }}
           >
@@ -188,27 +190,27 @@ export default function AdminTrust() {
 
         {/* --- Hàng đợi thẩm định --- */}
         <section className="mb-14">
-          <h2 className="text-lg font-semibold text-ink mb-4">Hàng đợi thẩm định</h2>
+          <h2 className="text-lg font-semibold text-fg mb-4">Hàng đợi thẩm định</h2>
           {queue.length === 0 && (
-            <p className="py-8 text-muted text-sm">Không có hồ sơ nào chờ xử lý.</p>
+            <p className="py-8 text-fg-muted text-sm">Không có hồ sơ nào chờ xử lý.</p>
           )}
-          <div className="divide-y divide-[color:var(--border)]">
+          <div className="divide-y divide-line">
             {queue.map((a) => (
               <button
                 key={a.id}
                 onClick={() => openDetail(a.id)}
-                className="w-full text-left flex flex-wrap items-center gap-x-3 gap-y-2 py-4 px-3 -mx-3 rounded-lg hover:bg-panel transition-colors"
+                className="w-full text-left flex flex-wrap items-center gap-x-3 gap-y-2 py-4 px-3 -mx-3 rounded-lg hover:bg-surface transition-colors"
               >
                 <Badge tone={a.status === 'NEEDS_INFO' ? 'warning' : 'brand'} mono>
                   {a.status}
                 </Badge>
-                <span className="font-mono text-sm text-ink">{a.hostname}</span>
+                <span className="font-mono text-sm text-fg">{a.hostname}</span>
                 <Badge tone={a.domainStatus === 'VERIFIED' ? 'success' : 'warning'} mono>
                   domain {a.domainStatus}
                 </Badge>
-                <span className="text-sm text-inksoft">{a.program?.name}</span>
-                <span className="text-xs text-muted">{a.organization}</span>
-                <span className="ml-auto text-xs text-muted">
+                <span className="text-sm text-fg-secondary">{a.program?.name}</span>
+                <span className="text-xs text-fg-muted">{a.organization}</span>
+                <span className="ml-auto text-xs text-fg-muted">
                   {a.evidenceCount} bằng chứng · {fmtDate(a.submittedAt)}
                 </span>
               </button>
@@ -218,15 +220,17 @@ export default function AdminTrust() {
 
         {/* --- Bảng thẩm định chi tiết --- */}
         {detail && (
-          <section className="mb-14 rounded-md bg-panel p-6">
+          <section className="mb-14 rounded-md bg-surface p-6">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
-                <h2 className="text-lg font-semibold text-ink">{detail.program?.name}</h2>
-                <p className="font-mono text-sm text-inksoft mt-0.5">{detail.domain?.hostname}</p>
+                <h2 className="text-lg font-semibold text-fg">{detail.program?.name}</h2>
+                <p className="font-mono text-sm text-fg-secondary mt-0.5">
+                  {detail.domain?.hostname}
+                </p>
               </div>
               <button
                 onClick={() => setDetail(null)}
-                className="text-muted hover:text-ink"
+                className="text-fg-muted hover:text-fg"
                 aria-label="Đóng"
               >
                 ✕
@@ -235,27 +239,27 @@ export default function AdminTrust() {
 
             <dl className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm mb-6">
               <div>
-                <dt className="text-muted">Tổ chức</dt>
-                <dd className="text-ink">
+                <dt className="text-fg-muted">Tổ chức</dt>
+                <dd className="text-fg">
                   {detail.organization?.name} · {detail.organization?.contactEmail}
                 </dd>
               </div>
               <div>
-                <dt className="text-muted">Tên miền</dt>
-                <dd className="text-ink">
+                <dt className="text-fg-muted">Tên miền</dt>
+                <dd className="text-fg">
                   {detail.domain?.status}{' '}
                   {detail.domain?.verifiedAt ? `· ${fmtDate(detail.domain.verifiedAt)}` : ''}
                 </dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-muted">Phạm vi khách khai</dt>
-                <dd className="text-ink">{detail.scope || '-'}</dd>
+                <dt className="text-fg-muted">Phạm vi khách khai</dt>
+                <dd className="text-fg">{detail.scope || '-'}</dd>
               </div>
             </dl>
 
             <div className="mb-6">
-              <div className="text-sm text-muted mb-2">Tiêu chí chương trình</div>
-              <ul className="text-sm text-inksoft space-y-1">
+              <div className="text-sm text-fg-muted mb-2">Tiêu chí chương trình</div>
+              <ul className="text-sm text-fg-secondary space-y-1">
                 {(detail.program?.criteria || []).map((c, i) => (
                   <li key={c.key || i}>· {c.label}</li>
                 ))}
@@ -263,16 +267,16 @@ export default function AdminTrust() {
             </div>
 
             <div className="mb-6">
-              <div className="text-sm text-muted mb-2">
+              <div className="text-sm text-fg-muted mb-2">
                 Bằng chứng đã nộp ({detail.evidence?.length || 0})
               </div>
-              <div className="divide-y divide-[color:var(--border)]">
+              <div className="divide-y divide-line">
                 {(detail.evidence || []).map((e) => (
                   <div key={e.id} className="py-2.5 text-sm">
-                    <span className="font-mono text-xs text-muted mr-2">{e.kind}</span>
+                    <span className="font-mono text-xs text-fg-muted mr-2">{e.kind}</span>
                     {e.url ? (
                       <a
-                        className="text-brandink hover:underline break-all"
+                        className="text-link hover:underline break-all"
                         href={e.url}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -280,12 +284,12 @@ export default function AdminTrust() {
                         {e.url}
                       </a>
                     ) : (
-                      <span className="text-ink">{e.note}</span>
+                      <span className="text-fg">{e.note}</span>
                     )}
                   </div>
                 ))}
                 {(detail.evidence || []).length === 0 && (
-                  <p className="py-2 text-sm text-muted">Không có bằng chứng.</p>
+                  <p className="py-2 text-sm text-fg-muted">Không có bằng chứng.</p>
                 )}
               </div>
             </div>
@@ -293,7 +297,7 @@ export default function AdminTrust() {
             <div className="grid sm:grid-cols-2 gap-4 mb-5">
               <label className="block">
                 <span className={labelCls}>
-                  Cơ sở đánh giá <span className="text-[var(--warning)]">*</span>
+                  Cơ sở đánh giá <span className="text-warning-ink">*</span>
                 </span>
                 <select
                   value={form.basis}
@@ -306,7 +310,7 @@ export default function AdminTrust() {
                     </option>
                   ))}
                 </select>
-                <span className="block mt-1.5 text-xs text-muted">
+                <span className="block mt-1.5 text-xs text-fg-muted">
                   In lên trang xác thực công khai. Chọn đúng mức bạn thực sự đã làm.
                 </span>
               </label>
@@ -377,14 +381,14 @@ export default function AdminTrust() {
 
         {/* --- Chứng chỉ đã cấp --- */}
         <section className="mb-14">
-          <h2 className="text-lg font-semibold text-ink mb-4">Chứng chỉ đã cấp</h2>
-          <div className="divide-y divide-[color:var(--border)]">
+          <h2 className="text-lg font-semibold text-fg mb-4">Chứng chỉ đã cấp</h2>
+          <div className="divide-y divide-line">
             {certs.map((c) => {
               const meta = statusMeta(c.status);
               return (
                 <div key={c.serial} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3.5">
                   <a
-                    className="font-mono text-sm text-brandink hover:underline"
+                    className="font-mono text-sm text-link hover:underline"
                     href={`/trust/verify/${c.serial}`}
                   >
                     {c.serial}
@@ -392,9 +396,9 @@ export default function AdminTrust() {
                   <Badge tone={c.status === 'ACTIVE' ? 'success' : 'warning'} mono>
                     {meta.label || c.status}
                   </Badge>
-                  <span className="font-mono text-sm text-inksoft">{c.hostname}</span>
-                  <span className="text-xs text-muted">{c.program?.name}</span>
-                  <span className="ml-auto text-xs text-muted">đến {fmtDate(c.expiresAt)}</span>
+                  <span className="font-mono text-sm text-fg-secondary">{c.hostname}</span>
+                  <span className="text-xs text-fg-muted">{c.program?.name}</span>
+                  <span className="ml-auto text-xs text-fg-muted">đến {fmtDate(c.expiresAt)}</span>
                   {c.status !== 'REVOKED' && (
                     <div className="flex gap-2">
                       <Button
@@ -433,29 +437,28 @@ export default function AdminTrust() {
               );
             })}
             {certs.length === 0 && (
-              <p className="py-8 text-muted text-sm">Chưa cấp chứng chỉ nào.</p>
+              <p className="py-8 text-fg-muted text-sm">Chưa cấp chứng chỉ nào.</p>
             )}
           </div>
         </section>
 
         {/* --- Giám sát tên miền --- */}
         <section className="mb-12">
-          <h2 className="text-lg font-semibold text-ink mb-1">Giám sát tên miền</h2>
-          <p className="text-sm text-muted mb-4">
+          <h2 className="text-lg font-semibold text-fg mb-1">Giám sát tên miền</h2>
+          <p className="text-sm text-fg-muted mb-4">
             {recheck && recheck.enabled ? (
               <>
                 Hệ thống tự kiểm mỗi {recheck.intervalMin} phút, mỗi lượt tối đa {recheck.batch}{' '}
                 chứng chỉ, chỉ kiểm lại chứng chỉ đã cũ hơn {Math.round(recheck.staleAfterMin / 60)}{' '}
                 giờ. Chứng chỉ trượt {recheck.graceFailures} lần{' '}
-                <strong className="text-inksoft">liên tiếp</strong> sẽ tự bị đình chỉ - tự đình chỉ,
-                không bao giờ tự thu hồi. Xác minh lại được thì hệ thống tự bỏ đình chỉ, nhưng chỉ
-                với những chứng chỉ do chính nó đình chỉ.
+                <strong className="text-fg-secondary">liên tiếp</strong> sẽ tự bị đình chỉ - tự đình
+                chỉ, không bao giờ tự thu hồi. Xác minh lại được thì hệ thống tự bỏ đình chỉ, nhưng
+                chỉ với những chứng chỉ do chính nó đình chỉ.
               </>
             ) : recheck ? (
               <>
-                Bộ hẹn giờ trong tiến trình đang{' '}
-                <strong className="text-[var(--warning)]">tắt</strong> - tái kiểm phải do cron bên
-                ngoài hoặc nút dưới đây kích hoạt.
+                Bộ hẹn giờ trong tiến trình đang <strong className="text-warning-ink">tắt</strong> -
+                tái kiểm phải do cron bên ngoài hoặc nút dưới đây kích hoạt.
               </>
             ) : (
               'Đang tải cấu hình…'
@@ -497,24 +500,24 @@ export default function AdminTrust() {
 
         {/* --- Mã mời --- */}
         <section className="mb-14">
-          <h2 className="text-lg font-semibold text-ink mb-1">Mã mời</h2>
-          <p className="text-sm text-muted mb-4 max-w-2xl leading-relaxed">
+          <h2 className="text-lg font-semibold text-fg mb-1">Mã mời</h2>
+          <p className="text-sm text-fg-muted mb-4 max-w-2xl leading-relaxed">
             Đổi mã hợp lệ nâng tài khoản lên <span className="font-mono text-xs">VIP</span> - mức
             tối đa mà mã mời cấp được, và trần đó nằm trong mã nguồn chứ không trong dữ liệu. Mã thô
             chỉ hiện một lần ngay sau khi cấp; hệ thống chỉ lưu bản băm.
           </p>
 
           {freshCode && (
-            <div className="mb-4 rounded-md border border-hairstrong bg-panel p-4">
-              <p className="text-sm text-inksoft">
+            <div className="mb-4 rounded-md border border-line-strong bg-surface p-4">
+              <p className="text-sm text-fg-secondary">
                 Mã vừa cấp - chép lại ngay, nó không hiện lại lần nào nữa:
               </p>
-              <p className="mt-2 font-mono text-lg font-bold tracking-wider text-ink select-all">
+              <p className="mt-2 font-mono text-lg font-bold tracking-wider text-fg select-all">
                 {freshCode}
               </p>
               <button
                 type="button"
-                className="mt-2 text-xs text-muted hover:text-ink underline"
+                className="mt-2 text-xs text-fg-muted hover:text-fg underline"
                 onClick={() => setFreshCode(null)}
               >
                 Tôi đã chép xong, ẩn đi
@@ -596,7 +599,7 @@ export default function AdminTrust() {
             </Button>
           </form>
 
-          <div className="divide-y divide-[color:var(--border)]">
+          <div className="divide-y divide-line">
             {invites.map((i) => {
               const expired = !!i.expiresAt && new Date(i.expiresAt).getTime() <= Date.now();
               const dead = !!i.revokedAt || expired || i.usedCount >= i.maxUses;
@@ -605,7 +608,7 @@ export default function AdminTrust() {
                   key={i.id}
                   className="py-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
                 >
-                  <span className="font-medium text-ink">{i.label}</span>
+                  <span className="font-medium text-fg">{i.label}</span>
                   <Badge tone={dead ? 'outline' : 'success'}>
                     {i.revokedAt
                       ? 'đã thu hồi'
@@ -615,13 +618,13 @@ export default function AdminTrust() {
                       ? 'hết lượt'
                       : 'còn dùng được'}
                   </Badge>
-                  <span className="font-mono text-xs text-muted">
+                  <span className="font-mono text-xs text-fg-muted">
                     {i.usedCount}/{i.maxUses} lượt · cấp {i.grantsRole}
                   </span>
                   {i.expiresAt && (
-                    <span className="text-xs text-muted">hạn {fmtDate(i.expiresAt)}</span>
+                    <span className="text-xs text-fg-muted">hạn {fmtDate(i.expiresAt)}</span>
                   )}
-                  <span className="ml-auto text-xs text-muted">{fmtDate(i.createdAt)}</span>
+                  <span className="ml-auto text-xs text-fg-muted">{fmtDate(i.createdAt)}</span>
                   {!i.revokedAt && (
                     <Button
                       size="sm"
@@ -637,25 +640,25 @@ export default function AdminTrust() {
                 </div>
               );
             })}
-            {invites.length === 0 && <p className="py-8 text-muted text-sm">Chưa cấp mã nào.</p>}
+            {invites.length === 0 && <p className="py-8 text-fg-muted text-sm">Chưa cấp mã nào.</p>}
           </div>
         </section>
 
         {/* --- Nhật ký --- */}
         <section>
-          <h2 className="text-lg font-semibold text-ink mb-4">Nhật ký</h2>
-          <div className="divide-y divide-[color:var(--border)]">
+          <h2 className="text-lg font-semibold text-fg mb-4">Nhật ký</h2>
+          <div className="divide-y divide-line">
             {audit.map((a) => (
               <div key={a.id} className="py-2.5 text-sm flex flex-wrap gap-x-3 gap-y-1">
-                <span className="font-mono text-xs text-teal w-52 shrink-0">{a.action}</span>
-                <span className="text-inksoft">{a.targetLabel || a.targetId}</span>
-                {a.note && <span className="text-muted">· {a.note}</span>}
-                <span className="ml-auto text-xs text-muted">
+                <span className="font-mono text-xs text-accent w-52 shrink-0">{a.action}</span>
+                <span className="text-fg-secondary">{a.targetLabel || a.targetId}</span>
+                {a.note && <span className="text-fg-muted">· {a.note}</span>}
+                <span className="ml-auto text-xs text-fg-muted">
                   {a.actorName} · {fmtDate(a.createdAt)}
                 </span>
               </div>
             ))}
-            {audit.length === 0 && <p className="py-8 text-muted text-sm">Chưa có hoạt động.</p>}
+            {audit.length === 0 && <p className="py-8 text-fg-muted text-sm">Chưa có hoạt động.</p>}
           </div>
         </section>
       </div>

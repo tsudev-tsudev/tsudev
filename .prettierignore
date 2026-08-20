@@ -26,3 +26,17 @@ documents-tsudev.md
 # (vd services/** -> services/\*\*) làm sai lệch glob pattern và tên đường dẫn
 # - giữ nguyên văn. AGENTS.md KHÔNG nằm ở đây: nó là văn xuôi bình thường.
 CLAUDE.md
+
+# Bộ quy ước v1.0.0 - "BẤT KHẢ XÂM PHẠM" theo AGENTS.md §0, và dùng chung với
+# các repo khác trong hệ sinh thái (C#/Python/Qt cũng parse `tokens/`). Prettier
+# hạ mã hex xuống chữ thường, tách danh sách selector xuống dòng và đánh số lại
+# danh sách trong markdown - tức là làm bản ở đây LỆCH khỏi bản gốc, và một bộ
+# token dùng chung mà mỗi repo một dạng thì hết là dùng chung.
+#
+# `packages/ui/src/tokens.css` KHÔNG nằm ở đây: nó là bản SINH RA cho riêng web,
+# và `npm run tokens:check` mới là thứ canh nó.
+tokens/tokens.css
+tokens/design-tokens.json
+docs/DESIGN_SYSTEM.md
+docs/PROJECT_STRUCTURE.md
+docs/templates/HANDOVER.md

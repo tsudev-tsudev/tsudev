@@ -11,6 +11,8 @@
 //      ngay cả ở file đã được miễn trừ).
 //   C. Cổng công bố trong docker-compose.yml khớp topology, hoặc có override
 //      kèm lý do.
+//   D. Trang người dùng nhìn thấy KHÔNG in số cổng nội bộ - kể cả dạng trần
+//      (":4001") không kèm host, thứ mà khẳng định A không thấy.
 //
 // Chạy: npm run topology:check
 
@@ -113,6 +115,58 @@ function collectHits() {
   return hits;
 }
 
+/**
+ * D. Không in cổng nội bộ lên trang người dùng nhìn thấy.
+ *
+ * Khẳng định A chỉ bắt literal có host (`localhost:4001`). Nó ĐÃ BỎ LỌT một
+ * chỗ thật: trang chủ vẽ một khối terminal in ":4001 healthy" và ":4002
+ * healthy" - không có chữ "localhost" nên không hit nào được ghi, và dòng đó
+ * sống trên production nhiều tháng. Nó sai hai lần: production không chạy bốn
+ * cổng đó (bốn service đã gộp thành services/backend-bundle), và tsudev đối
+ * ngoại chỉ có MỘT địa chỉ - in cổng nội bộ lên trang chủ là tự mâu thuẫn với
+ * chính quy ước ấy.
+ *
+ * Phạm vi hẹp có chủ ý: chỉ trang và component RENDER RA cho người dùng.
+ * `pages/api/**` là mã máy chủ, chú thích trong đó nói về cổng là tài liệu.
+ */
+const BARE_PORT = /(?<![\w.])(?<!\d:):(\d{4})\b/g;
+
+function checkUserFacingPorts(topo, errors) {
+  const ports = knownPorts(topo);
+  const roots = [];
+  const appsDir = path.join(ROOT, 'apps');
+  if (fs.existsSync(appsDir)) {
+    fs.readdirSync(appsDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .forEach((e) => {
+        roots.push(path.join(appsDir, e.name, 'pages'));
+        roots.push(path.join(appsDir, e.name, 'components'));
+      });
+  }
+
+  roots.forEach((root) => {
+    for (const abs of walk(root)) {
+      const rel = path.relative(ROOT, abs);
+      if (rel.includes(`${path.sep}api${path.sep}`)) continue;
+      if (!['.jsx', '.tsx'].includes(path.extname(abs))) continue;
+      fs.readFileSync(abs, 'utf8')
+        .split(/\r?\n/)
+        .forEach((line, i) => {
+          let m;
+          BARE_PORT.lastIndex = 0;
+          while ((m = BARE_PORT.exec(line))) {
+            if (!ports.has(Number(m[1]))) continue;
+            errors.push(
+              `${rel}:${i + 1} - in cổng nội bộ :${m[1]} ra giao diện người dùng.\n` +
+                `      Bỏ số cổng đi: đối ngoại tsudev chỉ có một địa chỉ (docs/url-convention.md).\n` +
+                `      ${line.trim().slice(0, 100)}`
+            );
+          }
+        });
+    }
+  });
+}
+
 function checkCompose(topo, errors) {
   const abs = path.join(ROOT, 'docker-compose.yml');
   if (!fs.existsSync(abs)) return;
@@ -171,6 +225,7 @@ function main() {
   });
 
   checkCompose(topo, errors);
+  checkUserFacingPorts(topo, errors);
 
   // Mục allow không còn hit nào là rác - dọn để danh sách miễn trừ không phình.
   // Chỉ báo khi không còn lỗi nào khác: một hardcode sai cổng cũng làm mục allow

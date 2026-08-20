@@ -18,10 +18,25 @@ type InputProps = {
   onChange?: React.ChangeEventHandler<HTMLInputElement>;
   placeholder?: string;
   error?: React.ReactNode;
+  /** Chú thích dưới ô, cho hướng dẫn không phải lỗi. */
+  hint?: React.ReactNode;
   className?: string;
   [key: string]: unknown;
 };
 
+/**
+ * Ô nhập - DESIGN_SYSTEM.md §5: cao 36px (token mật độ), nền `bg-surface`, viền
+ * `border`, radius-md; focus viền `primary` + vòng focus; lỗi viền `danger` kèm
+ * dòng báo lỗi 13px bên dưới.
+ *
+ * Nền là `bg-surface` chứ không phải `bg-base`: ô nhập là một bề mặt NỔI trên
+ * nền trang, cùng tầng với card. Dùng `bg-base` thì ở chế độ Sáng ô nhập tiệp
+ * hẳn vào nền và chỉ còn cái viền để nhận ra - đó là lúc người ta không thấy
+ * chỗ để gõ.
+ *
+ * `aria-invalid` + `aria-describedby` chứ không chỉ đổi màu viền: viền đỏ là
+ * thông tin chỉ truyền được bằng mắt, và §1 cấm để màu đứng một mình.
+ */
 export const Input = ({
   id,
   inputRef,
@@ -31,13 +46,15 @@ export const Input = ({
   onChange,
   placeholder = '',
   error,
+  hint,
   className = '',
   ...props
 }: InputProps) => {
+  const msgId = id ? `${id}-msg` : undefined;
   return (
     <div className={`flex flex-col ${className}`}>
       {label && (
-        <label htmlFor={id} className="text-sm font-medium text-inksoft mb-1">
+        <label htmlFor={id} className="mb-1 text-sm font-medium text-fg-secondary">
           {label}
         </label>
       )}
@@ -48,12 +65,23 @@ export const Input = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`rounded-md border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted outline-none transition-colors ${
-          error ? 'border-error' : 'border-hairline focus:border-brand'
+        aria-invalid={error ? true : undefined}
+        aria-describedby={(error || hint) && msgId ? msgId : undefined}
+        className={`h-control rounded-md border bg-surface px-3 text-sm text-fg placeholder:text-fg-muted transition-colors duration-fast ease-standard focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50 ${
+          error ? 'border-danger' : 'border-line-control focus:border-primary'
         }`}
         {...props}
       />
-      {error && <p className="text-sm text-error mt-1">{error}</p>}
+      {(error || hint) && (
+        <p
+          id={msgId}
+          // 13px = --fs-sm, bậc dành cho dòng phụ dưới ô nhập. Không nhỏ hơn 12px
+          // ở bất kỳ đâu, kể cả chú thích (§4).
+          className={`mt-1 text-sm ${error ? 'text-danger-ink' : 'text-fg-muted'}`}
+        >
+          {error || hint}
+        </p>
+      )}
     </div>
   );
 };
