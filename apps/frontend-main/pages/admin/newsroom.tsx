@@ -87,9 +87,19 @@ interface Metrics {
   runs: number;
 }
 
+interface ProviderHealth {
+  name: 'workers-ai' | 'gemini';
+  configured: boolean;
+  exhaustedToday: boolean;
+}
+
 interface State {
   enabled: boolean;
   budget: { used: number; limit: number };
+  /// Hạn mức miễn phí cạn mỗi ngày là THIẾT KẾ, không phải sự cố - nên nó hiện
+  /// ra như trạng thái vận hành, không phải như một dòng lỗi đỏ.
+  providers: ProviderHealth[];
+  deadEvents: number;
   agents: Agent[];
   metrics: Record<string, Metrics>;
   drafts: Draft[];
@@ -145,6 +155,9 @@ const EVENT_LABEL: Record<string, string> = {
   'agent.resumed': 'được mở lại',
   'provider.switched': 'chuyển nhà cung cấp LLM',
   'budget.exhausted': 'cạn hạn mức Neuron',
+  'provider.exhausted': 'nhà cung cấp báo cạn hạn mức',
+  'event.revived': 'hồi sinh việc đã dừng vì hạn mức',
+  'scan.skipped': 'bỏ lượt quét',
   'source.failed': 'nguồn tin lỗi',
   'scan.failed': 'lượt quét lỗi',
   'event.failed': 'xử lý lỗi, sẽ thử lại',
@@ -258,6 +271,8 @@ export default function NewsroomPage() {
   const drafts = state?.drafts ?? [];
   const nameOf = (id: string | null) => agents.find((a) => a.id === id)?.displayName ?? 'Hệ thống';
 
+  const exhausted = (state?.providers ?? []).filter((p) => p.configured && p.exhaustedToday);
+
   const budgetPct = state
     ? Math.min(100, Math.round((state.budget.used / state.budget.limit) * 100))
     : 0;
@@ -279,6 +294,39 @@ export default function NewsroomPage() {
         {err && (
           <Card className="p-4 mt-6 border-l-2 border-warning">
             <p className="text-sm text-warning">{err}</p>
+          </Card>
+        )}
+
+        {exhausted.length > 0 && (
+          <Card className="p-4 mt-6 border-l-2 border-warning">
+            <p className="text-sm text-fg">
+              Hết hạn mức miễn phí hôm nay ở {exhausted.map((p) => p.name).join(' và ')}. Toà soạn
+              đã <strong>hoãn</strong> việc đang chờ, không huỷ — hạn mức đặt lại lúc{' '}
+              <span className="font-mono">00:00 UTC</span> (07:00 giờ Việt Nam).
+            </p>
+            {!state?.providers?.some((p) => p.name === 'gemini' && p.configured) && (
+              <p className="text-sm text-fg-muted mt-2">
+                Chưa cấu hình đường dự phòng. Đặt{' '}
+                <code className="font-mono text-link">GEMINI_API_KEY</code> ở backend để toà soạn
+                chạy tiếp sau khi cạn Neuron.
+              </p>
+            )}
+            {(state?.deadEvents ?? 0) > 0 && (
+              <div className="mt-3">
+                <Button
+                  variant="secondary"
+                  disabled={busy === 'revive'}
+                  onClick={() => act('revive', '/api/newsroom/admin/events/revive', {})}
+                >
+                  {busy === 'revive'
+                    ? 'Đang hồi sinh…'
+                    : `Hồi sinh việc đã dừng (${state?.deadEvents})`}
+                </Button>
+                <p className="text-sm text-fg-muted mt-2">
+                  Chỉ hồi sinh việc chết vì cạn hạn mức. Lỗi thật vẫn nằm nguyên để còn sửa.
+                </p>
+              </div>
+            )}
           </Card>
         )}
 

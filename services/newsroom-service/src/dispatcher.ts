@@ -6,7 +6,18 @@
 import { prisma } from '@tsudev/db'
 import { runScout, runWriter, runEditor, runSeo, slugify, AgentCost } from './agents'
 import { fetchSource, fingerprint } from './sources'
-import { DAILY_NEURON_BUDGET, neuronsUsedToday } from './llm'
+import {
+  AllProvidersExhaustedError,
+  DAILY_NEURON_BUDGET,
+  anyProviderAvailableToday,
+  neuronsUsedToday,
+  utcDayStart,
+} from './llm'
+
+/// "Hôm nay hết lượt gọi mô hình" - KHÔNG phải hỏng. Mọi đường xử lý đều phải
+/// phân biệt được hai thứ này, nếu không thì một ngày cạn hạn mức sẽ giết bản
+/// nháp y như một lỗi thật (xem AllProvidersExhaustedError trong llm/types.ts).
+const isQuotaHalt = (err: unknown): boolean => err instanceof AllProvidersExhaustedError
 
 export const MAX_REVISIONS = parseInt(process.env.NEWSROOM_MAX_REVISIONS || '2', 10)
 const LEASE_MS = 5 * 60 * 1000
@@ -27,6 +38,70 @@ async function emit(type: string, data: Json = {}, extra: Json = {}): Promise<vo
       status: (extra.terminal as boolean) ? 'DONE' : 'PENDING',
     },
   })
+}
+
+/// Ghi MỘT lần mỗi ngày UTC. Nhịp toà soạn chạy mỗi giờ, nên một sự kiện phát
+/// lại ở mỗi nhịp sẽ đẩy 19 dòng giống hệt nhau vào nhật ký của một ngày cạn
+/// hạn mức - và đẩy trôi những dòng thật sự đáng đọc ra khỏi 80 dòng mà bảng
+/// điều khiển lấy về. Nhật ký ồn ào là nhật ký không ai đọc.
+async function emitOncePerDay(type: string, data: Json = {}): Promise<void> {
+  const seen = await prisma.newsroomEvent.findFirst({
+    where: { type, createdAt: { gte: utcDayStart() } },
+    select: { id: true },
+  })
+  if (seen) return
+  await emit(type, data, { terminal: true, actorKind: 'system' })
+}
+
+/**
+ * Hồi sinh những sự kiện đã bị giết BỞI VIỆC CẠN HẠN MỨC, không phải bởi lỗi thật.
+ *
+ * Vì sao cần một đường dọn dẹp riêng thay vì chỉ sửa nguyên nhân: các bản nháp
+ * đã chết trước bản vá này vẫn nằm đó, `attempts >= 3`, `status = DEAD`, và
+ * không nhịp nào nhặt chúng lên nữa. Sửa nguồn gây bệnh không tự chữa cho người
+ * đã ốm.
+ *
+ * Nhận diện theo DẤU VẾT ở nhật ký chứ không theo phỏng đoán: chỉ hồi sinh sự
+ * kiện `event.dead`/`event.failed` mang thông điệp lỗi có mùi hạn mức. Lỗi thật
+ * vẫn phải nằm yên ở DEAD để còn có người nhìn thấy mà sửa.
+ */
+const QUOTA_FINGERPRINT = /neuron|quota|rate.?limit|exceed|allocation|RESOURCE_EXHAUSTED|429/i
+
+export async function reviveQuotaCasualties(): Promise<{ revived: number }> {
+  const dead = await prisma.newsroomEvent.findMany({
+    where: { status: 'DEAD' },
+    select: { id: true, draftId: true, type: true },
+    take: 200,
+  })
+  if (!dead.length) return { revived: 0 }
+
+  // Thông điệp lỗi không nằm trên chính sự kiện DEAD mà nằm ở sự kiện nhật ký
+  // `event.dead` sinh kèm nó - nên đối chiếu qua draftId + type.
+  const notes = await prisma.newsroomEvent.findMany({
+    where: { type: { in: ['event.dead', 'event.failed'] } },
+    select: { draftId: true, payload: true },
+    orderBy: { createdAt: 'desc' },
+    take: 500,
+  })
+  const quotaKilled = new Set(
+    notes
+      .filter((n) => QUOTA_FINGERPRINT.test(String((n.payload as Json)?.error ?? '')))
+      .map((n) => `${n.draftId ?? ''}|${String((n.payload as Json)?.type ?? '')}`)
+  )
+
+  const ids = dead.filter((d) => quotaKilled.has(`${d.draftId ?? ''}|${d.type}`)).map((d) => d.id)
+  if (!ids.length) return { revived: 0 }
+
+  const { count } = await prisma.newsroomEvent.updateMany({
+    where: { id: { in: ids } },
+    data: { status: 'PENDING', attempts: 0, claimedAt: null },
+  })
+  await emit(
+    'event.revived',
+    { count, reason: 'chết vì cạn hạn mức LLM, không phải lỗi thật' },
+    { terminal: true, actorKind: 'human' }
+  )
+  return { revived: count }
 }
 
 async function agentBySlug(slug: string) {
@@ -183,6 +258,12 @@ async function scanSources(): Promise<void> {
           data: { lastScanAt: new Date(), lastError: null },
         })
       } catch (err) {
+        // Cạn hạn mức KHÔNG phải lỗi của nguồn tin. Ghi nó vào `lastError` là
+        // đổ oan cho nguồn - và đó đúng là dòng đỏ "AiError: ... 10,000
+        // neurons" mà bảng điều khiển dán cạnh từng nguồn, khiến người đọc đi
+        // sửa nguồn RSS trong khi nguồn hoàn toàn lành. Ném tiếp để dừng cả
+        // lượt quét: nguồn kế tiếp cũng đâm vào đúng bức tường ấy.
+        if (isQuotaHalt(err)) throw err
         await prisma.newsroomSource.update({
           where: { id: src.id },
           data: { lastScanAt: new Date(), lastError: String((err as Error).message).slice(0, 300) },
@@ -572,7 +653,16 @@ export async function tick(batch = 5): Promise<TickResult> {
   const used = await neuronsUsedToday()
   const reclaimed = await reclaimStale()
 
+  // Hỏi TRƯỚC khi nhận việc. Nhận rồi mới biết không làm được thì sự kiện đã bị
+  // đánh dấu CLAIMED và tăng `attempts` một cách vô ích - ba nhịp như thế là
+  // sự kiện DEAD vĩnh viễn vì một lý do hoàn toàn tạm thời.
+  if (!(await anyProviderAvailableToday())) {
+    await emitOncePerDay('budget.exhausted', { used, budget })
+    return { processed: 0, reclaimed, skipped: 'cạn hạn mức LLM - chờ 00:00 UTC' }
+  }
+
   await scanSources().catch(async (err) => {
+    if (isQuotaHalt(err)) return
     await emit(
       'scan.failed',
       { error: String((err as Error).message).slice(0, 300) },
@@ -597,6 +687,19 @@ export async function tick(batch = 5): Promise<TickResult> {
       await prisma.newsroomEvent.update({ where: { id: ev.id }, data: { status: 'DONE' } })
       processed++
     } catch (err) {
+      // HOÃN, không phải THẤT BẠI: trả sự kiện về hàng đợi và HOÀN LẠI lần thử
+      // mà claimBatch() đã cộng, rồi dừng cả nhịp - việc sau cũng gọi mô hình
+      // nên cũng sẽ đâm vào đúng bức tường. Không có nhánh này thì một ngày cạn
+      // Neuron ăn hết ba lần thử của mọi sự kiện đang chờ và bản nháp chết
+      // vĩnh viễn dù chưa từng có lỗi thật nào.
+      if (isQuotaHalt(err)) {
+        await prisma.newsroomEvent.update({
+          where: { id: ev.id },
+          data: { status: 'PENDING', claimedAt: null, attempts: { decrement: 1 } },
+        })
+        await emitOncePerDay('budget.exhausted', { used, budget })
+        break
+      }
       const msg = String((err as Error).message).slice(0, 300)
       // Ba lần thất bại thì DEAD và hiện lên dashboard. Im lặng nuốt lỗi là
       // đúng cái đã làm "trang trống" thành huyền thoại trong repo này.
@@ -614,7 +717,7 @@ export async function tick(batch = 5): Promise<TickResult> {
   }
 
   if (used >= budget) {
-    await emit('budget.exhausted', { used, budget }, { terminal: true, actorKind: 'system' })
+    await emitOncePerDay('budget.exhausted', { used, budget })
   }
 
   return { processed, reclaimed }
