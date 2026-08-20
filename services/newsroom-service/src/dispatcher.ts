@@ -4,14 +4,16 @@
 // dịch, nhật ký và van an toàn nằm ở đây, để không phải đi tìm ở bốn nơi khi
 // một bài đi sai đường.
 import { prisma } from '@tsudev/db'
-import { runScout, runWriter, runEditor, runSeo, slugify, AgentCost } from './agents'
+import { runScout, runWriter, runEditor, runSeo, slugify } from './agents'
 import { fetchSource, fingerprint } from './sources'
 import {
   AllProvidersExhaustedError,
   DAILY_NEURON_BUDGET,
   anyProviderAvailableToday,
   neuronsUsedToday,
+  newCostLedger,
   utcDayStart,
+  withCostLedger,
 } from './llm'
 
 /// "Hôm nay hết lượt gọi mô hình" - KHÔNG phải hỏng. Mọi đường xử lý đều phải
@@ -120,32 +122,39 @@ async function setStatus(id: string, status: string, note?: string): Promise<voi
 
 /// Bọc một lượt chạy agent: mở AgentRun (có lease), chạy, đóng, ghi số đo.
 /// Ném lỗi thì run được đóng với ok=false rồi lỗi nổi tiếp lên - đừng nuốt.
+///
+/// Số đo lấy từ SỔ CHI PHÍ theo ngữ cảnh (`withCostLedger`), không phải từ giá
+/// trị agent trả về: agent gọi mô hình xong rồi hỏng ở khâu parse vẫn tiêu
+/// Neuron thật, và đường đó là đường hay hỏng nhất. Một nguồn đếm duy nhất cho
+/// cả hai nhánh - hai nguồn song song là cách chúng lệch nhau mà không ai biết.
 async function withRun<T>(
   agentId: string,
   action: string,
   draftId: string | null,
-  fn: () => Promise<{ result: T; cost: AgentCost }>
+  fn: () => Promise<T>
 ): Promise<T> {
   const run = await prisma.agentRun.create({
     data: { agentId, action, draftId, leaseUntil: new Date(Date.now() + LEASE_MS) },
   })
+  const ledger = newCostLedger()
+  /// `usedProvider` không nhận null trong schema; chưa gọi được nhà cung cấp
+  /// nào thì để nguyên mặc định của cột thay vì bịa ra một cái tên.
+  const spent = () => ({
+    inputTokens: ledger.inputTokens,
+    outputTokens: ledger.outputTokens,
+    neuronsUsed: ledger.neurons,
+    ...(ledger.provider ? { usedProvider: ledger.provider } : {}),
+  })
   try {
-    const { result, cost } = await fn()
+    const result = await withCostLedger(ledger, fn)
     await prisma.agentRun.update({
       where: { id: run.id },
-      data: {
-        endedAt: new Date(),
-        ok: true,
-        inputTokens: cost.inputTokens,
-        outputTokens: cost.outputTokens,
-        neuronsUsed: cost.neurons,
-        usedProvider: cost.provider,
-      },
+      data: { endedAt: new Date(), ok: true, ...spent() },
     })
-    if (cost.switched) {
+    if (ledger.switched) {
       await emit(
         'provider.switched',
-        { to: cost.provider, reason: cost.switchReason ?? '' },
+        { to: ledger.provider, reason: ledger.switchReason ?? '' },
         { agentId, terminal: true, actorKind: 'system' }
       )
     }
@@ -156,6 +165,10 @@ async function withRun<T>(
       data: {
         endedAt: new Date(),
         ok: false,
+        // Chi phí của một lượt chạy HỎNG cũng là chi phí thật. Bỏ nó ra khỏi sổ
+        // là van ngân sách đếm thiếu, và nó đếm thiếu nhiều nhất đúng vào ngày
+        // mô hình trả lời tệ nhất.
+        ...spent(),
         errorMsg: String((err as Error).message).slice(0, 500),
       },
     })
@@ -225,16 +238,15 @@ async function scanSources(): Promise<void> {
           take: 20,
         })
 
-        const { picks } = await withRun(scout.id, 'scan', null, async () => {
-          const out = await runScout({
+        const { picks } = await withRun(scout.id, 'scan', null, () =>
+          runScout({
             systemPrompt: scout.systemPrompt,
             model: scout.model,
             items,
             target: src.target,
             existingTitles: existing.map((e) => e.title),
           })
-          return { result: out, cost: out.cost }
-        })
+        )
 
         for (const pick of picks) {
           const fp = fingerprint(pick.title)
@@ -329,8 +341,8 @@ async function onDraftClaimed(draftId: string): Promise<void> {
   await setStatus(writer.id, 'WRITING', `đang viết: ${draft.title.slice(0, 60)}`)
 
   try {
-    const out = await withRun(writer.id, 'write', draft.id, async () => {
-      const w = await runWriter({
+    const out = await withRun(writer.id, 'write', draft.id, () =>
+      runWriter({
         systemPrompt: writer.systemPrompt,
         model: writer.model,
         styleGuide: ch.styleGuide,
@@ -340,8 +352,7 @@ async function onDraftClaimed(draftId: string): Promise<void> {
         previousDraft: draft.contentMd || undefined,
         feedback: draft.reviewFeedback || undefined,
       })
-      return { result: w, cost: w.cost }
-    })
+    )
 
     const seq = (await prisma.draftRevision.count({ where: { draftId: draft.id } })) + 1
     await prisma.$transaction([
@@ -385,8 +396,8 @@ async function onDraftSubmitted(draftId: string): Promise<void> {
   await setStatus(editor.id, 'REVIEWING', `đang thẩm định: ${draft.title.slice(0, 60)}`)
 
   try {
-    const { verdict } = await withRun(editor.id, 'review', draft.id, async () => {
-      const v = await runEditor({
+    const { verdict } = await withRun(editor.id, 'review', draft.id, () =>
+      runEditor({
         systemPrompt: editor.systemPrompt,
         model: editor.model,
         styleGuide: ch.styleGuide,
@@ -394,8 +405,7 @@ async function onDraftSubmitted(draftId: string): Promise<void> {
         contentMd: draft.contentMd,
         sourceUrls: idea?.sourceUrls ?? [],
       })
-      return { result: v, cost: v.cost }
-    })
+    )
 
     if (verdict.approved) {
       await prisma.contentDraft.update({
@@ -457,15 +467,14 @@ async function onReviewApproved(draftId: string): Promise<void> {
   const seoAgent = await agentBySlug('seo-01')
   await setStatus(seoAgent.id, 'PLANNING', `tối ưu SEO: ${draft.title.slice(0, 60)}`)
   try {
-    const { seo } = await withRun(seoAgent.id, 'seo', draft.id, async () => {
-      const s = await runSeo({
+    const { seo } = await withRun(seoAgent.id, 'seo', draft.id, () =>
+      runSeo({
         systemPrompt: seoAgent.systemPrompt,
         model: seoAgent.model,
         title: draft.title,
         contentMd: draft.contentMd,
       })
-      return { result: s, cost: s.cost }
-    })
+    )
     await prisma.contentDraft.update({
       where: { id: draft.id },
       data: {

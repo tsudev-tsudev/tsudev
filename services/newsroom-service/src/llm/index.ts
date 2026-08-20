@@ -4,6 +4,7 @@
 // ngân sách Neuron đã đóng. Lỗi khác (sai khoá, model không tồn tại, mạng hỏng)
 // phải nổi lên - âm thầm fallback khi cấu hình sai là cách chắc chắn nhất để
 // một lỗi cấu hình sống sót nhiều tháng mà không ai biết.
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { prisma } from '@tsudev/db'
 import {
   AllProvidersExhaustedError,
@@ -24,6 +25,63 @@ const fallback: LlmProvider = new GeminiProvider()
 
 export const DAILY_NEURON_BUDGET = (): number =>
   parseInt(process.env.NEWSROOM_DAILY_NEURON_BUDGET || '8000', 10)
+
+/**
+ * Sổ chi phí của MỘT lượt chạy agent, ghi ngay tại ranh giới nhà cung cấp.
+ *
+ * ⚠️ Vì sao không chỉ đọc giá trị `complete()` TRẢ VỀ: người gọi nhận được chi
+ * phí xong vẫn có thể ném lỗi ngay sau đó - parse JSON hỏng, kết quả không đạt
+ * lược đồ - và đó chính là đường HAY HỎNG NHẤT của mảng này (xem
+ * `parseJsonLoose`). Neuron đã tiêu thật rồi, nhưng giá trị trả về không bao
+ * giờ tới được chỗ ghi sổ, nên `AgentRun` ghi 0. Sổ đếm thiếu đúng ở chỗ nó
+ * cần chính xác nhất, và van ngân sách thì đọc chính cái sổ đó.
+ *
+ * Đặt trong `AsyncLocalStorage` chứ không truyền tay qua bốn hàm agent: truyền
+ * tay thì agent thứ năm viết sau này quên truyền là sổ thủng lại, im lặng.
+ * Ghi ở đây thì mọi lượt gọi mô hình đều được đếm, sâu bao nhiêu tầng cũng vậy.
+ */
+export interface CostLedger {
+  inputTokens: number
+  outputTokens: number
+  neurons: number
+  /// Số lượt gọi mô hình đã THỰC SỰ trả lời trong lượt chạy này. 0 nghĩa là
+  /// chưa nhà cung cấp nào tính tiền - phân biệt được "hỏng trước khi gọi" với
+  /// "gọi xong rồi mới hỏng".
+  calls: number
+  provider?: ProviderName
+  model?: string
+  switched: boolean
+  switchReason?: string
+}
+
+const ledgerStore = new AsyncLocalStorage<CostLedger>()
+
+export function newCostLedger(): CostLedger {
+  return { inputTokens: 0, outputTokens: 0, neurons: 0, calls: 0, switched: false }
+}
+
+/// Chạy `fn` với một sổ chi phí gắn vào ngữ cảnh. `fn` ném lỗi thì sổ VẪN giữ
+/// nguyên những gì đã tiêu - đó là toàn bộ lý do nó tồn tại.
+export function withCostLedger<T>(ledger: CostLedger, fn: () => Promise<T>): Promise<T> {
+  return ledgerStore.run(ledger, fn)
+}
+
+function recordCost(r: RouteOutcome): void {
+  const ledger = ledgerStore.getStore()
+  // Không có sổ nghĩa là đang gọi ngoài một lượt chạy agent (script, test) -
+  // không phải lỗi.
+  if (!ledger) return
+  ledger.inputTokens += r.inputTokens
+  ledger.outputTokens += r.outputTokens
+  ledger.neurons += r.neurons
+  ledger.calls += 1
+  ledger.provider = r.provider
+  ledger.model = r.model
+  if (r.switched) {
+    ledger.switched = true
+    ledger.switchReason = r.switchReason
+  }
+}
 
 /// Mốc 00:00 UTC của hôm nay - ĐÚNG mốc reset hạn mức của Cloudflare, không
 /// phải nửa đêm giờ Việt Nam. Lệch mốc là van mở sai 7 tiếng.
@@ -144,7 +202,9 @@ export async function complete(input: CompleteInput): Promise<RouteOutcome> {
   if (primaryUsable) {
     try {
       const r = await primary.complete(input)
-      return { ...r, switched: false }
+      const outcome: RouteOutcome = { ...r, switched: false }
+      recordCost(outcome)
+      return outcome
     } catch (err) {
       // Chỉ chuyển khi cạn hạn mức. Lỗi khác (sai khoá, model không tồn tại,
       // mạng hỏng) phải nổi lên - âm thầm fallback khi cấu hình sai là cách
@@ -159,7 +219,9 @@ export async function complete(input: CompleteInput): Promise<RouteOutcome> {
   if (fallbackConfigured && !(await exhaustedToday(fallback.name))) {
     try {
       const r = await fallback.complete(input)
-      return { ...r, switched: true, switchReason: reasons.join('; ') }
+      const outcome: RouteOutcome = { ...r, switched: true, switchReason: reasons.join('; ') }
+      recordCost(outcome)
+      return outcome
     } catch (err) {
       if (!(err instanceof QuotaExhaustedError)) throw err
       await markExhausted(fallback.name, err.message)
