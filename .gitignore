@@ -111,6 +111,17 @@ test-results/
 logs
 *.log
 
+# …NHƯNG `logs/` của bộ quy ước thì PHẢI vào repo: nó là trạng thái phối hợp giữa
+# các agent (hàng đợi việc, khoá file, phiếu bàn giao), không phải log runtime.
+# Mẫu `logs` ở trên có từ trước và nuốt trọn thư mục đó - hậu quả là phiếu bàn
+# giao viết xong rồi không bao giờ được commit, và phiên sau mở repo ra thấy trống
+# trơn mà không có gì báo lỗi. Phải mở lại thư mục trước rồi mới mở được file bên trong.
+!logs/
+!logs/STATE.md
+!logs/LOCKS.md
+!logs/handover/
+!logs/handover/**
+
 # =============================================================================
 # 5. RÁC CỦA HỆ ĐIỀU HÀNH VÀ TRÌNH SOẠN THẢO
 # =============================================================================
@@ -135,3 +146,12 @@ desktop.ini
 *.rej
 *.bak
 *.tmp
+
+# ---------------------------------------------------------------------------
+# Ảnh chụp màn hình rà giao diện và bản dựng Storybook - sản phẩm phụ của việc
+# kiểm bằng mắt, không phải mã. (AGENTS.md §3: tạo ra thứ gì thuộc nhóm
+# cache/build thì bổ sung vào đây TRƯỚC khi commit.)
+# ---------------------------------------------------------------------------
+packages/ui/storybook-static
+screenshots
+*.screenshot.png
