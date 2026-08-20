@@ -243,7 +243,41 @@ vãng lai** của cả bốn trang riêng tư.
 
 ## 0.7 Kỹ thuật đã trả giá để học - dùng lại được
 
-Mười hai thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+Mười bốn thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+
+### Van chi phí đọc SỔ CỦA TA, còn hạn mức thì nhà cung cấp đếm bằng sổ CỦA HỌ
+
+Toà soạn có `NEWSROOM_DAILY_NEURON_BUDGET=8000` để chặn trước hạn mức 10.000
+Neuron/ngày của Cloudflare. Van ấy cộng `AgentRun.neuronsUsed` - con số do CHÍNH
+TA ước lượng từ một bảng quy đổi. Ngày 20/08/2026 Cloudflare trả
+`"you have used up your daily free allocation of 10,000 neurons"` trong khi sổ
+của ta mới ghi vài trăm. Van không bao giờ đóng, nên **mọi** nhịp còn lại trong
+ngày đâm vào đúng bức tường đó.
+
+Hai sổ lệch nhau là chuyện bình thường, không phải bug hiếm: sổ của ta chỉ cộng
+các lượt THÀNH CÔNG của một service, sổ của họ tính cả tài khoản - mọi model,
+mọi lượt gọi, kể cả lượt hỏng giữa chừng sau khi mô hình đã sinh xong chữ.
+
+Rút ra: **ước lượng phía mình là van phụ; lời của chính nhà cung cấp là sổ
+chính.** Khi nhà cung cấp nói "hết", hãy ghi lại lời đó và tin nó cho tới mốc
+reset - và ghi vào DB chứ không vào biến nhớ, vì tiến trình bị restart bất cứ
+lúc nào còn thứ cần nhớ là một sự kiện của NGÀY.
+
+### Hết hạn mức KHÔNG phải lỗi, và trộn hai thứ đó thì hàng đợi tự sát
+
+Cùng sự cố trên, phần đắt hơn: dispatcher xử lý "cạn hạn mức" y như "lỗi thật" -
+sự kiện bị tính một lần thử hỏng, ba lần thì `DEAD` vĩnh viễn. Nhịp chạy mỗi
+giờ, nên một ngày cạn Neuron giết sạch mọi bản nháp đang chờ, vì một lý do sẽ tự
+hết lúc 00:00 UTC. Kèm theo là hai chỗ đổ oan: `NewsroomSource.lastError` bị dán
+chuỗi lỗi của Cloudflare (người đọc đi sửa nguồn RSS hoàn toàn lành), và nhật ký
+đầy 19 dòng `budget.exhausted` giống hệt nhau mỗi ngày, đẩy trôi những dòng đáng
+đọc ra khỏi 80 dòng mà bảng điều khiển lấy về.
+
+Rút ra: mọi hàng đợi có retry phải phân biệt **hoãn** với **thất bại**. Hoãn thì
+trả việc về `PENDING` và **hoàn lại** lần thử đã tính. Và sửa nguyên nhân không
+tự chữa cho người đã ốm - phải có đường hồi sinh riêng cho những việc đã chết
+trước bản vá (`reviveQuotaCasualties`, chỉ nhận diện theo dấu vết lỗi hạn mức,
+để lỗi thật vẫn nằm yên mà còn có người nhìn thấy).
 
 ### Công cụ ĐO có thể sai, và nó sai theo kiểu trông rất giống lỗi thật
 

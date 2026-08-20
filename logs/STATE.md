@@ -1,8 +1,9 @@
 # STATE.md — Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 8 bắt đầu ở đây**: đọc
-> [`logs/handover/20260820-02`](handover/20260820-02_viec-con-lai-sau-giao-dien.md)
-> trước. Mục 1.1 của phiếu đó (**80 file chưa commit**) phải xử lý trước mọi việc khác.
+> **Phiên 9 bắt đầu ở đây**: đọc
+> [`logs/handover/20260820-03`](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md)
+> trước (việc phát hành đang chặn), rồi
+> [`20260820-02`](handover/20260820-02_viec-con-lai-sau-giao-dien.md) cho phần còn lại.
 
 ## Hàng đợi task (làm từ trên xuống)
 
@@ -10,6 +11,12 @@
       đã commit thành 3 cụm (82 file), cây sạch, cổng xanh. Cần chủ dự án xác nhận
       trước khi push. Xem phiếu 20260820-02 §1.1.
 
+- [ ] **🔴 Phát hành bản vá hạn mức LLM** — lỗi ở `/admin/newsroom` chỉ hết sau khi
+      backend lên Render. Rồi bấm "Hồi sinh việc đã dừng" trên bảng điều khiển.
+      Phiếu 20260820-03 §1.1.
+- [ ] **🟠 Quyết định: có đặt `GEMINI_API_KEY` không?** Không có đường dự phòng thì
+      mỗi ngày cạn Neuron toà soạn đứng im tới 00:00 UTC (đứng im êm, không mất
+      bài). Bậc Free của Gemini tốn 0đ. Phiếu 20260820-03 §1.2.
 - [ ] **🟠 Đẩy hai mã màu vá lên repo token trung tâm** — `text-muted` và
       `border-strong` của bảng chuẩn v1.0.0 không đạt WCAG AA/1.4.11; tsudev-web
       đang vá cục bộ. Chi tiết: `$accessibility_gap` trong `tokens/design-tokens.json`.
@@ -38,6 +45,14 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 20/08/2026 — **Van hạn mức LLM của Toà soạn**: cạn Neuron nay làm hệ **hoãn**
+  chứ không **hỏng**. Ba khiếm khuyết chồng nhau đã sửa (van đọc sổ ước lượng của
+  ta thay vì lời nhà cung cấp · không có trí nhớ giữa các nhịp · cạn hạn mức ăn
+  hết 3 lần thử rồi giết bản nháp vĩnh viễn). Thêm nút hồi sinh cho bản nháp đã
+  chết. Phiếu: `logs/handover/20260820-03`.
+- 20/08/2026 — **Chuẩn hoá URL**: `www` → 308 về apex; `*.workers.dev` noindex;
+  trang chủ thôi in cổng nội bộ; `topology:check` có khẳng định D chặn hồi quy;
+  `docs/url-convention.md` là nguồn duy nhất trả lời "địa chỉ nào chính tắc".
 - 20/08/2026 — **Nghiệm thu đợt giao diện**: rà máy 12 trang × 3 chế độ (36 ảnh,
   đã đăng nhập ADMIN) → **0 vấn đề tương phản**; e2e **20/20 xanh**; bản dựng
   production sạch, không còn cỡ chữ hay mã màu nào ngoài token. Bốn lỗi thật tìm
@@ -51,6 +66,15 @@
 
 ## Quyết định quan trọng
 
+- 20/08/2026 — **Ước lượng chi phí phía mình là van PHỤ; lời của nhà cung cấp là
+  sổ CHÍNH.** Khi API báo cạn hạn mức thì ghi lại và tin tới mốc reset, ghi vào DB
+  chứ không vào biến nhớ. Lý do đầy đủ: `HANDOFF.md` §0.7.
+- 20/08/2026 — **Mọi hàng đợi có retry phải phân biệt HOÃN với THẤT BẠI.** Hoãn
+  thì hoàn lại lần thử đã tính. Trộn hai thứ này là cách một ngày cạn hạn mức
+  giết sạch hàng đợi.
+- 20/08/2026 — **Giữ cổng dev 8080, KHÔNG hạ xuống 80.** Cổng < 1024 cần root;
+  đổi lấy URL đẹp bằng việc chạy dev dưới quyền root là đánh đổi tồi.
+  `docs/url-convention.md` §1.
 - 20/08/2026 — **Mặc định vẫn là chế độ Sáng**, KHÔNG bám `prefers-color-scheme`.
   `DESIGN_SYSTEM.md` §1 và `CLAUDE.md` mâu thuẫn nhau ở điểm này; hoà giải bằng
   cách thêm lựa chọn thứ tư "Theo hệ thống" để người dùng tự bật. Lý do giữ mặc
@@ -75,10 +99,11 @@
 
 ## Phiếu bàn giao
 
-| Mã                                                                | Chủ đề                                     | Trạng thái |
-| ----------------------------------------------------------------- | ------------------------------------------ | ---------- |
-| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md) | Việc còn lại sau đợt giao diện             | **MỞ**     |
-| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)     | Tái cấu trúc giao diện theo quy ước v1.0.0 | HOÀN THÀNH |
+| Mã                                                                  | Chủ đề                                     | Trạng thái |
+| ------------------------------------------------------------------- | ------------------------------------------ | ---------- |
+| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM            | **MỞ**     |
+| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện             | **MỞ**     |
+| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0 | HOÀN THÀNH |
 
 ## Ghi chú vận hành
 
