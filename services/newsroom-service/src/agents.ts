@@ -2,28 +2,14 @@
 //
 // Không hàm nào ở đây tự ghi DB - dispatcher làm việc đó, để một chỗ duy nhất
 // chịu trách nhiệm về giao dịch và nhật ký. Agent chỉ suy nghĩ.
-import { complete, parseJsonLoose, RouteOutcome } from './llm'
+import { complete, parseJsonLoose } from './llm'
 import { RawItem } from './sources'
 
-export interface AgentCost {
-  inputTokens: number
-  outputTokens: number
-  neurons: number
-  provider: string
-  model: string
-  switched: boolean
-  switchReason?: string
-}
-
-const costOf = (r: RouteOutcome): AgentCost => ({
-  inputTokens: r.inputTokens,
-  outputTokens: r.outputTokens,
-  neurons: r.neurons,
-  provider: r.provider,
-  model: r.model,
-  switched: r.switched,
-  switchReason: r.switchReason,
-})
+// Agent KHÔNG trả chi phí về cho người gọi: `complete()` tự ghi vào sổ chi phí
+// theo ngữ cảnh (`withCostLedger` trong ./llm), nên dispatcher đọc được cả khi
+// hàm ở đây ném lỗi sau lượt gọi mô hình - và mấy chỗ `throw` bên dưới đều nằm
+// SAU lượt gọi đó. Trả chi phí theo đường return là dựng sổ thứ hai chạy song
+// song, và nó thủng đúng ở nhánh hỏng.
 
 // --------------------------------------------------------------------------
 // Săn Tin
@@ -42,7 +28,7 @@ export async function runScout(opts: {
   items: RawItem[]
   target: string
   existingTitles: string[]
-}): Promise<{ picks: ScoutPick[]; cost: AgentCost }> {
+}): Promise<{ picks: ScoutPick[] }> {
   const catalogue = opts.items
     .map((it, i) => `${i + 1}. ${it.title}\n   ${it.url}\n   ${it.summary.slice(0, 200)}`)
     .join('\n')
@@ -70,7 +56,7 @@ export async function runScout(opts: {
   const picks = (parsed?.picks ?? [])
     .filter((p) => p && typeof p.title === 'string' && p.title.trim().length > 8)
     .slice(0, 3)
-  return { picks, cost: costOf(r) }
+  return { picks }
 }
 
 // --------------------------------------------------------------------------
@@ -87,7 +73,7 @@ export async function runWriter(opts: {
   /// Có mặt khi Tổng Biên Tập đã trả về - bản nháp cũ + góp ý cần sửa.
   previousDraft?: string
   feedback?: string
-}): Promise<{ title: string; excerpt: string; contentMd: string; cost: AgentCost }> {
+}): Promise<{ title: string; excerpt: string; contentMd: string }> {
   const revise = opts.feedback
     ? `\n\nĐÂY LÀ BẢN SỬA. Bản trước bị trả về với góp ý sau - sửa ĐÚNG những điểm này, ` +
       `giữ nguyên phần đã đạt:\n${opts.feedback}\n\nBản trước:\n${opts.previousDraft ?? ''}`
@@ -116,7 +102,6 @@ export async function runWriter(opts: {
     title: (p.title || opts.title).trim(),
     excerpt: (p.excerpt || '').trim(),
     contentMd: p.contentMd.trim(),
-    cost: costOf(r),
   }
 }
 
@@ -137,7 +122,7 @@ export async function runEditor(opts: {
   title: string
   contentMd: string
   sourceUrls: string[]
-}): Promise<{ verdict: Verdict; cost: AgentCost }> {
+}): Promise<{ verdict: Verdict }> {
   const r = await complete({
     system: `${opts.systemPrompt}\n\n## Giọng văn chuyên mục\n${opts.styleGuide}`,
     model: opts.model,
@@ -164,7 +149,6 @@ export async function runEditor(opts: {
 
   return {
     verdict: { ...p, approved: passed, feedback: p.feedback || '' },
-    cost: costOf(r),
   }
 }
 
@@ -195,7 +179,7 @@ export async function runSeo(opts: {
   model: string
   title: string
   contentMd: string
-}): Promise<{ seo: SeoResult; cost: AgentCost }> {
+}): Promise<{ seo: SeoResult }> {
   const r = await complete({
     system: opts.systemPrompt,
     model: opts.model,
@@ -218,6 +202,5 @@ export async function runSeo(opts: {
       metaDesc: (p?.metaDesc || '').slice(0, 160),
       tags: Array.isArray(p?.tags) ? p!.tags.map(slugify).filter(Boolean).slice(0, 6) : [],
     },
-    cost: costOf(r),
   }
 }

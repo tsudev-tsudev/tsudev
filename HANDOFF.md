@@ -15,12 +15,11 @@
 
 ## ✅ Bắt đầu từ đâu
 
-> **Phiên 7 (20/08/2026) để lại nhánh `refactor/giao-dien-quy-uoc-v1` đã commit
-> nhưng CHƯA PUSH** - toàn bộ phần tái cấu trúc giao diện, 3 cụm commit, 82 file.
-> Việc đầu tiên của phiên sau là đọc
-> [`logs/handover/20260820-02`](logs/handover/20260820-02_viec-con-lai-sau-giao-dien.md)
-> và quyết định commit hay không, **trước khi** đụng vào bất cứ thứ gì khác.
-> Hàng đợi việc nay ở [`logs/STATE.md`](logs/STATE.md), không còn ở §1 phiếu này.
+> **Phiên 9 (20/08/2026) đã PHÁT HÀNH.** Nhánh `refactor/giao-dien-quy-uoc-v1`
+> đã gộp vào `main` qua PR #36 (`12987d0`), backend Render dựng lại từ `main`,
+> frontend đã lên Cloudflare Workers (version `d59853a7`). Chi tiết và những gì
+> còn lại: [`logs/handover/20260820-05`](logs/handover/20260820-05_phat-hanh-phien-9.md).
+> Hàng đợi việc ở [`logs/STATE.md`](logs/STATE.md), không còn ở §1 phiếu này.
 
 **Không còn việc chặn nào. Production chạy đủ và chi phí bằng 0.** Đo cuối phiên 6
 (19/08/2026); phiên 7 không phát hành nên các con số dưới đây vẫn đúng:
@@ -91,7 +90,66 @@ Ba thứ mất là không sinh lại được:
 
 ---
 
-## 0. Nhật ký phiên 7 (20/08/2026) - tái cấu trúc giao diện theo bộ quy ước v1.0.0
+## 0. Nhật ký phiên 9 (20/08/2026) - phát hành, và một phép đo suýt nói dối
+
+Phiên **ngắn, một luồng**: chạy cổng kiểm tay rồi đi hết chuỗi phát hành ba bước
+mà phiên 8 bị chặn.
+
+### Cổng kiểm tay - vì GitHub Actions vẫn chết
+
+Cả 5 job của PR #36 vẫn đỏ trong 2 giây vì tài khoản (`recent account payments
+have failed`), chưa ai sửa billing. Nên cổng kiểm duy nhất là local, và lần này
+chạy **đủ cả năm hạng mục CI**, gồm cả cổng WASM mà phiên 8 chưa đo:
+
+| Hạng mục CI             | Đo ở local                                                |
+| ----------------------- | --------------------------------------------------------- |
+| Lint & format           | `format:check` + `lint` xanh                              |
+| Build frontends         | `typecheck` + `next build` sạch                           |
+| Migrate & test services | 26 · 13 · 57 · 61 · 42 · bundle 14 · ui 199 · frontend 29 |
+| WASM con dấu            | `cargo test --release` 9 test · `.wasm` **khớp** mã nguồn |
+| E2E                     | **20/20** (`--workers=1`)                                 |
+
+Cộng `topology:check` (52 literal cổng) và `tokens:check` (3 chế độ).
+
+Hai bẫy vận hành của phiếu 20260820-04 đều được kiểm chứ không bỏ qua: cổng
+4001-4005/3000/8080 trống trước khi dựng stack (không có tiến trình mồ côi), và
+e2e chạy tuần tự chứ không song song.
+
+### Chuỗi phát hành
+
+1. `gh pr merge 36 --merge` → `12987d0` trên `main`.
+2. Render dựng lại backend. **Xác nhận Live phải hỏi dashboard** - lý do ở mục
+   mới trong §0.7.
+3. `npm --workspace apps/frontend-main run deploy` (qua `scripts/deploy-frontend.js`).
+
+Nghiệm thu sau deploy, **đếm hành vi chứ không đếm mã 200**:
+
+- `curl https://tsudev.com/api/auth/providers` → **chỉ** `credentials` và
+  `passkey`. Không có provider dev nào lọt vào bản dựng.
+- `https://www.tsudev.com/` → **308** về apex. Bản vá chuẩn hoá URL đã sống trên
+  production, không chỉ trong test.
+- `npm run newsroom:check` → tick **202**, `AgentRun` 160 → **165**. Toà soạn
+  chạy thật trên mã mới.
+
+### `NEWSROOM_TICK_TOKEN` nằm trong `vars` của frontend Worker - và đã được gỡ
+
+`wrangler deploy` cảnh báo config remote khác local, trong đó có
+`NEWSROOM_TICK_TOKEN` chỉ tồn tại ở **remote**. Deploy ghi đè remote bằng local,
+nên biến đó đã bị gỡ khỏi frontend Worker.
+
+Đó là **đúng**, không phải hỏng. Token ấy thuộc về hai nơi: Render (service kiểm
+nó) và Worker cron `tsudev-newsroom-cron` (dạng `secret_text` - đã kiểm chứng
+còn nguyên bằng `wrangler secret list`). Frontend Worker không dùng tới nó: proxy
+`pages/api/newsroom/[...path].ts` cố ý **không** mở đường `tick` ra trình duyệt.
+Một secret đặt ở nơi không dùng tới chỉ mở rộng vùng thiệt hại - cùng lý do phiên
+8 không đặt `GEMINI_API_KEY` lên Cloudflare.
+
+⚠️ Nhưng cảnh báo đó **in nguyên giá trị token ra terminal**. Nó không vào git
+(`backup/` đã trong `.gitignore`), song đã nằm trong scrollback. Xoay token thì
+phải đổi **đồng thời** ở Render và `npm run cron:secret` - lệch nhau là mỗi nhịp
+giờ trả 401 và toà soạn đứng yên mà không có gì đỏ lên.
+
+## 0.2 Nhật ký phiên 7 (20/08/2026) - tái cấu trúc giao diện theo bộ quy ước v1.0.0
 
 Phiên **một luồng việc duy nhất**, không phát hành: đưa toàn bộ giao diện về bộ
 quy ước dùng chung `tsudev-conventions v1.0.0`. **82 file, 3 cụm commit trên
@@ -243,7 +301,7 @@ vãng lai** của cả bốn trang riêng tư.
 
 ## 0.7 Kỹ thuật đã trả giá để học - dùng lại được
 
-Mười bốn thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
+Mười lăm thứ, ghi lại để khỏi học lần nữa. Mỗi mục là một lỗi đã thật sự xảy ra.
 
 ### Van chi phí đọc SỔ CỦA TA, còn hạn mức thì nhà cung cấp đếm bằng sổ CỦA HỌ
 
@@ -465,6 +523,74 @@ với `AUTH_SERVICE_URL` (đăng nhập hỏng hoàn toàn, trong khi
 
 `topology:check` nay canh tệp đó - nhưng nó chỉ kiểm SỰ CÓ MẶT, không kiểm giá
 trị. Giá trị vẫn phải điền tay.
+
+---
+
+### Cổng chặn đứng TRƯỚC bảng route thì 404 không còn phân biệt được bản dựng
+
+20/08/2026, sau khi gộp PR #36, cần biết Render đã dựng xong mã mới chưa.
+`/health` vô dụng - bản cũ cũng trả 200. Nên chọn một dấu hiệu trông rất chắc:
+route `POST /api/newsroom/admin/events/revive` **chỉ có ở bản mới**, vậy còn
+404 là còn mã cũ, hết 404 là đã sang bản mới.
+
+Sáu phút sau khi gộp, nó trả **401**. Đọc theo giả thiết trên thì "đã Live" -
+và con số ấy sẽ đi thẳng vào phiếu nghiệm thu.
+
+Nó sai. Đường bịa ra `POST /api/newsroom/admin/khong-ton-tai-xyz` cũng trả 401,
+vì middleware xác thực của nhánh `/api/newsroom/admin/` chạy **trước** bảng
+định tuyến: chưa đăng nhập thì không bao giờ tới được chỗ Express quyết định
+route có tồn tại hay không. Cả hai bản dựng trả cùng một mã, cho mọi đường con.
+
+Quy tắc rút ra: **một phép đo "route mới đã có chưa" chỉ có giá trị khi đường
+đó nằm NGOÀI mọi cổng chặn** - hoặc khi đã đo kèm một đường đối chứng chắc chắn
+không tồn tại. Đối chứng tốn đúng một lệnh `curl` và nó là thứ duy nhất phân
+biệt được "tín hiệu" với "mọi thứ đều trả như vậy".
+
+Cùng họ với "công cụ ĐO có thể sai theo kiểu trông y hệt lỗi thật" ở trên, nhưng
+ngược chiều: ở đây phép đo sai theo kiểu trông y hệt **thành công**. Chiều này
+nguy hơn - không ai đi điều tra một kết quả tốt.
+
+Cùng phiên, cùng cái bẫy, lần thứ hai: để chứng minh bản sửa frontend đã lên,
+grep chuỗi tiếng Việt trong chunk JS production trả **0** - kể cả chuỗi vốn có ở
+CẢ HAI bản. Bundle của Next escape các ký tự **Latin-1** (`đã` → `đ\xe3`,
+`nhà` → `nh\xe0`) nhưng giữ nguyên ký tự ngoài Latin-1 (`ừ`, `ồ`, `ạ`), nên grep
+một câu tiếng Việt đầy đủ **luôn trượt**. Đọc số 0 đó thành "deploy hỏng" là sai
+hoàn toàn. Thứ cứu được lần này vẫn là **đường đối chứng**: một chuỗi chắc chắn
+phải có mà cũng trả 0 thì lỗi nằm ở phép đo, không ở thứ đang đo.
+
+Backend repo này hiện **không có** bề mặt công khai nào phân biệt hai bản dựng.
+Tới khi có (một `/health` mang commit SHA chẳng hạn), câu "Render đã Live chưa"
+phải hỏi dashboard Render, không suy ra từ mã HTTP.
+
+---
+
+### Sổ đo phải ghi ở NƠI PHÁT SINH, không ở đường `return`
+
+`withRun()` của toà soạn ghi `neuronsUsed` từ giá trị agent **trả về**. Nghe hợp
+lý cho tới khi nhìn xem agent hỏng ở đâu: ba trong bốn agent `throw` **ngay sau**
+lượt gọi mô hình - JSON parse hỏng, bài quá ngắn, phán quyết không đọc được.
+Neuron đã tiêu thật, nhưng đường `return` không bao giờ chạy, nên `AgentRun` ghi
+**0**. Sổ đếm thiếu đúng ở nhánh hay xảy ra nhất, và van ngân sách hằng ngày đọc
+chính cái sổ đó - tức nó mù nhất vào đúng ngày mô hình trả lời tệ nhất.
+
+Quy tắc: **đo tại ranh giới nơi chi phí phát sinh** (chỗ nhà cung cấp trả lời),
+không tại chỗ kết quả về đích. Hai chỗ đó chỉ trùng nhau khi không có gì hỏng.
+
+Cách làm ở đây: một sổ chi phí đặt trong `AsyncLocalStorage` (`withCostLedger`
+trong `services/newsroom-service/src/llm/index.ts`). `complete()` cộng vào sổ
+ngay khi có phản hồi; `withRun()` đọc sổ ở **cả hai** nhánh try/catch. Chọn
+ngữ cảnh thay vì truyền tay qua bốn hàm agent vì truyền tay thì agent thứ năm
+viết sau này quên truyền là sổ thủng lại, im lặng - còn ngữ cảnh thì mọi lượt
+gọi đều được đếm, sâu bao nhiêu tầng cũng vậy.
+
+Kèm theo: bỏ hẳn đường trả chi phí cũ (`AgentCost` trong `agents.ts`) thay vì để
+song song. Hai sổ cùng đếm một thứ là cách chúng lệch nhau mà không ai biết -
+cùng họ với bài học "phân quyền chỉ có MỘT nguồn" ở `CLAUDE.md`.
+
+Canh bằng `services/newsroom-service/test/costLedger.test.ts`: bốn test hành vi
+(ném lỗi sau lượt gọi vẫn giữ chi phí · cộng dồn nhiều lượt · ghi việc chuyển
+dự phòng · gọi ngoài lượt chạy không nổ) và ba test quét nguồn khoá hình dạng
+`withRun()`.
 
 ---
 

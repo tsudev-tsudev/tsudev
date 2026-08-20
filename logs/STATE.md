@@ -1,23 +1,17 @@
 # STATE.md — Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 9 bắt đầu ở đây**: đọc
-> [`logs/handover/20260820-04`](handover/20260820-04_ket-phien-8.md) — phiếu vào
-> cửa duy nhất. Việc đầu hàng đợi là **chuỗi phát hành ba bước**; chưa làm bước 1
-> thì `/admin/newsroom` trên production vẫn chạy mã cũ và vẫn lỗi.
+> **Phiên 10 bắt đầu ở đây**: đọc
+> [`logs/handover/20260820-05`](handover/20260820-05_phat-hanh-phien-9.md) — phiếu
+> vào cửa duy nhất. Chuỗi phát hành đã chạy xong bước 1 và 2; **bước 3 chỉ chủ dự
+> án bấm được** (nút "Hồi sinh việc đã dừng" ở `/admin/newsroom`).
 
 ## Hàng đợi task (làm từ trên xuống)
 
-- [ ] **🔴 CHUỖI PHÁT HÀNH — ba bước, đúng thứ tự này.** Đây là việc duy nhất
-      còn chặn; mọi thứ khác trong hàng đợi đều làm được song song.
-
-      1. `gh pr merge 36 --merge` → Render tự dựng backend từ `main`.
-      2. Chờ Render báo **Live**, rồi `npm --workspace apps/frontend-main run deploy`
-         (đi qua `scripts/deploy-frontend.js`, **đừng** gọi thẳng
-         `opennextjs-cloudflare` — xem gotcha `.env.local` thắng `.env.production`).
-      3. Vào `/admin/newsroom` bấm **"Hồi sinh việc đã dừng (N)"**.
-
-      Chưa làm bước 1 thì `/admin/newsroom` trên production **vẫn chạy mã cũ và
-      vẫn lỗi**. Phiên 8 bị chặn ở bước 1 bởi chính sách phân quyền của phiên.
+- [ ] **🔴 BƯỚC 3: bấm nút "Hồi sinh việc đã dừng (16)"** ở
+      `https://tsudev.com/admin/newsroom`. Cần phiên ADMIN production nên agent
+      không bấm thay được. Bản sửa nút **đã deploy** (Worker `d2a0640a`) và đã
+      kiểm chứng có mặt trong chunk JS production, không chỉ mã 200.
+      Sau khi bấm: chạy `npm run newsroom:check`, `AgentRun` phải tiếp tục tăng.
 
 - [ ] **🔴 GitHub Actions không chạy được — vấn đề TÀI KHOẢN, không phải mã.**
       Cả 5 job của PR #36 đỏ trong 2 giây: _"recent account payments have failed
@@ -26,6 +20,11 @@
       Kiểm _Settings → Billing & plans_. Tới khi sửa xong thì **cổng kiểm duy
       nhất là chạy tay ở local** — danh sách lệnh ở phiếu 20260820-04 §5.
 
+- [ ] **🟠 Cân nhắc xoay `NEWSROOM_TICK_TOKEN`** — `wrangler deploy` in nguyên giá
+      trị token ra terminal phiên 9. Không vào git, nhưng đã nằm trong scrollback.
+      Xoay thì đổi **đồng thời** ở Render và `npm run cron:secret`; lệch nhau là mỗi
+      nhịp giờ trả 401 và toà soạn đứng yên không có gì đỏ lên. Chi tiết: phiếu
+      20260820-05 §2.3.
 - [ ] **🟠 Đẩy hai mã màu vá lên repo token trung tâm** — `text-muted` và
       `border-strong` của bảng chuẩn v1.0.0 không đạt WCAG AA/1.4.11; tsudev-web
       đang vá cục bộ. Chi tiết: `$accessibility_gap` trong `tokens/design-tokens.json`.
@@ -48,6 +47,18 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 20/08/2026 — **Sổ Neuron đếm ĐỦ cả khi lượt chạy hỏng**: chi phí nay ghi tại
+  ranh giới nhà cung cấp vào sổ theo ngữ cảnh (`withCostLedger`, AsyncLocalStorage),
+  `withRun()` đọc sổ ở **cả hai** nhánh try/catch. Đường trả chi phí cũ
+  (`AgentCost` trong `agents.ts`) đã bỏ hẳn — một sổ, không phải hai.
+  Canh bằng `services/newsroom-service/test/costLedger.test.ts` (7 test, đã kiểm
+  chứng đỏ trên mã cũ). Newsroom 42 → **49 xanh**; bundle 14; format/lint/typecheck sạch.
+- 20/08/2026 — **PHÁT HÀNH phiên 9**: PR #36 gộp vào `main` (`12987d0`), Render dựng
+  lại backend, frontend lên Cloudflare Workers (version `d59853a7`). Nghiệm thu
+  **đếm hành vi**: `/api/auth/providers` chỉ `credentials`+`passkey` · `www` → 308
+  apex · `newsroom:check` tick 202, `AgentRun` 160→165. Trước khi gộp: chạy tay đủ
+  **năm** hạng mục CI gồm cả cổng WASM (9 test Rust, `.wasm` khớp mã nguồn) và e2e
+  20/20. Phiếu: `logs/handover/20260820-05`.
 - 20/08/2026 — **Kết phiên 8**. Phiếu: `logs/handover/20260820-04`. Ba đợt việc
   đã commit và push (PR #36, 5 commit): chuẩn hoá URL · van hạn mức LLM · e2e
   lặp lại được. Chặn ở khâu gộp + GitHub Actions không chạy được vì tài khoản.
@@ -79,6 +90,24 @@
 
 ## Quyết định quan trọng
 
+- 20/08/2026 — **Sổ đo phải ghi ở NƠI PHÁT SINH, không ở đường `return`.** Chỗ
+  kết quả về đích và chỗ chi phí phát sinh chỉ trùng nhau khi không có gì hỏng;
+  agent hay hỏng NGAY SAU lượt gọi mô hình, nên sổ cũ đếm thiếu đúng ở nhánh hay
+  xảy ra nhất. Đầy đủ: `HANDOFF.md` §0.7 (mục thứ 16).
+- 20/08/2026 — **Điều kiện hiện một nút phải là điều kiện nút đó CHỮA, không phải
+  triệu chứng đi kèm.** Nút "Hồi sinh việc đã dừng" từng lồng trong thẻ "hôm nay
+  cạn hạn mức", nên nó biến mất đúng lúc cần: hạn mức reset xong mới là lúc đi dọn
+  xác. Trang vẫn dựng, vẫn 200, chỉ thiếu một nút — không gì đỏ lên. Canh bằng test
+  quét nguồn vì trang này không có test kết xuất.
+- 20/08/2026 — **Phép đo "route mới đã có chưa" chỉ có giá trị khi đường đó nằm
+  NGOÀI mọi cổng chặn**, hoặc khi đo kèm một đường đối chứng chắc chắn không tồn
+  tại. Middleware xác thực chạy trước bảng định tuyến, nên 401 che mất 404 và hai
+  bản dựng trả cùng một mã. Đây là phép đo sai theo kiểu trông y hệt **thành
+  công** — chiều nguy hơn, vì không ai đi điều tra một kết quả tốt. Đầy đủ:
+  `HANDOFF.md` §0.7 (mục thứ 15).
+- 20/08/2026 — **"Render đã Live chưa" phải hỏi dashboard Render**, không suy ra
+  từ mã HTTP: backend không có bề mặt công khai nào phân biệt hai bản dựng
+  (`/health` không mang commit SHA).
 - 20/08/2026 — **Ước lượng chi phí phía mình là van PHỤ; lời của nhà cung cấp là
   sổ CHÍNH.** Khi API báo cạn hạn mức thì ghi lại và tin tới mốc reset, ghi vào DB
   chứ không vào biến nhớ. Lý do đầy đủ: `HANDOFF.md` §0.7.
@@ -114,8 +143,10 @@
 
 | Mã                                                                  | Chủ đề                                     | Trạng thái |
 | ------------------------------------------------------------------- | ------------------------------------------ | ---------- |
-| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM            | **MỞ**     |
-| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện             | **MỞ**     |
+| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production            | **MỞ**     |
+| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành              | HOÀN THÀNH |
+| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM            | HOÀN THÀNH |
+| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện             | HOÀN THÀNH |
 | [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0 | HOÀN THÀNH |
 
 ## Ghi chú vận hành

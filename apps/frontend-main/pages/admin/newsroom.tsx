@@ -311,22 +311,33 @@ export default function NewsroomPage() {
                 chạy tiếp sau khi cạn Neuron.
               </p>
             )}
-            {(state?.deadEvents ?? 0) > 0 && (
-              <div className="mt-3">
-                <Button
-                  variant="secondary"
-                  disabled={busy === 'revive'}
-                  onClick={() => act('revive', '/api/newsroom/admin/events/revive', {})}
-                >
-                  {busy === 'revive'
-                    ? 'Đang hồi sinh…'
-                    : `Hồi sinh việc đã dừng (${state?.deadEvents})`}
-                </Button>
-                <p className="text-sm text-fg-muted mt-2">
-                  Chỉ hồi sinh việc chết vì cạn hạn mức. Lỗi thật vẫn nằm nguyên để còn sửa.
-                </p>
-              </div>
-            )}
+          </Card>
+        )}
+
+        {/* Nút hồi sinh đứng RIÊNG, không lồng trong thẻ cảnh báo hạn mức ở trên.
+            Bản đầu lồng nó vào đó và thế là nó chỉ hiện khi HÔM NAY còn nhà cung
+            cấp đang cạn hạn mức - tức là biến mất đúng lúc cần dùng nhất: hạn mức
+            đã đặt lại, hệ khoẻ trở lại, giờ mới đi dọn xác của hôm trước. Điều
+            kiện duy nhất đúng cho nút này là "còn việc chết hay không". */}
+        {(state?.deadEvents ?? 0) > 0 && (
+          <Card className="p-4 mt-6">
+            <p className="text-sm text-fg">
+              Có <strong>{state?.deadEvents}</strong> việc đang nằm ở trạng thái đã dừng.
+            </p>
+            <div className="mt-3">
+              <Button
+                variant="secondary"
+                disabled={busy === 'revive'}
+                onClick={() => act('revive', '/api/newsroom/admin/events/revive', {})}
+              >
+                {busy === 'revive'
+                  ? 'Đang hồi sinh…'
+                  : `Hồi sinh việc đã dừng (${state?.deadEvents})`}
+              </Button>
+              <p className="text-sm text-fg-muted mt-2">
+                Chỉ hồi sinh việc chết vì cạn hạn mức. Lỗi thật vẫn nằm nguyên để còn sửa.
+              </p>
+            </div>
           </Card>
         )}
 
