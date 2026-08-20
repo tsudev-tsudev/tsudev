@@ -47,3 +47,7 @@ apps/frontend-main/lib/services.ts
 
 # ── Gỡ ở GIAI ĐOẠN 5 hoặc sau ───────────────────────────────────────────────
 scripts/test-presign.js               # script gỡ rối thủ công
+
+# Tài liệu quy ước URL: nói VỀ địa chỉ chính tắc, nên buộc phải in nó ra. Đây là
+# nơi con số được giải thích, không phải nơi nó bị hardcode lén.
+docs/url-convention.md

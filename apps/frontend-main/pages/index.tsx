@@ -118,15 +118,22 @@ export default function Home({ posts, projects, totals }: HomeProps) {
                 <span className="ml-2 font-mono text-xs text-fg-muted">tsudev@ecosystem: ~</span>
               </div>
               <pre className="p-5 font-mono text-sm leading-relaxed text-fg-secondary overflow-x-auto">
+                {/* KHÔNG in số cổng nội bộ ở đây. Hai lý do, cả hai đều thật:
+                    (1) chúng SAI ở production - bốn service backend đã gộp thành
+                    MỘT tiến trình (services/backend-bundle), nên bảng cổng bốn
+                    dòng chỉ còn đúng ở máy dev; (2) tsudev đối ngoại chỉ có MỘT
+                    địa chỉ, và in cổng nội bộ lên trang chủ là tự mâu thuẫn với
+                    chính quy ước đó. Cổng chặn: khẳng định D của
+                    scripts/topology/check.js. Xem docs/url-convention.md. */}
                 <span className="text-accent">$</span> tsudev status --all{'\n'}
-                <span className="text-success-ink">✔</span> content-service{' '}
-                <span className="text-fg-muted">:4001 healthy</span>
+                <span className="text-success-ink">✔</span> content{' '}
+                <span className="text-fg-muted">healthy</span>
                 {'\n'}
-                <span className="text-success-ink">✔</span> storage-service{' '}
-                <span className="text-fg-muted">:4002 healthy</span>
+                <span className="text-success-ink">✔</span> storage{' '}
+                <span className="text-fg-muted">healthy</span>
                 {'\n'}
-                <span className="text-success-ink">✔</span> postgres{' '}
-                <span className="text-fg-muted">:5433 connected</span>
+                <span className="text-success-ink">✔</span> database{' '}
+                <span className="text-fg-muted">connected</span>
                 {'\n'}
                 <span className="text-accent">$</span> _
               </pre>
