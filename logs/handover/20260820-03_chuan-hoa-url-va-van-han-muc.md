@@ -3,7 +3,7 @@
 - **Mã phiếu**: 20260820-03
 - **Từ**: phiên 8 (20/08/2026) — **Đến**: phiên 9
 - **Thời điểm**: 18:10 20/08/2026
-- **Trạng thái**: MỞ (mã đã xong và xanh cổng; còn việc PHÁT HÀNH cần chủ dự án)
+- **Trạng thái**: MỞ — mã xong, cổng xanh hết, PR #36 đã mở. Chặn ở khâu GỘP + PHÁT HÀNH (xem §5)
 
 ## 1. Việc dang dở + bước tiếp theo CỤ THỂ
 
@@ -20,9 +20,13 @@ cũ.** Thứ tự:
 3. Frontend cũng cần deploy (đổi middleware + trang chủ), qua
    `scripts/deploy-frontend.js` — **đừng** gọi thẳng `opennextjs-cloudflare`.
 
-### 1.2 🟠 Quyết định của chủ dự án: có đặt `GEMINI_API_KEY` không?
+### 1.2 ✅ ~~Quyết định về `GEMINI_API_KEY`~~ — XONG
 
-Hiện production **chưa có** đường dự phòng (kiểm bằng banner mới ở
+Chủ dự án đã đặt ở Render ngày 20/08/2026. **Không** đặt ở Cloudflare Workers:
+Worker cron cố ý không chạm DB và không gọi LLM, frontend Worker cũng không -
+để secret ở nơi không dùng tới chỉ mở rộng vùng thiệt hại khi lộ.
+
+Ghi chú gốc, giữ lại làm bối cảnh: hiện production **chưa có** đường dự phòng (kiểm bằng banner mới ở
 `/admin/newsroom`: nếu thiếu thì nó nói thẳng). Không có nó thì mỗi ngày cạn
 Neuron là toà soạn **đứng im tới 00:00 UTC** — nay đứng im êm, không còn giết
 bản nháp, nhưng vẫn là đứng im.
@@ -98,17 +102,20 @@ nguồn RSS lành lặn); `budget.exhausted` chỉ ghi MỘT lần mỗi ngày U
 19 dòng/ngày đẩy trôi nhật ký thật); `/api/newsroom/state` trả thêm `providers`
 và `deadEvents`; bảng điều khiển hiện trạng thái vận hành thay vì dòng lỗi thô.
 
-## 3. Trạng thái nghiệm thu (đo lúc 18:05 20/08/2026)
+## 3. Trạng thái nghiệm thu (đo lúc 20:05 20/08/2026)
 
-| Cổng                                                     | Kết quả        |
-| -------------------------------------------------------- | -------------- |
-| `newsroom-service` (thêm `test/quota.test.ts`, 8 test)   | **42/42** xanh |
-| `frontend-main`                                          | **29/29** xanh |
-| `format:check` · `lint` · `typecheck` · `topology:check` | xanh           |
-| `next build`                                             | sạch           |
+| Cổng                                                                      | Kết quả                      |
+| ------------------------------------------------------------------------- | ---------------------------- |
+| E2E `--project=app --workers=1`                                           | **20/20** xanh               |
+| Test service (content · storage · trust · auth · newsroom · bundle)       | 26 · 13 · 57 · 61 · 42 · 14  |
+| `packages/ui` · `frontend-main`                                           | 199 · 29 xanh                |
+| `format:check` · `lint` · `typecheck` · `topology:check` · `tokens:check` | xanh                         |
+| `next build`                                                              | sạch                         |
+| GitHub Actions                                                            | **không chạy được** — xem §5 |
 
-**Chưa chạy**: E2E (máy 4 nhân, cần stack ấm — xem ghi chú vận hành ở STATE.md)
-và `packages/ui`. Không file nào của hai vùng đó bị sửa.
+⚠️ **E2E phải chạy `--workers=1`.** Chạy song song trên máy 4 nhân cho 18/20 với
+hai lỗi rải rác; chạy lại từng cái thì cả hai xanh, cả bộ tuần tự thì 20/20.
+Flake do tải, nhưng nó trông y hệt hồi quy - đừng đọc kết quả chạy song song.
 
 ## 4. File liên quan
 
@@ -123,4 +130,31 @@ và `packages/ui`. Không file nào của hai vùng đó bị sửa.
 
 ## 5. Kết quả xử lý
 
-_(phiên 9 điền)_
+**Cập nhật 20:10 20/08/2026 (vẫn phiên 8).**
+
+Đã làm thêm:
+
+- `GEMINI_API_KEY` đã được chủ dự án đặt ở Render. **Không** đặt thêm ở
+  Cloudflare Workers - Worker cron cố ý rất ngu (không chạm DB, không gọi LLM,
+  chỉ gõ cửa backend), và frontend Worker không bao giờ gọi mô hình. Đặt secret
+  ở nơi không dùng tới chỉ mở rộng vùng thiệt hại khi lộ.
+- PR **#36** đã mở, nhánh đã push, thêm một commit sửa seed dev.
+- Nghiệm thu đầy đủ ở local (bảng ở §3 đã cập nhật).
+
+**HAI THỨ CHẶN, cả hai ngoài tầm agent:**
+
+1. **GitHub Actions không chạy.** Cả 5 job đỏ trong 2 giây với thông báo
+   `The job was not started because recent account payments have failed or your
+spending limit needs to be increased`. Không job nào chạy một dòng nào - đây
+   là vấn đề TÀI KHOẢN, không phải mã. Repo private + GitHub Free được 2.000
+   phút/tháng (`docs/free-tier.md`). Kiểm mục _Billing & plans_.
+2. **Lệnh gộp PR bị chính sách phân quyền của phiên chặn.** Không tìm đường vòng.
+   Chủ dự án gộp tay: `gh pr merge 36 --merge`.
+
+Vì `main` chưa nhận được commit nào nên **Render chưa dựng lại**, tức là
+`/admin/newsroom` trên production **vẫn đang chạy mã cũ** và vẫn hiện lỗi.
+Kết quả "8 lượt agent đã thực thi" mà `newsroom:check` báo là của mã cũ.
+
+**Thứ tự phát hành còn lại:** gộp #36 → chờ Render dựng xong → deploy frontend
+(`npm --workspace apps/frontend-main run deploy`) → vào `/admin/newsroom` bấm
+"Hồi sinh việc đã dừng".

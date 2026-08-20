@@ -7,9 +7,15 @@
 
 ## Hàng đợi task (làm từ trên xuống)
 
-- [ ] **🔴 Push nhánh `refactor/giao-dien-quy-uoc-v1` và mở PR** — đợt giao diện
-      đã commit thành 3 cụm (82 file), cây sạch, cổng xanh. Cần chủ dự án xác nhận
-      trước khi push. Xem phiếu 20260820-02 §1.1.
+- [ ] **🔴 GỘP PR #36 vào `main`** — đã push, đã mở PR, cổng local xanh hết
+      (kể cả e2e 20/20). Hai thứ CHẶN, cả hai đều ngoài tầm agent:
+      (a) chính sách phân quyền của phiên chặn lệnh gộp; (b) **GitHub Actions
+      không chạy được** — "recent account payments have failed or your spending
+      limit needs to be increased", cả 5 job đỏ trong 2 giây mà không chạy dòng
+      nào. Kiểm mục Billing & plans của GitHub.
+- [ ] **🔴 Deploy frontend sau khi gộp** — `npm --workspace apps/frontend-main run deploy`
+      (đi qua `scripts/deploy-frontend.js`, ĐỪNG gọi thẳng opennextjs-cloudflare).
+      Render tự dựng backend từ `main`; frontend thì không tự.
 
 - [ ] **🔴 Phát hành bản vá hạn mức LLM** — lỗi ở `/admin/newsroom` chỉ hết sau khi
       backend lên Render. Rồi bấm "Hồi sinh việc đã dừng" trên bảng điều khiển.
@@ -20,12 +26,6 @@
 - [ ] **🟠 Đẩy hai mã màu vá lên repo token trung tâm** — `text-muted` và
       `border-strong` của bảng chuẩn v1.0.0 không đạt WCAG AA/1.4.11; tsudev-web
       đang vá cục bộ. Chi tiết: `$accessibility_gap` trong `tokens/design-tokens.json`.
-- [ ] **🟠 `e2e/tests/invite.spec.js` không lặp lại được** (khiếm khuyết SẴN CÓ, không
-      do đợt giao diện). `scripts/seed-dev-users.js` chỉ đặt mật khẩu, KHÔNG reset
-      `User.role`; test nâng `alice` MEMBER→VIP vĩnh viễn, nên lần chạy thứ hai
-      trên cùng DB luôn đỏ và triệu chứng là timeout ở bước không liên quan. Sửa:
-      cho seed đặt lại `role` về đúng bậc ban đầu. Chủ vùng: `data-schema` +
-      `backend-api`; test do `qa-test`.
 - [ ] **🟡 Storybook chưa chạy được**: `storybook: not found` - devDependencies của
       `packages/ui` không có trong `node_modules`. Cấu hình 3 chế độ đã viết
       (`.storybook/preview.js`, nút "Giao diện") nhưng CHƯA ai nhìn thấy nó chạy.
@@ -45,6 +45,13 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 20/08/2026 — **Bộ e2e lặp lại được**: seed dev nay đặt lại `User.role` (trước
+  chỉ có ở nhánh `create` của upsert) và dọn tài khoản `e2e-*`. Chứng minh bằng
+  vòng seed → 20/20 → seed → chạy lại invite vẫn xanh.
+- 20/08/2026 — **Nghiệm thu phiên 8**: e2e **20/20** (tuần tự); test service
+  213 xanh (content 26 · storage 13 · trust 57 · auth 61 · newsroom 42 ·
+  bundle 14); `packages/ui` 199; frontend-main 29; `next build` sạch.
+  PR #36 đã mở, **chưa gộp**.
 - 20/08/2026 — **Van hạn mức LLM của Toà soạn**: cạn Neuron nay làm hệ **hoãn**
   chứ không **hỏng**. Ba khiếm khuyết chồng nhau đã sửa (van đọc sổ ước lượng của
   ta thay vì lời nhà cung cấp · không có trí nhớ giữa các nhịp · cạn hạn mức ăn
@@ -107,6 +114,10 @@
 
 ## Ghi chú vận hành
 
+- **E2E ở máy này phải chạy `--workers=1`.** Chạy song song trên 4 nhân cho 18/20
+  với hai lỗi RẢI RÁC (một ở `invite`, một ở `smoke` tài liệu); chạy lại từng cái
+  một thì cả hai xanh, và cả bộ tuần tự thì 20/20. Đây là flake do tải, không phải
+  hồi quy - nhưng nó trông y hệt hồi quy, nên đừng đọc kết quả chạy song song.
 - Chạy e2e trên máy 4 nhân: **đừng chạy song song thứ gì khác**. Lần đầu bị 5 test
   đỏ vì timeout 60s trong lúc load average ~6.4 - `next dev` biên dịch nguội từng
   route. Chạy lại trên stack đã ấm (`E2E_NO_WEBSERVER=1`) thì 20/20 xanh.
