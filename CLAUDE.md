@@ -2,7 +2,7 @@
 
 Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, xác thực, object
 storage, con dấu tín nhiệm. Monorepo npm workspaces.
-Repo: private, `github.com/tsudev-tsudev/tsudev`.
+Repo: Public (từ 21/08/2026), `github.com/tsudev-tsudev/tsudev`.
 
 > File này là NGỮ CẢNH TĨNH được nạp + cache ở đầu MỌI phiên. Đọc kỹ một lần,
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** - sửa là bust cache toàn
@@ -259,8 +259,10 @@ nguồn là hiện trạng; TSD là đích đến.
   `trigger === 'update'` ở callback `jwt`, đọc lại vai trò TỪ DB. Client gọi
   `update()` của `useSession`. **Đừng lấy vai trò từ tham số truyền vào
   `update()`** - đó là dữ liệu người dùng.
-- **`main` không có branch protection** (GitHub Free + repo private). Lớp chắn
-  duy nhất là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
+- **`main` không có branch protection** — chưa ai bật. Repo nay Public nên
+  GitHub Free đã CHO phép branch protection (trước đây private thì không), nhưng
+  đó là năng lực chưa dùng, không phải rào chắn đang chạy. Lớp chắn duy nhất vẫn
+  là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
   `ALLOW_MAIN_FORCE=1 git push`.
 - **`backend-bundle` điều phối theo BẢNG TIỀN TỐ đường dẫn**, không mount chồng
   bốn app. Mount thẳng thì `/api/trust/*` đi vào app content trước và dính cổng

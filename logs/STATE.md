@@ -44,6 +44,11 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Đính chính `CLAUDE.md` visibility** (phiên 14). Dòng bản đồ
+  `private` → `Public (từ 21/08/2026)`; và dòng branch-protection: lý do cũ
+  "(repo private)" nay sai — Public thì GitHub Free CHO phép branch protection,
+  chỉ là chưa bật; ghi rõ đó là năng lực chưa dùng, `.husky/pre-push` vẫn là lớp
+  chắn duy nhất. Đóng mục còn lại của phiếu 13 §2.
 - 21/08/2026 — **Repo chuyển PUBLIC → CI hồi sinh** (phiên 13). Chủ dự án chạy
   `gh repo edit … --visibility public`; nghiệm thu `visibility=PUBLIC`. Chạy lại
   run `32473196835` → **5/5 job xanh** (billing-block đã thông vì repo công khai
