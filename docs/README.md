@@ -9,7 +9,7 @@ token trả tiền mà không dùng đến.
 | Dựng môi trường, chạy local, gỡ lỗi khởi động    | [development.md](development.md)                                   |
 | Địa chỉ nào là chính tắc, hình dạng đường dẫn    | [url-convention.md](url-convention.md)                             |
 | Đăng nhập, mật khẩu, 2FA, passkey, RBAC          | [auth.md](auth.md)                                                 |
-| Viết/chạy test, E2E presign–upload               | [testing.md](testing.md)                                           |
+| Viết/chạy test, E2E presign-upload               | [testing.md](testing.md)                                           |
 | **Quy tắc** giao diện (hệ sinh thái, KHÔNG SỬA)  | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)                               |
 | Repo này hiện thực quy tắc đó bằng file nào      | [design-system.md](design-system.md)                               |
 | Cấu trúc thư mục chuẩn (hệ sinh thái, KHÔNG SỬA) | [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)                       |

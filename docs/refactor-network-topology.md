@@ -68,7 +68,7 @@ Mười một dòng, bảy nguồn khai báo, không nguồn nào là nguồn s�
 | 10  | **Hai realm Keycloak không khai một vai trò nào.** `realm-export.json` và `realm-export.prod.json` chỉ có client `tsudev-frontend`, không có `roles`. Nhưng mã lại đòi `content:read`, `user:read`, `storage:presign`, `storage:upload`. Bật `REQUIRE_ROLE_ENFORCEMENT=true` ⇒ 5 route đó **403 với mọi người, vĩnh viễn**. | `grep '"name"' apps/sso-auth/keycloak/realm-export*.json` → chỉ ra `tsudev-frontend`                                         | 🔴  |
 | 7   | ✅ _(đã xử lý)_ **Postgres ba giá trị cổng** (5433 local / 5432 compose / 5432 CI) trong khi `CLAUDE.md` khẳng định "5433, **không** phải 5432".                                                                                                                                                                            | `.env`; `docker-compose.yml`; `.github/workflows/ci.yml:37`                                                                  | 🟡  |
 
-Khiếm khuyết 1–3 **không phải** hệ quả của việc nhiều cổng, nhưng chúng sống
+Khiếm khuyết 1-3 **không phải** hệ quả của việc nhiều cổng, nhưng chúng sống
 được vì cùng một nguyên nhân gốc: **không ai có bảng đối chiếu giữa dev và
 production.** Tái cấu trúc này tạo ra bảng đó, nên sửa chúng luôn trong cùng
 chuỗi việc.
@@ -131,7 +131,7 @@ còn `localhost:3000`/`:3001`.
 ✓ host lạ → 404 kèm danh sách địa chỉ hợp lệ; upstream chết → 502 nêu rõ node
 ```
 
-**Đã thêm ở giai đoạn 4–6:**
+**Đã thêm ở giai đoạn 4-6:**
 
 | Thay đổi                                            | Vì sao                                                |
 | --------------------------------------------------- | ----------------------------------------------------- |
@@ -144,7 +144,7 @@ còn `localhost:3000`/`:3001`.
 | 12 test mới cho cổng chặn token                     | thêm cổng chặn thì phải có test cho nó                |
 | `topology:check` quét thêm `docs/`, `README.md`     | drift tài liệu ở giai đoạn 3 không cổng nào bắt       |
 
-**Đo được sau giai đoạn 4–6:**
+**Đo được sau giai đoạn 4-6:**
 
 ```
 ✓ storage-service LISTEN 127.0.0.1:4002 (trước là 0.0.0.0)
@@ -154,7 +154,7 @@ còn `localhost:3000`/`:3001`.
 ✓ 41/41 unit test · build cả hai app · e2e:session · lint · prettier · topology:check
 ```
 
-**Đã thêm ở giai đoạn 0–1:**
+**Đã thêm ở giai đoạn 0-1:**
 
 | File                                     | Vai trò                                            |
 | ---------------------------------------- | -------------------------------------------------- |
@@ -487,7 +487,7 @@ Kiểm chứng trình duyệt chấp nhận cookie `Domain=.tsudev.localhost` v�
 `tsudev.localhost`, đọc lại ở `forum.tsudev.localhost`, thử **cả Chrome và
 Firefox**.
 
-- **Đạt** ⇒ đi tiếp toàn bộ 3b–3e.
+- **Đạt** ⇒ đi tiếp toàn bộ 3b-3e.
 - **Không đạt** ⇒ phương án B: giữ subdomain (vẫn thắng về hình trạng + một
   cổng), nhưng để `NEXTAUTH_COOKIE_DOMAIN` trống và chấp nhận **dev vẫn phải
   đăng nhập hai lần**. Ghi rõ giới hạn vào `docs/development.md`. Không huỷ

@@ -209,7 +209,7 @@ cho hầu hết việc, kể cả việc chạm nhiều vùng.
 - Các agent thật sự không chạm file của nhau (đối chiếu bảng sở hữu trước).
 - Mỗi terminal `git add <file cụ thể>`, không `git add -A`.
 - **Chỉ một** terminal chạy `npm run dev:local`. Hai tiến trình cùng giành cổng
-  3000/3001/4000–4003, cái thứ hai chết hoặc chiếm cổng của cái thứ nhất.
+  3000/3001/4000-4003, cái thứ hai chết hoặc chiếm cổng của cái thứ nhất.
 
 Không hợp cho việc đổi nhánh: `git checkout` ở terminal này đổi luôn file dưới
 chân terminal kia.
