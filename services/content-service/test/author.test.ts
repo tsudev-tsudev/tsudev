@@ -212,3 +212,9 @@ describe('nháp và bài đã xoá không lọt ra đường đọc công khai',
     expect(mine.body.map((p: { slug: string }) => p.slug)).toContain(slug)
   })
 })
+
+// Đánh dấu tệp này là MODULE. Thiếu import/export thì TypeScript coi nó là script
+// toàn cục và các biến top-level (`request`, `app`, `prisma`) đụng tên với tệp
+// test khác cùng kiểu (vd softDelete.test.ts) - ts-jest ở CI báo "suite failed to
+// run". Không đổi gì lúc chạy.
+export {}
