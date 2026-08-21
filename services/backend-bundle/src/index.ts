@@ -34,7 +34,7 @@ const SERVICES = [
   {
     name: 'content',
     mod: content,
-    prefixes: ['/api/posts', '/api/docs', '/api/projects', '/api/admin', '/debug'],
+    prefixes: ['/api/posts', '/api/docs', '/api/projects', '/api/admin', '/api/author', '/debug'],
   },
   {
     name: 'storage',

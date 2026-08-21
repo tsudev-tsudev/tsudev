@@ -16,7 +16,7 @@ import express from 'express'
 import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
-import type { Prisma, Project, User } from '@prisma/client'
+import type { Post, Prisma, Project, User } from '@prisma/client'
 import { hasAtLeastRole } from '@tsudev/types'
 
 type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
@@ -474,6 +474,216 @@ app.post(
       data: { deletedAt: null },
     })
     res.json(project)
+  })
+)
+
+// ---------------- Đăng bài cho AUTHOR ----------------
+//
+// Bề mặt để NGƯỜI có vai trò AUTHOR (trở lên) tự đăng và sửa bài blog của CHÍNH
+// MÌNH. Khác hẳn hai đường ghi còn lại của service:
+//   - `/api/admin/*` gác requireAdmin (ADMIN trở lên), không giới hạn tác giả;
+//   - Toà soạn Agent AI ghi qua ContentDraft rồi CHIẾU sang Post.
+//
+// Ở đây gác requireRole('AUTHOR') VÀ mọi truy vấn kẹp thêm `authorId === me.id`:
+// người đi qua đường này - kể cả ADMIN/OWNER, vốn cao hơn AUTHOR - chỉ đụng được
+// bài của chính họ. Muốn sửa bài của người khác là một bề mặt KHÁC, chưa có.
+// Bài do người viết mang `authoredByAgentId: null` (phân biệt với bài Toà soạn).
+
+async function requireAuthor(req: Request, res: Response): Promise<User | null> {
+  // Cùng khuôn requireAdmin: lookupUser() tra cứu (không tạo) và đối chiếu
+  // sessionVersion, fail closed. Ngưỡng là AUTHOR thay vì ADMIN.
+  const user = await lookupUser(req)
+  if (!user) {
+    res.status(401).json({ error: 'Bạn cần đăng nhập' })
+    return null
+  }
+  if (!hasAtLeastRole(user.role, 'AUTHOR')) {
+    res.status(403).json({ error: 'Yêu cầu quyền đăng bài' })
+    return null
+  }
+  return user
+}
+
+// Suy slug từ tiêu đề tiếng Việt: bỏ dấu (NFD tách dấu ra rồi xoá), đ→d, gom
+// mọi thứ không phải [a-z0-9] thành gạch nối. Kết quả vẫn được SLUG_RE kiểm lại.
+const slugify = (s: string): string =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+type PostWritable = {
+  slug?: string
+  title?: string
+  excerpt?: string | null
+  contentMd?: string
+  tags?: string[]
+  published?: boolean
+}
+type PostBodyResult = { ok: true; data: PostWritable } | { ok: false; error: string }
+
+/**
+ * Làm sạch phần thân request cho Post. `authorId`/`authoredByAgentId` CỐ Ý không
+ * đọc từ đây - tác giả do phiên quyết định, không do người dùng khai.
+ */
+function readPostBody(body: unknown, { partial }: { partial: boolean }): PostBodyResult {
+  const b = (body ?? {}) as Record<string, unknown>
+  const data: PostWritable = {}
+
+  if (!partial || b.title !== undefined) {
+    const title = String(b.title ?? '').trim()
+    if (!title) return { ok: false, error: 'Thiếu title' }
+    data.title = title
+  }
+  if (!partial || b.contentMd !== undefined) {
+    const contentMd = String(b.contentMd ?? '')
+    if (!contentMd.trim()) return { ok: false, error: 'Thiếu contentMd' }
+    data.contentMd = contentMd
+  }
+  // slug: gửi thì kiểm; tạo mới mà bỏ trống thì suy từ title.
+  if (b.slug !== undefined && String(b.slug).trim() !== '') {
+    const slug = String(b.slug).trim().toLowerCase()
+    if (!SLUG_RE.test(slug))
+      return {
+        ok: false,
+        error: 'slug phải là chữ thường, số và dấu gạch nối (ví dụ: bai-viet-dau)',
+      }
+    data.slug = slug
+  } else if (!partial) {
+    const derived = slugify(data.title || '')
+    if (!SLUG_RE.test(derived))
+      return { ok: false, error: 'Không suy được slug từ title; hãy nhập slug' }
+    data.slug = derived
+  }
+  if (b.excerpt !== undefined) {
+    const ex = b.excerpt === null ? null : String(b.excerpt).trim()
+    data.excerpt = ex === '' ? null : ex
+  }
+  if (b.tags !== undefined) {
+    if (!Array.isArray(b.tags)) return { ok: false, error: 'tags phải là mảng chuỗi' }
+    data.tags = b.tags.map((t) => String(t).trim()).filter((t) => t.length > 0)
+  }
+  if (b.published !== undefined) data.published = Boolean(b.published)
+
+  return { ok: true, data }
+}
+
+// Thẻ bài cho trang soạn của tác giả. KHÁC authorCard/đường đọc công khai: mang
+// theo cả `published` và bài chưa công bố, vì chủ nhân cần thấy bản nháp của mình.
+const authorPostCard = (p: Post) => ({
+  id: p.id,
+  slug: p.slug,
+  title: p.title,
+  excerpt: p.excerpt,
+  contentMd: p.contentMd,
+  tags: p.tags,
+  published: p.published,
+  createdAt: p.createdAt,
+  updatedAt: p.updatedAt,
+})
+
+/** Bài còn sống của CHÍNH tác giả (gồm bản chưa công bố). Không lộ bài đã xoá. */
+app.get(
+  '/api/author/posts',
+  asyncHandler(async (req, res) => {
+    const me = await requireAuthor(req, res)
+    if (!me) return
+    const posts = await prisma.post.findMany({
+      where: { authorId: me.id, deletedAt: null },
+      orderBy: { updatedAt: 'desc' },
+    })
+    res.json(posts.map(authorPostCard))
+  })
+)
+
+app.post(
+  '/api/author/posts',
+  asyncHandler(async (req, res) => {
+    const me = await requireAuthor(req, res)
+    if (!me) return
+    const parsed = readPostBody(req.body, { partial: false })
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+    const data = parsed.data as Required<Pick<PostWritable, 'slug' | 'title' | 'contentMd'>> &
+      PostWritable
+
+    const clash = await prisma.post.findUnique({ where: { slug: data.slug } })
+    if (clash) return res.status(409).json({ error: `slug "${data.slug}" đã tồn tại` })
+
+    const post = await prisma.post.create({
+      // Tác giả bị GHIM theo phiên; authoredByAgentId null = do người viết.
+      data: {
+        slug: data.slug,
+        title: data.title,
+        contentMd: data.contentMd,
+        excerpt: data.excerpt ?? null,
+        tags: data.tags ?? [],
+        published: data.published ?? true,
+        authorId: me.id,
+        authoredByAgentId: null,
+      },
+    })
+    res.status(201).json(authorPostCard(post))
+  })
+)
+
+/**
+ * Tìm một bài mà `me` được phép sửa: đúng slug, đúng tác giá, chưa xoá. Trả 404
+ * cho MỌI trường hợp khác (không có / của người khác / đã xoá) - không tiết lộ
+ * bài của tác giả khác có tồn tại hay không.
+ */
+async function findOwnPost(slug: string | undefined, meId: string): Promise<Post | null> {
+  if (!slug) return null
+  const post = await prisma.post.findUnique({ where: { slug } })
+  if (!post || post.authorId !== meId || post.deletedAt) return null
+  return post
+}
+
+app.get(
+  '/api/author/posts/:slug',
+  asyncHandler(async (req, res) => {
+    const me = await requireAuthor(req, res)
+    if (!me) return
+    const post = await findOwnPost(req.params.slug, me.id)
+    if (!post) return res.status(404).json({ error: 'Không tìm thấy bài của bạn' })
+    res.json(authorPostCard(post))
+  })
+)
+
+app.patch(
+  '/api/author/posts/:slug',
+  asyncHandler(async (req, res) => {
+    const me = await requireAuthor(req, res)
+    if (!me) return
+    const current = await findOwnPost(req.params.slug, me.id)
+    if (!current) return res.status(404).json({ error: 'Không tìm thấy bài của bạn' })
+
+    const parsed = readPostBody(req.body, { partial: true })
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+    const data = parsed.data
+
+    if (data.slug && data.slug !== current.slug) {
+      const clash = await prisma.post.findUnique({ where: { slug: data.slug } })
+      if (clash) return res.status(409).json({ error: `slug "${data.slug}" đã tồn tại` })
+    }
+
+    const post = await prisma.post.update({ where: { id: current.id }, data })
+    res.json(authorPostCard(post))
+  })
+)
+
+/** XOÁ MỀM, khớp khuôn của Toà soạn (xoá cứng bị trigger Postgres chặn). */
+app.delete(
+  '/api/author/posts/:slug',
+  asyncHandler(async (req, res) => {
+    const me = await requireAuthor(req, res)
+    if (!me) return
+    const current = await findOwnPost(req.params.slug, me.id)
+    if (!current) return res.status(404).json({ error: 'Không tìm thấy bài của bạn' })
+    await prisma.post.update({ where: { id: current.id }, data: { deletedAt: new Date() } })
+    res.json({ ok: true, softDeleted: true })
   })
 )
 
