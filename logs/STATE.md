@@ -1,17 +1,15 @@
 # STATE.md — Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 12 bắt đầu ở đây**: đọc
-> [`logs/handover/20260821-01`](handover/20260821-01_ket-phien-11.md) — phiếu vào
-> cửa duy nhất. Hàng đợi việc agent làm được **đã cạn**; mọi mục còn lại cần MẮT
-> NGƯỜI hoặc thao tác/QUYẾT ĐỊNH của chủ dự án (bắt đầu: bấm Merge PR #38).
+> **Phiên 13 bắt đầu ở đây**: đọc
+> [`logs/handover/20260821-02`](handover/20260821-02_ket-phien-12.md) — phiếu vào
+> cửa mới nhất. Hàng đợi việc agent làm được **đã cạn**; mọi mục còn lại cần MẮT
+> NGƯỜI hoặc thao tác/QUYẾT ĐỊNH của chủ dự án.
 
 ## Hàng đợi task (làm từ trên xuống)
 
-- [ ] **🔴 BƯỚC 3: bấm nút "Hồi sinh việc đã dừng (16)"** ở
-      `https://tsudev.com/admin/newsroom`. Cần phiên ADMIN production nên agent
-      không bấm thay được. Bản sửa nút **đã deploy** (Worker `d2a0640a`) và đã
-      kiểm chứng có mặt trong chunk JS production, không chỉ mã 200.
-      Sau khi bấm: chạy `npm run newsroom:check`, `AgentRun` phải tiếp tục tăng.
+- [x] **🔴 BƯỚC 3: bấm nút "Hồi sinh việc đã dừng"** — ✅ chủ dự án đã bấm
+      (21/08). Nghiệm thu `npm run newsroom:check`: AgentRun **220 → 224** (+4 lượt).
+      Toà soạn chạy thật.
 
 - [ ] **🔴 GitHub Actions không chạy được — vấn đề TÀI KHOẢN, không phải mã.**
       Cả 5 job của PR #36 đỏ trong 2 giây: _"recent account payments have failed
@@ -21,9 +19,8 @@
       nhất là chạy tay ở local** — danh sách lệnh ở phiếu 20260820-04 §5.
 
 - [x] **🔴 GỘP PR #37** — ✅ chủ dự án đã MERGED (`a8cfde9`, 20/08). Render tự dựng lại backend.
-- [ ] **🟠 GỘP PR #38** `chore/storybook-chay-duoc` → `main` — **đã mở phiên 11**
-      (<https://github.com/tsudev-tsudev/tsudev/pull/38>). Diff sạch, chỉ Storybook + gỡ `@tsudev/utils` + hai gói đẩy ngược + docs; MERGEABLE. Phiên 11 **không
-      gộp được** (chính sách phân quyền chặn `gh pr merge`). Chủ dự án bấm Merge.
+- [x] **🟠 GỘP PR #38** — ✅ chủ dự án đã MERGED (`a8248a4`, 21/08). Local về
+      `main`, nhánh đã xóa.
 - [ ] **🟠 Gửi hai gói đẩy ngược lên repo quy ước trung tâm** —
       `docs/token-upstream-proposal.md` (hai mã màu không đạt WCAG, số đo đầy đủ)
       và `docs/structure-upstream-proposal.md` (thêm hình trạng monorepo). Cả hai
@@ -45,6 +42,10 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Gộp PR #38 + hồi sinh toà soạn** (phiên 12). Chủ dự án MERGED #38
+  (`a8248a4`); local về `main`, xóa nhánh. Chủ dự án bấm "Hồi sinh việc đã dừng";
+  `newsroom:check` xác nhận AgentRun **220 → 224** (+4). Soạn quy trình xoay
+  `NEWSROOM_TICK_TOKEN` cho chủ dự án. Phiếu: `logs/handover/20260821-02`.
 - 21/08/2026 — **Mở PR #38** cho `chore/storybook-chay-duoc` (phiên 11). #37 đã
   được chủ dự án gộp vào `main` (`a8cfde9`) nên diff của #38 sạch, chỉ còn
   Storybook + gỡ `@tsudev/utils` + hai gói đẩy ngược + docs. Cổng chung xanh
@@ -165,7 +166,8 @@
 
 | Mã                                                                  | Chủ đề                                      | Trạng thái |
 | ------------------------------------------------------------------- | ------------------------------------------- | ---------- |
-| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 — gộp #37, mở PR #38           | **MỞ**     |
+| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 — gộp #38, hồi sinh toà soạn   | **MỞ**     |
+| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 — gộp #37, mở PR #38           | HOÀN THÀNH |
 | [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ | HOÀN THÀNH |
 | [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production             | HOÀN THÀNH |
 | [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành               | HOÀN THÀNH |

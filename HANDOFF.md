@@ -90,7 +90,31 @@ Ba thứ mất là không sinh lại được:
 
 ---
 
-## 0. Nhật ký phiên 11 (21/08/2026) - gộp #37, mở PR #38
+## 0. Nhật ký phiên 12 (21/08/2026) - gộp #38, hồi sinh toà soạn
+
+Phiên **ngắn, do chủ dự án mở đường**. Trước khi bắt tay: kiểm hiện trạng git/PR
+theo bẫy §5 phiếu 20260821-01 - lần này đầu vào ĐÃ đổi đúng như dặn.
+
+- **PR #38 MERGED** (`a8248a4`). Local về `main`, `git pull`, xóa nhánh
+  `chore/storybook-chay-duoc` đã gộp. Cây sạch.
+- **Toà soạn hồi sinh THẬT**: chủ dự án bấm "Hồi sinh việc đã dừng" ở
+  `/admin/newsroom`. Nghiệm thu `npm run newsroom:check`: AgentRun **220 → 224**
+  trong một tick (+4 lượt). Không đọc "đã bấm" thành "đang chạy" - đếm AgentRun
+  là bằng chứng.
+- **Xoay `NEWSROOM_TICK_TOKEN`**: chỉ soạn quy trình cho chủ dự án (cần Render
+  dashboard + `wrangler` tương tác). Cửa sổ an toàn: tick THẬT chạy mỗi giờ ở
+  phút 7 (cron `7 0-17,23 * * *`); `*/5` chỉ là nhịp giữ ấm. Đổi cả hai đầu trong
+  cùng một giờ giữa hai lượt phút-7 thì không mất lượt nào. So khớp là bằng
+  chuỗi thô qua header `x-newsroom-token` - không có cơ chế hai-token, nên lệch
+  đầu nào cũng 401 câm cho tới khi đầu kia theo kịp.
+
+Hàng đợi việc agent làm được: **cạn**. Còn lại toàn bộ chờ chủ dự án (GitHub
+billing, gửi hai gói đẩy ngược lên repo trung tâm, xoay token nếu muốn, rà giao
+diện bằng mắt người).
+
+---
+
+## 0.03 Nhật ký phiên 11 (21/08/2026) - gộp #37, mở PR #38
 
 Phiên **rất ngắn, một luồng**: nhận việc kế trong hàng đợi STATE.md và phát hiện
 đầu vào đã đổi.
