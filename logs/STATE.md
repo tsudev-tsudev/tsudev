@@ -44,9 +44,8 @@
       bằng mắt (dưới đây).
 - [x] **🟠 Hoàn thiện kiến trúc TÀI KHOẢN/ĐĂNG NHẬP — đợt 1: Xác minh email +
       Đổi email an toàn** — ✅ CODE-COMPLETE 21/08 (phiên 15). Chi tiết ở mục "Đã
-      hoàn thành" dưới. Cổng chung sạch; auth 85 · content 44 · bundle 15. CHƯA
-      phát hành prod (deploy + cần `RESEND_API_KEY` trên Render để thư gửi thật;
-      nếu chưa đặt thì luồng vẫn không vỡ vì chặn MỀM). Quyết định chủ dự án: **chặn mềm
+      hoàn thành" dưới. Cổng chung sạch; auth 85 · content 44 · bundle 15. **ĐÃ
+      PHÁT HÀNH prod 22/08** (xem record trên cùng mục Đã hoàn thành). Quyết định chủ dự án: **chặn mềm
       ân hạn 7 ngày**; sau ân hạn chưa xác minh thì chặn **đăng bài (AUTHOR ghi
       Post) + nâng vai trò tự phục vụ (mã mời)** — KHÔNG đụng Con dấu (giữ ngoài
       vùng trust-seal). Chuỗi: `@tsudev/types` (helper `emailUsable`, ân hạn 7d) →
@@ -59,8 +58,8 @@
       AuthToken, mailer Resend) — đợt này BỔ SUNG chứ không dựng lại.
 - [x] **🟠 Kiến trúc TÀI KHOẢN — đợt 2: Nhật ký bảo mật (audit log)** — ✅
       CODE-COMPLETE 21/08 (phiên 15). Chi tiết ở mục "Đã hoàn thành" dưới. Cổng
-      chung sạch; auth **91** · bundle 15. CHƯA phát hành prod (migrate Neon +
-      deploy). Quyết định chủ dự án: ghi ĐẦY ĐỦ (gồm IP + User-Agent), làm CẢ
+      chung sạch; auth **91** · bundle 15. **ĐÃ PHÁT HÀNH prod 22/08**. Quyết
+      định chủ dự án: ghi ĐẦY ĐỦ (gồm IP + User-Agent), làm CẢ
       HAI bề mặt (user "Hoạt động gần đây" + console OWNER xuyên tài khoản). **Tách
       model `SecurityEvent` RIÊNG** (không đổ vào `TrustAuditLog` vì trust-service
       dùng nặng + console `/api/trust/admin/audit` sẽ ngập nếu chứa mọi lượt đăng
@@ -97,6 +96,16 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 — **PHÁT HÀNH prod toàn bộ kiến trúc tài khoản (đợt 1–5)** (phiên 15).
+  Chủ dự án chạy `prisma migrate deploy` trên Neon (migration đợt 1–5) + đặt
+  `RESEND_API_KEY` trên Render. Frontend deploy Cloudflare qua
+  `scripts/deploy-frontend.js` (Version `e2f67e96`, `.env.local` được dời khỏi
+  build); backend Render tự dựng lại từ merge #46/#47. **Nghiệm thu đo HÀNH VI**:
+  `/api/auth/providers` chỉ credentials+passkey · www→apex 308 · backend-bundle
+  `/health` ok · confirm-email-change (đợt1) token rác→400 · account/security/events
+  (đợt2)→401 · security/revoke-all (đợt3)→401 · account/deactivate+delete (đợt4)→401
+  · trang /confirm-email-change render 200 có nội dung. Tất cả 5 đợt LIVE. CÒN LẠI:
+  E (OAuth) + G (nonce CSP) chờ chủ dự án; nghiệm thu RBAC/giao diện bằng mắt người.
 - 22/08/2026 — **Củng cố tài khoản (đợt 3–5 kiến trúc tài khoản)** (phiên 15,
   nhánh `feat/account-hardening`). E (OAuth) BỎ QUA đợt này (cần chủ dự án tạo
   OAuth app + secret); G (ép CSP) GIỮ Report-Only theo quyết định — chỉ rà soát.
@@ -117,8 +126,7 @@
     middleware; `style-src 'unsafe-inline'` (Next/Tailwind) khó bỏ; `connect-src
 https:` rộng nhưng cần cho presign R2. Không flip — cần một đợt nonce riêng.
   - Nghiệm thu: typecheck·lint·format·topology·tokens sạch; auth **103** ·
-    content 44 · bundle 15. CHƯA phát hành prod (3 migration mới + deploy +
-    RESEND_API_KEY để thư gửi thật).
+    content 44 · bundle 15. **ĐÃ phát hành prod 22/08** (record trên cùng).
 - 21/08/2026 — **Nhật ký bảo mật (đợt 2 kiến trúc tài khoản)** (phiên 15, chuỗi
   `data-schema`→`auth-service`→`frontend-web`). **Model `SecurityEvent` RIÊNG**
   (tách khỏi `TrustAuditLog` vì trust-service dùng nặng + console Con dấu sẽ ngập
@@ -167,7 +175,7 @@ https:` rộng nhưng cần cho presign R2. Không flip — cần một đợt n
     hạn/quá hạn".
   - **Test**: auth `emailChange.test.ts` (11) + content `emailVerifyGate.test.ts`
     (7). Nghiệm thu: typecheck·lint·format·topology·tokens sạch; auth **85/85**,
-    content **44/44**, bundle **15/15**. CHƯA phát hành prod (deploy + `RESEND_API_KEY`).
+    content **44/44**, bundle **15/15**. **ĐÃ phát hành prod 22/08** (record trên cùng).
 - 21/08/2026 — **Link "Viết bài"→`/author` ở header** (phiên 15, vùng
   design-system). `SiteHeader` NAV thêm mục gác `needsAuthor`; điều kiện hiện =
   `hasAtLeastRole(session.role,'AUTHOR')` (mirror `useCanSeeTrust`) — giấu link
