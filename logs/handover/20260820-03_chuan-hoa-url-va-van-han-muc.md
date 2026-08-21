@@ -73,7 +73,7 @@ dòng trỏ tới `docs/url-convention.md` trong mục Tài liệu.
 
 **Kết luận quan trọng:** hình trạng URL vốn đã đúng - dev có MỘT điểm vào
 (`http://tsudev.localhost:8080`, `mode: proxy` trong `config/topology.json`),
-production có MỘT tên miền. `:3000`, `:4001`–`:4005` chưa bao giờ là địa chỉ
+production có MỘT tên miền. `:3000`, `:4001`-`:4005` chưa bao giờ là địa chỉ
 người dùng gõ; chúng chỉ **rò rỉ** ra ba chỗ, và phiên này bịt cả ba. Không đổi
 cổng, không đổi tên miền, không dời route nào.
 
