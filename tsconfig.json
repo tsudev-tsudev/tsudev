@@ -8,7 +8,6 @@
     { "path": "packages/trust-crypto" },
     { "path": "packages/identity-token" },
     { "path": "packages/auth" },
-    { "path": "packages/utils" },
     { "path": "packages/ui" },
     { "path": "services/content-service" },
     { "path": "services/storage-service" },

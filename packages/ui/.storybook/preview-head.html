@@ -1,3 +1,11 @@
+<!-- SiteHeader/SiteFooter/useTrustNav kéo theo `next-auth/react`, mà gói đó đọc
+     `process.env` ngay lúc nạp module. Trong trình duyệt không có `process`, nên
+     THIẾU mảnh này thì mọi story đều chết ở khâu nạp và khung story rỗng trơn -
+     không phải chỉ hai component dùng next-auth. Next tự chèn shim này khi dựng
+     app; Vite thì không. -->
+<script>
+  window.process = window.process || { env: { NODE_ENV: 'development' }, browser: true };
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <!-- Weight 300 cố ý không nạp: DESIGN_SYSTEM.md §4 cấm dùng nó với tiếng Việt có

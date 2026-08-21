@@ -90,7 +90,64 @@ Ba thứ mất là không sinh lại được:
 
 ---
 
-## 0. Nhật ký phiên 9 (20/08/2026) - phát hành, và một phép đo suýt nói dối
+## 0. Nhật ký phiên 11 (21/08/2026) - gộp #37, mở PR #38
+
+Phiên **rất ngắn, một luồng**: nhận việc kế trong hàng đợi STATE.md và phát hiện
+đầu vào đã đổi.
+
+- **PR #37 đã được chủ dự án MERGED** vào `main` (`a8cfde9`) từ phiên trước - task
+  🔴 "gộp #37" xong sẵn, Render tự dựng lại backend.
+- **Mở PR #38** cho `chore/storybook-chay-duoc` (Storybook chạy được · gỡ
+  `@tsudev/utils` · hai gói đẩy ngược · docs). Vì #37 đã ở `main`, diff so với
+  `origin/main` **đã sạch sẵn** - chỉ 5 commit riêng, không lẫn file newsroom của
+  #37 - nên **không rebase**, tránh rủi ro đụng `HANDOFF.md` mà #37 cũng sửa.
+  Cổng chung xanh (lint · typecheck · topology · tokens); `format:check` chỉ kêu
+  `.claude/settings.local.json` (local, không được git theo dõi). MERGEABLE;
+  `UNSTABLE` do GitHub Actions đỏ vì tài khoản, không chặn. **Chưa gộp được** -
+  `gh pr merge` bị chính sách phân quyền phiên chặn, y như #37.
+
+Sau khi mở #38, **hàng đợi việc agent làm được đã cạn**: mọi mục còn lại cần MẮT
+NGƯỜI hoặc thao tác/QUYẾT ĐỊNH của chủ dự án (bấm Merge #38, bấm nút hồi sinh,
+sửa billing GitHub, gửi hai gói đẩy ngược, xoay `NEWSROOM_TICK_TOKEN`, rà giao
+diện). Chi tiết: phiếu [`20260820-06`](logs/handover/20260820-06_ket-phien-10.md)
+§6.
+
+Một bẫy đo lường lặp lại họ §0.7: **"việc kế trong hàng đợi" có thể đã đổi trạng
+thái từ ngoài phiên.** Hàng đợi ghi "#37 chưa gộp", nhưng `gh pr view 37` cho
+MERGED - kiểm hiện trạng git/PR TRƯỚC khi bắt tay rẻ hơn nhiều so với rebase nhầm
+lên một base đã lỗi thời.
+
+---
+
+## 0.05 Nhật ký phiên 10 (20/08/2026) - sổ Neuron, Storybook, dọn hai món nợ
+
+Phiên **nhiều luồng nhỏ**, đi hết phần hàng đợi mà agent làm được; chi tiết đầy
+đủ ở phiếu [`20260820-06`](logs/handover/20260820-06_ket-phien-10.md). Bốn cụm:
+
+- **Sổ Neuron đếm đủ cả khi lượt chạy hỏng** - chi phí nay ghi tại ranh giới nhà
+  cung cấp vào sổ theo ngữ cảnh (`AsyncLocalStorage`), `withRun()` đọc ở cả hai
+  nhánh try/catch. Đường trả chi phí cũ qua `return` bị bỏ hẳn. Bài học thành
+  mục thứ 16 của §0.7. PR #37 đã mở, **chưa gộp được** - chính sách phân quyền
+  của phiên chặn lệnh gộp, y như phiên 8.
+- **Storybook chạy được lần đầu** - hàng đợi ghi "npm i là xong", thực tế là
+  BỐN tầng hỏng im lặng chồng nhau (gói CLI thiếu · glob extglob dùng dấu phẩy
+  khớp 0/9 file · `@tsudev/types` CJS qua `/@fs` làm mọi khung story rỗng ·
+  `next-auth` đòi `process` + `SessionProvider`). Nghiệm thu đếm hành vi:
+  36/36 lượt (12 story × 3 chế độ) vẽ ra nội dung, 0 lỗi console. Đóng luôn món
+  nợ ghim `react@18` ở root - nay nằm ở devDependencies của `packages/ui`.
+- **Gỡ `@tsudev/utils`** (một hàm, không ai dùng) theo quyết định chủ dự án.
+- **Hai gói đẩy ngược lên repo quy ước trung tâm** đã soạn xong, chờ gửi:
+  `docs/token-upstream-proposal.md` · `docs/structure-upstream-proposal.md`.
+  Điểm lệch cấu trúc monorepo ghi vào `docs/architecture.md`.
+
+Ba bẫy đo lường của phiên (chi tiết phiếu 20260820-06 §5): "lệnh chạy xong" ≠
+"công cụ chạy được" · hai server cùng cổng thì phép đo bắn vào cái cũ · tự viết
+lại công thức tương phản mà quên `srgbToLinear` một kênh vẫn ra bảng số trông
+hợp lý. Và `pkill -f` với mẫu khớp chính dòng lệnh đang chạy sẽ tự giết nó.
+
+---
+
+## 0.1 Nhật ký phiên 9 (20/08/2026) - phát hành, và một phép đo suýt nói dối
 
 Phiên **ngắn, một luồng**: chạy cổng kiểm tay rồi đi hết chuỗi phát hành ba bước
 mà phiên 8 bị chặn.

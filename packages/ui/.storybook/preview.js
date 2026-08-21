@@ -1,4 +1,5 @@
 import React from 'react';
+import { SessionProvider } from 'next-auth/react';
 import '../src/tokens.css';
 import '../src/storybook.css';
 
@@ -35,7 +36,14 @@ const withTheme = (Story, context) => {
   return React.createElement(Story);
 };
 
-export const decorators = [withTheme];
+// SiteHeader/SiteFooter gọi `useSession`, và next-auth ném lỗi CỨNG khi không
+// có provider bao ngoài - không phải trả về "chưa đăng nhập". Thiếu decorator
+// này thì mọi story có khung trang đều rỗng. `session={null}` = khách vãng lai,
+// đúng trạng thái mặc định đáng rà nhất.
+const withSession = (Story) =>
+  React.createElement(SessionProvider, { session: null }, React.createElement(Story));
+
+export const decorators = [withTheme, withSession];
 
 export const parameters = {
   actions: { argTypesRegex: '^on[A-Z].*' },

@@ -19,7 +19,7 @@ production đã đo. Tính tới 20/08/2026 **không còn việc chặn nào**: 
 chạy đủ, Toà soạn Agent AI đang sản xuất, chi phí bằng 0. Việc còn lại phần lớn
 cần MẮT NGƯỜI (rà giao diện) hoặc QUYẾT ĐỊNH của chủ dự án.
 
-`HANDOFF.md` §0.7 ghi **mười hai kỹ thuật đã trả giá để học**. Bốn cái đắt nhất,
+`HANDOFF.md` §0.7 ghi **mười sáu kỹ thuật đã trả giá để học**. Bốn cái đắt nhất,
 vì mỗi cái đều từng để một sự cố sống nhiều ngày mà không ai biết:
 
 - **Mã 200 không chứng minh trang có nội dung** - `lib/api.ts` nuốt lỗi thành
@@ -62,8 +62,9 @@ tiến trình chạy liên tục thì không giữ ấm được cái nào. Dev 
 dùng chung) · `@tsudev/identity-token` (hợp đồng khẳng định danh tính BFF→service,
 dùng chung giữa Workers và Node) · `@tsudev/trust-crypto` (Ed25519 bằng Rust→WASM)
 · `@tsudev/ui` (design system) ·
-`@tsudev/types` · `@tsudev/utils` · `brand/` (ảnh nguồn) · `observability/`
-(thư mục thuần, không phải workspace).
+`@tsudev/types` · `brand/` (ảnh nguồn) · `observability/`
+(thư mục thuần, không phải workspace). `@tsudev/utils` **đã bị gỡ 20/08/2026** -
+nó chứa đúng một hàm và không nơi nào dùng; đừng dựng lại chỉ để có chỗ đặt.
 
 ## Chạy local
 
@@ -95,9 +96,12 @@ Chi tiết → `docs/development.md`.
 ## Tài liệu - đọc CHỌN LỌC theo task
 
 Mục lục: `docs/README.md`. Theo vùng: kiến trúc → `docs/architecture.md` ·
-chạy local → `docs/development.md` · auth/RBAC → `docs/auth.md` · test/CI →
-`docs/testing.md` · giao diện → `docs/design-system.md` · production →
-`docs/deployment.md` · con dấu → `docs/trust-seal.md`.
+chạy local → `docs/development.md` · địa chỉ chính tắc → `docs/url-convention.md` ·
+auth/RBAC → `docs/auth.md` · test/CI → `docs/testing.md` · giao diện →
+`docs/design-system.md` · production → `docs/deployment.md` · con dấu →
+`docs/trust-seal.md`. Hai điểm repo này lệch bộ quy ước chung, kèm gói đề xuất
+gửi ngược lên trung tâm: `docs/token-upstream-proposal.md` (hai mã màu không đạt
+WCAG) và `docs/structure-upstream-proposal.md` (cây thư mục monorepo).
 
 `documents-tsudev.md` là **đặc tả yêu cầu**, không phải mô tả hiện trạng. Mã
 nguồn là hiện trạng; TSD là đích đến.
@@ -151,10 +155,13 @@ nguồn là hiện trạng; TSD là đích đến.
   `docs/design-system.md`.
 - **`apps/*/.env.local` được sinh tự động** - sửa tay vô ích, lần chạy dev sau
   ghi đè. Sửa `.env` gốc.
-- **Root `package.json` còn ghim `react@18.3.1`** - di sản của app diễn đàn đã
-  xoá, nay chỉ Storybook lấy từ đó. App thật chạy React 19, nhưng API
-  chỉ-có-ở-React-19 vẫn làm Storybook hỏng, mà **Storybook không nằm trong CI**.
-  Nợ có đăng ký, ghi trong `next.config.js`.
+- **React 18 nay nằm ở `devDependencies` của `packages/ui`, KHÔNG còn ở root**
+  (dọn 20/08/2026 - món nợ đăng ký trong `next.config.js` đã đóng). App thật chạy
+  React 19; bản 18 chỉ phục vụ Storybook. **Storybook vẫn không nằm trong CI**,
+  nên API chỉ-có-ở-React-19 dùng trong component vẫn làm nó hỏng mà không gì đỏ
+  lên - cách kiểm: `npm --workspace packages/ui run storybook` rồi ĐẾM story vẽ
+  ra được, đừng đọc "lệnh chạy xong" thành "chạy được" (`docs/design-system.md`
+  §Storybook ghi bốn tầng hỏng im lặng đã gặp).
 - **Commit**: Conventional Commits.
 
 ## Gotcha cứng - đọc trước khi sửa vùng liên quan
