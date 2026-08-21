@@ -88,6 +88,16 @@ describe('backend-bundle - cổng chặn của content và storage vẫn nguyên
     const res = await request(app).get('/api/presign')
     expect(res.status).toBe(401)
   })
+
+  // Tiền tố MỚI dễ lọt lưới nhất: '/api/author/*' (đường ghi bài của AUTHOR) là
+  // của content nhưng chỉ sống ở production nếu có trong bảng tiền tố. Thân 401
+  // phải là cổng token của CONTENT - chứng minh request đã tới đúng app, không
+  // phải 404 vì thiếu tiền tố.
+  test('/api/author/posts thiếu token ⇒ dừng ở cổng của CONTENT, không 404', async () => {
+    const res = await request(app).get('/api/author/posts')
+    expect(res.status).toBe(401)
+    expect(res.body.error).toBe(CONTENT_GATE)
+  })
 })
 
 describe('backend-bundle - điều phối và health', () => {

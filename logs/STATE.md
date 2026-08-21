@@ -48,11 +48,14 @@
       MODERATOR/AUTHOR/VIP=Con dấu, không admin · MEMBER=không gì. **KHÔNG** bơm
       tài khoản dev (alice/bob, mật khẩu `tsudev-dev-2026!`) vào prod. Kiểm tsudev
       cấp/thu hồi mã mời Con dấu chạy (hết 403 sau khi `e759dce` Live).
-- [ ] **⚪ Trình soạn/đăng bài cho AUTHOR (follow-up)** — role AUTHOR đã có nhưng
-      content-service CHƯA có bề mặt đăng bài cho người (bài hiện do Toà soạn AI
-      tạo thẳng). Chuỗi sau: content-service thêm route ghi Post gác
-      `requireRole('AUTHOR')` (scope theo `authorId` của chính mình) → frontend
-      thêm trang soạn bài. Khi đó AUTHOR mới thực sự đăng được.
+- [x] **⚪ Trình soạn/đăng bài cho AUTHOR** — ✅ CODE-COMPLETE 21/08 (phiên 15).
+      content-service có `/api/author/posts` (list·create·get·patch·delete) gác
+      `requireAuthor` (đọc DB, fail closed), SCOPE cứng `authorId === me`; proxy
+      `/api/content/author/*` + prefix `/api/author` trong backend-bundle; trang
+      `/author` (editor list+form). Test `author.test.ts` 11 + routing +1. Còn:
+      **(a)** link điều hướng tới `/author` ở header — vùng design-system
+      (`packages/ui/.../SiteHeader.tsx`), CHƯA làm (handoff); **(b)** phát hành
+      prod (deploy); **(c)** e2e tuỳ chọn.
 - [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** — phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa". Nay đã có công
       cụ: `npm --workspace packages/ui run storybook`, nút **Giao diện** đổi ba
       chế độ ngay trên thanh công cụ.
@@ -65,6 +68,18 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Editor AUTHOR (đăng/sửa bài của chính mình)** (phiên 15). Chuỗi
+  `backend-api`→`frontend-web` (kèm chạm `backend-bundle`/test). content-service:
+  5 route `/api/author/posts` gác `requireAuthor` (`hasAtLeastRole(role,'AUTHOR')`,
+  đọc DB fail closed), MỌI truy vấn kẹp `authorId === me.id` → AUTHOR/ADMIN/OWNER
+  đi đường này chỉ đụng bài của chính mình; bài của người khác trả **404** (không
+  lộ tồn tại). `authorId`/`authoredByAgentId` do PHIÊN quyết định, không đọc từ
+  body (test canh cướp tác giả). slugify tiếng Việt (bỏ dấu, đ→d). Xoá MỀM. Prefix
+  mới `/api/author` thêm vào bảng backend-bundle + proxy `ALLOWED` + routing test
+  (bằng chứng thân-401 tới đúng content). Frontend trang `/author` (list+form,
+  gating bám phản hồi 403 của backend, noindex). Nghiệm thu: typecheck·lint·format·
+  topology·tokens sạch; content-service **37/37** (chạy 2 lần, rerun-safe);
+  backend-bundle **15/15**. CHƯA phát hành; link header là handoff design-system.
 - 21/08/2026 — **PHÁT HÀNH prod hệ AUTHOR/OWNER + hotfix OWNER≥ADMIN** (phiên 14).
   Chủ dự án chạy chuỗi prod: migrate Neon (enum AUTHOR/OWNER) · seed-newsroom
   (đổi tên 4 agent) · SQL nâng tsudev→OWNER · deploy Cloudflare · backend Render

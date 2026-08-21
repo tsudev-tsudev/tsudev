@@ -15,7 +15,7 @@ import { readSessionToken } from '../../../lib/sessionCookie';
 
 // Danh sách trắng, không phải danh sách đen: thêm nhánh mới phải khai ở đây.
 // Bỏ sót một nhánh thì nó 404 - an toàn hơn là lỡ mở cả /api.
-const ALLOWED_PREFIXES = new Set(['admin']);
+const ALLOWED_PREFIXES = new Set(['admin', 'author']);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const parts = catchAllSegments(req.query.path);
