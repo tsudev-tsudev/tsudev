@@ -37,7 +37,7 @@
       `20260821200000_add_author_owner_roles`). 3) `npm run db:seed:newsroom`
       nhắm prod (đổi tên 4 agent — seed này AN TOÀN cho prod). **4) Nâng tsudev
       lên OWNER trên prod bằng SQL tay** `UPDATE "User" SET role='OWNER' WHERE
-       username='tsudev';` — KHÔNG chạy `db:seed` (seed.js) trên prod vì nó tạo
+   username='tsudev';` — KHÔNG chạy `db:seed` (seed.js) trên prod vì nó tạo
       user/bài giả. Nghiệm thu: đăng nhập tsudev thấy thẻ "Tài khoản & phân
       quyền" ở `/admin`; `/admin/accounts` liệt kê được; tài khoản khác vào bị
       "Không có quyền". Lưu ý gotcha `token.role` chỉ ghi ở lần đăng nhập đầu —
