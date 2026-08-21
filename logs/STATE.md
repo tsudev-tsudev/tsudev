@@ -20,12 +20,10 @@
       Kiểm _Settings → Billing & plans_. Tới khi sửa xong thì **cổng kiểm duy
       nhất là chạy tay ở local** — danh sách lệnh ở phiếu 20260820-04 §5.
 
-- [ ] **🔴 GỘP PR #37** — `fix/nut-hoi-sinh-viec-da-dung` → `main`. Đã chạy tay đủ
-      năm hạng mục CI + e2e 20/20 (bảng số trong phiếu 20260820-06). Phiên 10
-      **không gộp được**: chính sách phân quyền của phiên chặn lệnh gộp, y như
-      phiên 8. Gộp xong Render tự dựng lại backend.
-- [ ] **🟠 GỘP nhánh `chore/storybook-chay-duoc`** (4 commit, xếp chồng trên #37).
-      Mở PR sau khi #37 vào `main` thì diff chỉ còn phần Storybook/dọn dẹp.
+- [x] **🔴 GỘP PR #37** — ✅ chủ dự án đã MERGED (`a8cfde9`, 20/08). Render tự dựng lại backend.
+- [ ] **🟠 GỘP PR #38** `chore/storybook-chay-duoc` → `main` — **đã mở phiên 11**
+      (<https://github.com/tsudev-tsudev/tsudev/pull/38>). Diff sạch, chỉ Storybook + gỡ `@tsudev/utils` + hai gói đẩy ngược + docs; MERGEABLE. Phiên 11 **không
+      gộp được** (chính sách phân quyền chặn `gh pr merge`). Chủ dự án bấm Merge.
 - [ ] **🟠 Gửi hai gói đẩy ngược lên repo quy ước trung tâm** —
       `docs/token-upstream-proposal.md` (hai mã màu không đạt WCAG, số đo đầy đủ)
       và `docs/structure-upstream-proposal.md` (thêm hình trạng monorepo). Cả hai
@@ -47,6 +45,10 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Mở PR #38** cho `chore/storybook-chay-duoc` (phiên 11). #37 đã
+  được chủ dự án gộp vào `main` (`a8cfde9`) nên diff của #38 sạch, chỉ còn
+  Storybook + gỡ `@tsudev/utils` + hai gói đẩy ngược + docs. Cổng chung xanh
+  (lint · typecheck · topology · tokens); MERGEABLE. Chờ chủ dự án bấm Merge.
 - 20/08/2026 — **Storybook chạy được lần đầu**: hàng đợi ghi "thiếu
   devDependencies, `npm i` là xong" — đó mới là tầng thứ nhất trong **bốn** tầng
   hỏng, ba tầng còn lại không làm lệnh nào thất bại (glob extglob dùng dấu phẩy ⇒
