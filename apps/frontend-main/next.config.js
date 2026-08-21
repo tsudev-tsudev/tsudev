@@ -1,76 +1,10 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
-const crypto = require('crypto');
-const { readFileSync } = require('fs');
 
-// Băm SHA-256 của THEME_SCRIPT nội tuyến, tính TỪ NGUỒN `_document.tsx` để CSP ép
-// được nó mà không cần `'unsafe-inline'`.
-//
-// Vì sao HASH chứ không nonce: nonce phải sinh mỗi request, nhưng phần lớn trang
-// ở đây prerender TĨNH lúc build - HTML tĩnh không mang được nonce của lượt tải,
-// nên nonce chặn luôn chính THEME_SCRIPT trên trang tĩnh (đã đo: trang tĩnh 0
-// script có nonce). Băm thì cố định theo NỘI DUNG script, đúng trên cả trang tĩnh
-// lẫn động. THEME_SCRIPT là inline script THỰC THI DUY NHẤT của site (mọi thứ
-// còn lại là `<script src>` cùng origin, `'self'` cho qua; `__NEXT_DATA__` là JSON
-// không thực thi) - đã kiểm trên 7 trang.
-//
-// Vì sao tính từ nguồn thay vì hard-code: một hằng băm dán tay sẽ trôi lệch im
-// lặng khi ai sửa THEME_SCRIPT - script mới không khớp băm cũ ⇒ CSP chặn ⇒ trang
-// nháy màu + không hydrate, không có gì đỏ lên. Đọc thẳng nguồn thì băm luôn khớp.
-// `test/csp.test.ts` còn đối chứng băm này bằng một đường tính độc lập.
-function themeScriptHash() {
-  const src = readFileSync(path.join(__dirname, 'pages', '_document.tsx'), 'utf8');
-  const hex = (name) => {
-    const m = src.match(new RegExp(`const ${name} = '([^']+)'`));
-    if (!m) throw new Error(`_document.tsx thiếu hằng ${name} (CSP không băm được THEME_SCRIPT)`);
-    return m[1];
-  };
-  const tpl = src.match(/const THEME_SCRIPT = `([\s\S]*?)`;/);
-  if (!tpl) throw new Error('_document.tsx thiếu THEME_SCRIPT (CSP không băm được)');
-  const body = tpl[1]
-    .replace(/\$\{LIGHT_BASE\}/g, hex('LIGHT_BASE'))
-    .replace(/\$\{WARM_BASE\}/g, hex('WARM_BASE'))
-    .replace(/\$\{DARK_BASE\}/g, hex('DARK_BASE'));
-  return `sha256-${crypto.createHash('sha256').update(body, 'utf8').digest('base64')}`;
-}
-
-// CSP ép thật, xây từ băm THEME_SCRIPT. Chỉ dựng ở PRODUCTION.
-//
-// Vì sao chỉ production: `next dev` dùng eval + nhiều script nội tuyến cho HMR/
-// React Refresh; ép CSP chặt ở dev là giết HMR. `headers()` được Next hoá TĨNH
-// lúc build, nên NODE_ENV ở đây là 'production' khi `next build` (đường preview/
-// deploy) và 'development' khi `next dev` - tự tách đúng hai chế độ.
-//
-// Vì sao GIỮ `style-src 'unsafe-inline'`: Next/Tailwind/styled-jsx nhúng style
-// nội tuyến; bỏ được cần một đợt riêng. Vì sao `connect-src https:`: trình duyệt
-// PUT thẳng lên endpoint R2 bằng URL presign, host đến từ biến môi trường nên
-// không liệt kê cứng được (và beacon RUM của Cloudflare POST về
-// cloudflareinsights.com cũng đi qua đây).
-//
-// `static.cloudflareinsights.com`: Cloudflare Web Analytics CHÈN THÊM
-// `<script src="https://static.cloudflareinsights.com/beacon.min.js">` ở TẦNG
-// EDGE, sau khi phản hồi rời Worker - nên nó KHÔNG có trong HTML mà `next build`/
-// `next start` local sinh ra, và mọi test ở máy này đều mù với nó (đúng loại "lỗi
-// chỉ sống trên prod/HTTPS"). Không allowlist thì khi ép CSP, beacon bị chặn và
-// DevTools prod đỏ. Chỉ cần ở script-src; đường POST của beacon đã nằm trong
-// connect-src https:.
-const CF_INSIGHTS = 'https://static.cloudflareinsights.com';
-
-function cspHeader() {
-  const value = [
-    "default-src 'self'",
-    `script-src 'self' '${themeScriptHash()}' ${CF_INSIGHTS}`,
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    "font-src 'self' data:",
-    "connect-src 'self' https:",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "object-src 'none'",
-  ].join('; ');
-  return { key: 'Content-Security-Policy', value };
-}
+// CSP KHÔNG đặt ở đây. Nó cần NONCE mỗi request (để Cloudflare Bot Fight Mode gắn
+// vào script JSD nó chèn ở edge), mà `headers()` của next.config là TĨNH. CSP ép
+// thật nằm ở `middleware.ts` (băm THEME_SCRIPT + nonce mỗi request). Xem chú thích
+// ở đầu middleware.ts. Ở đây chỉ giữ các header bảo mật TĨNH (không phụ thuộc request).
 
 const nextConfig = {
   reactStrictMode: true,
@@ -110,10 +44,8 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
           },
-          // CSP ÉP THẬT (không còn Report-Only) ở production, dựa vào băm
-          // THEME_SCRIPT thay cho `'unsafe-inline'`. Dev bỏ qua để không chặn HMR.
-          // Xem `cspHeader`/`themeScriptHash` ở đầu file.
-          ...(process.env.NODE_ENV === 'production' ? [cspHeader()] : []),
+          // CSP (Content-Security-Policy) đặt ở `middleware.ts` chứ không ở đây -
+          // nó cần nonce mỗi request. Xem chú thích đầu middleware.ts.
         ],
       },
     ];
