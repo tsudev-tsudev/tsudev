@@ -90,7 +90,36 @@ Ba thứ mất là không sinh lại được:
 
 ---
 
-## 0. Nhật ký phiên 10 (20/08/2026) - sổ Neuron, Storybook, dọn hai món nợ
+## 0. Nhật ký phiên 11 (21/08/2026) - gộp #37, mở PR #38
+
+Phiên **rất ngắn, một luồng**: nhận việc kế trong hàng đợi STATE.md và phát hiện
+đầu vào đã đổi.
+
+- **PR #37 đã được chủ dự án MERGED** vào `main` (`a8cfde9`) từ phiên trước - task
+  🔴 "gộp #37" xong sẵn, Render tự dựng lại backend.
+- **Mở PR #38** cho `chore/storybook-chay-duoc` (Storybook chạy được · gỡ
+  `@tsudev/utils` · hai gói đẩy ngược · docs). Vì #37 đã ở `main`, diff so với
+  `origin/main` **đã sạch sẵn** - chỉ 5 commit riêng, không lẫn file newsroom của
+  #37 - nên **không rebase**, tránh rủi ro đụng `HANDOFF.md` mà #37 cũng sửa.
+  Cổng chung xanh (lint · typecheck · topology · tokens); `format:check` chỉ kêu
+  `.claude/settings.local.json` (local, không được git theo dõi). MERGEABLE;
+  `UNSTABLE` do GitHub Actions đỏ vì tài khoản, không chặn. **Chưa gộp được** -
+  `gh pr merge` bị chính sách phân quyền phiên chặn, y như #37.
+
+Sau khi mở #38, **hàng đợi việc agent làm được đã cạn**: mọi mục còn lại cần MẮT
+NGƯỜI hoặc thao tác/QUYẾT ĐỊNH của chủ dự án (bấm Merge #38, bấm nút hồi sinh,
+sửa billing GitHub, gửi hai gói đẩy ngược, xoay `NEWSROOM_TICK_TOKEN`, rà giao
+diện). Chi tiết: phiếu [`20260820-06`](logs/handover/20260820-06_ket-phien-10.md)
+§6.
+
+Một bẫy đo lường lặp lại họ §0.7: **"việc kế trong hàng đợi" có thể đã đổi trạng
+thái từ ngoài phiên.** Hàng đợi ghi "#37 chưa gộp", nhưng `gh pr view 37` cho
+MERGED - kiểm hiện trạng git/PR TRƯỚC khi bắt tay rẻ hơn nhiều so với rebase nhầm
+lên một base đã lỗi thời.
+
+---
+
+## 0.05 Nhật ký phiên 10 (20/08/2026) - sổ Neuron, Storybook, dọn hai món nợ
 
 Phiên **nhiều luồng nhỏ**, đi hết phần hàng đợi mà agent làm được; chi tiết đầy
 đủ ở phiếu [`20260820-06`](logs/handover/20260820-06_ket-phien-10.md). Bốn cụm:
