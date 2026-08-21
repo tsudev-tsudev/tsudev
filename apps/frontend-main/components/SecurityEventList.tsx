@@ -39,6 +39,10 @@ const LABELS: Record<string, string> = {
   passkey_removed: 'Xoá passkey',
   role_changed: 'Đổi vai trò',
   sessions_revoked: 'Thu hồi mọi phiên',
+  oauth_linked: 'Liên kết đăng nhập bên thứ ba',
+  account_deactivated: 'Vô hiệu hoá tài khoản',
+  account_reactivated: 'Khôi phục tài khoản',
+  account_deletion_scheduled: 'Hẹn xoá tài khoản',
 };
 
 const label = (type: string): string => LABELS[type] ?? type;

@@ -354,9 +354,33 @@ app.post(
     // 2. Chưa liên kết: cần email hợp lệ để tạo tài khoản.
     if (!EMAIL_RE.test(email)) return res.status(409).json({ error: 'oauth_no_email' })
 
-    // 3. Email đã thuộc tài khoản khác (chưa liên kết) ⇒ từ chối, không tự gộp.
-    const emailOwner = await prisma.user.findUnique({ where: { email }, select: { id: true } })
-    if (emailOwner) return res.status(409).json({ error: 'email_taken' })
+    // 3. Email đã thuộc một tài khoản sẵn có.
+    const emailOwner = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, username: true, email: true, role: true, sessionVersion: true },
+    })
+    if (emailOwner) {
+      // Bên thứ ba ĐÃ XÁC MINH người này kiểm soát hộp thư ⇒ TỰ LIÊN KẾT provider
+      // mới vào tài khoản sẵn có. An toàn ngang đường đặt-lại-mật-khẩu (cũng chỉ
+      // cần kiểm soát hộp thư), và là thứ khiến MỘT người dùng được cả Google lẫn
+      // GitHub cùng một email. Đây KHÔNG vi phạm "email không phải KHOÁ": khoá tra
+      // cứu vẫn là (provider, providerAccountId); email chỉ dùng để nhận ra chủ ở
+      // lần liên kết đầu, và chỉ khi đã xác minh.
+      //
+      // CHƯA xác minh ⇒ vẫn từ chối: một tài khoản bên thứ ba khai email của người
+      // khác mà chưa chứng minh kiểm soát nó là đúng đường chiếm tài khoản.
+      if (!emailVerified) return res.status(409).json({ error: 'email_taken' })
+      try {
+        await prisma.oAuthAccount.create({
+          data: { provider, providerAccountId, userId: emailOwner.id },
+        })
+      } catch (e) {
+        // Đua: một request khác vừa liên kết đúng cặp này. Coi như đã liên kết.
+        if ((e as { code?: string })?.code !== 'P2002') throw e
+      }
+      logSecurity(emailOwner.id, 'oauth_linked', req, { note: provider })
+      return res.json(oauthPublicUser(emailOwner))
+    }
 
     // 4. Tạo user + bản ghi liên kết trong một thao tác. Email của Google/GitHub
     //    đã được bên đó xác minh nên đặt emailVerifiedAt luôn nếu emailVerified.

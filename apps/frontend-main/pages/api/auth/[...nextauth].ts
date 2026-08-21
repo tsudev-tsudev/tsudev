@@ -246,13 +246,49 @@ async function upsertOAuthUser(
   }
 }
 
-/** Email của bên thứ ba đã được họ xác minh chưa? Google nói rõ; GitHub luôn trả
- *  primary đã verified. */
-function oauthEmailVerified(provider: string, profile: unknown): boolean {
+/**
+ * Email XÁC MINH của bên thứ ba, cùng cờ verified. Quan trọng vì auth-service tự
+ * liên kết provider mới vào tài khoản sẵn có CHỈ khi email đã xác minh - đoán bừa
+ * "đã xác minh" là mở đường chiếm tài khoản.
+ *
+ *  - Google: `profile.email_verified` nói thẳng.
+ *  - GitHub: hồ sơ /user KHÔNG mang cờ verified; phải hỏi /user/emails bằng
+ *    access token để lấy địa chỉ primary đã verified. Không có địa chỉ verified
+ *    nào ⇒ coi như chưa xác minh.
+ */
+async function resolveOAuthEmail(
+  provider: string,
+  user: { email?: string | null },
+  profile: unknown,
+  accessToken: string | undefined
+): Promise<{ email: string | null; emailVerified: boolean }> {
   if (provider === 'google') {
-    return (profile as { email_verified?: boolean } | undefined)?.email_verified === true;
+    const verified = (profile as { email_verified?: boolean } | undefined)?.email_verified === true;
+    return { email: user.email ?? null, emailVerified: verified };
   }
-  return provider === 'github';
+  if (provider === 'github' && accessToken) {
+    try {
+      const res = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'tsudev',
+        },
+      });
+      if (res.ok) {
+        const emails = (await res.json()) as Array<{
+          email: string;
+          primary: boolean;
+          verified: boolean;
+        }>;
+        const pick = emails.find((e) => e.primary && e.verified) ?? emails.find((e) => e.verified);
+        if (pick) return { email: pick.email, emailVerified: true };
+      }
+    } catch {
+      /* rơi xuống nhánh chưa xác minh */
+    }
+  }
+  return { email: user.email ?? null, emailVerified: false };
 }
 
 export const authOptions: NextAuthOptions = {
@@ -273,10 +309,16 @@ export const authOptions: NextAuthOptions = {
         return true;
       }
       if (account.provider === 'github' || account.provider === 'google') {
+        const { email, emailVerified } = await resolveOAuthEmail(
+          account.provider,
+          user,
+          profile,
+          account.access_token
+        );
         const linked = await upsertOAuthUser(account.provider, account.providerAccountId, {
-          email: user.email ?? null,
+          email,
           name: user.name ?? null,
-          emailVerified: oauthEmailVerified(account.provider, profile),
+          emailVerified,
         });
         // Từ chối sạch: đẩy về /login với mã lỗi đã có thông điệp tiếng Việt.
         if (!linked) return '/login?error=OAuthAccountNotLinked';
