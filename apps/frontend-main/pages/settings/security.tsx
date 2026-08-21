@@ -35,8 +35,9 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 );
 
 export default function SecurityPage() {
-  const { status } = useSession();
+  const { status, update } = useSession();
   const [msg, setMsg] = useState<{ kind: 'error' | 'ok'; text: string } | null>(null);
+  const [revoking, setRevoking] = useState(false);
 
   // --- 2FA ---
   const [setupUri, setSetupUri] = useState('');
@@ -163,6 +164,28 @@ export default function SecurityPage() {
     refreshEvents();
   };
 
+  const revokeAll = async () => {
+    if (
+      !confirm(
+        'Đăng xuất khỏi mọi thiết bị? Thiết bị này cũng sẽ cần đăng nhập lại ở lần sau; các phiên khác mất hiệu lực ngay.'
+      )
+    )
+      return;
+    setRevoking(true);
+    const { ok } = await post('security/revoke-all');
+    // BẮT BUỘC làm mới phiên hiện tại: revoke-all tăng sessionVersion nên token
+    // của chính tab này cũng thành cũ - không update() thì tab này bị đá ra ngay,
+    // trông như thao tác hỏng. update() đọc lại sessionVersion mới từ DB.
+    if (ok) await update();
+    setRevoking(false);
+    setMsg(
+      ok
+        ? { kind: 'ok', text: 'Đã đăng xuất khỏi mọi thiết bị khác.' }
+        : { kind: 'error', text: 'Không thực hiện được. Hãy thử lại.' }
+    );
+    refreshEvents();
+  };
+
   return (
     <Layout active="/settings">
       <Seo title="Bảo mật" path="/settings/security" noindex />
@@ -281,6 +304,16 @@ export default function SecurityPage() {
                 </div>
               </>
             )}
+          </Section>
+
+          <Section title="Phiên đăng nhập">
+            <p className="text-sm text-fg-muted">
+              Nghi ngờ ai đó còn đăng nhập trên thiết bị của bạn? Đăng xuất khỏi tất cả - các phiên
+              khác mất hiệu lực ngay, thiết bị này vẫn được giữ.
+            </p>
+            <Button variant="secondary" className="mt-4" onClick={revokeAll} disabled={revoking}>
+              {revoking ? 'Đang xử lý…' : 'Đăng xuất khỏi mọi thiết bị'}
+            </Button>
           </Section>
 
           <Section title="Hoạt động gần đây">

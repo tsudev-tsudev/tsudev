@@ -35,6 +35,7 @@ import {
   resetPasswordHtml,
   changeEmailHtml,
   emailChangedNoticeHtml,
+  securityAlertHtml,
 } from './mailer'
 import { INVITE_GRANTS_ROLE, generateInviteCode, hashInviteCode, redeemInvite } from './invite'
 import {
@@ -224,6 +225,9 @@ app.post(
 
     await recordAttempt(ip, true)
     await noteAccountSuccess(user.id)
+    // Kiểm thiết bị lạ TRƯỚC khi ghi sự kiện login này (nếu ghi trước thì chính
+    // IP hiện tại đã "từng thấy" và không cảnh báo lần nào).
+    void alertIfNewDevice(user, req)
     logSecurity(user.id, 'login', req)
     pruneAttempts().catch(() => {
       /* dọn rác hỏng không được làm hỏng đăng nhập */
@@ -562,6 +566,7 @@ app.post(
       prisma.backupCode.deleteMany({ where: { userId: user.id } }),
     ])
     logSecurity(user.id, 'totp_disabled', req)
+    sendAlert(user, 'Xác thực hai bước (2FA) vừa bị tắt')
     return res.json({ ok: true })
   })
 )
@@ -610,6 +615,7 @@ app.post(
     // mạnh hơn TOTP. Bắt thêm một bước nữa chỉ đổi bảo mật lấy phiền phức.
     await recordAttempt(ip, true)
     await noteAccountSuccess(user.id)
+    void alertIfNewDevice(user, req)
     logSecurity(user.id, 'login', req, { note: 'passkey' })
     return res.json({
       id: user.id,
@@ -680,7 +686,10 @@ app.post(
     const gone = await prisma.webAuthnCredential.deleteMany({
       where: { id: str(req.body?.id, 60), userId: user.id },
     })
-    if (gone.count === 1) logSecurity(user.id, 'passkey_removed', req)
+    if (gone.count === 1) {
+      logSecurity(user.id, 'passkey_removed', req)
+      sendAlert(user, 'Một passkey vừa bị gỡ khỏi tài khoản')
+    }
     return res.json({ ok: gone.count === 1 })
   })
 )
@@ -815,6 +824,7 @@ app.post(
       select: { sessionVersion: true },
     })
     logSecurity(user.id, 'password_change', req)
+    sendAlert(user, 'Mật khẩu vừa được đổi')
     return res.json({ ok: true, sessionVersion: saved.sessionVersion })
   })
 )
@@ -1116,6 +1126,52 @@ function logSecurity(
     .catch((e) => console.error('[auth] logSecurity hỏng:', e instanceof Error ? e.message : e))
 }
 
+/**
+ * Gửi thư CẢNH BÁO bảo mật (fire-and-forget). Khác `sendMail` trần: gói sẵn khuôn
+ * "nếu không phải bạn thì làm gì". Dùng cho các sự kiện nhạy cảm mà chủ tài khoản
+ * cần biết ngay cả khi CHÍNH họ vừa làm - vì nếu KHÔNG phải họ thì đây là tín
+ * hiệu duy nhất họ nhận được.
+ */
+function sendAlert(
+  user: { email: string; displayName: string | null; username: string },
+  title: string,
+  context?: string
+): void {
+  sendMail(
+    user.email,
+    `Cảnh báo bảo mật: ${title}`,
+    securityAlertHtml(user.displayName || user.username, title, context)
+  ).catch((e) => console.error('[auth] sendAlert hỏng:', e instanceof Error ? e.message : e))
+}
+
+/**
+ * Đăng nhập từ thiết bị/vị trí LẠ thì gửi cảnh báo. "Lạ" = chưa từng có
+ * SecurityEvent nào của tài khoản mang đúng IP này. Fire-and-forget, và fail-safe:
+ * không có IP thì bỏ qua (không đoán bừa), lỗi truy vấn không chặn đăng nhập.
+ */
+async function alertIfNewDevice(
+  user: { id: string; email: string; displayName: string | null; username: string },
+  req: Request
+): Promise<void> {
+  try {
+    const ip = callerIp(req.headers as Record<string, unknown>, req.ip || '')
+    if (!ip) return
+    const seen = await prisma.securityEvent.findFirst({
+      where: { userId: user.id, ip },
+      select: { id: true },
+    })
+    if (seen) return
+    const ua = str(req.get('user-agent') || '', 200)
+    sendAlert(
+      user,
+      'Có đăng nhập mới từ thiết bị hoặc vị trí chưa từng thấy',
+      `IP: ${ip}${ua ? ` · ${ua}` : ''}`
+    )
+  } catch (e) {
+    console.error('[auth] alertIfNewDevice hỏng:', e instanceof Error ? e.message : e)
+  }
+}
+
 /** Hình dạng sự kiện bảo mật trả ra ngoài. IP/UA chỉ chủ tài khoản và OWNER đọc. */
 const publicSecurityEvent = (e: {
   id: string
@@ -1147,6 +1203,23 @@ const SECURITY_EVENT_SELECT = {
   note: true,
   createdAt: true,
 } as const
+
+/** Chính chủ: đăng xuất khỏi MỌI thiết bị. Tăng sessionVersion - mọi token đã
+ *  phát (kể cả phiên đang gọi) mất hiệu lực. Client phải làm mới phiên sau đó. */
+app.post(
+  '/api/identity/security/revoke-all',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    const saved = await prisma.user.update({
+      where: { id: user.id },
+      data: { sessionVersion: { increment: 1 } },
+      select: { sessionVersion: true },
+    })
+    logSecurity(user.id, 'sessions_revoked', req)
+    return res.json({ ok: true, sessionVersion: saved.sessionVersion })
+  })
+)
 
 /** Chính chủ: nhật ký bảo mật của mình (mới nhất trước). */
 app.post(
@@ -1301,7 +1374,7 @@ app.post(
 
     const target = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, username: true },
+      select: { id: true, role: true, username: true, email: true, displayName: true },
     })
     if (!target) return res.status(404).json({ error: 'not_found' })
     if (target.id === actor.id) return res.status(400).json({ error: 'cannot_change_self' })
@@ -1310,6 +1383,7 @@ app.post(
     const user = await prisma.user.update({ where: { id }, data: { role }, select: USER_SELECT })
     await auditUser(actor, 'user.role', id, target.username, `${target.role} -> ${role}`)
     logSecurity(id, 'role_changed', req, { actor, note: `${target.role} → ${role}` })
+    sendAlert(target, 'Vai trò tài khoản vừa được thay đổi', `${target.role} → ${role}`)
     return res.json(publicUser(user))
   })
 )

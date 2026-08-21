@@ -27,6 +27,7 @@ const ALLOWED = new Set([
   // Nhật ký bảo mật: của chính mình, và console OWNER xuyên tài khoản
   // (useradmin/security tự kiểm OWNER ở auth-service).
   'security/events',
+  'security/revoke-all',
   'useradmin/security',
   'totp/setup',
   'totp/confirm',
