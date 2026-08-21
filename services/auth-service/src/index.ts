@@ -15,6 +15,7 @@ import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'exp
 
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
+import { hasAtLeastRole } from '@tsudev/types'
 import { createHash } from 'crypto'
 
 import { checkPasswordPolicy, hashPassword, verifyPassword, burnTiming } from './password'
@@ -707,7 +708,8 @@ app.post(
 // ---------------------------------------------------------------------------
 app.use('/api/identity/invite', auth)
 
-/** Chỉ ADMIN mới cấp/liệt kê/thu hồi được mã. Đổi mã thì ai đăng nhập cũng được. */
+/** ADMIN trở lên (gồm OWNER) mới cấp/liệt kê/thu hồi được mã. Đổi mã thì ai đăng
+ *  nhập cũng được. */
 const requireAdmin = async (req: Request, res: Response) => {
   const user = await lookupUser(req)
   if (!user) {
@@ -716,7 +718,10 @@ const requireAdmin = async (req: Request, res: Response) => {
   }
   // Đọc vai trò từ DB, không từ claim. Claim `role` trong khẳng định danh tính
   // CHỈ ĐỂ THAM KHẢO - xem gotcha REQUIRE_ROLE_ENFORCEMENT ở CLAUDE.md.
-  if (user.role !== 'ADMIN') {
+  // Theo THỨ BẬC, không so bằng đúng: OWNER (trên ADMIN) phải kế thừa mọi quyền
+  // ADMIN. So `=== 'ADMIN'` sẽ khoá OWNER khỏi chính công cụ admin - đúng lỗi đã
+  // xảy ra khi nâng tsudev lên OWNER.
+  if (!hasAtLeastRole(user.role, 'ADMIN')) {
     res.status(403).json({ error: 'forbidden' })
     return null
   }

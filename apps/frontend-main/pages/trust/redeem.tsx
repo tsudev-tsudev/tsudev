@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { hasAtLeastRole } from '@tsudev/types';
 import { Button, Input, Layout } from '@tsudev/ui';
 
 import Seo from '../../components/Seo';
@@ -90,7 +91,7 @@ export default function RedeemInvitePage() {
   };
 
   const role = (session?.user as { role?: string } | undefined)?.role;
-  const alreadyIn = role === 'VIP' || role === 'MODERATOR' || role === 'ADMIN';
+  const alreadyIn = hasAtLeastRole(role, 'VIP');
 
   return (
     <Layout active="/trust">

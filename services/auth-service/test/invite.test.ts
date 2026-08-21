@@ -26,7 +26,8 @@ const ADMIN = 'test-invite-admin'
 const MEMBER = 'test-invite-member'
 const OTHER = 'test-invite-other'
 const BOSS = 'test-invite-boss'
-const USERS = [ADMIN, MEMBER, OTHER, BOSS]
+const OWNER = 'test-invite-owner'
+const USERS = [ADMIN, MEMBER, OTHER, BOSS, OWNER]
 
 const IP = '203.0.113.77'
 
@@ -72,6 +73,7 @@ beforeEach(async () => {
         [MEMBER, 'MEMBER'],
         [OTHER, 'MEMBER'],
         [BOSS, 'ADMIN'],
+        [OWNER, 'OWNER'],
       ] as const
     ).map(([username, role]) =>
       prisma.user.create({
@@ -224,6 +226,14 @@ describe('quản lý mã mời', () => {
     expect(list.body[0].codeHash).toBeUndefined()
     expect(list.body[0].label).toBe('Mã test đối tác')
     expect(list.body[0].grantsRole).toBe('VIP')
+  }, 20000)
+
+  // Regression: OWNER (bậc TRÊN ADMIN) phải kế thừa quyền admin. requireAdmin
+  // từng so `=== 'ADMIN'` bằng đúng nên nâng tsudev lên OWNER là khoá luôn công
+  // cụ mã mời của chính chủ dự án.
+  test('OWNER (trên ADMIN) cũng cấp và liệt kê được mã', async () => {
+    expect((await post('create', OWNER, { label: 'Mã test owner' })).status).toBe(200)
+    expect((await post('list', OWNER)).status).toBe(200)
   }, 20000)
 
   test('MEMBER không cấp, không liệt kê, không thu hồi được', async () => {

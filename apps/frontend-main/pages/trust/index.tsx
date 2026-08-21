@@ -10,6 +10,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
+import { hasAtLeastRole } from '@tsudev/types';
 import Seo from '../../components/Seo';
 import { Layout, Button, Card, SectionHeading } from '@tsudev/ui';
 import { trust } from '../../lib/trust';
@@ -80,7 +81,7 @@ function InviteWall({ anonymous }: { anonymous: boolean }) {
   }, [anonymous, update]);
 
   useEffect(() => {
-    if (refreshed.current && (role === 'VIP' || role === 'MODERATOR' || role === 'ADMIN')) {
+    if (refreshed.current && hasAtLeastRole(role, 'VIP')) {
       router.replace(router.asPath);
     }
   }, [role, router]);
