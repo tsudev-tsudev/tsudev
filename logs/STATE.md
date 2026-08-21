@@ -1,9 +1,9 @@
 # STATE.md — Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 13 bắt đầu ở đây**: đọc
-> [`logs/handover/20260821-02`](handover/20260821-02_ket-phien-12.md) — phiếu vào
+> **Phiên 14 bắt đầu ở đây**: đọc
+> [`logs/handover/20260821-03`](handover/20260821-03_ket-phien-13.md) — phiếu vào
 > cửa mới nhất. Hàng đợi việc agent làm được **đã cạn**; mọi mục còn lại cần MẮT
-> NGƯỜI hoặc thao tác/QUYẾT ĐỊNH của chủ dự án.
+> NGƯỜI, chờ nhịp cron, hoặc QUYẾT ĐỊNH của chủ dự án.
 
 ## Hàng đợi task (làm từ trên xuống)
 
@@ -11,20 +11,22 @@
       (21/08). Nghiệm thu `npm run newsroom:check`: AgentRun **220 → 224** (+4 lượt).
       Toà soạn chạy thật.
 
-- [ ] **🔴 GitHub Actions không chạy được — vấn đề TÀI KHOẢN, không phải mã.**
-      Cả 5 job của PR #36 đỏ trong 2 giây: _"recent account payments have failed
-      or your spending limit needs to be increased"_. Không job nào chạy một dòng
-      nào. Repo private + GitHub Free = 2.000 phút/tháng (`docs/free-tier.md`).
-      Kiểm _Settings → Billing & plans_. Tới khi sửa xong thì **cổng kiểm duy
-      nhất là chạy tay ở local** — danh sách lệnh ở phiếu 20260820-04 §5.
+- [x] **🔴 GitHub Actions không chạy được — ĐÃ KHẮC PHỤC 21/08 (phiên 13).**
+      Nguyên nhân: repo Private + GitHub Free 2.000 phút/tháng, tài khoản vướng
+      thanh toán ⇒ mọi job fail 4s (không chạy dòng nào). **Cách sửa: chuyển repo
+      `tsudev` sang PUBLIC** (Actions miễn phí không giới hạn phút cho repo công
+      khai). Nghiệm thu: chạy lại run `32473196835` → 5/5 job **success** (Lint ·
+      E2E smoke · Build frontends · Migrate & test · WASM). Trước khi Public đã
+      quét secret cả tree lẫn 164 commit history: sạch (chi tiết phiếu phiên 13).
 
 - [x] **🔴 GỘP PR #37** — ✅ chủ dự án đã MERGED (`a8cfde9`, 20/08). Render tự dựng lại backend.
 - [x] **🟠 GỘP PR #38** — ✅ chủ dự án đã MERGED (`a8248a4`, 21/08). Local về
       `main`, nhánh đã xóa.
-- [ ] **🟠 Gửi hai gói đẩy ngược lên repo quy ước trung tâm** —
-      `docs/token-upstream-proposal.md` (hai mã màu không đạt WCAG, số đo đầy đủ)
-      và `docs/structure-upstream-proposal.md` (thêm hình trạng monorepo). Cả hai
-      dán thẳng vào issue được, không phải đo/soạn lại.
+- [x] **🟠 Gửi hai gói đẩy ngược lên repo quy ước trung tâm** — ✅ 21/08 (phiên 13).
+      Repo `tsudev-tsudev/tsudev-standards` đã tạo + bootstrap (10 file, `91038af`);
+      hai gói mở thành Issue: [#1](https://github.com/tsudev-tsudev/tsudev-standards/issues/1)
+      (token WCAG) · [#2](https://github.com/tsudev-tsudev/tsudev-standards/issues/2)
+      (cấu trúc monorepo). Chờ QUYẾT ĐỊNH ở repo trung tâm.
 - [x] **🟠 Xoay `NEWSROOM_TICK_TOKEN`** — ✅ HOÀN THÀNH 21/08 (phiên 12). Token cũ
       `mB50…` (lộ scrollback phiên 9) đã vô hiệu. Đổi đồng thời cả ba chỗ (Render
       `tsudev-backend`, Worker `tsudev-newsroom-cron`, backup). Nghiệm thu: curl
@@ -42,6 +44,15 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Repo chuyển PUBLIC → CI hồi sinh** (phiên 13). Chủ dự án chạy
+  `gh repo edit … --visibility public`; nghiệm thu `visibility=PUBLIC`. Chạy lại
+  run `32473196835` → **5/5 job xanh** (billing-block đã thông vì repo công khai
+  được Actions miễn phí không giới hạn). Trước khi Public: quét secret tree +
+  164 commit history = sạch (chỉ mẫu/placeholder/fixture; `mB50…` là tiền tố
+  token đã xoay). **Đã tạo repo quy ước trung tâm** `tsudev-tsudev/tsudev-standards`
+  (Private — không chạy workflow nên 0 phút Actions, không chạm giới hạn).
+  Bootstrap 10 file (`91038af`): AGENTS.md Phần A · DESIGN_SYSTEM · PROJECT_STRUCTURE
+  · template HANDOVER · tokens.css + khối token dùng chung · hai proposal → Issue #1/#2.
 - 21/08/2026 — **Gộp PR #38 + hồi sinh toà soạn** (phiên 12). Chủ dự án MERGED #38
   (`a8248a4`); local về `main`, xóa nhánh. Chủ dự án bấm "Hồi sinh việc đã dừng";
   `newsroom:check` xác nhận AgentRun **220 → 224** (+4). Soạn quy trình xoay
@@ -164,16 +175,17 @@
 
 ## Phiếu bàn giao
 
-| Mã                                                                  | Chủ đề                                      | Trạng thái |
-| ------------------------------------------------------------------- | ------------------------------------------- | ---------- |
-| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 — gộp #38, hồi sinh toà soạn   | **MỞ**     |
-| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 — gộp #37, mở PR #38           | HOÀN THÀNH |
-| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ | HOÀN THÀNH |
-| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production             | HOÀN THÀNH |
-| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành               | HOÀN THÀNH |
-| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM             | HOÀN THÀNH |
-| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện              | HOÀN THÀNH |
-| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0  | HOÀN THÀNH |
+| Mã                                                                  | Chủ đề                                       | Trạng thái |
+| ------------------------------------------------------------------- | -------------------------------------------- | ---------- |
+| [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 — repo Public, CI, repo quy ước | **MỞ**     |
+| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 — gộp #38, hồi sinh toà soạn    | HOÀN THÀNH |
+| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 — gộp #37, mở PR #38            | HOÀN THÀNH |
+| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ  | HOÀN THÀNH |
+| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production              | HOÀN THÀNH |
+| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành                | HOÀN THÀNH |
+| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM              | HOÀN THÀNH |
+| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện               | HOÀN THÀNH |
+| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0   | HOÀN THÀNH |
 
 ## Ghi chú vận hành
 
