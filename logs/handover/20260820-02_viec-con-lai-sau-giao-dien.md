@@ -47,8 +47,8 @@ Bảng màu chuẩn v1.0.0 **không đạt chính quy tắc §1 của nó**, đo
 
 | Token           | Đo được       | Ngưỡng              |
 | --------------- | ------------- | ------------------- |
-| `text-muted`    | 3.69 – 4.58:1 | 4.5:1 (§1, WCAG AA) |
-| `border-strong` | 1.65 – 2.49:1 | 3:1 (WCAG 1.4.11)   |
+| `text-muted`    | 3.69 - 4.58:1 | 4.5:1 (§1, WCAG AA) |
+| `border-strong` | 1.65 - 2.49:1 | 3:1 (WCAG 1.4.11)   |
 
 `text-muted` là token bị dùng nhiều nhất trong app (~200 chỗ). Khối `color` bất
 khả xâm phạm nên tsudev-web vá cục bộ trong `extensions.tsudev-web`: ghi đè

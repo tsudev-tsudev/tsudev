@@ -69,7 +69,9 @@
       bật/tắt 2FA, thêm/xoá passkey; 2 endpoint đọc: own + OWNER) → frontend
       (/settings/security mục "Hoạt động gần đây" + trang /admin/security + proxy)
       → qa-test. Prune 90 ngày.
-- [ ] **🟡 Nghiệm thu RBAC bằng MẮT NGƯỜI trên prod** - tsudev (OWNER) tạo tài
+- [x] **🟡 Nghiệm thu RBAC bằng MẮT NGƯỜI trên prod** - ✅ chủ dự án xác nhận hoàn
+      thiện (22/08, phiên 16). Chi tiết ma trận bên dưới giữ để tham chiếu.
+      tsudev (OWNER) tạo tài
       khoản thử từng vai trò qua `/admin/accounts` (mật khẩu tự đặt, xoá sau),
       đối chiếu ma trận: OWNER=mọi thứ · ADMIN=admin nhưng KHÔNG accounts ·
       MODERATOR/AUTHOR/VIP=Con dấu, không admin · MEMBER=không gì. **KHÔNG** bơm
@@ -84,9 +86,9 @@
       `needsAuthor` = `hasAtLeastRole(role,'AUTHOR')`, ẩn với người chưa đủ quyền - giấu link, KHÔNG phải cổng; hiện cả nav desktop lẫn di động) - HOÀN THÀNH
       21/08 (phiên 15), **PR #45 merged** (`12c67a6`); **(b)** phát hành prod
       (deploy) - CHƯA; **(c)** e2e tuỳ chọn.
-- [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** - phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa". Nay đã có công
-      cụ: `npm --workspace packages/ui run storybook`, nút **Giao diện** đổi ba
-      chế độ ngay trên thanh công cụ.
+- [x] **🟡 Rà giao diện bằng MẮT NGƯỜI** - ✅ chủ dự án xác nhận hoàn thiện (22/08,
+      phiên 16). Công cụ: `npm --workspace packages/ui run storybook`, nút **Giao
+      diện** đổi ba chế độ trên thanh công cụ.
 
 ## Đang thực hiện
 
@@ -96,6 +98,34 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 - **G - ÉP CSP THẬT (hết Report-Only)** (phiên 16, vùng frontend-web).
+  Chủ dự án cho phép khởi động. **Dùng BĂM SHA-256 của THEME_SCRIPT, KHÔNG dùng
+  nonce** - xem Quyết định bên dưới vì sao đổi hướng giữa chừng. `next.config.js`:
+  `themeScriptHash()` đọc THEME_SCRIPT từ `_document.tsx` (một nguồn, không
+  hardcode) → `Content-Security-Policy` ép thật `script-src 'self' 'sha256-…'`
+  (bỏ `'unsafe-inline'`), CHỈ ở production (dev bỏ qua để HMR sống - `headers()`
+  hoá tĩnh lúc build nên NODE_ENV tự tách). Giữ `style-src 'unsafe-inline'`
+  (Next/Tailwind) + `connect-src https:` (presign R2). middleware.ts và
+  \_document.tsx GIỮ NGUYÊN (đã thử nonce rồi revert). Test `csp.test.ts` (4): gọi
+  thẳng `next.config.headers()`, đối chứng băm độc lập, canh dev-không-CSP.
+  **Nghiệm thu RUNTIME** (`next build && next start`): trang tĩnh (/signup) lẫn
+  động (/blog,/login,/trust) đều enforcing + băm khớp header + 0 nonce + 0
+  unsafe-inline + đúng 1 inline script (THEME_SCRIPT, khớp băm); HTML không có
+  script cross-origin / inline handler / `javascript:` → không vi phạm nào. Cổng
+  chung sạch; frontend-main jest **36**. CHƯA phát hành (chờ deploy Cloudflare).
+- 22/08/2026 - **Nghiệm thu RBAC + rà giao diện Storybook** - ✅ chủ dự án xác nhận
+  hoàn thiện (phiên 16). Gộp PR #3 `tsudev-standards` cũng đã MERGED.
+- 22/08/2026 - **Thống nhất en-dash `–` → hyphen `-`** (phiên 16). Chủ dự án quyết
+  thống nhất luôn. Chuyển en-dash (U+2013) trên **16 file** (hầu hết khoảng số:
+  `đợt 1-5`, `:4001-:4005`, `3-32 ký tự`, `14-15px`, `4000-4003`). **GIỮ 4 chỗ cố
+  ý** (trích ký tự `–` để dạy luật): `AGENTS.md:74`, `CLAUDE.md:168`,
+  `STATE.md:113`, `handover/20260822-01:59`. **AGENTS.md chỉ sửa dòng 212 (Phần
+  B, khoảng số), giữ dòng 74 Phần A.** `docs/DESIGN_SYSTEM.md` KHÔNG đụng - BẤT
+  KHẢ XÂM PHẠM (repo trung tâm); 4 en-dash typography còn lại ở đó (`400-480px`,
+  `14-15px`…) là việc của repo `tsudev-standards` (đưa vào PR #3 nếu chủ dự án
+  muốn). Nghiệm thu: typecheck·lint·format(file đã sửa)·tokens·topology sạch.
+  Migration không đụng (bất biến). CHƯA phát hành prod (thay đổi text/comment,
+  không đổi hành vi runtime).
 - 22/08/2026 - **PHÁT HÀNH: gạch ngang (#52) + OAuth link-fix (#51) LIVE** (phiên
   15). Deploy frontend Cloudflare (Version `ea433300`) từ `main` sau khi gộp #52;
   backend Render tự dựng từ #51/#52. **Deploy SẠCH, không còn config-drift** vì 4
@@ -142,8 +172,8 @@ profile`); client_id nạp đúng, secret KHÔNG lộ trong URL/providers. Còn 
     `GITHUB_CLIENT_ID/SECRET` + `GOOGLE_CLIENT_ID/SECRET` làm **Worker secret**
     (Cloudflare, KHÔNG phải Render - NextAuth chạy ở Worker) rồi deploy frontend.
     Redirect URI: `https://tsudev.com/api/auth/callback/{github,google}`.
-- 22/08/2026 - **PHÁT HÀNH prod toàn bộ kiến trúc tài khoản (đợt 1–5)** (phiên 15).
-  Chủ dự án chạy `prisma migrate deploy` trên Neon (migration đợt 1–5) + đặt
+- 22/08/2026 - **PHÁT HÀNH prod toàn bộ kiến trúc tài khoản (đợt 1-5)** (phiên 15).
+  Chủ dự án chạy `prisma migrate deploy` trên Neon (migration đợt 1-5) + đặt
   `RESEND_API_KEY` trên Render. Frontend deploy Cloudflare qua
   `scripts/deploy-frontend.js` (Version `e2f67e96`, `.env.local` được dời khỏi
   build); backend Render tự dựng lại từ merge #46/#47. **Nghiệm thu đo HÀNH VI**:
@@ -152,7 +182,7 @@ profile`); client_id nạp đúng, secret KHÔNG lộ trong URL/providers. Còn 
   (đợt2)→401 · security/revoke-all (đợt3)→401 · account/deactivate+delete (đợt4)→401
   · trang /confirm-email-change render 200 có nội dung. Tất cả 5 đợt LIVE. CÒN LẠI:
   E (OAuth) + G (nonce CSP) chờ chủ dự án; nghiệm thu RBAC/giao diện bằng mắt người.
-- 22/08/2026 - **Củng cố tài khoản (đợt 3–5 kiến trúc tài khoản)** (phiên 15,
+- 22/08/2026 - **Củng cố tài khoản (đợt 3-5 kiến trúc tài khoản)** (phiên 15,
   nhánh `feat/account-hardening`). E (OAuth) BỎ QUA đợt này (cần chủ dự án tạo
   OAuth app + secret); G (ép CSP) GIỮ Report-Only theo quyết định - chỉ rà soát.
   - **Đợt 3 (B+C, `cbfa254`)**: `POST security/revoke-all` tự đăng xuất mọi thiết
@@ -342,6 +372,18 @@ https:` rộng nhưng cần cho presign R2. Không flip - cần một đợt non
 
 ## Quyết định quan trọng
 
+- 22/08/2026 - **CSP ép cho Pages Router prerender TĨNH phải dùng BĂM, không nonce.**
+  Hướng đầu (nonce qua middleware) chạy đúng trên trang ĐỘNG nhưng vỡ trên trang
+  TĨNH: HTML tĩnh sinh lúc build không mang được nonce của lượt tải, nên CSP ép
+  chặn luôn THEME_SCRIPT ở đó (đo được: trang tĩnh 0/11 script có nonce). Thêm nữa
+  `NextScript` của Next đọc nonce từ `this.props.nonce` mà `_document` render
+  `<NextScript/>` không truyền, nên ngay cả trang động cũng chỉ 1 script có nonce.
+  Băm SHA-256 cố định theo NỘI DUNG, đúng trên cả tĩnh lẫn động - hợp vì site chỉ
+  có ĐÚNG MỘT inline script thực thi (THEME_SCRIPT); mọi thứ khác là `<script src>`
+  cùng origin (`'self'`). Băm tính TỪ NGUỒN `_document.tsx` (không hardcode) để
+  không trôi lệch. Quy tắc: nonce + prerender tĩnh là xung khắc; đo trang tĩnh
+  TRƯỚC khi chọn nonce. Bài học kiểu "mã 200 vẫn trang trắng" - header có, chỉ
+  script bị chặn.
 - 22/08/2026 - **Secret OAuth (và mọi secret của Worker) là ENCRYPTED SECRET,
   KHÔNG phải `vars` plaintext.** Đặt CLIENT_SECRET làm biến `vars` (qua dashboard
   hay wrangler.jsonc) có HAI cái hỏng: (1) giá trị hiện plaintext ở dashboard/CLI

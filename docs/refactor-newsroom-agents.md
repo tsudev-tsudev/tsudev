@@ -361,7 +361,7 @@ REJECTED_WITH_FEEDBACK          autonomy == FULL_AUTO ?
 
 ### Claim event: đây là chỗ dễ sai nhất
 
-Tick có thể chồng lên tick trước (LLM chạy 30–60s, cron 5 phút, nhưng restart
+Tick có thể chồng lên tick trước (LLM chạy 30-60s, cron 5 phút, nhưng restart
 hoặc gọi tay thì chồng). Claim phải nguyên tử:
 
 ```sql
@@ -540,7 +540,7 @@ vào, 204.805 Neuron/1M token ra):
 | **Tổng/bài**                                 | **≈ 1.980 Neuron** |
 
 Với `dailyPostCap = 2` cho `/blog` và ít hơn cho ba chuyên mục còn lại, mức tiêu
-thụ ~4.000–6.000 Neuron/ngày - nằm trong hạn mức, còn biên cho vòng sửa lại.
+thụ ~4.000-6.000 Neuron/ngày - nằm trong hạn mức, còn biên cho vòng sửa lại.
 
 Ba cái van bắt buộc, cài ngay từ đợt 2 chứ không để sau:
 

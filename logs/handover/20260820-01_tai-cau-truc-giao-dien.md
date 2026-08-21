@@ -104,8 +104,8 @@ Không có.
 
 | Token           | Đo được       | Ngưỡng              |
 | --------------- | ------------- | ------------------- |
-| `text-muted`    | 3.69 – 4.58:1 | 4.5:1 (§1, WCAG AA) |
-| `border-strong` | 1.65 – 2.49:1 | 3:1 (WCAG 1.4.11)   |
+| `text-muted`    | 3.69 - 4.58:1 | 4.5:1 (§1, WCAG AA) |
+| `border-strong` | 1.65 - 2.49:1 | 3:1 (WCAG 1.4.11)   |
 
 `text-muted` là token bị dùng nhiều nhất trong app (~200 chỗ). Khối `color` bất
 khả xâm phạm nên không sửa được tại chỗ; tsudev-web **ghi đè `text-muted`** và

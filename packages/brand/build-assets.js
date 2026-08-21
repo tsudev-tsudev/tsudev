@@ -39,7 +39,7 @@ const AVATAR_VARIANTS = [
 // Tông xanh gốc của thương hiệu; các biến thể lệch hue so với mốc này.
 const BASE_HUE = 213;
 
-// Hai mức chi tiết cho quả cầu lưới. Ở 32–40px, 3 kinh + 5 vĩ bị rối nét, nên
+// Hai mức chi tiết cho quả cầu lưới. Ở 32-40px, 3 kinh + 5 vĩ bị rối nét, nên
 // bản `sm` rút còn 2 kinh + 3 vĩ và tăng bề dày nét tương đối để vẫn rõ.
 // `Avatar.jsx` chọn bộ nào theo prop `size` (ngưỡng AVATAR_SMALL_MAX).
 const DETAIL = {

@@ -6,7 +6,7 @@ import React from 'react';
 const VARIANT_COUNT = 6;
 
 // Từ ngưỡng này trở xuống dùng bản rút gọn (2 kinh + 3 vĩ, nét dày hơn): ở
-// 32–40px bản đầy đủ 3 kinh + 5 vĩ bị rối nét. Bản rút gọn cũng nhẹ hơn ~60%.
+// 32-40px bản đầy đủ 3 kinh + 5 vĩ bị rối nét. Bản rút gọn cũng nhẹ hơn ~60%.
 const SMALL_MAX = 48;
 
 function defaultAvatarFor(name: string, size: number): string {

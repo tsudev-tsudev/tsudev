@@ -27,7 +27,7 @@ WASM mà phiên 8 chưa đo:
 | **e2e** `--workers=1`                       | **20/20** (1.7m)                                          |
 
 Hai bẫy vận hành của phiếu trước đều được kiểm chứ không tin suông: cổng
-3000/4001–4005/8080 **trống** trước khi dựng stack (không có tiến trình mồ côi),
+3000/4001-4005/8080 **trống** trước khi dựng stack (không có tiến trình mồ côi),
 và e2e chạy **tuần tự**. DB dev được seed lại ngay trước khi chạy e2e.
 
 ### B. Chuỗi phát hành - bước 1 và 2 xong

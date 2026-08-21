@@ -18,7 +18,7 @@ const MIN_PASSWORD_LEN = 12;
 
 const ERROR_TEXT: Record<string, string> = {
   invalid_username:
-    'Tên đăng nhập chỉ gồm chữ thường, số, dấu chấm, gạch ngang, gạch dưới; dài 3–32 ký tự và không bắt đầu/kết thúc bằng dấu.',
+    'Tên đăng nhập chỉ gồm chữ thường, số, dấu chấm, gạch ngang, gạch dưới; dài 3-32 ký tự và không bắt đầu/kết thúc bằng dấu.',
   invalid_email: 'Địa chỉ email không hợp lệ.',
   weak_password: `Mật khẩu phải dài ít nhất ${MIN_PASSWORD_LEN} ký tự và không nằm trong danh sách mật khẩu phổ biến.`,
   username_taken: 'Tên đăng nhập này đã có người dùng.',

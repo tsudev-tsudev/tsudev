@@ -41,7 +41,7 @@ trình duyệt
 Next.js: getServerSideProps  •  hoặc  API route (pages/api/<domain>/[...path].js)
    │  chuyển tiếp kèm token, thêm header nội bộ
    ▼
-service Express  (:4001–:4003)
+service Express  (:4001-:4003)
    │  jose kiểm khẳng định danh tính do BFF ký (@tsudev/identity-token)
    ▼
 Prisma → PostgreSQL      ·      S3/R2 (chỉ storage-service)

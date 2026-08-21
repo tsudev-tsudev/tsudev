@@ -62,7 +62,7 @@ file dưới 11 kB, và đổi màu chính xác theo từng biến thể thay v�
 `packages/ui/src/components/Avatar.jsx` gán biến thể theo hàm băm FNV-1a của tên
 đăng nhập: ổn định theo từng tài khoản nhưng phân bố đều.
 
-**Hai mức chi tiết.** Ở 32–40px - cỡ chiếm gần hết số lần dùng - bản đầy đủ
+**Hai mức chi tiết.** Ở 32-40px - cỡ chiếm gần hết số lần dùng - bản đầy đủ
 3 kinh + 5 vĩ bị rối nét. Bộ `avatars/sm/` rút còn 2 kinh + 3 vĩ, ít nút hơn và
 tăng bề dày nét tương đối (`strokeScale`) để vẫn rõ khi thu nhỏ; file nhẹ hơn
 khoảng 60%. `Avatar.jsx` tự chọn bộ theo prop `size`, ngưỡng 48px (`SMALL_MAX`).

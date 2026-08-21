@@ -13,7 +13,7 @@
 
 Ngoài hai dòng đó, **không có địa chỉ thứ ba nào được gõ tay**. Cụ thể:
 
-- `localhost:3000` (cổng nội bộ của Next), `:4001`–`:4005` (service backend),
+- `localhost:3000` (cổng nội bộ của Next), `:4001`-`:4005` (service backend),
   `:5433` (Postgres), `:9000` (MinIO) là **chi tiết cài đặt**. Chúng tồn tại,
   nhưng không ai - kể cả người phát triển - cần gõ chúng để dùng site.
 - Trình duyệt không bao giờ gọi thẳng cổng service. Mọi lời gọi đi qua route
