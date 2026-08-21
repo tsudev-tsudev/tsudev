@@ -57,15 +57,33 @@ test('không email ⇒ 409 oauth_no_email', async () => {
   expect(res.body.error).toBe('oauth_no_email')
 })
 
-test('email đã thuộc user khác ⇒ 409 email_taken', async () => {
+test('email đã thuộc user khác + CHƯA xác minh ⇒ 409 email_taken', async () => {
   const res = await upsert({
     provider: 'google',
-    providerAccountId: `${GOO_ID}-collision`,
+    providerAccountId: `${GOO_ID}-unverified`,
     email: EXISTING_EMAIL,
-    emailVerified: true,
+    emailVerified: false,
   })
   expect(res.status).toBe(409)
   expect(res.body.error).toBe('email_taken')
+})
+
+test('email đã thuộc user + ĐÃ xác minh ⇒ TỰ LIÊN KẾT vào user đó (không tạo mới)', async () => {
+  const owner = await prisma.user.findUnique({ where: { email: EXISTING_EMAIL } })
+  const res = await upsert({
+    provider: 'google',
+    providerAccountId: `${GOO_ID}-link`,
+    email: EXISTING_EMAIL,
+    emailVerified: true,
+  })
+  expect(res.status).toBe(200)
+  expect(res.body.id).toBe(owner.id) // đúng user sẵn có, không phải user mới
+  const link = await prisma.oAuthAccount.findUnique({
+    where: {
+      provider_providerAccountId: { provider: 'google', providerAccountId: `${GOO_ID}-link` },
+    },
+  })
+  expect(link.userId).toBe(owner.id)
 })
 
 test('tài khoản mới ⇒ tạo MEMBER, email verified, username sinh ra', async () => {
