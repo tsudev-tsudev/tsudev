@@ -98,6 +98,21 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 - **Sửa CSP runtime: chặn inline script trên /admin,/login** (phiên 16).
+  Chủ dự án soi DevTools prod thấy CSP chặn inline script ở /admin,/login. **ĐO**:
+  mỗi trang prod có script inline #2 `window.__CF$cv$params...` (nạp
+  `/cdn-cgi/challenge-platform/scripts/jsd/main.js`) - **Cloudflare Bot Fight Mode
+  "JavaScript Detections"** chèn ở TẦNG EDGE, tham số đổi mỗi request nên **hash
+  không phủ được** (không có trên local/`next start` - chỉ hiện prod). **Fix: CSP
+  băm + NONCE**, chuyển về `middleware.ts` (nonce per-request). Băm phủ THEME_SCRIPT
+  (chạy cả trang tĩnh); nonce phủ JSD (CF tự đọc nonce từ CSP response header và gắn
+  - xác nhận qua tài liệu CF). KHÔNG luồn nonce vào Next/\_document (script Next là
+    self/external) → né lỗi prerender tĩnh. `next.config.js` bỏ CSP (giữ header tĩnh
+    khác). Test `csp.test.ts` (7): hash khớp nguồn (drift-guard) · nonce đổi mỗi
+    request · beacon · không unsafe-inline · dev không CSP · redirect không CSP.
+    **Nghiệm thu local** (`next build && next start`): /login,/signup (tĩnh),/blog
+    (động) đều `script-src 'self' 'sha256-…' 'nonce-<đổi>' cloudflareinsights`. CHƯA
+    phát hành (đang vào luồng PR→deploy).
 - 22/08/2026 - **PHÁT HÀNH prod: ép CSP (băm) + en-dash - LIVE** (phiên 16). PR #55
   CI 6/6 xanh → merged vào `main` (`b785994`) → deploy Cloudflare qua
   `scripts/deploy-frontend.js` (**Version `e000fe9b`**, `.env.local` được dời khỏi
