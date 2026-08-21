@@ -1,6 +1,11 @@
 // Hằng số và hợp đồng nhẹ dùng chung giữa các service và frontend.
 
-export const ROLES = ['GUEST', 'MEMBER', 'VIP', 'MODERATOR', 'ADMIN'] as const;
+// Thang vai trò TUYẾN TÍNH. AUTHOR nằm TRÊN VIP có chủ đích: khách VIP của Con
+// dấu KHÔNG được đăng bài (hasAtLeastRole(VIP, 'AUTHOR') = false), còn nhân sự
+// đăng bài thì đương nhiên vượt ngưỡng VIP. OWNER là trần tuyệt đối, chỉ tài
+// khoản tsudev giữ, và KHÔNG bao giờ cấp được bằng dữ liệu (xem ASSIGNABLE_ROLES
+// ở auth-service) - đúng nguyên tắc "ai ghi được vào bảng role là tự leo thang".
+export const ROLES = ['GUEST', 'MEMBER', 'VIP', 'AUTHOR', 'MODERATOR', 'ADMIN', 'OWNER'] as const;
 
 /** Vai trò hợp lệ. Là union chứ không phải `string` - xem ghi chú ở hasAtLeastRole. */
 export type Role = (typeof ROLES)[number];
@@ -9,8 +14,10 @@ export const ROLE_RANK: Readonly<Record<Role, number>> = {
   GUEST: 0,
   MEMBER: 1,
   VIP: 2,
-  MODERATOR: 3,
-  ADMIN: 4,
+  AUTHOR: 3,
+  MODERATOR: 4,
+  ADMIN: 5,
+  OWNER: 6,
 };
 
 /** Thu hẹp một giá trị không rõ nguồn (DB, JWT claim) về Role. */

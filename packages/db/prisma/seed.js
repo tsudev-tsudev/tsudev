@@ -6,14 +6,19 @@ const { prisma } = require('../src/index')
 
 async function main() {
   // --- Users ---
+  // tsudev là OWNER - quản trị cao nhất, bậc duy nhất tạo được tài khoản và cấp
+  // vai trò. `update.role` được đặt CÓ CHỦ ĐÍCH (khác các user khác dưới đây):
+  // tài khoản tsudev đã tồn tại từ đợt seed cũ với role ADMIN, nên phải nâng nó
+  // ở nhánh update, không chỉ nhánh create. Đây là đường DUY NHẤT cấp OWNER -
+  // không endpoint dữ liệu nào cấp được bậc này.
   const admin = await prisma.user.upsert({
     where: { username: 'tsudev' },
-    update: {},
+    update: { role: 'OWNER' },
     create: {
       username: 'tsudev',
       email: 'devnguyentrangtinhsu@gmail.com',
       displayName: 'Nguyễn Trang Tình Sử',
-      role: 'ADMIN',
+      role: 'OWNER',
       bio: 'Founder của tsudev - Decoding the Future, One Commit at a Time.',
     },
   })

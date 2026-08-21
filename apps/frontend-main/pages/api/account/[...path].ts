@@ -32,6 +32,14 @@ const ALLOWED = new Set([
   'invite/create',
   'invite/list',
   'invite/revoke',
+  // Quản lý tài khoản & phân quyền - auth-service tự kiểm OWNER (đọc User.role
+  // từ DB, không từ claim). Tên hai đoạn vì proxy chặn path quá 2 đoạn.
+  'useradmin/list',
+  'useradmin/create',
+  'useradmin/update',
+  'useradmin/role',
+  'useradmin/revoke',
+  'useradmin/delete',
 ]);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -2,7 +2,7 @@
 
 Website dự án cá nhân: dự án & bản quyền, blog, tài liệu, xác thực, object
 storage, con dấu tín nhiệm. Monorepo npm workspaces.
-Repo: private, `github.com/tsudev-tsudev/tsudev`.
+Repo: Public (từ 21/08/2026), `github.com/tsudev-tsudev/tsudev`.
 
 > File này là NGỮ CẢNH TĨNH được nạp + cache ở đầu MỌI phiên. Đọc kỹ một lần,
 > tuân thủ suốt phiên. **Đừng sửa file này giữa phiên** - sửa là bust cache toàn
@@ -245,12 +245,22 @@ nguồn là hiện trạng; TSD là đích đến.
   phí nộp đơn, và **không test nào bắt được** nếu xoá nhầm. Nay đường nộp đơn
   được canh bởi `services/trust-service/test/applicationSubmit.test.ts` - thêm
   lại cơ chế thu phí thì phải sửa test đó trước, không sửa lén được.
-- **Mã mời là đường DUY NHẤT nâng vai trò bằng dữ liệu, và nó chặn trần ở VIP
-  TRONG MÃ.** `services/auth-service/src/invite.ts` quyết định bậc vai trò, chứ
-  không phải một cột trong `TrustInvite`. Để dữ liệu nói bậc vai trò nghĩa là ai
-  ghi được vào bảng đó là tự cấp được ADMIN. Nó nằm ở auth-service chứ không ở
-  trust-service vì nó ghi vào `User.role` - trust-service chỉ gọi
-  `requireRole('VIP')` và không cần biết mã mời tồn tại.
+- **Thang vai trò: `GUEST<MEMBER<VIP<AUTHOR<MODERATOR<ADMIN<OWNER`** (rank ở
+  `packages/types`). AUTHOR = tài khoản đăng bài (đặc quyền tối thiểu), đặt TRÊN
+  VIP có chủ đích để khách VIP của Con dấu KHÔNG đăng bài được. **OWNER là trần,
+  chỉ tài khoản `tsudev` giữ, và CẤP DUY NHẤT bằng seed/DB - không endpoint nào
+  cấp được.** Đổi thang này nhớ chạy `db:generate` (enum Prisma) và thêm migration.
+- **Hai đường nâng vai trò bằng dữ liệu, cả hai chặn trần TRONG MÃ:**
+  1. **Mã mời** (`services/auth-service/src/invite.ts`) - trần cứng VIP, quyết
+     định bởi mã chứ không phải cột trong `TrustInvite`.
+  2. **Trang quản lý tài khoản** (`/api/identity/useradmin/*`, gác `requireOwner`)
+     - chỉ OWNER, cấp được tối đa ADMIN. `ASSIGNABLE_ROLES` CỐ Ý bỏ OWNER/GUEST:
+     để dữ liệu nói được bậc cao nhất nghĩa là ai ghi vào bảng role là tự cấp
+     OWNER. Bề mặt này khớp BỐN chỗ trong một commit: route auth-service +
+     `ASSIGNABLE_ROLES`, `ALLOWED` của proxy `pages/api/account/[...path].ts`,
+     `test/useradmin.test.ts`, và trang `pages/admin/accounts.tsx`.
+  Cả hai nằm ở auth-service (ghi `User.role`); trust-service chỉ gọi
+  `requireRole('VIP')` và không cần biết chúng tồn tại.
 - **`token.role` của next-auth CHỈ được ghi ở lần đăng nhập ĐẦU TIÊN.** Mọi thứ
   đổi `User.role` giữa chừng (đổi mã mời, admin sửa tay) sẽ đúng ở tầng service
   mà SAI ở phiên trình duyệt cho tới lần đăng nhập sau - giao diện lọc theo
@@ -259,8 +269,10 @@ nguồn là hiện trạng; TSD là đích đến.
   `trigger === 'update'` ở callback `jwt`, đọc lại vai trò TỪ DB. Client gọi
   `update()` của `useSession`. **Đừng lấy vai trò từ tham số truyền vào
   `update()`** - đó là dữ liệu người dùng.
-- **`main` không có branch protection** (GitHub Free + repo private). Lớp chắn
-  duy nhất là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
+- **`main` không có branch protection** — chưa ai bật. Repo nay Public nên
+  GitHub Free đã CHO phép branch protection (trước đây private thì không), nhưng
+  đó là năng lực chưa dùng, không phải rào chắn đang chạy. Lớp chắn duy nhất vẫn
+  là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:
   `ALLOW_MAIN_FORCE=1 git push`.
 - **`backend-bundle` điều phối theo BẢNG TIỀN TỐ đường dẫn**, không mount chồng
   bốn app. Mount thẳng thì `/api/trust/*` đi vào app content trước và dính cổng

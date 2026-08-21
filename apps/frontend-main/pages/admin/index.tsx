@@ -26,6 +26,15 @@ const AREAS = [
     desc: 'Quản lý dự án, phiên bản phát hành, giấy phép và trạng thái đăng ký bản quyền.',
     ready: true,
   },
+  {
+    href: '/admin/accounts',
+    title: 'Tài khoản & phân quyền',
+    desc: 'Tạo tài khoản, phân quyền, thu hồi vai trò và phiên. Chỉ chủ sở hữu (tsudev).',
+    ready: true,
+    // Chỉ OWNER thấy thẻ này. Trang tự gác lại (requireOwner ở auth-service) nên
+    // đây thuần tuý là UX - không phải cổng bảo mật.
+    ownerOnly: true,
+  },
 ];
 
 export default function AdminHome() {
@@ -72,7 +81,11 @@ export default function AdminHome() {
         />
 
         <div className="grid md:grid-cols-2 gap-4">
-          {AREAS.map((a) =>
+          {AREAS.filter(
+            (a) =>
+              !(a as { ownerOnly?: boolean }).ownerOnly ||
+              (session.user as { role?: string } | undefined)?.role === 'OWNER'
+          ).map((a) =>
             a.ready ? (
               <Card key={a.href} as="a" href={a.href} hover className="p-5 block group">
                 <h3 className="font-semibold text-fg group-hover:text-link transition-colors">

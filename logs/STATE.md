@@ -32,6 +32,21 @@
       `tsudev-backend`, Worker `tsudev-newsroom-cron`, backup). Nghiệm thu: curl
       Render 202, `newsroom:check` AgentRun 237 → 240. **Bài học**: base64 có `=`/`-`/`_`
       hay bị form web cắt khi dán → dùng `openssl rand -hex 32` (không ký tự đặc biệt).
+- [ ] **🟠 PHÁT HÀNH hệ AUTHOR/OWNER + đổi tên nhân sự** (phiên 14 để lại). Thứ tự: 1) Phát hành mã (Render dựng lại backend + deploy Worker qua
+      `scripts/deploy-frontend.js`). 2) `npm run db:migrate` nhắm Neon (áp
+      `20260821200000_add_author_owner_roles`). 3) `npm run db:seed:newsroom`
+      nhắm prod (đổi tên 4 agent — seed này AN TOÀN cho prod). **4) Nâng tsudev
+      lên OWNER trên prod bằng SQL tay** `UPDATE "User" SET role='OWNER' WHERE
+   username='tsudev';` — KHÔNG chạy `db:seed` (seed.js) trên prod vì nó tạo
+      user/bài giả. Nghiệm thu: đăng nhập tsudev thấy thẻ "Tài khoản & phân
+      quyền" ở `/admin`; `/admin/accounts` liệt kê được; tài khoản khác vào bị
+      "Không có quyền". Lưu ý gotcha `token.role` chỉ ghi ở lần đăng nhập đầu —
+      tsudev phải ĐĂNG NHẬP LẠI sau khi nâng OWNER (hoặc gọi session-state).
+- [ ] **⚪ Trình soạn/đăng bài cho AUTHOR (follow-up)** — role AUTHOR đã có nhưng
+      content-service CHƯA có bề mặt đăng bài cho người (bài hiện do Toà soạn AI
+      tạo thẳng). Chuỗi sau: content-service thêm route ghi Post gác
+      `requireRole('AUTHOR')` (scope theo `authorId` của chính mình) → frontend
+      thêm trang soạn bài. Khi đó AUTHOR mới thực sự đăng được.
 - [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** — phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa". Nay đã có công
       cụ: `npm --workspace packages/ui run storybook`, nút **Giao diện** đổi ba
       chế độ ngay trên thanh công cụ.
@@ -44,6 +59,27 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Hệ vai trò AUTHOR/OWNER + trang quản lý tài khoản** (phiên 14).
+  Chuỗi xuyên vùng trọn gói: (data) `packages/types` thang role thêm AUTHOR (trên
+  VIP) và OWNER (trần), `enum Role` + migration `20260821200000_add_author_owner_roles`
+  (áp sạch trên PG, `ALTER TYPE ADD VALUE`), seed nâng `tsudev`→OWNER; (auth-service)
+  6 endpoint `/api/identity/useradmin/*` gác `requireOwner` (đọc DB, fail closed):
+  list·create·update·role·revoke·delete — **OWNER không bao giờ cấp được qua dữ
+  liệu** (ASSIGNABLE_ROLES bỏ OWNER/GUEST), không tự-hạ/tự-xoá, không đụng OWNER
+  khác, passwordHash không lộ; (frontend) trang `/admin/accounts` OWNER-gated +
+  proxy `useradmin/*` + thẻ owner-only ở `/admin`. Test mới `useradmin.test.ts`
+  **12/12** canh bất biến leo thang. Nghiệm thu: typecheck·lint·format sạch;
+  auth-service **73/73**; bundle 14/14; migration áp + seed verify trên DB thật
+  (4 agent đổi tên, tsudev=OWNER). **CHƯA phát hành** (xem ops bên dưới).
+- 21/08/2026 — **Đổi tên 4 nhân sự Toà soạn** (phiên 14): scout-01 "Thợ săn tin",
+  writer-01 "Biên tập viên", editor-01 "Tổng biên tập", seo-01 "Chuyên viên
+  Marketing" (chỉ `displayName`; title/prompt giữ nguyên theo quyết định chủ dự
+  án). Nguồn: `seed-newsroom.js`, lan sang DB qua upsert.update — đã verify local.
+- 21/08/2026 — **Đính chính `CLAUDE.md` visibility** (phiên 14). Dòng bản đồ
+  `private` → `Public (từ 21/08/2026)`; và dòng branch-protection: lý do cũ
+  "(repo private)" nay sai — Public thì GitHub Free CHO phép branch protection,
+  chỉ là chưa bật; ghi rõ đó là năng lực chưa dùng, `.husky/pre-push` vẫn là lớp
+  chắn duy nhất. Đóng mục còn lại của phiếu 13 §2.
 - 21/08/2026 — **Repo chuyển PUBLIC → CI hồi sinh** (phiên 13). Chủ dự án chạy
   `gh repo edit … --visibility public`; nghiệm thu `visibility=PUBLIC`. Chạy lại
   run `32473196835` → **5/5 job xanh** (billing-block đã thông vì repo công khai
