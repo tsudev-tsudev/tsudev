@@ -17,7 +17,7 @@ soạn. Chi tiết và các hạn mức khác: [`docs/free-tier.md`](../../docs/
 
 `frontend-main` dựng bằng `opennextjs-cloudflare`; `.open-next/worker.js` là mã
 sinh tự động chỉ có `fetch` handler. Nhét `scheduled` vào đó phải bọc entry của
-open-next — một điểm sẽ vỡ ở mỗi lần nâng cấp, đổi lấy thứ mà 30 dòng làm được.
+open-next - một điểm sẽ vỡ ở mỗi lần nâng cấp, đổi lấy thứ mà 30 dòng làm được.
 
 Tách ra còn nghĩa là: cron hỏng thì trang web vẫn chạy, và deploy trang web
 không đụng tới cron.
@@ -42,13 +42,13 @@ npm run cron:tail       # xem log trực tiếp
 
 ⚠️ `NEWSROOM_TICK_TOKEN` phải **giống hệt** ở hai nơi: secret của Worker này và
 biến môi trường của `tsudev-backend` trên Render. Lệch nhau ⇒ mọi lượt tick trả
-401 và toà soạn im lặng đứng yên — không có gì báo lỗi, vì đứng yên cũng là một
+401 và toà soạn im lặng đứng yên - không có gì báo lỗi, vì đứng yên cũng là một
 trạng thái hợp lệ. Đây đúng kiểu sự cố mà `INTERNAL_IDENTITY_SECRET` đã gây ra
 một lần; xem `CLAUDE.md`.
 
 ## Nghiệm thu
 
-Không phải chờ 5 phút — Worker có đường gõ tay, đã gác bằng chính token đó:
+Không phải chờ 5 phút - Worker có đường gõ tay, đã gác bằng chính token đó:
 
 ```bash
 curl -X POST https://tsudev-newsroom-cron.<subdomain>.workers.dev/tick \
@@ -69,5 +69,5 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 
 Cron chết là **mất cả hai việc**: toà soạn đứng yên _và_ Render ngủ. Cả hai đều
 im lặng. Nên vẫn dựng một giám sát ngoài (UptimeRobot free) trỏ vào
-`https://tsudev-backend.onrender.com/health` — nó là lưới an toàn cho lưới an
+`https://tsudev-backend.onrender.com/health` - nó là lưới an toàn cho lưới an
 toàn.

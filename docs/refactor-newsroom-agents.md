@@ -4,13 +4,13 @@
 > Phạm vi chốt 18/08/2026; toàn bộ mã đã viết, mọi cổng kiểm xanh, 189 test
 > đơn vị + 4 E2E.
 >
-> Việc còn lại là **phát hành**, và nó có ràng buộc thứ tự không đảo được —
+> Việc còn lại là **phát hành**, và nó có ràng buộc thứ tự không đảo được -
 > xem §Thứ tự phát hành. Việc chặn trước đó: gộp PR #12 + #13 và phát hành đợt
 > 2 mã mời (`HANDOFF.md` §0.8).
 >
 > Tài liệu này giữ nguyên dạng KẾ HOẠCH vì phần phát hành chưa chạy. Khi
 > production đã chạy toà soạn, rút phần hiện trạng về `docs/newsroom.md` và xoá
-> tệp này — đừng để hai tầng tài liệu nói khác nhau.
+> tệp này - đừng để hai tầng tài liệu nói khác nhau.
 
 ## Mục tiêu (chủ dự án giao)
 
@@ -41,7 +41,7 @@ tsudev.com, cộng một trang quản lý trực quan tại `/admin/newsroom`:
 
 Quyết định 5 là ràng buộc mạnh nhất trong tài liệu này và nó lan ra mọi mục:
 không Render Cron Jobs, không Workers Paid, không Queues, không Claude API. Mọi
-thứ dưới đây đã được đối chiếu với hạn mức miễn phí thật — xem §Hạn mức.
+thứ dưới đây đã được đối chiếu với hạn mức miễn phí thật - xem §Hạn mức.
 
 Quyết định 2 đi kèm một ghi nhận đã nêu với chủ dự án và được tái khẳng định:
 tsudev.com bán Con dấu tín nhiệm, `/docs` và `/projects` mô tả phần mềm có
@@ -295,7 +295,7 @@ model AgentRun {
   errorMsg  String?
   inputTokens  Int    @default(0)
   outputTokens Int    @default(0)
-  /// Neuron tiêu thụ, KHÔNG phải tiền. Hệ này không tốn tiền — đừng đặt tên
+  /// Neuron tiêu thụ, KHÔNG phải tiền. Hệ này không tốn tiền - đừng đặt tên
   /// cột là "cost" cho thứ không phải chi phí (bài học từ User.credits).
   neuronsUsed  Int    @default(0)
   /// Nhà cung cấp đã phục vụ lần chạy này. Cần để đọc dashboard khi có fallback.
@@ -407,18 +407,18 @@ phòng khi cạn Neuron). Agent chỉ biết `complete({ system, user, maxTokens
 
 Chia model theo việc là có lý do ngân sách: Writer và Editor sinh văn bản dài
 nên cần model 70B, còn Scout lọc tiêu đề và SEO sinh vài chục token thì 8B thừa
-sức — mà 8B rẻ hơn ~6 lần đầu vào và ~6 lần đầu ra tính theo Neuron.
+sức - mà 8B rẻ hơn ~6 lần đầu vào và ~6 lần đầu ra tính theo Neuron.
 
 ### Săn tin bằng RSS, không có công cụ tìm kiếm máy chủ
 
 Workers AI **không có** công cụ `web_search` chạy phía máy chủ như Anthropic.
-Scout tự lấy nguồn — đúng như mô tả ban đầu của chủ dự án. Cả bốn nhóm đều miễn
+Scout tự lấy nguồn - đúng như mô tả ban đầu của chủ dự án. Cả bốn nhóm đều miễn
 phí và **không cần khoá API**:
 
 | Nhóm              | Nguồn                                                                     | Ghi chú                                            |
 | ----------------- | ------------------------------------------------------------------------- | -------------------------------------------------- |
 | Công nghệ quốc tế | Hacker News (Algolia API), Lobsters RSS, GitHub Releases atom, Dev.to RSS | Chất lượng cao, ít rác                             |
-| Xu hướng Việt Nam | `trends.google.com/trending/rss?geo=VN`                                   | Nhiều chủ đề ngoài công nghệ — Scout phải lọc mạnh |
+| Xu hướng Việt Nam | `trends.google.com/trending/rss?geo=VN`                                   | Nhiều chủ đề ngoài công nghệ - Scout phải lọc mạnh |
 | Báo công nghệ VN  | RSS VnExpress Số hoá, Tuổi Trẻ Nhịp sống số, Genk                         | Tiếng Việt sẵn, hợp giọng đọc trong nước           |
 | Chủ đề tự đặt     | Người nhập tay ở `/admin/newsroom`                                        | Luôn ưu tiên cao nhất trong hàng đợi               |
 
@@ -515,7 +515,7 @@ ngưỡng WCAG AA. Màu trạng thái agent phải lấy từ token có sẵn.
 
 ---
 
-## Hạn mức miễn phí — thay cho mục chi phí
+## Hạn mức miễn phí - thay cho mục chi phí
 
 **Dự án không dùng bất kỳ tính năng trả phí nào.** Đã kiểm chứng trên tài liệu
 Cloudflare ngày 18/08/2026:
@@ -523,7 +523,7 @@ Cloudflare ngày 18/08/2026:
 | Dịch vụ       | Hạn mức miễn phí                                      | Đủ không                                               |
 | ------------- | ----------------------------------------------------- | ------------------------------------------------------ |
 | Workers AI    | **10.000 Neuron/ngày**, reset 00:00 UTC               | Đủ ~5 bài/ngày trên Llama 3.3 70B                      |
-| Cron Triggers | Có trên Free plan, 100.000 request/ngày, 10ms CPU/lần | Dư — cron chỉ `fetch` rồi chờ I/O                      |
+| Cron Triggers | Có trên Free plan, 100.000 request/ngày, 10ms CPU/lần | Dư - cron chỉ `fetch` rồi chờ I/O                      |
 | Render        | 750 giờ instance/tháng toàn tài khoản                 | Đã dùng gần hết cho `tsudev-backend`; toà soạn sống ké |
 | Neon          | Gói free hiện tại                                     | Bảng mới đều nhỏ                                       |
 | Gemini        | Gói miễn phí, làm dự phòng                            | Chỉ chạy khi cạn Neuron                                |
@@ -540,7 +540,7 @@ vào, 204.805 Neuron/1M token ra):
 | **Tổng/bài**                                 | **≈ 1.980 Neuron** |
 
 Với `dailyPostCap = 2` cho `/blog` và ít hơn cho ba chuyên mục còn lại, mức tiêu
-thụ ~4.000–6.000 Neuron/ngày — nằm trong hạn mức, còn biên cho vòng sửa lại.
+thụ ~4.000–6.000 Neuron/ngày - nằm trong hạn mức, còn biên cho vòng sửa lại.
 
 Ba cái van bắt buộc, cài ngay từ đợt 2 chứ không để sau:
 
@@ -552,7 +552,7 @@ Ba cái van bắt buộc, cài ngay từ đợt 2 chứ không để sau:
 3. `dailyPostCap` theo chuyên mục.
 
 ⚠️ **`AgentRun.costMicroUsd` giữ lại nhưng đổi nghĩa thành Neuron tiêu thụ**
-(`neuronsUsed`). Đừng để lại một cột tên "cost" cho một hệ không tốn tiền — đó
+(`neuronsUsed`). Đừng để lại một cột tên "cost" cho một hệ không tốn tiền - đó
 đúng kiểu bẫy mà `User.credits` đã gây ra một lần trong repo này.
 
 ## Thứ tự phát hành - năm đợt, không gộp
@@ -642,7 +642,7 @@ bài nào, để nghiệm thu đường ống trước rồi mới mở van.
 
 ⚠️ **Không biến nào trong bảng này được đưa vào `wrangler.jsonc` của
 `frontend-main`.** Khoá LLM chỉ sống ở Render. Worker cron là một Worker **riêng**
-và chỉ cầm `NEWSROOM_TICK_TOKEN` — nó không gọi LLM, không chạm DB.
+và chỉ cầm `NEWSROOM_TICK_TOKEN` - nó không gọi LLM, không chạm DB.
 
 ## Rủi ro đã biết, ghi để phiên sau khỏi phát hiện lại
 
@@ -681,7 +681,7 @@ Mọi thứ dưới đây đã tồn tại trong cây làm việc và đã qua c
 | Schema      | `packages/db/prisma/schema.prisma`                          | 7 model + `deletedAt` cho Post/Doc/Project                  |
 | Migration   | 4 migration mới                                             | Thuần tính cộng; 0 lệnh `DROP`                              |
 | Trigger     | `..._newsroom_no_hard_delete`, `..._project_no_hard_delete` | 7 bảng được gác                                             |
-| Seed        | `packages/db/prisma/seed-newsroom.js`                       | `npm run db:seed:newsroom` — 4 agent, 4 chuyên mục, 9 nguồn |
+| Seed        | `packages/db/prisma/seed-newsroom.js`                       | `npm run db:seed:newsroom` - 4 agent, 4 chuyên mục, 9 nguồn |
 | Adapter LLM | `services/newsroom-service/src/llm/`                        | Workers AI + Gemini + `parseJsonLoose`                      |
 | Nguồn tin   | `services/newsroom-service/src/sources.ts`                  | RSS/Atom/HN, không phụ thuộc thư viện ngoài                 |
 | Agent       | `services/newsroom-service/src/agents.ts`                   | Scout · Writer · Editor · SEO                               |

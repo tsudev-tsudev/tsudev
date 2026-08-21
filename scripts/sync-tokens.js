@@ -179,7 +179,7 @@ function driftInCanonical() {
       if (!m) {
         drift.push(`${mode}: tokens/tokens.css thiếu --${name}`);
       } else if (m[1].trim().replace(/\s+/g, '') !== String(value).replace(/\s+/g, '')) {
-        drift.push(`${mode}: --${name} lệch — JSON "${value}" vs CSS "${m[1].trim()}"`);
+        drift.push(`${mode}: --${name} lệch - JSON "${value}" vs CSS "${m[1].trim()}"`);
       }
     }
   }

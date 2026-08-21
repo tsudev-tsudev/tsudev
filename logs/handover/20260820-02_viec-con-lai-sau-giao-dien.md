@@ -1,7 +1,7 @@
-# PHIẾU BÀN GIAO — Việc còn lại sau đợt tái cấu trúc giao diện
+# PHIẾU BÀN GIAO - Việc còn lại sau đợt tái cấu trúc giao diện
 
 - **Mã phiếu**: 20260820-02
-- **Từ**: phiên 7 (20/08/2026) — **Đến**: phiên 8
+- **Từ**: phiên 7 (20/08/2026) - **Đến**: phiên 8
 - **Thời điểm**: 16:41 20/08/2026
 - **Trạng thái**: HOÀN THÀNH (đóng 20:40 20/08/2026, xem §6)
 
@@ -10,7 +10,7 @@
 
 ## 1. Việc dang dở + bước tiếp theo CỤ THỂ
 
-### 1.1 ✅ ~~Quyết định commit~~ — XONG, còn lại là push/PR
+### 1.1 ✅ ~~Quyết định commit~~ - XONG, còn lại là push/PR
 
 Đợt giao diện đã commit thành **ba cụm** trên nhánh
 `refactor/giao-dien-quy-uoc-v1` (tách khỏi `main`), 82 file, +3622 −1240:
@@ -54,16 +54,16 @@ Bảng màu chuẩn v1.0.0 **không đạt chính quy tắc §1 của nó**, đo
 khả xâm phạm nên tsudev-web vá cục bộ trong `extensions.tsudev-web`: ghi đè
 `text-muted`, thêm vai trò mới `border-control` cho viền nút phụ / ô nhập.
 
-**Bước tiếp theo:** giá trị đã tính sẵn và đã có test canh — chỉ cần chép sang repo
+**Bước tiếp theo:** giá trị đã tính sẵn và đã có test canh - chỉ cần chép sang repo
 token trung tâm (`tsudev-design-tokens` theo `docs/PROJECT_STRUCTURE.md`). Lý do
 và số đo đầy đủ nằm ở khoá `$accessibility_gap` trong `tokens/design-tokens.json`.
 **Đây là việc ảnh hưởng mọi repo trong hệ sinh thái**, không riêng tsudev-web.
 
-### 1.3 🟠 `e2e/tests/invite.spec.js` không lặp lại được — khiếm khuyết SẴN CÓ
+### 1.3 🟠 `e2e/tests/invite.spec.js` không lặp lại được - khiếm khuyết SẴN CÓ
 
 `services/auth-service/scripts/seed-dev-users.js` chỉ đặt lại mật khẩu, **không**
 reset `User.role`. Test nâng `alice` MEMBER→VIP vĩnh viễn, nên **lần chạy thứ hai
-trên cùng một DB luôn đỏ** — và triệu chứng là timeout ở một bước không liên quan
+trên cùng một DB luôn đỏ** - và triệu chứng là timeout ở một bước không liên quan
 (`page.goto('/trust/redeem')` của `bob`), nên rất dễ chẩn nhầm thành lỗi giao diện.
 Phiên 7 đã mất một vòng chạy vì chuyện này.
 
@@ -82,11 +82,11 @@ gì canh.
 
 ⚠️ Trước khi `npm i`: `HANDOFF.md` §1.3 ghi Storybook mang **30 trong 37** lỗ
 `npm audit` của repo, và §2 đã đăng ký nó là nợ có chủ đích. Cài lại thì con số
-audit tăng vọt — **đừng để nó kéo phiên đi sai hướng**.
+audit tăng vọt - **đừng để nó kéo phiên đi sai hướng**.
 
-### 1.5 🟡 `docs/PROJECT_STRUCTURE.md` chưa được áp — cần QUYẾT ĐỊNH của chủ dự án
+### 1.5 🟡 `docs/PROJECT_STRUCTURE.md` chưa được áp - cần QUYẾT ĐỊNH của chủ dự án
 
-Nó mô tả cây `src/main`, `src/components`, `src/features`… — hình trạng của một
+Nó mô tả cây `src/main`, `src/components`, `src/features`… - hình trạng của một
 app đơn, không phải npm workspaces với `apps/`, `services/`, `packages/`. Áp
 nguyên văn nghĩa là dời cả repo.
 
@@ -110,13 +110,13 @@ hai cần định dạng ngày. Không gấp.
 
 ## 2. File liên quan / đang khóa
 
-**Không còn khoá nào** — `logs/LOCKS.md` trống.
+**Không còn khoá nào** - `logs/LOCKS.md` trống.
 
 | File                                    | Vai trò                                          |
 | --------------------------------------- | ------------------------------------------------ |
 | `tokens/design-tokens.json`             | **nguồn chân lý**; khối `color` bất khả xâm phạm |
 | `scripts/sync-tokens.js`                | bộ sinh; `npm run tokens:sync` / `tokens:check`  |
-| `packages/ui/src/tokens.css`            | **ARTIFACT** — đừng sửa tay, sẽ bị ghi đè        |
+| `packages/ui/src/tokens.css`            | **ARTIFACT** - đừng sửa tay, sẽ bị ghi đè        |
 | `apps/frontend-main/tailwind.config.js` | bản đồ tên token ↔ class                         |
 | `apps/frontend-main/lib/format.ts`      | định dạng ngày `DD/MM/YYYY`                      |
 | `docs/design-system.md`                 | repo này hiện thực quy ước bằng file nào         |
@@ -132,7 +132,7 @@ hai cần định dạng ngày. Không gấp.
 | `next build`                                                      | sạch; không còn cỡ chữ/mã màu ngoài token |
 
 ⚠️ **Chạy e2e ở máy này thì đừng chạy song song thứ gì khác.** Lần đầu 5 test đỏ
-vì timeout 60s trong khi load average ~6.4 trên 4 nhân — `next dev` biên dịch
+vì timeout 60s trong khi load average ~6.4 trên 4 nhân - `next dev` biên dịch
 nguội từng route. Mẹo: dựng stack trước, chờ ấm, rồi
 `E2E_NO_WEBSERVER=1 npx playwright test --config=e2e/playwright.config.js --project=app`.
 
@@ -147,7 +147,7 @@ Ba quyết định của phiên 7 mà **đảo lại thì phải sửa cả test
 1. **Mặc định là chế độ Sáng, KHÔNG bám `prefers-color-scheme`.**
    `DESIGN_SYSTEM.md` §1 và `CLAUDE.md` mâu thuẫn nhau; hoà giải bằng lựa chọn thứ
    tư "Theo hệ thống" do người dùng tự bật. Bảng màu không có media query nào treo
-   vào cài đặt máy — `themeTokens.test.ts` canh điều đó.
+   vào cài đặt máy - `themeTokens.test.ts` canh điều đó.
 2. **`fontSize` của Tailwind là GHI ĐÈ, không phải `extend`.** Với `extend`, thang
    mặc định sống song song với thang token và 41 chỗ đã dùng nó mà không ai biết.
 3. **Token riêng của repo sống ở `extensions.tsudev-web`**, tách bạch khỏi khối
@@ -163,9 +163,9 @@ lặp lại ở đây.
 
 | Mục                         | Kết quả                                                                                                                                |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| §1.1 push + PR              | ✅ đã push, PR **#36** đã mở. Khâu GỘP bị chặn — xem phiếu 20260820-04 §2.1                                                            |
+| §1.1 push + PR              | ✅ đã push, PR **#36** đã mở. Khâu GỘP bị chặn - xem phiếu 20260820-04 §2.1                                                            |
 | §1.2 hai mã màu vá          | ⏳ chưa làm, còn trong hàng đợi `STATE.md`                                                                                             |
-| §1.3 e2e không lặp lại được | ✅ **đã sửa** (`4b3dc42`) — `role` thiếu ở nhánh `update` của upsert. Chứng minh: seed → 20/20 → seed lại → chạy lại `invite` vẫn xanh |
+| §1.3 e2e không lặp lại được | ✅ **đã sửa** (`4b3dc42`) - `role` thiếu ở nhánh `update` của upsert. Chứng minh: seed → 20/20 → seed lại → chạy lại `invite` vẫn xanh |
 | §1.4 Storybook              | ⏳ chưa làm, còn trong hàng đợi                                                                                                        |
 | §1.5 `PROJECT_STRUCTURE.md` | ⏳ cần quyết định của chủ dự án, còn trong hàng đợi                                                                                    |
 | §1.6 rà bằng MẮT NGƯỜI      | ⏳ chưa làm, còn trong hàng đợi                                                                                                        |
