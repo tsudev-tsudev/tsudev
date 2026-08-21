@@ -29,6 +29,9 @@ const ALLOWED = new Set([
   'security/events',
   'security/revoke-all',
   'useradmin/security',
+  // Vòng đời tài khoản tự phục vụ (đòi mật khẩu).
+  'account/deactivate',
+  'account/delete',
   'totp/setup',
   'totp/confirm',
   'totp/disable',

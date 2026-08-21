@@ -223,6 +223,14 @@ app.post(
       }
     }
 
+    // Vòng đời tài khoản: hẹn-xoá quá hạn ⇒ purge + từ chối; còn hạn / vô hiệu
+    // hoá ⇒ khôi phục rồi cho vào. Xử lý TRƯỚC khi coi là đăng nhập thành công.
+    const lifecycle = await handleLifecycleOnLogin(user, req)
+    if (lifecycle === 'purged') {
+      await recordAttempt(ip, false)
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+
     await recordAttempt(ip, true)
     await noteAccountSuccess(user.id)
     // Kiểm thiết bị lạ TRƯỚC khi ghi sự kiện login này (nếu ghi trước thì chính
@@ -409,6 +417,69 @@ app.use('/api/identity/verify', auth)
 app.use('/api/identity/email', auth)
 // Nhật ký bảo mật của chính mình.
 app.use('/api/identity/security', auth)
+// Vòng đời tài khoản (vô hiệu hoá / hẹn xoá).
+app.use('/api/identity/account', auth)
+
+/** Số ngày ân hạn trước khi tài khoản hẹn-xoá bị purge vĩnh viễn. */
+const ACCOUNT_DELETION_GRACE_MS = 30 * 24 * 60 * 60 * 1000
+
+/** Chính chủ: vô hiệu hoá MỀM. Đòi mật khẩu. Đăng nhập lại sẽ khôi phục. */
+app.post(
+  '/api/identity/account/deactivate',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    const password = str(req.body?.password, 400)
+    if (!user.passwordHash || !(await verifyPassword(user.passwordHash, password))) {
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { deactivatedAt: new Date(), sessionVersion: { increment: 1 } },
+    })
+    logSecurity(user.id, 'account_deactivated', req)
+    sendAlert(user, 'Tài khoản vừa bị vô hiệu hoá', 'Đăng nhập lại bất cứ lúc nào để khôi phục.')
+    return res.json({ ok: true })
+  })
+)
+
+/**
+ * Chính chủ: hẹn XOÁ vĩnh viễn. Đòi mật khẩu. Tài khoản bị vô hiệu hoá ngay và
+ * lên lịch purge sau ân hạn; đăng nhập lại trước hạn sẽ huỷ hẹn.
+ */
+app.post(
+  '/api/identity/account/delete',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    const password = str(req.body?.password, 400)
+    if (!user.passwordHash || !(await verifyPassword(user.passwordHash, password))) {
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+    // OWNER không tự xoá được đường này: tài khoản gốc chỉ cấp bằng seed/DB, và
+    // để nó tự xoá là tự tay bỏ bậc trần duy nhất. Hạ/xoá OWNER phải qua DB.
+    if (user.role === 'OWNER') return res.status(403).json({ error: 'owner_cannot_self_delete' })
+
+    const scheduledAt = new Date(Date.now() + ACCOUNT_DELETION_GRACE_MS)
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        deletionScheduledAt: scheduledAt,
+        deactivatedAt: new Date(),
+        sessionVersion: { increment: 1 },
+      },
+    })
+    logSecurity(user.id, 'account_deletion_scheduled', req, {
+      note: `purge sau ${scheduledAt.toISOString()}`,
+    })
+    sendAlert(
+      user,
+      'Tài khoản được hẹn xoá vĩnh viễn',
+      'Đăng nhập lại trước 30 ngày để huỷ. Quá hạn, dữ liệu sẽ bị xoá và không khôi phục được.'
+    )
+    return res.json({ ok: true, deletionScheduledAt: scheduledAt })
+  })
+)
 
 /** Phát lại email xác minh cho chính mình. No-op nếu đã xác minh. */
 app.post(
@@ -613,6 +684,12 @@ app.post(
     // KHÔNG hỏi TOTP sau passkey: passkey đã là hai yếu tố trong một (thứ bạn
     // có + xác minh người dùng trên thiết bị), và nó chống giả mạo tên miền
     // mạnh hơn TOTP. Bắt thêm một bước nữa chỉ đổi bảo mật lấy phiền phức.
+    const lifecycle = await handleLifecycleOnLogin(user, req)
+    if (lifecycle === 'purged') {
+      await recordAttempt(ip, false)
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+
     await recordAttempt(ip, true)
     await noteAccountSuccess(user.id)
     void alertIfNewDevice(user, req)
@@ -1172,6 +1249,44 @@ async function alertIfNewDevice(
   }
 }
 
+/**
+ * Xử lý vòng đời tài khoản tại thời điểm đăng nhập THÀNH CÔNG (mật khẩu/passkey
+ * đã đúng). Gọi TRƯỚC khi ghi nhận đăng nhập:
+ *  - Hẹn xoá đã quá hạn ⇒ purge tài khoản, trả 'purged' (người gọi từ chối đăng nhập).
+ *  - Hẹn xoá còn trong hạn ⇒ huỷ hẹn + khôi phục, trả 'cancelled'.
+ *  - Chỉ vô hiệu hoá ⇒ khôi phục, trả 'reactivated'.
+ *  - Bình thường ⇒ 'ok'.
+ */
+async function handleLifecycleOnLogin(
+  user: { id: string; deactivatedAt: Date | null; deletionScheduledAt: Date | null },
+  req: Request
+): Promise<'ok' | 'purged' | 'cancelled' | 'reactivated'> {
+  if (user.deletionScheduledAt) {
+    if (user.deletionScheduledAt.getTime() <= Date.now()) {
+      // Quá ân hạn: xoá thật. Bài viết giữ lại (Post.authorId ON DELETE SET NULL);
+      // dữ liệu chặn xoá thì nuốt lỗi - tài khoản vẫn vô hiệu hoá nên vô hại.
+      try {
+        await prisma.user.delete({ where: { id: user.id } })
+      } catch {
+        /* linked records chặn xoá - để lần sau, tài khoản vẫn không vào được */
+      }
+      return 'purged'
+    }
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { deletionScheduledAt: null, deactivatedAt: null },
+    })
+    logSecurity(user.id, 'account_reactivated', req, { note: 'huỷ hẹn xoá khi đăng nhập' })
+    return 'cancelled'
+  }
+  if (user.deactivatedAt) {
+    await prisma.user.update({ where: { id: user.id }, data: { deactivatedAt: null } })
+    logSecurity(user.id, 'account_reactivated', req)
+    return 'reactivated'
+  }
+  return 'ok'
+}
+
 /** Hình dạng sự kiện bảo mật trả ra ngoài. IP/UA chỉ chủ tài khoản và OWNER đọc. */
 const publicSecurityEvent = (e: {
   id: string
@@ -1251,6 +1366,8 @@ const publicUser = (u: {
   emailVerifiedAt: Date | null
   createdAt: Date
   lastLoginAt: Date | null
+  deactivatedAt: Date | null
+  deletionScheduledAt: Date | null
 }) => ({
   id: u.id,
   username: u.username,
@@ -1260,6 +1377,8 @@ const publicUser = (u: {
   emailVerified: u.emailVerifiedAt != null,
   createdAt: u.createdAt,
   lastLoginAt: u.lastLoginAt,
+  deactivatedAt: u.deactivatedAt,
+  deletionScheduledAt: u.deletionScheduledAt,
 })
 
 const USER_SELECT = {
@@ -1271,6 +1390,8 @@ const USER_SELECT = {
   emailVerifiedAt: true,
   createdAt: true,
   lastLoginAt: true,
+  deactivatedAt: true,
+  deletionScheduledAt: true,
 } as const
 
 /** OWNER: liệt kê tài khoản. */

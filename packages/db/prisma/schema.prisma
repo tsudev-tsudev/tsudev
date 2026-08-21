@@ -50,6 +50,12 @@ model User {
   /// Cloudflare Workers còn DB ở Neon ap-southeast-1 - nghĩa là một truy vấn
   /// xuyên lục địa cho MỖI request.
   sessionVersion   Int       @default(0)
+  /// Vô hiệu hoá MỀM do chính chủ: tài khoản ẩn/không dùng được, nhưng đăng nhập
+  /// lại sẽ KHÔI PHỤC (xoá mốc này). NULL = đang hoạt động.
+  deactivatedAt    DateTime?
+  /// Hẹn XOÁ vĩnh viễn: đăng nhập lại trước mốc này thì huỷ hẹn (khôi phục);
+  /// quá mốc mà đăng nhập thì tài khoản bị purge. NULL = không hẹn xoá.
+  deletionScheduledAt DateTime?
   /// Đếm số lần sai LIÊN TIẾP; đăng nhập thành công đặt lại về 0.
   failedLoginCount Int       @default(0)
   /// Khoá tạm sau quá nhiều lần sai. Khoá theo TÀI KHOẢN, khác với chặn theo IP
