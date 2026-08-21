@@ -96,6 +96,15 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 — **PHÁT HÀNH OAuth GitHub/Google — LIVE** (phiên 15). Chủ dự án đặt
+  4 giá trị làm **encrypted secret** (`wrangler secret put`, không phải plaintext
+  var) + xoá var plaintext. Frontend đã deploy code #49 (Version 18:57Z). **Nghiệm
+  thu hành vi**: `/api/auth/providers` = credentials·passkey·**github·google**;
+  POST signin/github → `github.com/login/oauth/authorize` (scope `read:user
+user:email`, redirect_uri `https://tsudev.com/api/auth/callback/github`); POST
+  signin/google → `accounts.google.com/o/oauth2/v2/auth` (scope `openid email
+profile`); client_id nạp đúng, secret KHÔNG lộ trong URL/providers. Còn lại:
+  một lần đăng nhập OAuth THẬT để chạy callback + oauth/upsert (mắt người).
 - 22/08/2026 — **Đăng nhập OAuth GitHub/Google (E)** (phiên 15, nhánh
   `feat/oauth-login`). Provider + nút /login + thông điệp `OAuthAccountNotLinked`
   đã có sẵn; đợt này dựng MẮT XÍCH còn thiếu: liên kết tài khoản.
@@ -314,6 +323,16 @@ https:` rộng nhưng cần cho presign R2. Không flip — cần một đợt n
 
 ## Quyết định quan trọng
 
+- 22/08/2026 — **Secret OAuth (và mọi secret của Worker) là ENCRYPTED SECRET,
+  KHÔNG phải `vars` plaintext.** Đặt CLIENT_SECRET làm biến `vars` (qua dashboard
+  hay wrangler.jsonc) có HAI cái hỏng: (1) giá trị hiện plaintext ở dashboard/CLI
+  và **in ra log lúc deploy** (đã lộ một lần, nên xoay lại là an toàn nhất); (2)
+  `opennextjs-cloudflare deploy` ghi đè config remote bằng `wrangler.jsonc` local
+  nên **var plaintext bị XOÁ mỗi lần deploy** — OAuth chết im lặng. `wrangler
+secret put` mã hoá, không bao giờ hiện ra, và **sống sót qua mọi deploy** (secret
+  tách khỏi config). Sửa config Worker bằng tay ở dashboard còn tạo drift khiến
+  lần deploy kế tiếp cảnh báo "override remote". Quy tắc: secret → `wrangler secret
+put`; đừng sờ vào config Worker qua dashboard.
 - 21/08/2026 — **Thêm bậc vai trò TRÊN một bậc cũ phải rà MỌI cổng của bậc cũ.**
   Nâng tsudev ADMIN→OWNER tưởng thuần cộng, nhưng cổng nào kiểm `role === 'ADMIN'`
   BẰNG ĐÚNG (thay vì `hasAtLeastRole`) thì bậc mới cao hơn lại TRƯỢT. Ở đây đúng
