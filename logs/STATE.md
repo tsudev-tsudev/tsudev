@@ -98,6 +98,23 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 - **PHÁT HÀNH prod: ép CSP (băm) + en-dash - LIVE** (phiên 16). PR #55
+  CI 6/6 xanh → merged vào `main` (`b785994`) → deploy Cloudflare qua
+  `scripts/deploy-frontend.js` (**Version `e000fe9b`**, `.env.local` được dời khỏi
+  build rồi trả lại). **Nghiệm thu đo HÀNH VI trên prod** (`/` và `/trust`): CSP
+  header **ép thật** (không Report-Only) = `script-src 'self'
+'sha256-y2cjX…ZdXg=' https://static.cloudflareinsights.com`, băm khớp nguồn,
+  allowlist beacon CF, **0 unsafe-inline** trong script-src; `/api/auth/providers`
+  = credentials·passkey·github·google (không rò dev); homepage 200; 0 em-dash trên
+  mọi trang. Beacon CF không thấy qua curl là bình thường (CF chỉ chèn cho trình
+  duyệt thật). **CÒN LẠI (mắt người)**: mở DevTools prod, Console phải KHÔNG có
+  dòng CSP vi phạm nào - runtime thật trên HTTPS mà curl không đo được.
+- 22/08/2026 - **Allowlist beacon Cloudflare Web Analytics vào CSP** (phiên 16).
+  Chủ dự án soi DevTools prod thấy cảnh báo CSP với `static.cloudflareinsights.com`
+  - beacon do CF chèn ở TẦNG EDGE (sau khi rời Worker) nên không có trong HTML mà
+    `next build` local sinh ra, mọi test ở máy này mù với nó (đúng loại "lỗi chỉ
+    sống trên prod/HTTPS"). Thêm host vào `script-src` (đường POST beacon đã nằm
+    trong `connect-src https:`). Test canh allowlist này.
 - 22/08/2026 - **G - ÉP CSP THẬT (hết Report-Only)** (phiên 16, vùng frontend-web).
   Chủ dự án cho phép khởi động. **Dùng BĂM SHA-256 của THEME_SCRIPT, KHÔNG dùng
   nonce** - xem Quyết định bên dưới vì sao đổi hướng giữa chừng. `next.config.js`:
