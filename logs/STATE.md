@@ -97,6 +97,28 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 — **Củng cố tài khoản (đợt 3–5 kiến trúc tài khoản)** (phiên 15,
+  nhánh `feat/account-hardening`). E (OAuth) BỎ QUA đợt này (cần chủ dự án tạo
+  OAuth app + secret); G (ép CSP) GIỮ Report-Only theo quyết định — chỉ rà soát.
+  - **Đợt 3 (B+C, `cbfa254`)**: `POST security/revoke-all` tự đăng xuất mọi thiết
+    bị (nút ở /settings/security + update() giữ tab). Thư cảnh báo `securityAlertHtml`:
+    đăng nhập thiết bị/vị trí LẠ (IP chưa từng thấy), đổi mật khẩu, tắt 2FA, gỡ
+    passkey, đổi vai trò. Fire-and-forget. Test sessionRevoke (2).
+  - **Đợt 4 (D, `7c96d61`)**: vòng đời tài khoản. `User.deactivatedAt` +
+    `deletionScheduledAt` + migration. `account/deactivate` (mềm, đăng nhập lại
+    khôi phục); `account/delete` (hẹn xoá 30 ngày, đăng nhập trong hạn huỷ, quá
+    hạn purge + login 401; OWNER 403). `handleLifecycleOnLogin` ở cả 2 đường
+    login. Frontend "Vùng nguy hiểm" + badge /admin/accounts. Test accountLifecycle (5).
+  - **Đợt 5 (F, `0038efb`)**: chặn mật khẩu rò rỉ HIBP k-anonymity (chỉ gửi 5 ký
+    tự đầu SHA-1), FAIL-OPEN, fetcher tiêm được, test env không gọi mạng. Chặn ở
+    4 điểm ghi mật khẩu + thông điệp frontend. Test breachCheck (5).
+  - **G — rà soát CSP**: đã Report-Only có chủ đích. Blocker để ép: `script-src
+'unsafe-inline'` (THEME_SCRIPT ở \_document + bootstrap Next) cần nonce qua
+    middleware; `style-src 'unsafe-inline'` (Next/Tailwind) khó bỏ; `connect-src
+https:` rộng nhưng cần cho presign R2. Không flip — cần một đợt nonce riêng.
+  - Nghiệm thu: typecheck·lint·format·topology·tokens sạch; auth **103** ·
+    content 44 · bundle 15. CHƯA phát hành prod (3 migration mới + deploy +
+    RESEND_API_KEY để thư gửi thật).
 - 21/08/2026 — **Nhật ký bảo mật (đợt 2 kiến trúc tài khoản)** (phiên 15, chuỗi
   `data-schema`→`auth-service`→`frontend-web`). **Model `SecurityEvent` RIÊNG**
   (tách khỏi `TrustAuditLog` vì trust-service dùng nặng + console Con dấu sẽ ngập
