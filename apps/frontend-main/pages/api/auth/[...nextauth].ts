@@ -203,6 +203,58 @@ async function freshSessionState(
   }
 }
 
+/**
+ * Đổi một danh tính OAuth (GitHub/Google) lấy User tsudev chính tắc.
+ *
+ * Chạy phía server (BFF trên Worker), gọi auth-service - nơi DUY NHẤT chạm
+ * Postgres. Trả về null khi không liên kết được (không email, email đã thuộc
+ * người khác, hoặc service lỗi); người gọi từ chối đăng nhập khi đó.
+ */
+async function upsertOAuthUser(
+  provider: string,
+  providerAccountId: string,
+  data: { email: string | null; name: string | null; emailVerified: boolean }
+): Promise<{
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+  sessionVersion: number;
+} | null> {
+  try {
+    const res = await fetch(`${IDENTITY}/api/identity/oauth/upsert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...internalHeaders() },
+      body: JSON.stringify({
+        provider,
+        providerAccountId,
+        email: data.email,
+        name: data.name,
+        emailVerified: data.emailVerified,
+      }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as {
+      id: string;
+      username: string;
+      email: string;
+      role: string;
+      sessionVersion: number;
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Email của bên thứ ba đã được họ xác minh chưa? Google nói rõ; GitHub luôn trả
+ *  primary đã verified. */
+function oauthEmailVerified(provider: string, profile: unknown): boolean {
+  if (provider === 'google') {
+    return (profile as { email_verified?: boolean } | undefined)?.email_verified === true;
+  }
+  return provider === 'github';
+}
+
 export const authOptions: NextAuthOptions = {
   providers,
   secret: process.env.NEXTAUTH_SECRET,
@@ -214,6 +266,31 @@ export const authOptions: NextAuthOptions = {
   },
   debug: process.env.NODE_ENV !== 'production',
   callbacks: {
+    // OAuth: liên kết / tạo User tsudev TRƯỚC khi phát phiên. Credentials và
+    // passkey đã tự resolve trong authorize() nên đi thẳng qua.
+    async signIn({ user, account, profile }) {
+      if (!account || account.provider === 'credentials' || account.provider === 'passkey') {
+        return true;
+      }
+      if (account.provider === 'github' || account.provider === 'google') {
+        const linked = await upsertOAuthUser(account.provider, account.providerAccountId, {
+          email: user.email ?? null,
+          name: user.name ?? null,
+          emailVerified: oauthEmailVerified(account.provider, profile),
+        });
+        // Từ chối sạch: đẩy về /login với mã lỗi đã có thông điệp tiếng Việt.
+        if (!linked) return '/login?error=OAuthAccountNotLinked';
+        // Ghi danh tính CHÍNH TẮC vào `user` để callback jwt bên dưới đọc lại:
+        // username thay cho tên hiển thị của bên thứ ba, kèm role + sessionVersion.
+        user.id = linked.id;
+        user.name = linked.username;
+        user.email = linked.email;
+        (user as { role?: string }).role = linked.role;
+        (user as { sessionVersion?: number }).sessionVersion = linked.sessionVersion;
+        return true;
+      }
+      return true;
+    },
     async jwt({ token, user, trigger }) {
       // `user` chỉ có mặt ở lần đăng nhập đầu; các lần sau token đã mang sẵn.
       if (user) {

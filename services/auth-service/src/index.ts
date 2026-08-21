@@ -276,6 +276,121 @@ app.post(
 )
 
 // ---------------------------------------------------------------------------
+// Liên kết đăng nhập bên thứ ba (OAuth: GitHub, Google)
+//
+// GỌI TỪ NextAuth phía server (không phải trình duyệt): sau khi bên thứ ba xác
+// thực xong, BFF gửi {provider, providerAccountId, email, name} xuống đây để tìm
+// hoặc TẠO User tsudev tương ứng và trả về danh tính CHÍNH TẮC (username/role/
+// sessionVersion). Không có bước này thì phiên OAuth không có vai trò, và không
+// tài khoản nào được ghi vào DB.
+//
+// Bất biến:
+//  - Khoá liên kết là (provider, providerAccountId), KHÔNG phải email. Email của
+//    bên thứ ba đổi được và tin nó là đường chiếm tài khoản (xem OAuthAccount).
+//  - Email đã thuộc user khác mà CHƯA liên kết ⇒ TỪ CHỐI (email_taken), không tự
+//    gộp. Người dùng phải đăng nhập bằng cách cũ rồi liên kết (bề mặt liên kết
+//    trong cài đặt là việc sau).
+//  - Không có email ⇒ từ chối: User.email bắt buộc + duy nhất.
+// ---------------------------------------------------------------------------
+
+/** Hình dạng danh tính chính tắc trả cho BFF. KHÔNG lộ passwordHash. */
+const oauthPublicUser = (u: {
+  id: string
+  username: string
+  email: string
+  role: string
+  sessionVersion: number
+}) => ({
+  id: u.id,
+  username: u.username,
+  email: u.email,
+  role: u.role,
+  sessionVersion: u.sessionVersion,
+})
+
+/** Sinh username hợp lệ, duy nhất, từ một gốc (local-part email hoặc tên). */
+async function generateUsername(base: string): Promise<string> {
+  let slug = base
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/^[._-]+|[._-]+$/g, '')
+    .slice(0, 24)
+  if (slug.length < 2) slug = `user${slug}`
+  let candidate = slug
+  for (let i = 0; i < 50; i++) {
+    const taken = await prisma.user.findUnique({
+      where: { username: candidate },
+      select: { id: true },
+    })
+    if (!taken) return candidate
+    candidate = `${slug}${Math.floor(1000 + Math.random() * 9000)}`
+  }
+  return `${slug}${Date.now().toString(36)}`
+}
+
+const OAUTH_PROVIDERS = new Set(['github', 'google'])
+
+app.post(
+  '/api/identity/oauth/upsert',
+  asyncHandler(async (req, res) => {
+    const provider = str(req.body?.provider, 20)
+    const providerAccountId = str(req.body?.providerAccountId, 200)
+    if (!OAUTH_PROVIDERS.has(provider) || !providerAccountId) {
+      return res.status(400).json({ error: 'invalid_request' })
+    }
+    const email = str(req.body?.email, 200).trim().toLowerCase()
+    const name = str(req.body?.name, 200)
+    const emailVerified = req.body?.emailVerified === true
+
+    // 1. Đã liên kết trước đó ⇒ trả đúng user.
+    const linked = await prisma.oAuthAccount.findUnique({
+      where: { provider_providerAccountId: { provider, providerAccountId } },
+      include: { user: true },
+    })
+    if (linked) return res.json(oauthPublicUser(linked.user))
+
+    // 2. Chưa liên kết: cần email hợp lệ để tạo tài khoản.
+    if (!EMAIL_RE.test(email)) return res.status(409).json({ error: 'oauth_no_email' })
+
+    // 3. Email đã thuộc tài khoản khác (chưa liên kết) ⇒ từ chối, không tự gộp.
+    const emailOwner = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+    if (emailOwner) return res.status(409).json({ error: 'email_taken' })
+
+    // 4. Tạo user + bản ghi liên kết trong một thao tác. Email của Google/GitHub
+    //    đã được bên đó xác minh nên đặt emailVerifiedAt luôn nếu emailVerified.
+    const username = await generateUsername(email.split('@')[0] || name || provider)
+    try {
+      const user = await prisma.user.create({
+        data: {
+          username,
+          email,
+          displayName: name || username,
+          role: 'MEMBER',
+          emailVerifiedAt: emailVerified ? new Date() : null,
+          oauthAccounts: { create: { provider, providerAccountId } },
+        },
+      })
+      logSecurity(user.id, 'account_created', req, { note: `oauth:${provider}` })
+      return res.json(oauthPublicUser(user))
+    } catch (e) {
+      // Hai first-login song song cùng một tài khoản bên thứ ba: ràng buộc
+      // @@unique([provider, providerAccountId]) để một cái thắng. Cái thua tra
+      // lại và trả về user đã tạo, thay vì nổ 500.
+      if ((e as { code?: string })?.code === 'P2002') {
+        const again = await prisma.oAuthAccount.findUnique({
+          where: { provider_providerAccountId: { provider, providerAccountId } },
+          include: { user: true },
+        })
+        if (again) return res.json(oauthPublicUser(again.user))
+      }
+      throw e
+    }
+  })
+)
+
+// ---------------------------------------------------------------------------
 // Quên / đặt lại mật khẩu
 // ---------------------------------------------------------------------------
 app.post(
