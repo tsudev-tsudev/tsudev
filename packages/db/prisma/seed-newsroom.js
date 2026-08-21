@@ -18,7 +18,7 @@ const M8 = '@cf/meta/llama-3.1-8b-instruct-fp8-fast'
 const AGENTS = [
   {
     slug: 'scout-01',
-    displayName: 'Lê Săn Tin',
+    displayName: 'Thợ săn tin',
     title: 'Phóng viên hiện trường',
     dept: 'RESEARCH',
     avatarSeed: 'scout-01',
@@ -43,7 +43,7 @@ const AGENTS = [
   },
   {
     slug: 'writer-01',
-    displayName: 'Trần Biên Tập',
+    displayName: 'Biên tập viên',
     title: 'Biên tập viên nội dung',
     dept: 'EDITORIAL',
     avatarSeed: 'writer-01',
@@ -70,7 +70,7 @@ const AGENTS = [
   },
   {
     slug: 'editor-01',
-    displayName: 'Phạm Tổng Biên',
+    displayName: 'Tổng biên tập',
     title: 'Tổng biên tập',
     dept: 'PUBLISHING',
     avatarSeed: 'editor-01',
@@ -97,7 +97,7 @@ const AGENTS = [
   },
   {
     slug: 'seo-01',
-    displayName: 'Vũ Tối Ưu',
+    displayName: 'Chuyên viên Marketing',
     title: 'Chuyên viên SEO',
     dept: 'SEO',
     avatarSeed: 'seo-01',

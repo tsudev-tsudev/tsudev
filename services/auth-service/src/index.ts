@@ -854,6 +854,270 @@ app.post(
   })
 )
 
+// ---------------------------------------------------------------------------
+// Quản lý tài khoản & phân quyền - CHỈ OWNER (tài khoản tsudev)
+//
+// Đây là bề mặt cấp/thu hồi vai trò, nên nó là ranh giới leo thang đặc quyền.
+// Ba bất biến, mỗi cái chặn một đường tự nâng quyền:
+//
+//  1. Người gọi phải là OWNER, đọc TỪ DB fail-closed (requireOwner) - claim
+//     trong khẳng định danh tính KHÔNG được tin (xem gotcha REQUIRE_ROLE...).
+//  2. OWNER KHÔNG bao giờ cấp được qua endpoint: ASSIGNABLE_ROLES cố ý bỏ OWNER
+//     (và GUEST). Bậc cao nhất chỉ đến từ seed/DB - để "ai ghi được vào bảng
+//     role là tự cấp OWNER" không thành sự thật.
+//  3. Không thao tác được lên một tài khoản OWNER khác, và không tự hạ/tự xoá
+//     chính mình - tránh khoá cứng và tránh owner bị chính công cụ này lật.
+//
+// Đi qua proxy CÓ PHIÊN pages/api/account/[...path].ts (không phải proxy công
+// khai /api/identity). Tên action 2 đoạn vì proxy chặn path quá 2 đoạn.
+// ---------------------------------------------------------------------------
+app.use('/api/identity/useradmin', auth)
+
+/** Vai trò cấp được qua công cụ. OWNER và GUEST cố ý vắng mặt. */
+const ASSIGNABLE_ROLES = ['MEMBER', 'AUTHOR', 'VIP', 'MODERATOR', 'ADMIN'] as const
+type AssignableRole = (typeof ASSIGNABLE_ROLES)[number]
+const isAssignableRole = (v: unknown): v is AssignableRole =>
+  typeof v === 'string' && (ASSIGNABLE_ROLES as readonly string[]).includes(v)
+
+/** Người gọi phải là OWNER. Đọc vai trò TỪ DB, không từ claim. Fail closed. */
+const requireOwner = async (req: Request, res: Response) => {
+  const user = await lookupUser(req)
+  if (!user) {
+    res.status(401).json({ error: 'unauthenticated' })
+    return null
+  }
+  if (user.role !== 'OWNER') {
+    res.status(403).json({ error: 'forbidden' })
+    return null
+  }
+  return user
+}
+
+/** Nhật ký bất biến cho thao tác lên tài khoản, cùng bảng với hệ dấu. */
+const auditUser = (
+  actor: { id: string; displayName: string | null; username: string },
+  action: string,
+  targetId: string,
+  targetLabel: string,
+  note?: string
+) =>
+  prisma.trustAuditLog.create({
+    data: {
+      actorId: actor.id,
+      actorName: actor.displayName || actor.username,
+      action,
+      targetType: 'User',
+      targetId,
+      targetLabel,
+      note: note || null,
+    },
+  })
+
+/**
+ * Hình dạng an toàn của User để trả ra ngoài. Khai TƯỜNG MINH từng trường -
+ * KHÔNG BAO GIỜ có `passwordHash`. Thêm cột bí mật vào model sau này sẽ không
+ * tự lọt ra nếu ở đây không dùng phép trải.
+ */
+const publicUser = (u: {
+  id: string
+  username: string
+  email: string
+  displayName: string | null
+  role: string
+  emailVerifiedAt: Date | null
+  createdAt: Date
+  lastLoginAt: Date | null
+}) => ({
+  id: u.id,
+  username: u.username,
+  email: u.email,
+  displayName: u.displayName,
+  role: u.role,
+  emailVerified: u.emailVerifiedAt != null,
+  createdAt: u.createdAt,
+  lastLoginAt: u.lastLoginAt,
+})
+
+const USER_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  displayName: true,
+  role: true,
+  emailVerifiedAt: true,
+  createdAt: true,
+  lastLoginAt: true,
+} as const
+
+/** OWNER: liệt kê tài khoản. */
+app.post(
+  '/api/identity/useradmin/list',
+  asyncHandler(async (req, res) => {
+    if (!(await requireOwner(req, res))) return
+    const rows = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      select: USER_SELECT,
+    })
+    return res.json(rows.map(publicUser))
+  })
+)
+
+/** OWNER: tạo tài khoản mới. Email đặt sẵn xác minh - đây là tài khoản nội bộ
+ *  do owner cấp, không đi qua luồng gửi thư xác minh. */
+app.post(
+  '/api/identity/useradmin/create',
+  asyncHandler(async (req, res) => {
+    const actor = await requireOwner(req, res)
+    if (!actor) return
+
+    const username = str(req.body?.username, 40).trim().toLowerCase()
+    const email = str(req.body?.email, 200).trim().toLowerCase()
+    const displayName = str(req.body?.displayName, 80).trim() || username
+    const password = str(req.body?.password, 400)
+    const role = str(req.body?.role, 20)
+
+    if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'invalid_username' })
+    if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'invalid_email' })
+    if (!isAssignableRole(role)) return res.status(400).json({ error: 'invalid_role' })
+    const pwProblem = checkPasswordPolicy(password)
+    if (pwProblem) return res.status(400).json({ error: 'weak_password', detail: pwProblem })
+
+    // Công cụ quản trị nội bộ: nói thẳng khi trùng. Khác form đăng ký công khai
+    // (nơi trùng email bị giấu để không thành máy dò tài khoản) - ở đây chỉ OWNER
+    // gọi được, không có gì để dò.
+    if (await prisma.user.findUnique({ where: { username }, select: { id: true } })) {
+      return res.status(409).json({ error: 'username_taken' })
+    }
+    if (await prisma.user.findUnique({ where: { email }, select: { id: true } })) {
+      return res.status(409).json({ error: 'email_taken' })
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        username,
+        email,
+        displayName,
+        passwordHash: await hashPassword(password),
+        role,
+        emailVerifiedAt: new Date(),
+      },
+      select: USER_SELECT,
+    })
+    await auditUser(actor, 'user.create', user.id, username, `role=${role}`)
+    return res.status(201).json(publicUser(user))
+  })
+)
+
+/** OWNER: đổi tên hiển thị. "Chỉnh sửa" ở mức an toàn - KHÔNG đổi email/mật khẩu
+ *  qua đây (đổi email là đường chiếm tài khoản, mật khẩu có luồng đặt lại riêng). */
+app.post(
+  '/api/identity/useradmin/update',
+  asyncHandler(async (req, res) => {
+    const actor = await requireOwner(req, res)
+    if (!actor) return
+
+    const id = str(req.body?.id, 60)
+    const displayName = str(req.body?.displayName, 80).trim()
+    if (!displayName) return res.status(400).json({ error: 'invalid_displayName' })
+
+    const target = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } })
+    if (!target) return res.status(404).json({ error: 'not_found' })
+    if (target.role === 'OWNER' && target.id !== actor.id) {
+      return res.status(403).json({ error: 'cannot_target_owner' })
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { displayName },
+      select: USER_SELECT,
+    })
+    await auditUser(actor, 'user.update', id, user.username)
+    return res.json(publicUser(user))
+  })
+)
+
+/** OWNER: phân quyền / thu hồi vai trò (đặt về MEMBER). KHÔNG cấp được OWNER. */
+app.post(
+  '/api/identity/useradmin/role',
+  asyncHandler(async (req, res) => {
+    const actor = await requireOwner(req, res)
+    if (!actor) return
+
+    const id = str(req.body?.id, 60)
+    const role = str(req.body?.role, 20)
+    if (!isAssignableRole(role)) return res.status(400).json({ error: 'invalid_role' })
+
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, username: true },
+    })
+    if (!target) return res.status(404).json({ error: 'not_found' })
+    if (target.id === actor.id) return res.status(400).json({ error: 'cannot_change_self' })
+    if (target.role === 'OWNER') return res.status(403).json({ error: 'cannot_target_owner' })
+
+    const user = await prisma.user.update({ where: { id }, data: { role }, select: USER_SELECT })
+    await auditUser(actor, 'user.role', id, target.username, `${target.role} -> ${role}`)
+    return res.json(publicUser(user))
+  })
+)
+
+/** OWNER: thu hồi mọi phiên của một tài khoản (đăng xuất mọi thiết bị). Tăng
+ *  sessionVersion - mọi token đã phát mất hiệu lực ngay. */
+app.post(
+  '/api/identity/useradmin/revoke',
+  asyncHandler(async (req, res) => {
+    const actor = await requireOwner(req, res)
+    if (!actor) return
+
+    const id = str(req.body?.id, 60)
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, username: true },
+    })
+    if (!target) return res.status(404).json({ error: 'not_found' })
+    if (target.role === 'OWNER' && target.id !== actor.id) {
+      return res.status(403).json({ error: 'cannot_target_owner' })
+    }
+
+    await prisma.user.update({ where: { id }, data: { sessionVersion: { increment: 1 } } })
+    await auditUser(actor, 'user.revoke_sessions', id, target.username)
+    return res.json({ ok: true })
+  })
+)
+
+/** OWNER: xoá tài khoản. Bài viết của họ còn lại (Post.authorId ON DELETE SET
+ *  NULL). Nếu tài khoản có dữ liệu liên kết chặn xoá thì trả 409 thay vì nổ -
+ *  owner nên thu hồi vai trò + phiên. */
+app.post(
+  '/api/identity/useradmin/delete',
+  asyncHandler(async (req, res) => {
+    const actor = await requireOwner(req, res)
+    if (!actor) return
+
+    const id = str(req.body?.id, 60)
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, username: true },
+    })
+    if (!target) return res.status(404).json({ error: 'not_found' })
+    if (target.id === actor.id) return res.status(400).json({ error: 'cannot_delete_self' })
+    if (target.role === 'OWNER') return res.status(403).json({ error: 'cannot_target_owner' })
+
+    try {
+      await prisma.user.delete({ where: { id } })
+    } catch (e) {
+      const code = (e as { code?: string })?.code
+      if (code === 'P2003' || code === 'P2014') {
+        return res.status(409).json({ error: 'has_linked_records' })
+      }
+      throw e
+    }
+    await auditUser(actor, 'user.delete', id, target.username)
+    return res.json({ ok: true })
+  })
+)
+
 /**
  * Hình dạng an toàn để trả ra ngoài.
  *

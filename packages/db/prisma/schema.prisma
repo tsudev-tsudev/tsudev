@@ -15,8 +15,10 @@ enum Role {
   GUEST
   MEMBER
   VIP
+  AUTHOR
   MODERATOR
   ADMIN
+  OWNER
 }
 
 // ---------------------------------------------------------------------------
