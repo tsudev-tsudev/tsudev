@@ -1,10 +1,11 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 15 bắt đầu ở đây**: đọc
-> [`logs/handover/20260821-04`](handover/20260821-04_ket-phien-14.md) - phiếu vào
-> cửa mới nhất. Hệ AUTHOR/OWNER + trang quản lý tài khoản **đã PHÁT HÀNH prod**
-> (backend Live). Việc còn lại: nghiệm thu RBAC bằng MẮT NGƯỜI, trình soạn bài
-> cho AUTHOR (follow-up), và các mục chờ nhịp/quyết định cũ.
+> **Phiên 16 bắt đầu ở đây**: đọc
+> [`logs/handover/20260822-01`](handover/20260822-01_ket-phien-15.md) - phiếu vào
+> cửa mới nhất. Kiến trúc TÀI KHOẢN trọn gói (đợt 1-5 + OAuth GitHub/Google) +
+> thống nhất gạch ngang **đã PHÁT HÀNH prod**. Việc còn lại chủ yếu cần MẮT NGƯỜI/
+> QUYẾT ĐỊNH: gộp PR #3 ở repo `tsudev-standards`, thử lại đăng nhập GitHub, en-dash
+> (tuỳ chọn), nghiệm thu RBAC + rà giao diện, ép CSP (đợt nonce riêng).
 
 ## Hàng đợi task (làm từ trên xuống)
 
@@ -427,7 +428,8 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 | Mã                                                                  | Chủ đề                                                  | Trạng thái |
 | ------------------------------------------------------------------- | ------------------------------------------------------- | ---------- |
-| [20260821-04](handover/20260821-04_ket-phien-14.md)                 | Kết phiên 14 - AUTHOR/OWNER, trang tài khoản, phát hành | **MỞ**     |
+| [20260822-01](handover/20260822-01_ket-phien-15.md)                 | Kết phiên 15 - kiến trúc tài khoản + OAuth + gạch ngang | **MỞ**     |
+| [20260821-04](handover/20260821-04_ket-phien-14.md)                 | Kết phiên 14 - AUTHOR/OWNER, trang tài khoản, phát hành | HOÀN THÀNH |
 | [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 - repo Public, CI, repo quy ước            | HOÀN THÀNH |
 | [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 - gộp #38, hồi sinh toà soạn               | HOÀN THÀNH |
 | [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 - gộp #37, mở PR #38                       | HOÀN THÀNH |
