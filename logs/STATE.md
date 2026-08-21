@@ -96,6 +96,24 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 — **Đăng nhập OAuth GitHub/Google (E)** (phiên 15, nhánh
+  `feat/oauth-login`). Provider + nút /login + thông điệp `OAuthAccountNotLinked`
+  đã có sẵn; đợt này dựng MẮT XÍCH còn thiếu: liên kết tài khoản.
+  - **auth-service** `POST /api/identity/oauth/upsert` (INTERNAL, không auth
+    middleware — người dùng chưa có danh tính): khoá liên kết là
+    `(provider, providerAccountId)` KHÔNG phải email (chống chiếm TK). Chưa liên
+    kết + email trống ⇒ 409 `oauth_no_email`; email đã thuộc user khác ⇒ 409
+    `email_taken` (không tự gộp); else tạo User MEMBER + OAuthAccount, username
+    sinh tự động duy nhất, emailVerifiedAt nếu bên thứ ba đã verify. Chống đua
+    P2002. Không dùng migration (model `OAuthAccount` có sẵn).
+  - **NextAuth** callback `signIn`: OAuth → gọi oauth/upsert → ghi danh tính
+    chính tắc (username/role/sessionVersion) vào `user` để `jwt` đọc; thất bại ⇒
+    `/login?error=OAuthAccountNotLinked`. Credentials/passkey đi thẳng.
+  - Test `oauthLink.test.ts` (5). Nghiệm thu: typecheck·lint·format·topology·
+    tokens sạch; auth **108** · bundle 15. **CHƯA phát hành**: cần chủ dự án đặt
+    `GITHUB_CLIENT_ID/SECRET` + `GOOGLE_CLIENT_ID/SECRET` làm **Worker secret**
+    (Cloudflare, KHÔNG phải Render — NextAuth chạy ở Worker) rồi deploy frontend.
+    Redirect URI: `https://tsudev.com/api/auth/callback/{github,google}`.
 - 22/08/2026 — **PHÁT HÀNH prod toàn bộ kiến trúc tài khoản (đợt 1–5)** (phiên 15).
   Chủ dự án chạy `prisma migrate deploy` trên Neon (migration đợt 1–5) + đặt
   `RESEND_API_KEY` trên Render. Frontend deploy Cloudflare qua
