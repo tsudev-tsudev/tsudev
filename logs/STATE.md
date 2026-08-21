@@ -95,6 +95,15 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 - **PHÁT HÀNH: gạch ngang (#52) + OAuth link-fix (#51) LIVE** (phiên
+  15). Deploy frontend Cloudflare (Version `ea433300`) từ `main` sau khi gộp #52;
+  backend Render tự dựng từ #51/#52. **Deploy SẠCH, không còn config-drift** vì 4
+  OAuth secret giờ là encrypted secret (tách khỏi config) - chứng minh: providers
+  vẫn `credentials·passkey·github·google` sau deploy (plaintext var trước đây bị
+  xoá mỗi lần deploy, encrypted thì sống sót). OAuth link-fix live (frontend
+  `resolveOAuthEmail` qua GitHub `/user/emails`; backend auto-link theo email đã
+  verified). CÒN LẠI cho chủ dự án: thử lại đăng nhập GitHub (giờ liên kết vào
+  đúng tài khoản Google sẵn có); gộp PR #3 ở repo `tsudev-standards`.
 - 22/08/2026 - **Thống nhất gạch ngang: em-dash `—` → hyphen `-` toàn repo** (phiên
   15, nhánh `chore/dash-hyphen`). Thay **374 em-dash** trên **29 file** (perl UTF-8
   `s/\x{2014}/-/g`). **NGOẠI LỆ bắt buộc**: `packages/db/prisma/migrations/**` giữ
