@@ -1,9 +1,10 @@
 # STATE.md — Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 14 bắt đầu ở đây**: đọc
-> [`logs/handover/20260821-03`](handover/20260821-03_ket-phien-13.md) — phiếu vào
-> cửa mới nhất. Hàng đợi việc agent làm được **đã cạn**; mọi mục còn lại cần MẮT
-> NGƯỜI, chờ nhịp cron, hoặc QUYẾT ĐỊNH của chủ dự án.
+> **Phiên 15 bắt đầu ở đây**: đọc
+> [`logs/handover/20260821-04`](handover/20260821-04_ket-phien-14.md) — phiếu vào
+> cửa mới nhất. Hệ AUTHOR/OWNER + trang quản lý tài khoản **đã PHÁT HÀNH prod**
+> (backend Live). Việc còn lại: nghiệm thu RBAC bằng MẮT NGƯỜI, trình soạn bài
+> cho AUTHOR (follow-up), và các mục chờ nhịp/quyết định cũ.
 
 ## Hàng đợi task (làm từ trên xuống)
 
@@ -32,18 +33,21 @@
       `tsudev-backend`, Worker `tsudev-newsroom-cron`, backup). Nghiệm thu: curl
       Render 202, `newsroom:check` AgentRun 237 → 240. **Bài học**: base64 có `=`/`-`/`_`
       hay bị form web cắt khi dán → dùng `openssl rand -hex 32` (không ký tự đặc biệt).
-- [ ] **🟠 PHÁT HÀNH hệ AUTHOR/OWNER + đổi tên nhân sự** (phiên 14 để lại).
-      Thứ tự: 1) Phát hành mã (Render dựng lại backend + deploy Worker qua
-      `scripts/deploy-frontend.js`). 2) `npm run db:migrate` nhắm Neon (áp
-      `20260821200000_add_author_owner_roles`). 3) `npm run db:seed:newsroom`
-      nhắm prod (đổi tên 4 agent — seed này AN TOÀN cho prod). 4) Nâng tsudev lên
-      OWNER trên prod bằng SQL tay:
-      `UPDATE "User" SET role='OWNER' WHERE username='tsudev';` — KHÔNG chạy
-      `db:seed` (seed.js) trên prod vì nó tạo user/bài giả. Nghiệm thu: đăng nhập
-      tsudev thấy thẻ "Tài khoản & phân quyền" ở `/admin`; `/admin/accounts` liệt
-      kê được; tài khoản khác vào bị "Không có quyền". Lưu ý gotcha `token.role`
-      chỉ ghi ở lần đăng nhập đầu — tsudev phải ĐĂNG NHẬP LẠI sau khi nâng OWNER
-      (hoặc gọi session-state).
+- [x] **🟠 PHÁT HÀNH hệ AUTHOR/OWNER + đổi tên nhân sự** — ✅ HOÀN THÀNH 21/08
+      (phiên 14), chủ dự án chạy. Migration `20260821200000_add_author_owner_roles`
+      áp trên Neon (enum có AUTHOR/OWNER); `seed-newsroom.js` prod (4 agent đổi
+      tên); SQL nâng `tsudev`→OWNER; frontend deploy Cloudflare
+      (`/api/auth/providers` chỉ credentials+passkey); backend Render **Live**.
+      **Hotfix kèm theo (PR #42, `e759dce`)**: nâng OWNER làm lộ regression —
+      `auth-service requireAdmin` so `role === 'ADMIN'` bằng đúng nên OWNER bị 403
+      ở mã mời Con dấu. Đã đổi sang `hasAtLeastRole`. CÒN LẠI: nghiệm thu RBAC
+      bằng mắt (dưới đây).
+- [ ] **🟡 Nghiệm thu RBAC bằng MẮT NGƯỜI trên prod** — tsudev (OWNER) tạo tài
+      khoản thử từng vai trò qua `/admin/accounts` (mật khẩu tự đặt, xoá sau),
+      đối chiếu ma trận: OWNER=mọi thứ · ADMIN=admin nhưng KHÔNG accounts ·
+      MODERATOR/AUTHOR/VIP=Con dấu, không admin · MEMBER=không gì. **KHÔNG** bơm
+      tài khoản dev (alice/bob, mật khẩu `tsudev-dev-2026!`) vào prod. Kiểm tsudev
+      cấp/thu hồi mã mời Con dấu chạy (hết 403 sau khi `e759dce` Live).
 - [ ] **⚪ Trình soạn/đăng bài cho AUTHOR (follow-up)** — role AUTHOR đã có nhưng
       content-service CHƯA có bề mặt đăng bài cho người (bài hiện do Toà soạn AI
       tạo thẳng). Chuỗi sau: content-service thêm route ghi Post gác
@@ -61,6 +65,13 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **PHÁT HÀNH prod hệ AUTHOR/OWNER + hotfix OWNER≥ADMIN** (phiên 14).
+  Chủ dự án chạy chuỗi prod: migrate Neon (enum AUTHOR/OWNER) · seed-newsroom
+  (đổi tên 4 agent) · SQL nâng tsudev→OWNER · deploy Cloudflare · backend Render
+  Live. **Hotfix PR #42 (`e759dce`)**: `auth-service requireAdmin` dùng
+  `hasAtLeastRole` thay cho so `=== 'ADMIN'` bằng đúng (OWNER trên ADMIN từng bị
+  403 ở mã mời Con dấu). Kèm 2 chỗ trust UI `alreadyIn` → `hasAtLeastRole(role,'VIP')`
+  và test regression. Cả #40/#41/#42 CI xanh, main `e759dce` xanh.
 - 21/08/2026 — **Hệ vai trò AUTHOR/OWNER + trang quản lý tài khoản** (phiên 14).
   Chuỗi xuyên vùng trọn gói: (data) `packages/types` thang role thêm AUTHOR (trên
   VIP) và OWNER (trần), `enum Role` + migration `20260821200000_add_author_owner_roles`
@@ -154,6 +165,21 @@
 
 ## Quyết định quan trọng
 
+- 21/08/2026 — **Thêm bậc vai trò TRÊN một bậc cũ phải rà MỌI cổng của bậc cũ.**
+  Nâng tsudev ADMIN→OWNER tưởng thuần cộng, nhưng cổng nào kiểm `role === 'ADMIN'`
+  BẰNG ĐÚNG (thay vì `hasAtLeastRole`) thì bậc mới cao hơn lại TRƯỢT. Ở đây đúng
+  một chỗ (`auth-service requireAdmin`) khoá tsudev khỏi mã mời Con dấu, im lặng
+  (trang vẫn dựng, chỉ 403 khi gọi). Triệu chứng trông như "mới nâng quyền mà lại
+  mất quyền". Quy tắc: bậc trần chỉ an toàn khi mọi cổng đọc quyền theo THỨ BẬC.
+- 21/08/2026 — **Đừng đẩy fix vào một PR đang có thể bị gộp đồng thời.** #40 bị
+  gộp ở head `449b2f9` (bản còn lỗi) đúng lúc đẩy tiếp fix — GitHub trễ đồng bộ
+  head PR nên fix `6fe6304`/`9707b3b` không vào PR, main đỏ. Phải mở #41 vá riêng.
+  Quy tắc: sửa xong hẵng mở PR, hoặc chờ CI xanh hẳn rồi mới gộp; trước khi gộp,
+  đối chiếu `git ls-remote` (branch) == `pulls/N .head.sha` (PR).
+- 21/08/2026 — **"Tài khoản đăng bài" ≠ có bề mặt đăng bài.** Role AUTHOR ship
+  được ngay (quản lý + phân quyền), nhưng content-service chưa có route ghi Post
+  cho người, nên AUTHOR chưa đăng được gì — đây là follow-up, không phải lỗi RBAC.
+  Ghi rõ để phiên sau không chẩn nhầm.
 - 20/08/2026 — **"Lệnh chạy xong" không chứng minh công cụ chạy được.** Storybook
   lên server, `index.json` liệt kê đủ 12 story, `storybook build` xanh — mà cả 36
   lượt mở story đều RỖNG. Cùng họ với "mã 200 không chứng minh trang có nội dung":
@@ -213,17 +239,18 @@
 
 ## Phiếu bàn giao
 
-| Mã                                                                  | Chủ đề                                       | Trạng thái |
-| ------------------------------------------------------------------- | -------------------------------------------- | ---------- |
-| [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 — repo Public, CI, repo quy ước | **MỞ**     |
-| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 — gộp #38, hồi sinh toà soạn    | HOÀN THÀNH |
-| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 — gộp #37, mở PR #38            | HOÀN THÀNH |
-| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ  | HOÀN THÀNH |
-| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production              | HOÀN THÀNH |
-| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành                | HOÀN THÀNH |
-| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM              | HOÀN THÀNH |
-| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện               | HOÀN THÀNH |
-| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0   | HOÀN THÀNH |
+| Mã                                                                  | Chủ đề                                                  | Trạng thái |
+| ------------------------------------------------------------------- | ------------------------------------------------------- | ---------- |
+| [20260821-04](handover/20260821-04_ket-phien-14.md)                 | Kết phiên 14 — AUTHOR/OWNER, trang tài khoản, phát hành | **MỞ**     |
+| [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 — repo Public, CI, repo quy ước            | HOÀN THÀNH |
+| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 — gộp #38, hồi sinh toà soạn               | HOÀN THÀNH |
+| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 — gộp #37, mở PR #38                       | HOÀN THÀNH |
+| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ             | HOÀN THÀNH |
+| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production                         | HOÀN THÀNH |
+| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành                           | HOÀN THÀNH |
+| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM                         | HOÀN THÀNH |
+| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện                          | HOÀN THÀNH |
+| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0              | HOÀN THÀNH |
 
 ## Ghi chú vận hành
 
