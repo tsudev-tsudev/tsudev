@@ -15,11 +15,11 @@ import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'exp
 
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
-import { hasAtLeastRole } from '@tsudev/types'
+import { hasAtLeastRole, emailUsable } from '@tsudev/types'
 import { createHash } from 'crypto'
 
 import { checkPasswordPolicy, hashPassword, verifyPassword, burnTiming } from './password'
-import { issueToken, consumeToken, constantTimeEqual } from './tokens'
+import { issueToken, consumeToken, consumeEmailChange, constantTimeEqual } from './tokens'
 import { loginOptions, loginVerify, registerOptions, registerVerify } from './passkey'
 import {
   decryptSecret,
@@ -29,7 +29,13 @@ import {
   otpauthUri,
   verifyTotp,
 } from './totp'
-import { sendMail, verifyEmailHtml, resetPasswordHtml } from './mailer'
+import {
+  sendMail,
+  verifyEmailHtml,
+  resetPasswordHtml,
+  changeEmailHtml,
+  emailChangedNoticeHtml,
+} from './mailer'
 import { INVITE_GRANTS_ROLE, generateInviteCode, hashInviteCode, redeemInvite } from './invite'
 import {
   accountIsLocked,
@@ -137,6 +143,7 @@ app.post(
       'Xác minh email cho tài khoản tsudev',
       verifyEmailHtml(user.displayName || username, `${siteUrl()}/verify-email?token=${token.raw}`)
     )
+    logSecurity(user.id, 'account_created', req)
     return res.status(201).json({ ok: true })
   })
 )
@@ -217,6 +224,7 @@ app.post(
 
     await recordAttempt(ip, true)
     await noteAccountSuccess(user.id)
+    logSecurity(user.id, 'login', req)
     pruneAttempts().catch(() => {
       /* dọn rác hỏng không được làm hỏng đăng nhập */
     })
@@ -242,6 +250,7 @@ app.post(
     const userId = await consumeToken(str(req.body?.token, 200), 'EMAIL_VERIFY')
     if (!userId) return res.status(400).json({ error: 'invalid_token' })
     await prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } })
+    logSecurity(userId, 'email_verified', req)
     return res.json({ ok: true })
   })
 )
@@ -306,6 +315,7 @@ app.post(
         emailVerifiedAt: new Date(),
       },
     })
+    logSecurity(userId, 'password_reset', req)
     return res.json({ ok: true })
   })
 )
@@ -334,6 +344,54 @@ async function consumeBackupCode(userId: string, supplied: string): Promise<bool
 }
 
 // ---------------------------------------------------------------------------
+// Xác nhận đổi email
+//
+// CÔNG KHAI như verify-email: người bấm liên kết đang chứng minh quyền kiểm soát
+// địa chỉ MỚI, và token trong liên kết là bằng chứng đó - không cần phiên. Yêu
+// cầu đổi (đòi mật khẩu) nằm ở /api/identity/email/change bên dưới, có xác thực.
+// ---------------------------------------------------------------------------
+app.post(
+  '/api/identity/confirm-email-change',
+  asyncHandler(async (req, res) => {
+    const outcome = await consumeEmailChange(str(req.body?.token, 200))
+    if (!outcome) return res.status(400).json({ error: 'invalid_token' })
+    const { userId, newEmail } = outcome
+
+    // Địa chỉ mới có thể đã bị người khác đăng ký trong khoảng giữa lúc yêu cầu
+    // và lúc xác nhận. `email` là @unique nên update sẽ ném; bắt trước để trả lỗi
+    // sạch thay vì 500.
+    const taken = await prisma.user.findUnique({
+      where: { email: newEmail },
+      select: { id: true },
+    })
+    if (taken && taken.id !== userId) return res.status(409).json({ error: 'email_taken' })
+
+    const before = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, username: true, displayName: true },
+    })
+    if (!before) return res.status(400).json({ error: 'invalid_token' })
+
+    // Đổi email = đổi danh tính đăng nhập ⇒ tăng sessionVersion để đá mọi phiên
+    // cũ ra, cùng lý do với đặt lại mật khẩu.
+    await prisma.user.update({
+      where: { id: userId },
+      data: { email: newEmail, emailVerifiedAt: new Date(), sessionVersion: { increment: 1 } },
+    })
+    logSecurity(userId, 'email_changed', req, { note: `${before.email} → ${newEmail}` })
+
+    // Báo địa chỉ CŨ: nếu tài khoản bị chiếm thì chủ thật vẫn nhận được ở hộp thư
+    // cũ và biết đường lấy lại.
+    await sendMail(
+      before.email,
+      'Email tài khoản tsudev vừa được đổi',
+      emailChangedNoticeHtml(before.displayName || before.username, newEmail)
+    )
+    return res.json({ ok: true })
+  })
+)
+
+// ---------------------------------------------------------------------------
 // Quản lý 2FA - cần đăng nhập
 //
 // Gắn xác thực theo NHÁNH: mọi thứ dưới /api/identity/totp đòi khẳng định danh
@@ -342,6 +400,91 @@ async function consumeBackupCode(userId: string, supplied: string): Promise<bool
 // ---------------------------------------------------------------------------
 const auth = createAuthMiddleware('auth')
 app.use('/api/identity/totp', auth)
+// Gửi lại email xác minh, và đổi email - đều đòi đã đăng nhập.
+app.use('/api/identity/verify', auth)
+app.use('/api/identity/email', auth)
+// Nhật ký bảo mật của chính mình.
+app.use('/api/identity/security', auth)
+
+/** Phát lại email xác minh cho chính mình. No-op nếu đã xác minh. */
+app.post(
+  '/api/identity/verify/resend',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    if (user.emailVerifiedAt) return res.json({ ok: true, alreadyVerified: true })
+
+    // Chống dội thư: một token EMAIL_VERIFY vừa phát trong 60 giây thì từ chối.
+    // Bấm "gửi lại" liên tục không được biến thành công cụ dội mail vào người
+    // khác (email do người dùng khai lúc đăng ký, chưa được chứng minh là của họ).
+    const recent = await prisma.authToken.findFirst({
+      where: {
+        userId: user.id,
+        purpose: 'EMAIL_VERIFY',
+        createdAt: { gt: new Date(Date.now() - 60_000) },
+      },
+      select: { id: true },
+    })
+    if (recent) return res.status(429).json({ error: 'too_soon' })
+
+    const token = await issueToken(user.id, 'EMAIL_VERIFY')
+    await sendMail(
+      user.email,
+      'Xác minh email cho tài khoản tsudev',
+      verifyEmailHtml(
+        user.displayName || user.username,
+        `${siteUrl()}/verify-email?token=${token.raw}`
+      )
+    )
+    return res.json({ ok: true })
+  })
+)
+
+/** Yêu cầu đổi email: đòi mật khẩu, gửi liên kết xác nhận tới địa chỉ MỚI. */
+app.post(
+  '/api/identity/email/change',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    // Đổi email đòi mật khẩu hiện tại: cookie phiên bị đánh cắp không đủ để chiếm
+    // đường khôi phục tài khoản. Cùng khuôn với totp/disable.
+    const password = str(req.body?.password, 400)
+    if (!user.passwordHash || !(await verifyPassword(user.passwordHash, password))) {
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+
+    const newEmail = str(req.body?.newEmail, 200).trim().toLowerCase()
+    if (!EMAIL_RE.test(newEmail)) return res.status(400).json({ error: 'invalid_email' })
+    if (newEmail === user.email.toLowerCase()) return res.status(400).json({ error: 'same_email' })
+
+    const taken = await prisma.user.findUnique({ where: { email: newEmail }, select: { id: true } })
+    if (taken) {
+      // KHÔNG tiết lộ rằng địa chỉ đã có người dùng. Báo cho chính địa chỉ đó
+      // biết có người thử gắn nó, rồi trả về như thể đã gửi thư xác nhận - cùng
+      // nhánh chống dò tài khoản với email trùng ở đăng ký.
+      await sendMail(
+        newEmail,
+        'Có người thử dùng email của bạn',
+        `<p>Một tài khoản tsudev vừa thử đổi email sang địa chỉ này, nhưng nó đã gắn với một tài khoản khác. Nếu là bạn, hãy đăng nhập bằng tài khoản sẵn có hoặc dùng chức năng quên mật khẩu.</p>`
+      )
+      return res.json({ ok: true })
+    }
+
+    const token = await issueToken(user.id, 'EMAIL_CHANGE', newEmail)
+    logSecurity(user.id, 'email_change_request', req, { note: `→ ${newEmail}` })
+    await sendMail(
+      newEmail,
+      'Xác nhận đổi email tài khoản tsudev',
+      changeEmailHtml(
+        user.displayName || user.username,
+        newEmail,
+        `${siteUrl()}/confirm-email-change?token=${token.raw}`
+      )
+    )
+    return res.json({ ok: true })
+  })
+)
 
 /** Sinh bí mật mới và trả về URI để quét. CHƯA bật 2FA - phải xác nhận đã. */
 app.post(
@@ -397,6 +540,7 @@ app.post(
         })),
       }),
     ])
+    logSecurity(user.id, 'totp_enabled', req)
     // Mã thô hiện đúng một lần.
     return res.json({ ok: true, backupCodes: codes })
   })
@@ -417,6 +561,7 @@ app.post(
       prisma.totpCredential.deleteMany({ where: { userId: user.id } }),
       prisma.backupCode.deleteMany({ where: { userId: user.id } }),
     ])
+    logSecurity(user.id, 'totp_disabled', req)
     return res.json({ ok: true })
   })
 )
@@ -465,6 +610,7 @@ app.post(
     // mạnh hơn TOTP. Bắt thêm một bước nữa chỉ đổi bảo mật lấy phiền phức.
     await recordAttempt(ip, true)
     await noteAccountSuccess(user.id)
+    logSecurity(user.id, 'login', req, { note: 'passkey' })
     return res.json({
       id: user.id,
       username: user.username,
@@ -503,6 +649,7 @@ app.post(
       req.body?.response,
       str(req.body?.label, 60)
     )
+    if (ok) logSecurity(user.id, 'passkey_added', req)
     return ok ? res.json({ ok: true }) : res.status(400).json({ error: 'passkey_invalid' })
   })
 )
@@ -533,6 +680,7 @@ app.post(
     const gone = await prisma.webAuthnCredential.deleteMany({
       where: { id: str(req.body?.id, 60), userId: user.id },
     })
+    if (gone.count === 1) logSecurity(user.id, 'passkey_removed', req)
     return res.json({ ok: gone.count === 1 })
   })
 )
@@ -583,6 +731,9 @@ app.post(
       role: user.role,
       hasPassword: Boolean(user.passwordHash),
       emailVerified: Boolean(user.emailVerifiedAt),
+      // createdAt để giao diện đếm ngược ân hạn xác minh (emailUsable ở
+      // @tsudev/types). Không nhạy cảm - chính chủ đọc hồ sơ của mình.
+      createdAt: user.createdAt.toISOString(),
     })
   })
 )
@@ -663,6 +814,7 @@ app.post(
       },
       select: { sessionVersion: true },
     })
+    logSecurity(user.id, 'password_change', req)
     return res.json({ ok: true, sessionVersion: saved.sessionVersion })
   })
 )
@@ -759,6 +911,13 @@ app.post(
   asyncHandler(async (req, res) => {
     const user = await lookupUser(req)
     if (!user) return res.status(401).json({ error: 'unauthenticated' })
+
+    // Nâng vai trò tự phục vụ đòi email đủ dùng (đã xác minh, hoặc còn ân hạn).
+    // Quá ân hạn mà chưa xác minh thì chặn: mã mời là đường leo thang đặc quyền,
+    // không mở cho tài khoản chưa chứng minh quyền kiểm soát hộp thư.
+    if (!emailUsable(user.emailVerifiedAt, user.createdAt)) {
+      return res.status(403).json({ error: 'email_unverified' })
+    }
 
     // Giới hạn theo IP dùng CHUNG bộ đếm với đường đăng nhập: mã mời là một bí
     // mật đoán được như mật khẩu, nên nó phải đóng góp vào cùng một ngân sách
@@ -918,6 +1077,93 @@ const auditUser = (
     },
   })
 
+/** Giữ nhật ký bảo mật 90 ngày. */
+const SECURITY_EVENT_RETENTION_MS = 90 * 24 * 60 * 60 * 1000
+
+/**
+ * Ghi một sự kiện bảo mật cho tài khoản. FIRE-AND-FORGET: ghi log hỏng KHÔNG
+ * được làm hỏng thao tác đã thành công (đăng nhập, đổi mật khẩu...). `actor` khác
+ * chủ ⇒ hành động do admin thực hiện lên tài khoản người khác.
+ */
+function logSecurity(
+  userId: string,
+  type: string,
+  req: Request,
+  opts: { actor?: { id: string; displayName: string | null; username: string }; note?: string } = {}
+): void {
+  const ip = callerIp(req.headers as Record<string, unknown>, req.ip || '')
+  const userAgent = str(req.get('user-agent') || '', 400)
+  prisma.securityEvent
+    .create({
+      data: {
+        userId,
+        type,
+        ip: ip || null,
+        userAgent: userAgent || null,
+        actorId: opts.actor ? opts.actor.id : null,
+        actorName: opts.actor ? opts.actor.displayName || opts.actor.username : null,
+        note: opts.note || null,
+      },
+    })
+    // Prune ngay của CHÍNH tài khoản này: nhật ký cũ hơn 90 ngày bị xoá. Giữ ở
+    // đường ghi (bounded theo user, dùng index [userId, createdAt]) thay vì một
+    // cron riêng - Render free không có chỗ chạy cron thường trực.
+    .then(() =>
+      prisma.securityEvent.deleteMany({
+        where: { userId, createdAt: { lt: new Date(Date.now() - SECURITY_EVENT_RETENTION_MS) } },
+      })
+    )
+    .catch((e) => console.error('[auth] logSecurity hỏng:', e instanceof Error ? e.message : e))
+}
+
+/** Hình dạng sự kiện bảo mật trả ra ngoài. IP/UA chỉ chủ tài khoản và OWNER đọc. */
+const publicSecurityEvent = (e: {
+  id: string
+  type: string
+  ip: string | null
+  userAgent: string | null
+  actorId: string | null
+  actorName: string | null
+  note: string | null
+  createdAt: Date
+}) => ({
+  id: e.id,
+  type: e.type,
+  ip: e.ip,
+  userAgent: e.userAgent,
+  byAdmin: e.actorId != null,
+  actorName: e.actorName,
+  note: e.note,
+  createdAt: e.createdAt,
+})
+
+const SECURITY_EVENT_SELECT = {
+  id: true,
+  type: true,
+  ip: true,
+  userAgent: true,
+  actorId: true,
+  actorName: true,
+  note: true,
+  createdAt: true,
+} as const
+
+/** Chính chủ: nhật ký bảo mật của mình (mới nhất trước). */
+app.post(
+  '/api/identity/security/events',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    const rows = await prisma.securityEvent.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: SECURITY_EVENT_SELECT,
+    })
+    return res.json(rows.map(publicSecurityEvent))
+  })
+)
+
 /**
  * Hình dạng an toàn của User để trả ra ngoài. Khai TƯỜNG MINH từng trường -
  * KHÔNG BAO GIỜ có `passwordHash`. Thêm cột bí mật vào model sau này sẽ không
@@ -1063,6 +1309,7 @@ app.post(
 
     const user = await prisma.user.update({ where: { id }, data: { role }, select: USER_SELECT })
     await auditUser(actor, 'user.role', id, target.username, `${target.role} -> ${role}`)
+    logSecurity(id, 'role_changed', req, { actor, note: `${target.role} → ${role}` })
     return res.json(publicUser(user))
   })
 )
@@ -1087,6 +1334,7 @@ app.post(
 
     await prisma.user.update({ where: { id }, data: { sessionVersion: { increment: 1 } } })
     await auditUser(actor, 'user.revoke_sessions', id, target.username)
+    logSecurity(id, 'sessions_revoked', req, { actor })
     return res.json({ ok: true })
   })
 )
@@ -1120,6 +1368,33 @@ app.post(
     }
     await auditUser(actor, 'user.delete', id, target.username)
     return res.json({ ok: true })
+  })
+)
+
+/** OWNER: nhật ký bảo mật xuyên tài khoản. Lọc theo `userId` nếu có, mặc định toàn bộ. */
+app.post(
+  '/api/identity/useradmin/security',
+  asyncHandler(async (req, res) => {
+    if (!(await requireOwner(req, res))) return
+    const userId = str(req.body?.userId, 60)
+    const rows = await prisma.securityEvent.findMany({
+      where: userId ? { userId } : {},
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: {
+        ...SECURITY_EVENT_SELECT,
+        userId: true,
+        user: { select: { username: true, displayName: true } },
+      },
+    })
+    return res.json(
+      rows.map((e) => ({
+        ...publicSecurityEvent(e),
+        userId: e.userId,
+        username: e.user.username,
+        userDisplayName: e.user.displayName,
+      }))
+    )
   })
 )
 

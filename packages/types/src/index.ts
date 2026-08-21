@@ -49,3 +49,64 @@ export function hasAtLeastRole(userRole: unknown, required: Role): boolean {
   if (!isRole(userRole)) return false;
   return ROLE_RANK[userRole] >= ROLE_RANK[required];
 }
+
+// ---------------------------------------------------------------------------
+// Ân hạn xác minh email
+//
+// Tài khoản chưa xác minh email VẪN đăng nhập và đọc được, nhưng sau một thời
+// gian ân hạn thì các hành động nhạy cảm (đăng bài, nâng vai trò tự phục vụ) bị
+// chặn tới khi xác minh. Đây là chặn MỀM: đủ để không biến email thành rào chắn
+// tuyệt đối (nếu Resend hỏng thì cả hệ vẫn dùng được trong cửa sổ ân hạn), vẫn
+// đóng cửa dần với tài khoản không chịu xác minh.
+//
+// Cùng một phép tính chạy ở BA nơi (auth-service, content-service, frontend) nên
+// nó sống ở đây, không nhân bản. Nhân bản là cách hai nơi lệch ngưỡng mà không ai
+// biết.
+// ---------------------------------------------------------------------------
+
+/** Số ngày ân hạn kể từ khi tạo tài khoản. */
+export const EMAIL_VERIFY_GRACE_DAYS = 7;
+export const EMAIL_VERIFY_GRACE_MS = EMAIL_VERIFY_GRACE_DAYS * 24 * 60 * 60 * 1000;
+
+/** Chuẩn hoá Date | chuỗi ISO | null về mốc thời gian (ms), hoặc null nếu không đọc được. */
+function toMillis(value: Date | string | null | undefined): number | null {
+  if (value == null) return null;
+  const t = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * Email của tài khoản có ĐỦ DÙNG cho hành động nhạy cảm không?
+ *
+ * True nếu đã xác minh, HOẶC chưa xác minh nhưng còn trong cửa sổ ân hạn tính từ
+ * `createdAt`. Fail SAFE cho người dùng thật: `createdAt` không đọc được (dữ liệu
+ * lạ) thì coi như còn ân hạn - phía service vẫn có `requireRole`/`requireAuthor`
+ * chặn thật, hàm này chỉ thêm một lớp, không phải cổng duy nhất.
+ */
+export function emailUsable(
+  emailVerifiedAt: Date | string | null | undefined,
+  createdAt: Date | string | null | undefined,
+  now: Date | number = Date.now()
+): boolean {
+  if (toMillis(emailVerifiedAt) != null) return true;
+  const created = toMillis(createdAt);
+  if (created == null) return true;
+  const nowMs = typeof now === 'number' ? now : now.getTime();
+  return nowMs < created + EMAIL_VERIFY_GRACE_MS;
+}
+
+/**
+ * Ân hạn còn lại (ms) cho tài khoản CHƯA xác minh; 0 nếu đã xác minh hoặc đã hết
+ * hạn. Phục vụ đếm ngược trên giao diện - đừng dùng làm cổng, dùng `emailUsable`.
+ */
+export function emailGraceRemainingMs(
+  emailVerifiedAt: Date | string | null | undefined,
+  createdAt: Date | string | null | undefined,
+  now: Date | number = Date.now()
+): number {
+  if (toMillis(emailVerifiedAt) != null) return 0;
+  const created = toMillis(createdAt);
+  if (created == null) return 0;
+  const nowMs = typeof now === 'number' ? now : now.getTime();
+  return Math.max(0, created + EMAIL_VERIFY_GRACE_MS - nowMs);
+}

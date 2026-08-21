@@ -42,6 +42,33 @@
       `auth-service requireAdmin` so `role === 'ADMIN'` bằng đúng nên OWNER bị 403
       ở mã mời Con dấu. Đã đổi sang `hasAtLeastRole`. CÒN LẠI: nghiệm thu RBAC
       bằng mắt (dưới đây).
+- [x] **🟠 Hoàn thiện kiến trúc TÀI KHOẢN/ĐĂNG NHẬP — đợt 1: Xác minh email +
+      Đổi email an toàn** — ✅ CODE-COMPLETE 21/08 (phiên 15). Chi tiết ở mục "Đã
+      hoàn thành" dưới. Cổng chung sạch; auth 85 · content 44 · bundle 15. CHƯA
+      phát hành prod (deploy + cần `RESEND_API_KEY` trên Render để thư gửi thật;
+      nếu chưa đặt thì luồng vẫn không vỡ vì chặn MỀM). Quyết định chủ dự án: **chặn mềm
+      ân hạn 7 ngày**; sau ân hạn chưa xác minh thì chặn **đăng bài (AUTHOR ghi
+      Post) + nâng vai trò tự phục vụ (mã mời)** — KHÔNG đụng Con dấu (giữ ngoài
+      vùng trust-seal). Chuỗi: `@tsudev/types` (helper `emailUsable`, ân hạn 7d) →
+      `packages/db` (enum `EMAIL_CHANGE` + cột `AuthToken.newEmail` + migration;
+      seed `tsudev`→verified) → `auth-service` (`verify/resend`, `email/change`,
+      `confirm-email-change` + cổng `emailUsable` ở `invite/redeem`) →
+      `content-service` (cổng ở 3 route ghi Post) → frontend (profile: trạng thái/
+      đếm ngược/gửi lại/đổi email; trang confirm; mở 2 proxy allowlist; accounts
+      hiện ân hạn) → qa-test. Hạ tầng xác minh CƠ BẢN đã có sẵn (verify-email,
+      AuthToken, mailer Resend) — đợt này BỔ SUNG chứ không dựng lại.
+- [x] **🟠 Kiến trúc TÀI KHOẢN — đợt 2: Nhật ký bảo mật (audit log)** — ✅
+      CODE-COMPLETE 21/08 (phiên 15). Chi tiết ở mục "Đã hoàn thành" dưới. Cổng
+      chung sạch; auth **91** · bundle 15. CHƯA phát hành prod (migrate Neon +
+      deploy). Quyết định chủ dự án: ghi ĐẦY ĐỦ (gồm IP + User-Agent), làm CẢ
+      HAI bề mặt (user "Hoạt động gần đây" + console OWNER xuyên tài khoản). **Tách
+      model `SecurityEvent` RIÊNG** (không đổ vào `TrustAuditLog` vì trust-service
+      dùng nặng + console `/api/trust/admin/audit` sẽ ngập nếu chứa mọi lượt đăng
+      nhập). Sự kiện admin/vai trò (invite/useradmin) giữ nguyên ở TrustAuditLog.
+      Chuỗi: `packages/db` (model + migration) → `auth-service` (helper `logSecurity` + ghi ở các điểm: login, đăng ký, đổi/đặt lại mật khẩu, xác minh/đổi email,
+      bật/tắt 2FA, thêm/xoá passkey; 2 endpoint đọc: own + OWNER) → frontend
+      (/settings/security mục "Hoạt động gần đây" + trang /admin/security + proxy)
+      → qa-test. Prune 90 ngày.
 - [ ] **🟡 Nghiệm thu RBAC bằng MẮT NGƯỜI trên prod** — tsudev (OWNER) tạo tài
       khoản thử từng vai trò qua `/admin/accounts` (mật khẩu tự đặt, xoá sau),
       đối chiếu ma trận: OWNER=mọi thứ · ADMIN=admin nhưng KHÔNG accounts ·
@@ -56,7 +83,8 @@
       **(a)** ✅ link "Viết bài"→`/author` ở header (SiteHeader NAV, gác
       `needsAuthor` = `hasAtLeastRole(role,'AUTHOR')`, ẩn với người chưa đủ quyền
       — giấu link, KHÔNG phải cổng; hiện cả nav desktop lẫn di động) — HOÀN THÀNH
-      21/08 (phiên 15); **(b)** phát hành prod (deploy) — CHƯA; **(c)** e2e tuỳ chọn.
+      21/08 (phiên 15), **PR #45 merged** (`12c67a6`); **(b)** phát hành prod
+      (deploy) — CHƯA; **(c)** e2e tuỳ chọn.
 - [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** — phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa". Nay đã có công
       cụ: `npm --workspace packages/ui run storybook`, nút **Giao diện** đổi ba
       chế độ ngay trên thanh công cụ.
@@ -69,13 +97,63 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Nhật ký bảo mật (đợt 2 kiến trúc tài khoản)** (phiên 15, chuỗi
+  `data-schema`→`auth-service`→`frontend-web`). **Model `SecurityEvent` RIÊNG**
+  (tách khỏi `TrustAuditLog` vì trust-service dùng nặng + console Con dấu sẽ ngập
+  nếu chứa mọi lượt đăng nhập) + migration `20260821163458_add_security_event`.
+  Ghi ĐẦY ĐỦ IP + User-Agent.
+  - **auth-service**: helper `logSecurity` (fire-and-forget, prune 90 ngày ngay ở
+    đường ghi — Render free không có cron thường trực). Điểm ghi: `login`
+    (mật khẩu + passkey), `account_created`, `email_verified`, `password_change`,
+    `password_reset`, `email_change_request`, `email_changed`, `totp_enabled`,
+    `totp_disabled`, `passkey_added`, `passkey_removed`, `role_changed`,
+    `sessions_revoked`. Hành động admin ghi vào timeline của TARGET, `byAdmin`+
+    `actorName`. Hai endpoint đọc: `security/events` (own, 50) và
+    `useradmin/security` (OWNER, 200, xuyên tài khoản, kèm username).
+  - **frontend**: component dùng chung `SecurityEventList` (nhãn loại sự kiện +
+    rút gọn UA→"Trình duyệt · OS"); `/settings/security` thêm mục "Hoạt động gần
+    đây"; trang mới `/admin/security` (OWNER-gated, bám phản hồi 401/403) + thẻ ở
+    `/admin`; mở proxy allowlist (`security/events`, `useradmin/security`).
+  - **Test**: `securityLog.test.ts` (6) — ghi kèm IP · phạm vi đọc own vs OWNER ·
+    người thường 403 · hành động admin vào timeline target. Nghiệm thu:
+    typecheck·lint·format·topology·tokens sạch; auth **91/91**, bundle **15/15**.
+    CHƯA phát hành prod.
+- 21/08/2026 — **Xác minh email + Đổi email an toàn (đợt 1 kiến trúc tài khoản)**
+  (phiên 15, chuỗi xuyên vùng một phiên điều phối). Hạ tầng xác minh CƠ BẢN đã có
+  sẵn (register→verify-email, AuthToken, mailer Resend) — đợt này BỔ SUNG:
+  - **Chặn MỀM ân hạn 7 ngày**: helper thuần `emailUsable`/`emailGraceRemainingMs`
+    - `EMAIL_VERIFY_GRACE_DAYS=7` ở `@tsudev/types` (một nguồn, ba nơi dùng). Chưa
+      xác minh + quá 7 ngày ⇒ chặn **đăng bài** (content-service `requireVerifiedAuthor`
+      ở POST/PATCH/DELETE `/api/author/posts`; đọc list/get VẪN mở) và **nâng vai
+      trò tự phục vụ** (auth-service cổng ở `invite/redeem`, TRƯỚC khi xét mã). KHÔNG
+      đụng Con dấu (ngoài vùng trust-seal, theo quyết định).
+  - **Gửi lại xác minh**: `POST /api/identity/verify/resend` (auth), no-op nếu đã
+    xác minh, cooldown 60s chống dội thư.
+  - **Đổi email hai bước "xác minh trước, thay sau"**: `email/change` (auth, đòi
+    mật khẩu; địa chỉ đã có chủ ⇒ phản hồi giống nhau chống dò, không phát token)
+    → token `EMAIL_CHANGE` mang `newEmail`, gửi thư tới địa chỉ MỚI →
+    `confirm-email-change` (công khai, token) đổi email + set verified + **tăng
+    sessionVersion** (đá phiên) + báo địa chỉ CŨ. Xử lý địa chỉ bị chiếm giữa
+    chừng ⇒ 409.
+  - **Data**: enum `AuthTokenPurpose.EMAIL_CHANGE` + cột `AuthToken.newEmail` +
+    migration `20260821160912_add_email_change_token` (áp sạch local); seed
+    `tsudev`(OWNER)→`emailVerifiedAt` (dứt điểm "chưa xác minh" ở /admin/accounts).
+  - **Frontend**: `/settings/profile` thêm mục "Email và xác minh" (badge trạng
+    thái + đếm ngược ân hạn + nút gửi lại + form đổi email); trang
+    `/confirm-email-change`; mở proxy allowlist (`verify/resend`,`email/change` ở
+    account; `confirm-email-change` ở identity); `/admin/accounts` hiện "còn ân
+    hạn/quá hạn".
+  - **Test**: auth `emailChange.test.ts` (11) + content `emailVerifyGate.test.ts`
+    (7). Nghiệm thu: typecheck·lint·format·topology·tokens sạch; auth **85/85**,
+    content **44/44**, bundle **15/15**. CHƯA phát hành prod (deploy + `RESEND_API_KEY`).
 - 21/08/2026 — **Link "Viết bài"→`/author` ở header** (phiên 15, vùng
   design-system). `SiteHeader` NAV thêm mục gác `needsAuthor`; điều kiện hiện =
   `hasAtLeastRole(session.role,'AUTHOR')` (mirror `useCanSeeTrust`) — giấu link
   cho người chưa đủ quyền, KHÔNG phải cổng (cổng thật là `requireAuthor` của
   content-service). Hiện ở cả nav desktop và di động (cùng mảng `nav`). Nghiệm
   thu: typecheck·lint·format·tokens sạch; `packages/ui` 199/199. Đóng mục (a) của
-  editor AUTHOR. CHƯA phát hành.
+  editor AUTHOR. **PR #45 đã MERGED vào `main`** (`12c67a6`, commit `79f9ad3`);
+  nhánh đã xóa. CHƯA deploy prod (mục (b)).
 - 21/08/2026 — **Editor AUTHOR (đăng/sửa bài của chính mình)** (phiên 15). Chuỗi
   `backend-api`→`frontend-web` (kèm chạm `backend-bundle`/test). content-service:
   5 route `/api/author/posts` gác `requireAuthor` (`hasAtLeastRole(role,'AUTHOR')`,

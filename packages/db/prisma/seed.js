@@ -11,14 +11,19 @@ async function main() {
   // tài khoản tsudev đã tồn tại từ đợt seed cũ với role ADMIN, nên phải nâng nó
   // ở nhánh update, không chỉ nhánh create. Đây là đường DUY NHẤT cấp OWNER -
   // không endpoint dữ liệu nào cấp được bậc này.
+  // tsudev do người vận hành kiểm soát, gắn với hộp thư thật; seed nó là đã xác
+  // minh - đây là tài khoản gốc, không đi qua luồng đăng ký nên không có token
+  // xác minh nào. Đặt ở CẢ create lẫn update vì tài khoản đã tồn tại từ đợt seed
+  // cũ (emailVerifiedAt = NULL), cùng lý do với role.
   const admin = await prisma.user.upsert({
     where: { username: 'tsudev' },
-    update: { role: 'OWNER' },
+    update: { role: 'OWNER', emailVerifiedAt: new Date() },
     create: {
       username: 'tsudev',
       email: 'devnguyentrangtinhsu@gmail.com',
       displayName: 'Nguyễn Trang Tình Sử',
       role: 'OWNER',
+      emailVerifiedAt: new Date(),
       bio: 'Founder của tsudev - Decoding the Future, One Commit at a Time.',
     },
   })

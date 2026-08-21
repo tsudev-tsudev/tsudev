@@ -65,6 +65,7 @@ model User {
   totp          TotpCredential?
   backupCodes   BackupCode[]
   authTokens    AuthToken[]
+  securityEvents SecurityEvent[]
 
   trustInviteRedemptions TrustInviteRedemption[]
 }
@@ -135,6 +136,9 @@ model BackupCode {
 enum AuthTokenPurpose {
   EMAIL_VERIFY
   PASSWORD_RESET
+  /// Đổi email: token gửi tới địa chỉ MỚI, tiêu token thì mới thay `User.email`.
+  /// Địa chỉ đích nằm ở `AuthToken.newEmail` - xác minh trước, thay sau.
+  EMAIL_CHANGE
 }
 
 /// Token một lần gửi qua email.
@@ -146,6 +150,11 @@ model AuthToken {
   /// HASH của token, không phải token. Rò một bản sao DB thì không được phép
   /// biến thành khả năng đặt lại mật khẩu của mọi tài khoản đang chờ.
   tokenHash String           @unique
+  /// Chỉ dùng với purpose EMAIL_CHANGE: địa chỉ email MỚI đang chờ xác minh.
+  /// NULL với các purpose khác. Lưu ở token (không phải ở User) để email hiện
+  /// tại không bị đổi trước khi chủ tài khoản chứng minh quyền kiểm soát địa chỉ
+  /// mới - "xác minh trước, thay sau".
+  newEmail  String?
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime         @default(now())
@@ -187,6 +196,36 @@ model LoginAttempt {
   createdAt  DateTime @default(now())
 
   @@index([identifier, createdAt])
+  @@index([createdAt])
+}
+
+/// Nhật ký sự kiện bảo mật của tài khoản: đăng nhập, đổi mật khẩu/email, bật/tắt
+/// 2FA, thêm/xoá passkey. Bề mặt cho chính chủ ("Hoạt động gần đây") và cho OWNER
+/// (console xuyên tài khoản).
+///
+/// TÁCH RIÊNG khỏi `TrustAuditLog` có chủ đích: TrustAuditLog phục vụ trách nhiệm
+/// pháp lý của Con dấu và có console OWNER đọc 100 dòng gần nhất - đổ mọi lượt
+/// đăng nhập vào đó sẽ nhấn chìm sự kiện Con dấu. Sự kiện admin/vai trò
+/// (invite.*, user.*) vẫn ở TrustAuditLog; bảng này chỉ giữ sự kiện tự-phục-vụ.
+model SecurityEvent {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Ai THỰC HIỆN, nếu khác chủ tài khoản (OWNER thao tác lên user khác). NULL =
+  /// chính chủ. Lưu kèm `actorName` để hiện được mà không cần join.
+  actorId   String?
+  actorName String?
+  /// Mã sự kiện ổn định: 'login', 'password_change', 'email_changed'... Chuỗi
+  /// chứ không enum - thêm loại sự kiện là dữ liệu, không phải migration.
+  type      String
+  /// IP và User-Agent của người gây ra sự kiện, để chủ tài khoản nhận ra đăng
+  /// nhập bất thường. Dữ liệu cá nhân - chỉ chủ tài khoản và OWNER đọc được.
+  ip        String?
+  userAgent String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
   @@index([createdAt])
 }
 

@@ -4,6 +4,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { Layout, Card, Button, Badge, SectionHeading } from '@tsudev/ui';
 import type { BadgeTone } from '@tsudev/ui';
 import { formatDateTimeVN } from '../../lib/format';
+import { emailGraceRemainingMs } from '@tsudev/types';
 
 // Trang quản lý tài khoản & phân quyền - CHỈ tài khoản OWNER (tsudev) dùng được.
 //
@@ -292,7 +293,10 @@ export default function AdminAccounts() {
                     <div className="font-medium text-fg">{u.displayName || u.username}</div>
                     <div className="text-fg-muted">
                       @{u.username} · {u.email}
-                      {!u.emailVerified && ' · chưa xác minh'}
+                      {!u.emailVerified &&
+                        (emailGraceRemainingMs(null, u.createdAt) > 0
+                          ? ' · chưa xác minh (còn ân hạn)'
+                          : ' · chưa xác minh (quá hạn)')}
                     </div>
                   </td>
                   <td className="px-4 py-3">

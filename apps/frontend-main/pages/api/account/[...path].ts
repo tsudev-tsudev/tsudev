@@ -19,6 +19,15 @@ const ALLOWED = new Set([
   'profile/get',
   'profile/update',
   'password/change',
+  // Gửi lại email xác minh + yêu cầu đổi email (đòi mật khẩu). Xác nhận đổi email
+  // đi qua proxy CÔNG KHAI (confirm-email-change) vì lúc bấm liên kết có thể chưa
+  // đăng nhập.
+  'verify/resend',
+  'email/change',
+  // Nhật ký bảo mật: của chính mình, và console OWNER xuyên tài khoản
+  // (useradmin/security tự kiểm OWNER ở auth-service).
+  'security/events',
+  'useradmin/security',
   'totp/setup',
   'totp/confirm',
   'totp/disable',

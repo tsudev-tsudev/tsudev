@@ -17,7 +17,7 @@ import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Respon
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
 import type { Post, Prisma, Project, User } from '@prisma/client'
-import { hasAtLeastRole } from '@tsudev/types'
+import { hasAtLeastRole, emailUsable } from '@tsudev/types'
 
 type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
 
@@ -504,6 +504,22 @@ async function requireAuthor(req: Request, res: Response): Promise<User | null> 
   return user
 }
 
+/**
+ * requireAuthor + email ĐỦ DÙNG. Dùng cho đường GHI Post (tạo/sửa/xoá): chưa xác
+ * minh mà đã quá ân hạn thì chặn. Đường ĐỌC (list/get) vẫn dùng requireAuthor -
+ * xem được bản nháp của mình dù chưa xác minh là vô hại. Ngưỡng ân hạn sống một
+ * chỗ ở @tsudev/types, khớp với cổng nâng vai trò ở auth-service.
+ */
+async function requireVerifiedAuthor(req: Request, res: Response): Promise<User | null> {
+  const me = await requireAuthor(req, res)
+  if (!me) return null
+  if (!emailUsable(me.emailVerifiedAt, me.createdAt)) {
+    res.status(403).json({ error: 'email_unverified' })
+    return null
+  }
+  return me
+}
+
 // Suy slug từ tiêu đề tiếng Việt: bỏ dấu (NFD tách dấu ra rồi xoá), đ→d, gom
 // mọi thứ không phải [a-z0-9] thành gạch nối. Kết quả vẫn được SLUG_RE kiểm lại.
 const slugify = (s: string): string =>
@@ -602,7 +618,7 @@ app.get(
 app.post(
   '/api/author/posts',
   asyncHandler(async (req, res) => {
-    const me = await requireAuthor(req, res)
+    const me = await requireVerifiedAuthor(req, res)
     if (!me) return
     const parsed = readPostBody(req.body, { partial: false })
     if (!parsed.ok) return res.status(400).json({ error: parsed.error })
@@ -655,7 +671,7 @@ app.get(
 app.patch(
   '/api/author/posts/:slug',
   asyncHandler(async (req, res) => {
-    const me = await requireAuthor(req, res)
+    const me = await requireVerifiedAuthor(req, res)
     if (!me) return
     const current = await findOwnPost(req.params.slug, me.id)
     if (!current) return res.status(404).json({ error: 'Không tìm thấy bài của bạn' })
@@ -678,7 +694,7 @@ app.patch(
 app.delete(
   '/api/author/posts/:slug',
   asyncHandler(async (req, res) => {
-    const me = await requireAuthor(req, res)
+    const me = await requireVerifiedAuthor(req, res)
     if (!me) return
     const current = await findOwnPost(req.params.slug, me.id)
     if (!current) return res.status(404).json({ error: 'Không tìm thấy bài của bạn' })

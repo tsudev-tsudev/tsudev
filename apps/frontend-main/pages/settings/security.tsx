@@ -6,6 +6,7 @@ import { Button, Input, Layout } from '@tsudev/ui';
 import Seo from '../../components/Seo';
 import { Notice } from '../../components/AuthShell';
 import { formatDateVN } from '../../lib/format';
+import { SecurityEventList, type SecurityEvent } from '../../components/SecurityEventList';
 
 /**
  * Bảo mật tài khoản: bật 2FA và quản lý passkey.
@@ -48,14 +49,25 @@ export default function SecurityPage() {
   const [keys, setKeys] = useState<Passkey[]>([]);
   const [label, setLabel] = useState('');
 
+  // --- Nhật ký bảo mật ---
+  const [events, setEvents] = useState<SecurityEvent[]>([]);
+
   const refreshKeys = useCallback(async () => {
     const { ok, data } = await post('passkey/list');
     if (ok && Array.isArray(data)) setKeys(data as unknown as Passkey[]);
   }, []);
 
+  const refreshEvents = useCallback(async () => {
+    const { ok, data } = await post('security/events');
+    if (ok && Array.isArray(data)) setEvents(data as unknown as SecurityEvent[]);
+  }, []);
+
   useEffect(() => {
-    if (status === 'authenticated') refreshKeys();
-  }, [status, refreshKeys]);
+    if (status === 'authenticated') {
+      refreshKeys();
+      refreshEvents();
+    }
+  }, [status, refreshKeys, refreshEvents]);
 
   // `noindex` phải có ở CẢ hai nhánh chưa-đăng-nhập. Trình thu thập của công cụ
   // tìm kiếm KHÔNG BAO GIỜ có phiên, nên trạng thái duy nhất nó nhìn thấy chính
@@ -105,6 +117,7 @@ export default function SecurityPage() {
     setSetupSecret('');
     setCode('');
     setMsg({ kind: 'ok', text: 'Đã bật xác thực hai bước.' });
+    refreshEvents();
   };
 
   const disableTotp = async () => {
@@ -115,6 +128,7 @@ export default function SecurityPage() {
         ? { kind: 'ok', text: 'Đã tắt xác thực hai bước.' }
         : { kind: 'error', text: 'Mật khẩu không đúng.' }
     );
+    if (ok) refreshEvents();
   };
 
   const addPasskey = async () => {
@@ -133,6 +147,7 @@ export default function SecurityPage() {
       setLabel('');
       setMsg({ kind: 'ok', text: 'Đã thêm passkey.' });
       refreshKeys();
+      refreshEvents();
     } catch (err) {
       const name = (err as { name?: string })?.name;
       // Huỷ trên hộp thoại hệ điều hành không phải lỗi.
@@ -145,6 +160,7 @@ export default function SecurityPage() {
   const removePasskey = async (id: string) => {
     await post('passkey/delete', { id });
     refreshKeys();
+    refreshEvents();
   };
 
   return (
@@ -265,6 +281,14 @@ export default function SecurityPage() {
                 </div>
               </>
             )}
+          </Section>
+
+          <Section title="Hoạt động gần đây">
+            <p className="mb-3 text-sm text-fg-muted">
+              Các sự kiện bảo mật của tài khoản (đăng nhập, đổi mật khẩu/email, 2FA, passkey). Thấy
+              hoạt động lạ thì đổi mật khẩu ngay - nó sẽ đăng xuất mọi thiết bị.
+            </p>
+            <SecurityEventList events={events} />
           </Section>
         </div>
       </div>
