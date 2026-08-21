@@ -110,9 +110,12 @@
     self/external) → né lỗi prerender tĩnh. `next.config.js` bỏ CSP (giữ header tĩnh
     khác). Test `csp.test.ts` (7): hash khớp nguồn (drift-guard) · nonce đổi mỗi
     request · beacon · không unsafe-inline · dev không CSP · redirect không CSP.
-    **Nghiệm thu local** (`next build && next start`): /login,/signup (tĩnh),/blog
-    (động) đều `script-src 'self' 'sha256-…' 'nonce-<đổi>' cloudflareinsights`. CHƯA
-    phát hành (đang vào luồng PR→deploy).
+    **ĐÃ PHÁT HÀNH prod** (PR #57, Version `19422ca7`). Nghiệm thu prod: header có
+    hash+nonce+beacon, 0 unsafe-inline; và **script JSD của CF nay MANG `nonce` KHỚP
+    nonce trong CSP header** (vd /admin `ksgSYI08…` = `<script nonce="ksgSYI08…">`) -
+    chính script trước bị chặn nay được nonce hợp lệ phủ, đúng như tài liệu CF. Lỗi
+    hết ở tầng HTML/header. CÒN LẠI (mắt người): DevTools prod /admin,/login Console
+    phải sạch dòng CSP vi phạm.
 - 22/08/2026 - **PHÁT HÀNH prod: ép CSP (băm) + en-dash - LIVE** (phiên 16). PR #55
   CI 6/6 xanh → merged vào `main` (`b785994`) → deploy Cloudflare qua
   `scripts/deploy-frontend.js` (**Version `e000fe9b`**, `.env.local` được dời khỏi
