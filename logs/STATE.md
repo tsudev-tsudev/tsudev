@@ -25,11 +25,11 @@
       `docs/token-upstream-proposal.md` (hai mã màu không đạt WCAG, số đo đầy đủ)
       và `docs/structure-upstream-proposal.md` (thêm hình trạng monorepo). Cả hai
       dán thẳng vào issue được, không phải đo/soạn lại.
-- [ ] **🟠 Cân nhắc xoay `NEWSROOM_TICK_TOKEN`** — `wrangler deploy` in nguyên giá
-      trị token ra terminal phiên 9. Không vào git, nhưng đã nằm trong scrollback.
-      Xoay thì đổi **đồng thời** ở Render và `npm run cron:secret`; lệch nhau là mỗi
-      nhịp giờ trả 401 và toà soạn đứng yên không có gì đỏ lên. Chi tiết: phiếu
-      20260820-05 §2.3.
+- [x] **🟠 Xoay `NEWSROOM_TICK_TOKEN`** — ✅ HOÀN THÀNH 21/08 (phiên 12). Token cũ
+      `mB50…` (lộ scrollback phiên 9) đã vô hiệu. Đổi đồng thời cả ba chỗ (Render
+      `tsudev-backend`, Worker `tsudev-newsroom-cron`, backup). Nghiệm thu: curl
+      Render 202, `newsroom:check` AgentRun 237 → 240. **Bài học**: base64 có `=`/`-`/`_`
+      hay bị form web cắt khi dán → dùng `openssl rand -hex 32` (không ký tự đặc biệt).
 - [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** — phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa". Nay đã có công
       cụ: `npm --workspace packages/ui run storybook`, nút **Giao diện** đổi ba
       chế độ ngay trên thanh công cụ.

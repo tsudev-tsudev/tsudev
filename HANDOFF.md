@@ -101,12 +101,16 @@ theo bẫy §5 phiếu 20260821-01 - lần này đầu vào ĐÃ đổi đúng n
   `/admin/newsroom`. Nghiệm thu `npm run newsroom:check`: AgentRun **220 → 224**
   trong một tick (+4 lượt). Không đọc "đã bấm" thành "đang chạy" - đếm AgentRun
   là bằng chứng.
-- **Xoay `NEWSROOM_TICK_TOKEN`**: chỉ soạn quy trình cho chủ dự án (cần Render
-  dashboard + `wrangler` tương tác). Cửa sổ an toàn: tick THẬT chạy mỗi giờ ở
-  phút 7 (cron `7 0-17,23 * * *`); `*/5` chỉ là nhịp giữ ấm. Đổi cả hai đầu trong
-  cùng một giờ giữa hai lượt phút-7 thì không mất lượt nào. So khớp là bằng
-  chuỗi thô qua header `x-newsroom-token` - không có cơ chế hai-token, nên lệch
-  đầu nào cũng 401 câm cho tới khi đầu kia theo kịp.
+- **Xoay `NEWSROOM_TICK_TOKEN` XONG** (chủ dự án thao tác, ta chẩn đoán): token
+  cũ `mB50…` lộ scrollback phiên 9 nay vô hiệu. Đặt token mới đồng thời ở BA chỗ
+  - Render `tsudev-backend`, Worker `tsudev-newsroom-cron`, `backup/…`. Nghiệm
+    thu: curl Render 202, `newsroom:check` AgentRun 237 → 240. **Hai bài học trả
+    giá** (§0.7): (1) token base64 kết thúc `=` + chứa `-`/`_` bị form web Render
+    **cắt/thêm ký tự khi dán** ⇒ 401 câm trông y hệt "đã đổi"; đổi sang
+    `openssl rand -hex 32` (không dấu đặc biệt) thì hết. (2) `newsroom:check` gửi
+    token từ backup, KHÔNG qua cron, nên 401 của nó chỉ chứng minh "backup ≠
+    Render"; muốn biết đầu Render đúng chưa phải **curl thẳng Render**, đừng suy
+    từ script. So khớp bằng chuỗi thô qua `x-newsroom-token`, không có hai-token.
 
 Hàng đợi việc agent làm được: **cạn**. Còn lại toàn bộ chờ chủ dự án (GitHub
 billing, gửi hai gói đẩy ngược lên repo trung tâm, xoay token nếu muốn, rà giao
