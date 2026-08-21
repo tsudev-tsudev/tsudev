@@ -49,6 +49,10 @@ export default function ResetPasswordPage() {
         setError(
           data?.error === 'invalid_token'
             ? 'Liên kết đã hết hạn hoặc đã được dùng. Hãy yêu cầu một liên kết mới.'
+            : data?.detail === 'breached'
+            ? 'Mật khẩu này từng xuất hiện trong các vụ rò rỉ dữ liệu. Hãy chọn mật khẩu khác.'
+            : data?.error === 'weak_password'
+            ? 'Mật khẩu chưa đủ mạnh. Cần ít nhất 12 ký tự và không nằm trong danh sách phổ biến.'
             : 'Không đặt lại được mật khẩu. Hãy thử lại.'
         );
         return;

@@ -18,7 +18,13 @@ import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
 import { hasAtLeastRole, emailUsable } from '@tsudev/types'
 import { createHash } from 'crypto'
 
-import { checkPasswordPolicy, hashPassword, verifyPassword, burnTiming } from './password'
+import {
+  checkPasswordPolicy,
+  hashPassword,
+  verifyPassword,
+  burnTiming,
+  isPasswordBreached,
+} from './password'
 import { issueToken, consumeToken, consumeEmailChange, constantTimeEqual } from './tokens'
 import { loginOptions, loginVerify, registerOptions, registerVerify } from './passkey'
 import {
@@ -107,6 +113,8 @@ app.post(
     }
     const pwProblem = checkPasswordPolicy(password)
     if (pwProblem) return res.status(400).json({ error: 'weak_password', detail: pwProblem })
+    if (await isPasswordBreached(password))
+      return res.status(400).json({ error: 'weak_password', detail: 'breached' })
 
     // Tên đăng nhập bị chiếm thì PHẢI nói thẳng - người dùng cần chọn tên khác,
     // và tên đăng nhập vốn công khai trên site nên không có gì để giấu.
@@ -305,6 +313,8 @@ app.post(
     const password = str(req.body?.password, 400)
     const pwProblem = checkPasswordPolicy(password)
     if (pwProblem) return res.status(400).json({ error: 'weak_password', detail: pwProblem })
+    if (await isPasswordBreached(password))
+      return res.status(400).json({ error: 'weak_password', detail: 'breached' })
 
     const userId = await consumeToken(str(req.body?.token, 200), 'PASSWORD_RESET')
     if (!userId) return res.status(400).json({ error: 'invalid_token' })
@@ -889,6 +899,8 @@ app.post(
 
     const problem = checkPasswordPolicy(next)
     if (problem) return res.status(400).json({ error: 'weak_password', detail: problem })
+    if (await isPasswordBreached(next))
+      return res.status(400).json({ error: 'weak_password', detail: 'breached' })
 
     const saved = await prisma.user.update({
       where: { id: user.id },
@@ -1427,6 +1439,8 @@ app.post(
     if (!isAssignableRole(role)) return res.status(400).json({ error: 'invalid_role' })
     const pwProblem = checkPasswordPolicy(password)
     if (pwProblem) return res.status(400).json({ error: 'weak_password', detail: pwProblem })
+    if (await isPasswordBreached(password))
+      return res.status(400).json({ error: 'weak_password', detail: 'breached' })
 
     // Công cụ quản trị nội bộ: nói thẳng khi trùng. Khác form đăng ký công khai
     // (nơi trùng email bị giấu để không thành máy dò tài khoản) - ở đây chỉ OWNER

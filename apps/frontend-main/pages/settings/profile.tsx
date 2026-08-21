@@ -61,12 +61,14 @@ const SESSION_EXPIRED = 'Phiên đăng nhập không còn hợp lệ. Hãy đăn
 const saveError = (status: number): string =>
   status === 401 ? SESSION_EXPIRED : 'Không lưu được. Hãy thử lại.';
 
-const passwordError = (status: number, code: string): string => {
+const passwordError = (status: number, code: string, detail?: string): string => {
   if (code === 'no_password_set') {
     return 'Tài khoản này chưa từng đặt mật khẩu. Hãy dùng "Quên mật khẩu" để đặt lần đầu.';
   }
   if (code === 'weak_password') {
-    return 'Mật khẩu mới chưa đủ mạnh. Cần ít nhất 12 ký tự và không nằm trong danh sách phổ biến.';
+    return detail === 'breached'
+      ? 'Mật khẩu này từng xuất hiện trong các vụ rò rỉ dữ liệu. Hãy chọn mật khẩu khác.'
+      : 'Mật khẩu mới chưa đủ mạnh. Cần ít nhất 12 ký tự và không nằm trong danh sách phổ biến.';
   }
   // 401 có HAI nguồn nói hai chuyện khác nhau: `invalid_credentials` là
   // auth-service đã kiểm mật khẩu và từ chối; mọi 401 khác nghĩa là request chưa
@@ -189,7 +191,10 @@ export default function ProfilePage() {
     setChanging(false);
 
     if (!ok) {
-      setMsg({ kind: 'error', text: passwordError(httpStatus, String(data.error || '')) });
+      setMsg({
+        kind: 'error',
+        text: passwordError(httpStatus, String(data.error || ''), String(data.detail || '')),
+      });
       return;
     }
 

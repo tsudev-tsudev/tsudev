@@ -49,7 +49,11 @@ export default function SignupPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(ERROR_TEXT[data?.error] ?? 'Không tạo được tài khoản. Hãy thử lại.');
+        setError(
+          data?.detail === 'breached'
+            ? 'Mật khẩu này từng xuất hiện trong các vụ rò rỉ dữ liệu. Hãy chọn mật khẩu khác.'
+            : ERROR_TEXT[data?.error] ?? 'Không tạo được tài khoản. Hãy thử lại.'
+        );
         return;
       }
       setDone(true);
