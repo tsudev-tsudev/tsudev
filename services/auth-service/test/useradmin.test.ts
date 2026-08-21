@@ -9,6 +9,13 @@
 //     bậc cao nhất, nếu không thì ai ghi được vào bảng role là tự cấp OWNER.
 //  3. Không thao tác được lên tài khoản OWNER, và không tự hạ/tự xoá chính mình.
 //  4. passwordHash không bao giờ ra khỏi service.
+//
+// `export {}` biến tệp thành MODULE: các `const` ở đầu tệp (request, prisma,
+// app, post, ADMIN, MEMBER…) trùng tên với invite.test.ts. Nếu cả hai là script
+// (global scope) thì trình biên dịch báo TS6200 "trùng định nghĩa" khi gộp
+// chương trình, và `post` bị giải nhầm sang bản của invite.test.ts (sub: string)
+// gây tiếp TS2345 ở lời gọi `post('list', null)`. Module hoá là dập cả hai.
+export {}
 process.env.NODE_ENV = 'test'
 process.env.INTERNAL_IDENTITY_SECRET = 'khoa-test-du-dai-cho-hmac-256-bit!!'
 delete process.env.INTERNAL_API_TOKEN
