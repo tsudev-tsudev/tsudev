@@ -1,9 +1,9 @@
 # STATE.md — Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 10 bắt đầu ở đây**: đọc
-> [`logs/handover/20260820-05`](handover/20260820-05_phat-hanh-phien-9.md) — phiếu
-> vào cửa duy nhất. Chuỗi phát hành đã chạy xong bước 1 và 2; **bước 3 chỉ chủ dự
-> án bấm được** (nút "Hồi sinh việc đã dừng" ở `/admin/newsroom`).
+> **Phiên 12 bắt đầu ở đây**: đọc
+> [`logs/handover/20260821-01`](handover/20260821-01_ket-phien-11.md) — phiếu vào
+> cửa duy nhất. Hàng đợi việc agent làm được **đã cạn**; mọi mục còn lại cần MẮT
+> NGƯỜI hoặc thao tác/QUYẾT ĐỊNH của chủ dự án (bắt đầu: bấm Merge PR #38).
 
 ## Hàng đợi task (làm từ trên xuống)
 
@@ -165,7 +165,8 @@
 
 | Mã                                                                  | Chủ đề                                      | Trạng thái |
 | ------------------------------------------------------------------- | ------------------------------------------- | ---------- |
-| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ | **MỞ**     |
+| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 — gộp #37, mở PR #38           | **MỞ**     |
+| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 — sổ Neuron, Storybook, dọn nợ | HOÀN THÀNH |
 | [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production             | HOÀN THÀNH |
 | [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 — chuỗi phát hành               | HOÀN THÀNH |
 | [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM             | HOÀN THÀNH |
