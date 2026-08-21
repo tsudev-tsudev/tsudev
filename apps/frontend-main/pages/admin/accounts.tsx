@@ -325,11 +325,11 @@ export default function AdminAccounts() {
                   </td>
                   <td className="px-4 py-3 text-fg-secondary">{formatDateTimeVN(u.createdAt)}</td>
                   <td className="px-4 py-3 text-fg-secondary">
-                    {u.lastLoginAt ? formatDateTimeVN(u.lastLoginAt) : '—'}
+                    {u.lastLoginAt ? formatDateTimeVN(u.lastLoginAt) : '-'}
                   </td>
                   <td className="px-4 py-3">
                     {isOwner ? (
-                      <span className="text-fg-muted">—</span>
+                      <span className="text-fg-muted">-</span>
                     ) : (
                       <div className="flex gap-2">
                         <Button variant="secondary" size="sm" onClick={() => revoke(u)}>

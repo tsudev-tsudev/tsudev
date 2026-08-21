@@ -1,7 +1,7 @@
 # Đề xuất: quy ước cấu trúc thư mục cần một hình trạng thứ hai (monorepo)
 
 > **Trạng thái**: chờ gửi. Cùng loại với
-> [`token-upstream-proposal.md`](token-upstream-proposal.md) — gói dán thẳng được
+> [`token-upstream-proposal.md`](token-upstream-proposal.md) - gói dán thẳng được
 > vào issue của repo quy ước trung tâm.
 >
 > Đối tượng: `docs/PROJECT_STRUCTURE.md` v1.0.0 (file bất khả xâm phạm ở các repo
@@ -38,8 +38,8 @@ trong một app; `packages/` là thư viện có ranh giới build riêng. Ép c
 
 ## Đề xuất
 
-Thêm vào quy ước một mục "Hình trạng B — monorepo nhiều workspace", giữ nguyên
-mục hiện có làm "Hình trạng A — ứng dụng đơn". Repo tự khai mình theo hình trạng
+Thêm vào quy ước một mục "Hình trạng B - monorepo nhiều workspace", giữ nguyên
+mục hiện có làm "Hình trạng A - ứng dụng đơn". Repo tự khai mình theo hình trạng
 nào; mọi quy tắc KHÔNG phụ thuộc cây thư mục vẫn áp dụng cho cả hai:
 
 - quy tắc đặt tên (`kebab-case`, `camelCase`, `UPPER_SNAKE.md`…)
@@ -54,7 +54,7 @@ dùng chung (`packages/<tên>/`) thay vì `src/utils/`.
 
 ### Gợi ý cách diễn đạt
 
-> **Hình trạng B — monorepo.** Repo khai `workspaces` trong `package.json` (hoặc
+> **Hình trạng B - monorepo.** Repo khai `workspaces` trong `package.json` (hoặc
 > tương đương ở hệ khác) thì mỗi workspace là một đơn vị theo Hình trạng A thu
 > nhỏ: `<workspace>/src/…`. Gốc repo chỉ giữ thứ dùng chung cho toàn repo:
 > `docs/`, `logs/`, `tokens/`, `scripts/`, cấu hình build/CI. Không có `src/` ở
@@ -64,7 +64,7 @@ dùng chung (`packages/<tên>/`) thay vì `src/utils/`.
 
 Một repo lệch quy ước rồi ghi chú lại thì người đọc vẫn phải tin ghi chú đó.
 Hai repo lệch theo hai kiểu khác nhau thì quy ước thôi trả lời được câu hỏi
-"đặt file mới ở đâu" — mà đó là toàn bộ lý do nó tồn tại.
+"đặt file mới ở đâu" - mà đó là toàn bộ lý do nó tồn tại.
 
 Hiện tsudev-web đang ghi điểm lệch trong `docs/architecture.md` §"Điểm lệch cần
 biết". Nếu trung tâm nhận hình trạng B, đoạn đó rút xuống còn một dòng khai báo.

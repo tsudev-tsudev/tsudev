@@ -1,9 +1,9 @@
-# PHIẾU BÀN GIAO — Chuẩn hoá URL + van hạn mức LLM của Toà soạn
+# PHIẾU BÀN GIAO - Chuẩn hoá URL + van hạn mức LLM của Toà soạn
 
 - **Mã phiếu**: 20260820-03
-- **Từ**: phiên 8 (20/08/2026) — **Đến**: phiên 9
+- **Từ**: phiên 8 (20/08/2026) - **Đến**: phiên 9
 - **Thời điểm**: 18:10 20/08/2026
-- **Trạng thái**: HOÀN THÀNH — giữ lại làm **hồ sơ kỹ thuật** của hai đợt việc.
+- **Trạng thái**: HOÀN THÀNH - giữ lại làm **hồ sơ kỹ thuật** của hai đợt việc.
   Việc còn dở đã chuyển sang [`20260820-04`](20260820-04_ket-phien-8.md), là
   phiếu vào cửa của phiên 9.
 
@@ -16,13 +16,13 @@ Toàn bộ bản vá hạn mức nằm trong `services/newsroom-service`, tức 
 cũ.** Thứ tự:
 
 1. Trộn nhánh này (`refactor/giao-dien-quy-uoc-v1`) → Render tự dựng lại.
-2. Vào `/admin/newsroom`, bấm **"Hồi sinh việc đã dừng (N)"** — nút chỉ hiện khi
+2. Vào `/admin/newsroom`, bấm **"Hồi sinh việc đã dừng (N)"** - nút chỉ hiện khi
    có sự kiện `DEAD` và đang cạn hạn mức. Nó chỉ hồi sinh việc chết vì hạn mức;
    lỗi thật vẫn nằm nguyên ở `DEAD` để còn nhìn thấy mà sửa.
 3. Frontend cũng cần deploy (đổi middleware + trang chủ), qua
-   `scripts/deploy-frontend.js` — **đừng** gọi thẳng `opennextjs-cloudflare`.
+   `scripts/deploy-frontend.js` - **đừng** gọi thẳng `opennextjs-cloudflare`.
 
-### 1.2 ✅ ~~Quyết định về `GEMINI_API_KEY`~~ — XONG
+### 1.2 ✅ ~~Quyết định về `GEMINI_API_KEY`~~ - XONG
 
 Chủ dự án đã đặt ở Render ngày 20/08/2026. **Không** đặt ở Cloudflare Workers:
 Worker cron cố ý không chạm DB và không gọi LLM, frontend Worker cũng không -
@@ -30,16 +30,16 @@ Worker cron cố ý không chạm DB và không gọi LLM, frontend Worker cũng
 
 Ghi chú gốc, giữ lại làm bối cảnh: hiện production **chưa có** đường dự phòng (kiểm bằng banner mới ở
 `/admin/newsroom`: nếu thiếu thì nó nói thẳng). Không có nó thì mỗi ngày cạn
-Neuron là toà soạn **đứng im tới 00:00 UTC** — nay đứng im êm, không còn giết
+Neuron là toà soạn **đứng im tới 00:00 UTC** - nay đứng im êm, không còn giết
 bản nháp, nhưng vẫn là đứng im.
 
 Gemini bậc Free (project **chưa bật billing**) đủ dùng và tốn 0đ. Đặt ở Render:
 `GEMINI_API_KEY`. Xem `docs/free-tier.md`.
 
-### 1.3 🟠 Sổ Neuron của ta vẫn đếm THIẾU — lỗ hổng đã biết, chưa vá
+### 1.3 🟠 Sổ Neuron của ta vẫn đếm THIẾU - lỗ hổng đã biết, chưa vá
 
 `withRun()` chỉ ghi `neuronsUsed` ở nhánh THÀNH CÔNG. Một lượt gọi mô hình sinh
-xong chữ rồi hỏng ở khâu parse vẫn tiêu Neuron thật, mà sổ ghi 0 — và lỗ hổng
+xong chữ rồi hỏng ở khâu parse vẫn tiêu Neuron thật, mà sổ ghi 0 - và lỗ hổng
 này tập trung đúng vào đường hay hỏng nhất. Đó là một phần lý do sổ ta (~714/ngày
 đo hôm 19/08) lệch xa sổ Cloudflare (10.000).
 
@@ -52,9 +52,9 @@ ra ngoài cả khi người gọi ném lỗi, rồi ghi vào `AgentRun` ở nhá
 Mọi agent đang dùng `llama-3.3-70b` (204.805 Neuron/1tr token ra). Scout (lọc
 tiêu đề) và SEO không cần bậc đó; `llama-3.1-8b` rẻ hơn ~6 lần ở token ra. Model
 nằm ở `AgentProfile.model` (seed `packages/db/prisma/seed-newsroom.js`), đổi được
-mà không sửa mã. Cần đo chất lượng trước — đây là đề xuất, chưa làm.
+mà không sửa mã. Cần đo chất lượng trước - đây là đề xuất, chưa làm.
 
-### 1.5 🟡 `CLAUDE.md` nói "§0.7 ghi mười hai kỹ thuật" — nay là mười bốn
+### 1.5 🟡 `CLAUDE.md` nói "§0.7 ghi mười hai kỹ thuật" - nay là mười bốn
 
 Phiên 8 thêm hai mục vào `HANDOFF.md` §0.7. `CLAUDE.md` không được sửa giữa phiên
 (bust cache), nên con số ở đó đang cũ. Sửa ở đầu phiên sau, cùng lúc thêm một
@@ -71,7 +71,7 @@ dòng trỏ tới `docs/url-convention.md` trong mục Tài liệu.
 | **Khẳng định D** của `topology:check`: cấm in cổng nội bộ ra giao diện                   | `scripts/topology/check.js`                          |
 | Tài liệu quy ước URL (nguồn duy nhất trả lời "địa chỉ nào chính tắc")                    | `docs/url-convention.md`                             |
 
-**Kết luận quan trọng:** hình trạng URL vốn đã đúng — dev có MỘT điểm vào
+**Kết luận quan trọng:** hình trạng URL vốn đã đúng - dev có MỘT điểm vào
 (`http://tsudev.localhost:8080`, `mode: proxy` trong `config/topology.json`),
 production có MỘT tên miền. `:3000`, `:4001`–`:4005` chưa bao giờ là địa chỉ
 người dùng gõ; chúng chỉ **rò rỉ** ra ba chỗ, và phiên này bịt cả ba. Không đổi
@@ -81,7 +81,7 @@ Vì sao **không** hạ 8080 xuống 80 cho URL không có số cổng: cổng <
 trên Linux; chạy tiến trình dev dưới quyền root để đổi lấy URL đẹp là đánh đổi
 tồi, và `setcap` phải làm lại sau mỗi lần cập nhật Node.
 
-### B. Van hạn mức LLM — ba khiếm khuyết chồng nhau
+### B. Van hạn mức LLM - ba khiếm khuyết chồng nhau
 
 Triệu chứng: `/admin/newsroom` đầy dòng đỏ
 `AiError: AiError: you have used up your daily free allocation of 10,000 neurons`.
@@ -113,7 +113,7 @@ và `deadEvents`; bảng điều khiển hiện trạng thái vận hành thay v
 | `packages/ui` · `frontend-main`                                           | 199 · 29 xanh                |
 | `format:check` · `lint` · `typecheck` · `topology:check` · `tokens:check` | xanh                         |
 | `next build`                                                              | sạch                         |
-| GitHub Actions                                                            | **không chạy được** — xem §5 |
+| GitHub Actions                                                            | **không chạy được** - xem §5 |
 
 ⚠️ **E2E phải chạy `--workers=1`.** Chạy song song trên máy 4 nhân cho 18/20 với
 hai lỗi rải rác; chạy lại từng cái thì cả hai xanh, cả bộ tuần tự thì 20/20.
@@ -124,11 +124,11 @@ Flake do tải, nhưng nó trông y hệt hồi quy - đừng đọc kết quả
 | File                                          | Vai trò                                                       |
 | --------------------------------------------- | ------------------------------------------------------------- |
 | `services/newsroom-service/src/llm/index.ts`  | router + sổ hạn mức thật (`exhaustedToday`, `providerHealth`) |
-| `services/newsroom-service/src/llm/types.ts`  | `AllProvidersExhaustedError` — hoãn ≠ hỏng                    |
+| `services/newsroom-service/src/llm/types.ts`  | `AllProvidersExhaustedError` - hoãn ≠ hỏng                    |
 | `services/newsroom-service/src/dispatcher.ts` | nhánh HOÃN, `emitOncePerDay`, `reviveQuotaCasualties`         |
 | `apps/frontend-main/middleware.ts`            | host chính tắc ở production, cookie host ở dev                |
 | `scripts/topology/check.js`                   | khẳng định D                                                  |
-| `docs/url-convention.md`                      | quy ước URL — đọc trước khi thêm route hoặc tên miền          |
+| `docs/url-convention.md`                      | quy ước URL - đọc trước khi thêm route hoặc tên miền          |
 
 ## 5. Kết quả xử lý
 

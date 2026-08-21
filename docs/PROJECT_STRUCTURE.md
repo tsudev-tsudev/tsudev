@@ -1,12 +1,12 @@
-# CẤU TRÚC THƯ MỤC CHUẨN — mọi repo trong hệ sinh thái tuân theo
+# CẤU TRÚC THƯ MỤC CHUẨN - mọi repo trong hệ sinh thái tuân theo
 
 Mục tiêu: bất kỳ lập trình viên hoặc agent AI nào mở repo đều biết ngay file/biến/hàm nằm ở đâu.
 
 ```
 <ten-project>/
-├── AGENTS.md                  # Quy ước bắt buộc — agent đọc đầu mỗi phiên (KHÔNG SỬA)
+├── AGENTS.md                  # Quy ước bắt buộc - agent đọc đầu mỗi phiên (KHÔNG SỬA)
 ├── README.md                  # Giới thiệu ngắn + cách chạy trong 5 phút
-├── CHANGELOG.md               # Mỗi bản phát hành 1 dòng: 26.8.1901 — 19/08/2026 — nội dung
+├── CHANGELOG.md               # Mỗi bản phát hành 1 dòng: 26.8.1901 - 19/08/2026 - nội dung
 ├── .gitignore                 # Chuẩn tối thiểu, bổ sung liên tục theo AGENTS.md mục 3
 ├── .env.example               # Mẫu biến môi trường (KHÔNG chứa giá trị thật)
 │
@@ -31,13 +31,13 @@ Mục tiêu: bất kỳ lập trình viên hoặc agent AI nào mở repo đều
 │   ├── features/              # Mỗi tính năng 1 thư mục: ui + logic + test đi cùng nhau
 │   ├── services/              # Gọi API, DB, hệ thống file
 │   ├── utils/                 # Hàm thuần tái sử dụng (không side-effect)
-│   ├── styles/                # Style toàn cục — chỉ import từ tokens/, cấm định nghĩa màu mới
+│   ├── styles/                # Style toàn cục - chỉ import từ tokens/, cấm định nghĩa màu mới
 │   └── types/  hoặc  models/  # Kiểu dữ liệu / model dùng chung
 │
 ├── assets/                    # icon/, fonts/ (Inter + JetBrains Mono), images/
 ├── tests/                     # Test tích hợp (unit test đặt cạnh code trong features/)
 ├── scripts/                   # Script build/release/đồng bộ token (đặt tên động từ: build-win.ps1)
-└── dist/  build/  release/    # Sản phẩm build — LUÔN nằm trong .gitignore
+└── dist/  build/  release/    # Sản phẩm build - LUÔN nằm trong .gitignore
 ```
 
 ## Quy tắc đặt tên

@@ -1,7 +1,7 @@
-# PHIẾU BÀN GIAO — <chủ đề ngắn gọn>
+# PHIẾU BÀN GIAO - <chủ đề ngắn gọn>
 
 - **Mã phiếu**: YYYYMMDD-NN (ví dụ 20260819-01)
-- **Từ**: <agent/người gửi> — **Đến**: <agent giữ khóa / phiên sau>
+- **Từ**: <agent/người gửi> - **Đến**: <agent giữ khóa / phiên sau>
 - **Thời điểm**: HH:mm DD/MM/YYYY
 - **Trạng thái**: MỞ | ĐANG XỬ LÝ | HOÀN THÀNH
 
@@ -12,7 +12,7 @@
 - [ ]
 
 ## 3. File liên quan / đang khóa
-- `<đường dẫn>` — lý do
+- `<đường dẫn>` - lý do
 
 ## 4. Yêu cầu gửi agent đang giữ khóa (nếu có)
 - Cần thay đổi gì, vì sao, tiêu chí hoàn thành:

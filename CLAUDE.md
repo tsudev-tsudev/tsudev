@@ -162,6 +162,12 @@ nguồn là hiện trạng; TSD là đích đến.
   lên - cách kiểm: `npm --workspace packages/ui run storybook` rồi ĐẾM story vẽ
   ra được, đừng đọc "lệnh chạy xong" thành "chạy được" (`docs/design-system.md`
   §Storybook ghi bốn tầng hỏng im lặng đã gặp).
+- **Gạch ngang: CHỈ dùng `-` (hyphen, U+002D)** ở mọi nơi - code, comment, chuỗi
+  hiển thị, tài liệu, log, commit. **KHÔNG dùng em-dash `—` (U+2014)**: nó phá
+  tính thống nhất của giao diện, khó gõ, và không nhất quán giữa các file. En-dash
+  `–` (U+2013) chỉ chấp nhận cho khoảng số (`3-5`, `:4001-:4005`) nhưng nên ưu
+  tiên `-`. Ngoại lệ DUY NHẤT: file migration đã áp dụng là BẤT BIẾN - không sửa
+  kể cả em-dash trong comment (lệch checksum). Quy ước gốc: `AGENTS.md` §6.
 - **Commit**: Conventional Commits.
 
 ## Gotcha cứng - đọc trước khi sửa vùng liên quan
@@ -269,7 +275,7 @@ nguồn là hiện trạng; TSD là đích đến.
   `trigger === 'update'` ở callback `jwt`, đọc lại vai trò TỪ DB. Client gọi
   `update()` của `useSession`. **Đừng lấy vai trò từ tham số truyền vào
   `update()`** - đó là dữ liệu người dùng.
-- **`main` không có branch protection** — chưa ai bật. Repo nay Public nên
+- **`main` không có branch protection** - chưa ai bật. Repo nay Public nên
   GitHub Free đã CHO phép branch protection (trước đây private thì không), nhưng
   đó là năng lực chưa dùng, không phải rào chắn đang chạy. Lớp chắn duy nhất vẫn
   là `.husky/pre-push`, chỉ có sau khi `npm install`. Vượt có chủ đích:

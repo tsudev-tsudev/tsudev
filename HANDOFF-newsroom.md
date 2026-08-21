@@ -6,7 +6,7 @@
 
 ## Vì sao có phiếu này
 
-Repo đã chuẩn hoá: **không dùng em dash `—`, chỉ dùng gạch nối `-`**. Đợt quét
+Repo đã chuẩn hoá: **không dùng em dash `-`, chỉ dùng gạch nối `-`**. Đợt quét
 toàn repo nằm ở commit `56af669` và `c1c577b`.
 
 Ba file thuộc vùng của bạn được tạo/sửa **sau** đợt quét nên còn em dash. Tôi
@@ -14,13 +14,13 @@ Ba file thuộc vùng của bạn được tạo/sửa **sau** đợt quét nên
 
 ## Việc cần làm
 
-Đổi mọi ký tự `—` (U+2014) thành `-` trong:
+Đổi mọi ký tự `-` (U+2014) thành `-` trong:
 
 - [ ] `apps/frontend-main/pages/admin/newsroom.tsx`
 - [ ] `docs/refactor-newsroom-agents.md`
 - [ ] `infrastructure/newsroom-cron/README.md`
 
-Tìm nhanh: `grep -n '—' <file>`
+Tìm nhanh: `grep -n '-' <file>`
 
 ## Một cái bẫy đã trả giá để học
 

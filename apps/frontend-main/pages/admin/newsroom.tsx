@@ -261,7 +261,7 @@ export default function NewsroomPage() {
         <Seo title="Toà soạn Agent AI" path="/admin/newsroom" noindex />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold text-fg mb-2">Toà soạn Agent AI</h1>
-          <p className="text-fg-muted mb-4">Khu vực quản trị — cần đăng nhập.</p>
+          <p className="text-fg-muted mb-4">Khu vực quản trị - cần đăng nhập.</p>
           <Button onClick={() => signIn()}>Đăng nhập</Button>
         </div>
       </Layout>
@@ -301,7 +301,7 @@ export default function NewsroomPage() {
           <Card className="p-4 mt-6 border-l-2 border-warning">
             <p className="text-sm text-fg">
               Hết hạn mức miễn phí hôm nay ở {exhausted.map((p) => p.name).join(' và ')}. Toà soạn
-              đã <strong>hoãn</strong> việc đang chờ, không huỷ — hạn mức đặt lại lúc{' '}
+              đã <strong>hoãn</strong> việc đang chờ, không huỷ - hạn mức đặt lại lúc{' '}
               <span className="font-mono">00:00 UTC</span> (07:00 giờ Việt Nam).
             </p>
             {!state?.providers?.some((p) => p.name === 'gemini' && p.configured) && (
@@ -489,7 +489,7 @@ export default function NewsroomPage() {
                       )}
                     </div>
                   ))}
-                  {!items.length && <p className="text-xs text-fg-muted">—</p>}
+                  {!items.length && <p className="text-xs text-fg-muted">-</p>}
                 </div>
               </Card>
             );
@@ -509,7 +509,7 @@ export default function NewsroomPage() {
                   <span className="text-fg">
                     <strong>{e.actorKind === 'human' ? 'Bạn' : nameOf(e.agentId)}</strong>{' '}
                     {EVENT_LABEL[e.type] ?? e.type}
-                    {typeof e.payload?.title === 'string' && ` — ${e.payload.title}`}
+                    {typeof e.payload?.title === 'string' && ` - ${e.payload.title}`}
                     {typeof e.payload?.error === 'string' && (
                       <span className="text-warning"> ({e.payload.error})</span>
                     )}
