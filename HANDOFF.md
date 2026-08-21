@@ -90,7 +90,30 @@ Ba thứ mất là không sinh lại được:
 
 ---
 
-## 0. Nhật ký phiên 12 (21/08/2026) - gộp #38, hồi sinh toà soạn
+## 0. Nhật ký phiên 13 (21/08/2026) - repo Public, CI hồi sinh, repo quy ước trung tâm
+
+Phiên **do chủ dự án đặt hướng**: chuyển repo Public để gỡ lỗi Actions, và mở
+repo quy ước/token trung tâm.
+
+- **`tsudev` → PUBLIC** gỡ lỗi 🔴 Actions chết vì tài khoản (Public = Actions
+  miễn phí không giới hạn phút). **Trước khi bấm: quét secret cả tree lẫn 164
+  commit history** - sạch (chỉ mẫu/placeholder/fixture/IP tài liệu; `mB50…` là
+  tiền tố token đã xoay). Nghiệm thu KHÔNG suy từ "đã Public" mà **chạy lại run
+  `32473196835`**: trước fail-4s (billing chặn, không chạy dòng nào), sau thực
+  thi thật → **5/5 job xanh**. Chạy lại một run cũ rẻ hơn chờ push mới.
+- **Repo quy ước trung tâm** `tsudev-tsudev/tsudev-standards` tạo **Private** (0
+  workflow ⇒ 0 phút Actions ⇒ không chạm giới hạn Private). Bootstrap 10 file
+  (`91038af`): AGENTS.md Phần A + docs chuẩn + tokens dùng chung. Hai gói đẩy
+  ngược mở thành Issue #1 (token WCAG) / #2 (cấu trúc monorepo).
+- **Nợ để lại**: `CLAUDE.md` dòng đầu "Repo: private" nay SAI - `docs-curator`
+  đính chính (không sửa giữa phiên vì là ngữ cảnh tĩnh).
+
+Hàng đợi việc agent làm được: **cạn**. Còn lại chờ mắt người (rà giao diện),
+chờ nhịp cron (điểm phiếu 12 §6), và quyết định ở repo trung tâm.
+
+---
+
+## 0.02 Nhật ký phiên 12 (21/08/2026) - gộp #38, hồi sinh toà soạn
 
 Phiên **ngắn, do chủ dự án mở đường**. Trước khi bắt tay: kiểm hiện trạng git/PR
 theo bẫy §5 phiếu 20260821-01 - lần này đầu vào ĐÃ đổi đúng như dặn.
