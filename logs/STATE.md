@@ -32,16 +32,18 @@
       `tsudev-backend`, Worker `tsudev-newsroom-cron`, backup). Nghiệm thu: curl
       Render 202, `newsroom:check` AgentRun 237 → 240. **Bài học**: base64 có `=`/`-`/`_`
       hay bị form web cắt khi dán → dùng `openssl rand -hex 32` (không ký tự đặc biệt).
-- [ ] **🟠 PHÁT HÀNH hệ AUTHOR/OWNER + đổi tên nhân sự** (phiên 14 để lại). Thứ tự: 1) Phát hành mã (Render dựng lại backend + deploy Worker qua
+- [ ] **🟠 PHÁT HÀNH hệ AUTHOR/OWNER + đổi tên nhân sự** (phiên 14 để lại).
+      Thứ tự: 1) Phát hành mã (Render dựng lại backend + deploy Worker qua
       `scripts/deploy-frontend.js`). 2) `npm run db:migrate` nhắm Neon (áp
       `20260821200000_add_author_owner_roles`). 3) `npm run db:seed:newsroom`
-      nhắm prod (đổi tên 4 agent — seed này AN TOÀN cho prod). **4) Nâng tsudev
-      lên OWNER trên prod bằng SQL tay** `UPDATE "User" SET role='OWNER' WHERE
-   username='tsudev';` — KHÔNG chạy `db:seed` (seed.js) trên prod vì nó tạo
-      user/bài giả. Nghiệm thu: đăng nhập tsudev thấy thẻ "Tài khoản & phân
-      quyền" ở `/admin`; `/admin/accounts` liệt kê được; tài khoản khác vào bị
-      "Không có quyền". Lưu ý gotcha `token.role` chỉ ghi ở lần đăng nhập đầu —
-      tsudev phải ĐĂNG NHẬP LẠI sau khi nâng OWNER (hoặc gọi session-state).
+      nhắm prod (đổi tên 4 agent — seed này AN TOÀN cho prod). 4) Nâng tsudev lên
+      OWNER trên prod bằng SQL tay:
+      `UPDATE "User" SET role='OWNER' WHERE username='tsudev';` — KHÔNG chạy
+      `db:seed` (seed.js) trên prod vì nó tạo user/bài giả. Nghiệm thu: đăng nhập
+      tsudev thấy thẻ "Tài khoản & phân quyền" ở `/admin`; `/admin/accounts` liệt
+      kê được; tài khoản khác vào bị "Không có quyền". Lưu ý gotcha `token.role`
+      chỉ ghi ở lần đăng nhập đầu — tsudev phải ĐĂNG NHẬP LẠI sau khi nâng OWNER
+      (hoặc gọi session-state).
 - [ ] **⚪ Trình soạn/đăng bài cho AUTHOR (follow-up)** — role AUTHOR đã có nhưng
       content-service CHƯA có bề mặt đăng bài cho người (bài hiện do Toà soạn AI
       tạo thẳng). Chuỗi sau: content-service thêm route ghi Post gác
