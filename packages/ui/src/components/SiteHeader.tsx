@@ -3,9 +3,16 @@ import { useSession, signOut } from 'next-auth/react';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { useCanSeeTrust } from '../lib/useTrustNav';
+import { hasAtLeastRole } from '@tsudev/types';
 // tsudev là MỘT site nên href tương đối. Trước đây có hai origin (trang chính và
 // diễn đàn) nên mọi link điều hướng buộc phải là URL tuyệt đối.
-type NavItem = { key: string; path: string; label: string; needsTrust?: boolean };
+type NavItem = {
+  key: string;
+  path: string;
+  label: string;
+  needsTrust?: boolean;
+  needsAuthor?: boolean;
+};
 
 const NAV: NavItem[] = [
   { key: 'home', path: '/', label: 'Trang chủ' },
@@ -14,6 +21,10 @@ const NAV: NavItem[] = [
   { key: 'docs', path: '/docs', label: 'Tài liệu' },
   // Chỉ hiện với tài khoản đã đổi mã mời - xem useCanSeeTrust.
   { key: 'trust', path: '/trust', label: 'Con dấu', needsTrust: true },
+  // Chỉ hiện với tài khoản đăng bài (AUTHOR trở lên). Trang /author tự đá người
+  // chưa đủ quyền, nên giấu link để không hứa hão - GIỐNG needsTrust, KHÔNG phải
+  // bảo mật (cổng thật là requireAuthor của content-service, đọc DB fail closed).
+  { key: 'author', path: '/author', label: 'Viết bài', needsAuthor: true },
 ];
 
 // Trang truyền `active` theo đường dẫn ('/blog') hoặc theo khoá ('home').
@@ -24,7 +35,13 @@ type SiteHeaderProps = { active?: string };
 export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
   const { data: session } = useSession();
   const canSeeTrust = useCanSeeTrust();
-  const nav = NAV.filter((n) => !n.needsTrust || canSeeTrust);
+  // ⚠️ Vai trò lấy từ PHIÊN (token.role chỉ ghi ở lần đăng nhập đầu) - cùng cảnh
+  // báo với useCanSeeTrust. Chỉ để dọn giao diện, không phải cổng quyền.
+  const canAuthor = hasAtLeastRole(
+    (session?.user as { role?: string } | undefined)?.role,
+    'AUTHOR'
+  );
+  const nav = NAV.filter((n) => (!n.needsTrust || canSeeTrust) && (!n.needsAuthor || canAuthor));
   const [open, setOpen] = useState(false);
 
   return (
