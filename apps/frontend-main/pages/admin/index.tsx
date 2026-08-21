@@ -35,6 +35,13 @@ const AREAS = [
     // đây thuần tuý là UX - không phải cổng bảo mật.
     ownerOnly: true,
   },
+  {
+    href: '/admin/security',
+    title: 'Nhật ký bảo mật',
+    desc: 'Sự kiện bảo mật xuyên tài khoản: đăng nhập, đổi mật khẩu/email, 2FA, passkey, đổi vai trò.',
+    ready: true,
+    ownerOnly: true,
+  },
 ];
 
 export default function AdminHome() {

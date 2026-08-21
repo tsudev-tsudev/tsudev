@@ -21,6 +21,10 @@ import { catchAllSegments } from '../../../lib/identity';
 const ALLOWED = new Set([
   'register',
   'verify-email',
+  // Xác nhận đổi email: công khai vì người bấm liên kết trong thư có thể chưa
+  // đăng nhập (hoặc phiên cũ vừa bị đá ra do sessionVersion tăng). Token trong
+  // liên kết là bằng chứng, không cần phiên.
+  'confirm-email-change',
   'request-password-reset',
   'reset-password',
   // Hai bước đăng nhập bằng passkey. Công khai vì người gọi CHƯA có danh tính -

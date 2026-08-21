@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button, Input, Layout } from '@tsudev/ui';
+import { emailGraceRemainingMs } from '@tsudev/types';
 
 import Seo from '../../components/Seo';
 import { Notice } from '../../components/AuthShell';
@@ -25,7 +26,10 @@ type Profile = {
   role: string;
   hasPassword: boolean;
   emailVerified: boolean;
+  createdAt: string;
 };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const post = async (path: string, body?: unknown) => {
   const res = await fetch(`/api/account/${path}`, {
@@ -112,6 +116,11 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changing, setChanging] = useState(false);
+
+  const [resending, setResending] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [changingEmail, setChangingEmail] = useState(false);
 
   const load = useCallback(async () => {
     const { ok, data } = await post('profile/get');
@@ -201,6 +210,62 @@ export default function ProfilePage() {
     load();
   };
 
+  const resendVerification = async () => {
+    setResending(true);
+    const { ok, status: httpStatus } = await post('verify/resend');
+    setResending(false);
+    if (!ok) {
+      setMsg({
+        kind: 'error',
+        text:
+          httpStatus === 429
+            ? 'Vừa gửi một thư xác minh rồi. Đợi khoảng một phút rồi thử lại.'
+            : saveError(httpStatus),
+      });
+      return;
+    }
+    setMsg({
+      kind: 'ok',
+      text: 'Đã gửi lại email xác minh. Kiểm tra hộp thư (kể cả mục spam).',
+    });
+  };
+
+  const changeEmail = async () => {
+    setChangingEmail(true);
+    const {
+      ok,
+      status: httpStatus,
+      data,
+    } = await post('email/change', { newEmail, password: emailPassword });
+    setChangingEmail(false);
+    if (!ok) {
+      const code = String(data.error || '');
+      let text = 'Không gửi được yêu cầu. Hãy thử lại.';
+      if (httpStatus === 401) {
+        text = code === 'invalid_credentials' ? 'Mật khẩu không đúng.' : SESSION_EXPIRED;
+      } else if (code === 'invalid_email') {
+        text = 'Địa chỉ email mới không hợp lệ.';
+      } else if (code === 'same_email') {
+        text = 'Địa chỉ mới trùng với địa chỉ hiện tại.';
+      }
+      setMsg({ kind: 'error', text });
+      return;
+    }
+    setNewEmail('');
+    setEmailPassword('');
+    // Cố ý KHÔNG nói địa chỉ mới có bị chiếm hay không: phản hồi giống nhau để
+    // trang này không thành công cụ dò xem ai đã đăng ký. Backend gửi cảnh báo
+    // cho địa chỉ đó nếu nó đã có chủ.
+    setMsg({
+      kind: 'ok',
+      text: 'Đã gửi thư xác nhận tới địa chỉ mới. Mở thư và bấm liên kết để hoàn tất - email chỉ đổi SAU khi bạn xác nhận.',
+    });
+  };
+
+  const graceRemainingMs =
+    profile && !profile.emailVerified ? emailGraceRemainingMs(null, profile.createdAt) : 0;
+  const graceDays = Math.ceil(graceRemainingMs / DAY_MS);
+
   return (
     <Layout active="/settings">
       <Seo title="Hồ sơ" path="/settings/profile" noindex />
@@ -219,6 +284,79 @@ export default function ProfilePage() {
         )}
 
         <div className="mt-6 space-y-6">
+          <Section
+            title="Email và xác minh"
+            hint="Địa chỉ này nhận thư khôi phục tài khoản. Đổi email phải xác minh địa chỉ mới TRƯỚC khi thay."
+          >
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm text-fg">{profile?.email ?? '…'}</span>
+                {profile &&
+                  (profile.emailVerified ? (
+                    <span className="inline-flex items-center rounded-full bg-subtle px-2.5 py-1 text-xs font-medium text-success">
+                      Đã xác minh
+                    </span>
+                  ) : graceRemainingMs > 0 ? (
+                    <span className="inline-flex items-center rounded-full bg-subtle px-2.5 py-1 text-xs font-medium text-warning">
+                      Chưa xác minh · còn {graceDays} ngày ân hạn
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-subtle px-2.5 py-1 text-xs font-medium text-danger">
+                      Chưa xác minh · quá hạn
+                    </span>
+                  ))}
+              </div>
+
+              {profile && !profile.emailVerified && (
+                <div className="rounded-md border border-line bg-base p-3">
+                  <p className="text-sm text-fg-muted">
+                    {graceRemainingMs > 0
+                      ? `Xác minh email trong ${graceDays} ngày tới. Hết ân hạn, một số thao tác (đăng bài, nâng vai trò) sẽ bị tạm khoá tới khi bạn xác minh.`
+                      : 'Quá thời gian ân hạn: một số thao tác (đăng bài, nâng vai trò) đang bị tạm khoá tới khi bạn xác minh email.'}
+                  </p>
+                  <Button
+                    onClick={resendVerification}
+                    disabled={resending}
+                    variant="secondary"
+                    className="mt-3"
+                  >
+                    {resending ? 'Đang gửi…' : 'Gửi lại email xác minh'}
+                  </Button>
+                </div>
+              )}
+
+              <div className="border-t border-line pt-4">
+                <p className="text-sm font-medium text-fg-secondary">Đổi email</p>
+                <p className="mt-1 text-sm text-fg-muted">
+                  Thư xác nhận gửi tới địa chỉ MỚI; email chỉ đổi sau khi bạn bấm liên kết trong
+                  thư. Đổi email sẽ đăng xuất mọi thiết bị.
+                </p>
+                <div className="mt-3 space-y-4">
+                  <Input
+                    label="Email mới"
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                  <Input
+                    label="Mật khẩu hiện tại"
+                    type="password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                  <Button
+                    onClick={changeEmail}
+                    disabled={changingEmail || !newEmail || !emailPassword}
+                  >
+                    {changingEmail ? 'Đang gửi…' : 'Gửi thư xác nhận đổi email'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Section>
+
           <Section title="Thông tin công khai">
             <div className="space-y-4">
               <Input
@@ -299,12 +437,11 @@ export default function ProfilePage() {
           >
             <div className="divide-y divide-line">
               <ReadOnlyRow label="Tên đăng nhập" value={profile?.username ?? '…'} />
-              <ReadOnlyRow label="Email" value={profile?.email ?? '…'} />
               <ReadOnlyRow label="Vai trò" value={profile?.role ?? '…'} />
             </div>
             <p className="mt-4 text-sm text-fg-muted">
-              Đổi email phải xác minh địa chỉ mới TRƯỚC khi thay - thay trước rồi mới gửi thư là mở
-              một đường chiếm tài khoản. Vai trò chỉ nâng được bằng mã mời.
+              Tên đăng nhập là định danh cố định. Vai trò chỉ nâng được bằng mã mời hoặc do quản trị
+              cấp - không tự đổi được ở đây.
             </p>
             <Button as="a" href="/settings/security" variant="secondary" className="mt-4">
               Bảo mật: 2FA và passkey

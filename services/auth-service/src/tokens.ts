@@ -22,6 +22,9 @@ const TTL_MS: Record<AuthTokenPurpose, number> = {
   // Đặt lại mật khẩu hẹp: cửa sổ này là cửa sổ chiếm tài khoản nếu hộp thư bị
   // đọc lén.
   PASSWORD_RESET: 60 * 60 * 1000,
+  // Đổi email cũng hẹp: đổi địa chỉ là đổi danh tính đăng nhập, sát với đặt lại
+  // mật khẩu về mức nhạy cảm.
+  EMAIL_CHANGE: 60 * 60 * 1000,
 }
 
 const hashToken = (raw: string): string => createHash('sha256').update(raw).digest('hex')
@@ -34,12 +37,18 @@ export type IssuedToken = { raw: string; expiresAt: Date }
  * Huỷ cái cũ là có chủ đích: bấm "quên mật khẩu" ba lần không được để lại ba
  * đường vào cùng sống, vì mỗi đường là một email nữa có thể bị đọc lén.
  */
-export async function issueToken(userId: string, purpose: AuthTokenPurpose): Promise<IssuedToken> {
+export async function issueToken(
+  userId: string,
+  purpose: AuthTokenPurpose,
+  newEmail: string | null = null
+): Promise<IssuedToken> {
   const raw = randomBytes(32).toString('base64url')
   const expiresAt = new Date(Date.now() + TTL_MS[purpose])
   await prisma.$transaction([
     prisma.authToken.deleteMany({ where: { userId, purpose, usedAt: null } }),
-    prisma.authToken.create({ data: { userId, purpose, tokenHash: hashToken(raw), expiresAt } }),
+    prisma.authToken.create({
+      data: { userId, purpose, tokenHash: hashToken(raw), expiresAt, newEmail },
+    }),
   ])
   return { raw, expiresAt }
 }
@@ -63,6 +72,36 @@ export async function consumeToken(raw: string, purpose: AuthTokenPurpose): Prom
     data: { usedAt: new Date() },
   })
   return claimed.count === 1 ? row.userId : null
+}
+
+/**
+ * Như `consumeToken` nhưng cho EMAIL_CHANGE: trả về CẢ userId lẫn địa chỉ mới đã
+ * chờ ở token. Tách hàm riêng vì chỉ purpose này mới có `newEmail`, và trộn vào
+ * hàm chung sẽ buộc mọi lời gọi khác nhận thêm một trường luôn null.
+ *
+ * `newEmail` rỗng (dữ liệu hỏng) coi như token không hợp lệ - không đổi email về
+ * một địa chỉ trống.
+ */
+export async function consumeEmailChange(
+  raw: string
+): Promise<{ userId: string; newEmail: string } | null> {
+  if (!raw || raw.length > 200) return null
+  const tokenHash = hashToken(raw)
+  const row = await prisma.authToken.findUnique({ where: { tokenHash } })
+  if (
+    !row ||
+    row.purpose !== 'EMAIL_CHANGE' ||
+    row.usedAt ||
+    row.expiresAt.getTime() < Date.now() ||
+    !row.newEmail
+  ) {
+    return null
+  }
+  const claimed = await prisma.authToken.updateMany({
+    where: { id: row.id, usedAt: null },
+    data: { usedAt: new Date() },
+  })
+  return claimed.count === 1 ? { userId: row.userId, newEmail: row.newEmail } : null
 }
 
 /**
