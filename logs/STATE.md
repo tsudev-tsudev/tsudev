@@ -53,9 +53,10 @@
       `requireAuthor` (đọc DB, fail closed), SCOPE cứng `authorId === me`; proxy
       `/api/content/author/*` + prefix `/api/author` trong backend-bundle; trang
       `/author` (editor list+form). Test `author.test.ts` 11 + routing +1. Còn:
-      **(a)** link điều hướng tới `/author` ở header — vùng design-system
-      (`packages/ui/.../SiteHeader.tsx`), CHƯA làm (handoff); **(b)** phát hành
-      prod (deploy); **(c)** e2e tuỳ chọn.
+      **(a)** ✅ link "Viết bài"→`/author` ở header (SiteHeader NAV, gác
+      `needsAuthor` = `hasAtLeastRole(role,'AUTHOR')`, ẩn với người chưa đủ quyền
+      — giấu link, KHÔNG phải cổng; hiện cả nav desktop lẫn di động) — HOÀN THÀNH
+      21/08 (phiên 15); **(b)** phát hành prod (deploy) — CHƯA; **(c)** e2e tuỳ chọn.
 - [ ] **🟡 Rà giao diện bằng MẮT NGƯỜI** — phiên 7 chỉ rà bằng máy (đo tương phản + cỡ chữ). Máy không đọc được "cái này trông cân đối chưa". Nay đã có công
       cụ: `npm --workspace packages/ui run storybook`, nút **Giao diện** đổi ba
       chế độ ngay trên thanh công cụ.
@@ -68,6 +69,13 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 21/08/2026 — **Link "Viết bài"→`/author` ở header** (phiên 15, vùng
+  design-system). `SiteHeader` NAV thêm mục gác `needsAuthor`; điều kiện hiện =
+  `hasAtLeastRole(session.role,'AUTHOR')` (mirror `useCanSeeTrust`) — giấu link
+  cho người chưa đủ quyền, KHÔNG phải cổng (cổng thật là `requireAuthor` của
+  content-service). Hiện ở cả nav desktop và di động (cùng mảng `nav`). Nghiệm
+  thu: typecheck·lint·format·tokens sạch; `packages/ui` 199/199. Đóng mục (a) của
+  editor AUTHOR. CHƯA phát hành.
 - 21/08/2026 — **Editor AUTHOR (đăng/sửa bài của chính mình)** (phiên 15). Chuỗi
   `backend-api`→`frontend-web` (kèm chạm `backend-bundle`/test). content-service:
   5 route `/api/author/posts` gác `requireAuthor` (`hasAtLeastRole(role,'AUTHOR')`,
