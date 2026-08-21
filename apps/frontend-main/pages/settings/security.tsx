@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { startRegistration } from '@simplewebauthn/browser';
 import { Button, Input, Layout } from '@tsudev/ui';
 
@@ -35,8 +35,9 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 );
 
 export default function SecurityPage() {
-  const { status } = useSession();
+  const { status, update } = useSession();
   const [msg, setMsg] = useState<{ kind: 'error' | 'ok'; text: string } | null>(null);
+  const [revoking, setRevoking] = useState(false);
 
   // --- 2FA ---
   const [setupUri, setSetupUri] = useState('');
@@ -51,6 +52,10 @@ export default function SecurityPage() {
 
   // --- Nhật ký bảo mật ---
   const [events, setEvents] = useState<SecurityEvent[]>([]);
+
+  // --- Vùng nguy hiểm ---
+  const [dangerPw, setDangerPw] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const refreshKeys = useCallback(async () => {
     const { ok, data } = await post('passkey/list');
@@ -161,6 +166,74 @@ export default function SecurityPage() {
     await post('passkey/delete', { id });
     refreshKeys();
     refreshEvents();
+  };
+
+  const revokeAll = async () => {
+    if (
+      !confirm(
+        'Đăng xuất khỏi mọi thiết bị? Thiết bị này cũng sẽ cần đăng nhập lại ở lần sau; các phiên khác mất hiệu lực ngay.'
+      )
+    )
+      return;
+    setRevoking(true);
+    const { ok } = await post('security/revoke-all');
+    // BẮT BUỘC làm mới phiên hiện tại: revoke-all tăng sessionVersion nên token
+    // của chính tab này cũng thành cũ - không update() thì tab này bị đá ra ngay,
+    // trông như thao tác hỏng. update() đọc lại sessionVersion mới từ DB.
+    if (ok) await update();
+    setRevoking(false);
+    setMsg(
+      ok
+        ? { kind: 'ok', text: 'Đã đăng xuất khỏi mọi thiết bị khác.' }
+        : { kind: 'error', text: 'Không thực hiện được. Hãy thử lại.' }
+    );
+    refreshEvents();
+  };
+
+  const deactivate = async () => {
+    if (
+      !confirm(
+        'Vô hiệu hoá tài khoản? Bạn sẽ bị đăng xuất; đăng nhập lại bất cứ lúc nào để khôi phục.'
+      )
+    )
+      return;
+    setBusy(true);
+    const { ok, data } = await post('account/deactivate', { password: dangerPw });
+    setBusy(false);
+    if (!ok) {
+      setMsg({
+        kind: 'error',
+        text:
+          data.error === 'invalid_credentials' ? 'Mật khẩu không đúng.' : 'Không thực hiện được.',
+      });
+      return;
+    }
+    await signOut({ callbackUrl: '/' });
+  };
+
+  const deleteAccount = async () => {
+    if (
+      !confirm(
+        'XOÁ VĨNH VIỄN tài khoản? Tài khoản bị vô hiệu hoá ngay và sẽ bị xoá sau 30 ngày. Đăng nhập lại trước hạn để huỷ.'
+      )
+    )
+      return;
+    setBusy(true);
+    const { ok, data } = await post('account/delete', { password: dangerPw });
+    setBusy(false);
+    if (!ok) {
+      setMsg({
+        kind: 'error',
+        text:
+          data.error === 'invalid_credentials'
+            ? 'Mật khẩu không đúng.'
+            : data.error === 'owner_cannot_self_delete'
+            ? 'Tài khoản chủ sở hữu không tự xoá được.'
+            : 'Không thực hiện được.',
+      });
+      return;
+    }
+    await signOut({ callbackUrl: '/' });
   };
 
   return (
@@ -283,6 +356,16 @@ export default function SecurityPage() {
             )}
           </Section>
 
+          <Section title="Phiên đăng nhập">
+            <p className="text-sm text-fg-muted">
+              Nghi ngờ ai đó còn đăng nhập trên thiết bị của bạn? Đăng xuất khỏi tất cả - các phiên
+              khác mất hiệu lực ngay, thiết bị này vẫn được giữ.
+            </p>
+            <Button variant="secondary" className="mt-4" onClick={revokeAll} disabled={revoking}>
+              {revoking ? 'Đang xử lý…' : 'Đăng xuất khỏi mọi thiết bị'}
+            </Button>
+          </Section>
+
           <Section title="Hoạt động gần đây">
             <p className="mb-3 text-sm text-fg-muted">
               Các sự kiện bảo mật của tài khoản (đăng nhập, đổi mật khẩu/email, 2FA, passkey). Thấy
@@ -290,6 +373,53 @@ export default function SecurityPage() {
             </p>
             <SecurityEventList events={events} />
           </Section>
+
+          <section className="rounded-lg border border-danger bg-surface p-5 sm:p-6">
+            <h2 className="text-base font-semibold text-danger">Vùng nguy hiểm</h2>
+            <p className="mt-1 text-sm text-fg-muted">
+              Cả hai thao tác đòi mật khẩu hiện tại và sẽ đăng xuất bạn ngay.
+            </p>
+            <div className="mt-4 max-w-sm">
+              <Input
+                id="danger-pw"
+                type="password"
+                label="Mật khẩu hiện tại"
+                value={dangerPw}
+                onChange={(e) => setDangerPw(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-fg">Vô hiệu hoá tài khoản</p>
+                <p className="mt-0.5 text-sm text-fg-muted">
+                  Ẩn tài khoản tạm thời. Đăng nhập lại bất cứ lúc nào để khôi phục.
+                </p>
+                <Button
+                  variant="secondary"
+                  className="mt-2"
+                  onClick={deactivate}
+                  disabled={busy || !dangerPw}
+                >
+                  Vô hiệu hoá
+                </Button>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-danger">Xoá vĩnh viễn</p>
+                <p className="mt-0.5 text-sm text-fg-muted">
+                  Hẹn xoá sau 30 ngày. Đăng nhập lại trước hạn để huỷ; quá hạn không khôi phục được.
+                </p>
+                <Button
+                  variant="ghost"
+                  className="mt-2 text-danger"
+                  onClick={deleteAccount}
+                  disabled={busy || !dangerPw}
+                >
+                  Xoá tài khoản
+                </Button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </Layout>

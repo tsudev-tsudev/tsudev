@@ -100,3 +100,17 @@ export function emailChangedNoticeHtml(displayName: string, newEmail: string): s
   )}</strong>. Mọi phiên đăng nhập cũ đã bị đăng xuất.</p>
 <p>Nếu KHÔNG phải bạn thực hiện, hãy dùng chức năng quên mật khẩu để lấy lại quyền kiểm soát ngay và liên hệ quản trị.</p>`
 }
+
+/**
+ * Thư cảnh báo một sự kiện bảo mật (đổi mật khẩu, tắt 2FA, đăng nhập thiết bị lạ...).
+ *
+ * Luôn kèm lời "nếu không phải bạn" với đường khôi phục: mục đích của thư này là
+ * để chủ tài khoản THẬT phát hiện kẻ chiếm, nên nó phải nói rõ phải làm gì.
+ * `context` là mô tả thiết bị/thời điểm nếu có.
+ */
+export function securityAlertHtml(displayName: string, title: string, context?: string): string {
+  return `<p>Chào ${esc(displayName)},</p>
+<p>${esc(title)} trên tài khoản tsudev của bạn.</p>
+${context ? `<p style="color:#555">${esc(context)}</p>` : ''}
+<p>Nếu KHÔNG phải bạn thực hiện, tài khoản của bạn có thể đã bị xâm nhập: hãy <a href="https://tsudev.com/forgot-password">đặt lại mật khẩu</a> ngay (thao tác này đăng xuất mọi thiết bị) và kiểm tra mục Bảo mật.</p>`
+}

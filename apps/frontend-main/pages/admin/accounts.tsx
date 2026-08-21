@@ -52,6 +52,8 @@ interface AccountRow {
   emailVerified: boolean;
   createdAt: string;
   lastLoginAt: string | null;
+  deactivatedAt: string | null;
+  deletionScheduledAt: string | null;
 }
 
 const inputCls =
@@ -297,6 +299,11 @@ export default function AdminAccounts() {
                         (emailGraceRemainingMs(null, u.createdAt) > 0
                           ? ' · chưa xác minh (còn ân hạn)'
                           : ' · chưa xác minh (quá hạn)')}
+                      {u.deletionScheduledAt ? (
+                        <span className="text-danger"> · hẹn xoá</span>
+                      ) : u.deactivatedAt ? (
+                        <span className="text-warning"> · vô hiệu hoá</span>
+                      ) : null}
                     </div>
                   </td>
                   <td className="px-4 py-3">

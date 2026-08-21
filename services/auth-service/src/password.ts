@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 
 import { hash, verify, Algorithm } from '@node-rs/argon2'
 
@@ -31,9 +31,10 @@ export type PasswordProblem = 'too_short' | 'too_long' | 'too_common'
 /**
  * Danh sách chặn ngắn, có chủ đích.
  *
- * Đây không phải bộ lọc mật khẩu yếu đầy đủ - thứ đó cần k-anonymity với
- * HaveIBeenPwned, và một lệnh gọi mạng ở giữa luồng đăng ký là một điểm hỏng
- * mới. Danh sách này chỉ chặn phần đuôi dài nhất của phân phối thực tế.
+ * Đây KHÔNG phải bộ lọc mật khẩu yếu đầy đủ - lớp đó là `isPasswordBreached`
+ * (k-anonymity với HaveIBeenPwned) bên dưới, gọi mạng và FAIL-OPEN. Danh sách
+ * này chạy ĐỒNG BỘ, không phụ thuộc mạng, chặn phần đuôi dài nhất của phân phối
+ * thực tế - nên nó vẫn có ích khi HIBP không với tới được.
  */
 //
 // MỌI mục PHẢI dài ít nhất MIN_PASSWORD_LEN ký tự. Ngắn hơn thì `too_short`
@@ -63,6 +64,65 @@ export function checkPasswordPolicy(pw: string): PasswordProblem | null {
 
 export function hashPassword(pw: string): Promise<string> {
   return hash(pw, OPTS)
+}
+
+// ---------------------------------------------------------------------------
+// Kiểm mật khẩu đã lộ trong các vụ rò rỉ (HaveIBeenPwned)
+//
+// k-anonymity: CHỈ gửi 5 ký tự đầu của SHA-1, HIBP trả về mọi hậu tố cùng tiền
+// tố đó kèm số lần lộ; ta so phần đuôi TẠI CHỖ. HIBP không bao giờ thấy mật khẩu
+// hay SHA-1 đầy đủ. SHA-1 ở đây chỉ để tra k-anonymity, KHÔNG phải để lưu trữ.
+// ---------------------------------------------------------------------------
+
+const HIBP_RANGE_URL = 'https://api.pwnedpasswords.com/range/'
+
+const sha1Upper = (pw: string): string => createHash('sha1').update(pw).digest('hex').toUpperCase()
+
+/** Đếm số lần lộ từ thân trả về của HIBP range (mỗi dòng `HẬU_TỐ:số_lần`). */
+export function breachCountFromRange(sha1: string, body: string): number {
+  const suffix = sha1.slice(5)
+  for (const line of body.split('\n')) {
+    const [suf, count] = line.trim().split(':')
+    if (suf === suffix) return Number.parseInt(count ?? '', 10) || 0
+  }
+  return 0
+}
+
+/** Lấy thân range cho một tiền tố 5 ký tự; null nếu không với tới được. */
+export type RangeFetcher = (prefix5: string) => Promise<string | null>
+
+const defaultFetchRange: RangeFetcher = async (prefix5) => {
+  // Test KHÔNG gọi mạng thật: trả null (fail-open) để bộ test hermetic, không phụ
+  // thuộc HIBP. Logic đối sánh được canh riêng ở breachCheck.test.ts qua fetcher tiêm.
+  if (process.env.NODE_ENV === 'test') return null
+  try {
+    // `Add-Padding` làm mọi phản hồi có kích thước tương tự - chống suy đoán qua
+    // độ dài lưu lượng.
+    const res = await fetch(`${HIBP_RANGE_URL}${prefix5}`, { headers: { 'Add-Padding': 'true' } })
+    if (!res.ok) return null
+    return await res.text()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Mật khẩu có nằm trong kho rò rỉ HIBP không?
+ *
+ * FAIL-OPEN: HIBP hỏng / không với tới ⇒ trả false (KHÔNG chặn). Một dịch vụ
+ * ngoài sập không được biến thành "không ai đăng ký hay đổi mật khẩu được". Chính
+ * sách tối thiểu (độ dài + danh sách chặn) ở `checkPasswordPolicy` vẫn luôn chạy.
+ *
+ * `fetchRange` tiêm được để test không gọi mạng thật.
+ */
+export async function isPasswordBreached(
+  pw: string,
+  fetchRange: RangeFetcher = defaultFetchRange
+): Promise<boolean> {
+  const sha1 = sha1Upper(pw)
+  const body = await fetchRange(sha1.slice(0, 5))
+  if (body == null) return false
+  return breachCountFromRange(sha1, body) > 0
 }
 
 /**
