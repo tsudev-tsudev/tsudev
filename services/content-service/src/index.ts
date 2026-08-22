@@ -16,6 +16,7 @@ import express from 'express'
 import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
+import { createRateLimit } from '@tsudev/ratelimit'
 import type { Post, Prisma, Project, User } from '@prisma/client'
 import { hasAtLeastRole, emailUsable } from '@tsudev/types'
 
@@ -95,6 +96,22 @@ app.get('/health', (req, res) => res.json({ status: 'ok', service: 'content-serv
 // đổi hành vi. Đặt nó ở Render (và cùng giá trị cho biến của frontend) là bật.
 // /health đứng ngoài để health check của Render vẫn chạy.
 const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN || ''
+
+// Giới hạn tần suất cho lưu lượng TRỰC TIẾP (không mang internal token tin cậy).
+// Lưu lượng qua BFF của Next mang token đúng được MIỄN TRỪ: BFF không chuyển IP
+// client xuống, nên giới hạn theo IP mà không miễn trừ sẽ gộp cả site vào một xô
+// (xem @tsudev/ratelimit). Đặt TRƯỚC cổng token để chặn dội request không hợp lệ
+// rẻ tiền. Ngưỡng chỉnh được qua env cho vận hành và test.
+const directLimit = createRateLimit({
+  name: 'content-direct',
+  windowMs: 60_000,
+  max: Number(process.env.RATE_LIMIT_DIRECT_MAX) || 300,
+})
+app.use('/api', (req, res, next) => {
+  if (INTERNAL_TOKEN && req.get('x-internal-token') === INTERNAL_TOKEN) return next()
+  return directLimit(req, res, next)
+})
+
 app.use('/api', (req, res, next) => {
   if (!INTERNAL_TOKEN) return next()
   if (req.get('x-internal-token') === INTERNAL_TOKEN) return next()

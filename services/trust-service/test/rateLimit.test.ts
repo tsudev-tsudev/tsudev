@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test'
 
 const express = require('express')
 const request = require('supertest')
-const { createRateLimit } = require('../src/rateLimit')
+const { createRateLimit } = require('@tsudev/ratelimit')
 
 const appWith = (max: number, windowMs: number) => {
   const app = express()

@@ -11,6 +11,7 @@
     { "path": "packages/trust-crypto" },
     { "path": "packages/identity-token" },
     { "path": "packages/auth" },
+    { "path": "packages/ratelimit" },
     { "path": "services/content-service" },
     { "path": "services/storage-service" },
     { "path": "services/trust-service" },

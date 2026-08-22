@@ -15,7 +15,8 @@
     "@tsudev/db": "*",
     "@tsudev/types": "*",
     "@tsudev/auth": "*",
-    "@tsudev/trust-crypto": "*"
+    "@tsudev/trust-crypto": "*",
+    "@tsudev/ratelimit": "*"
   },
   "devDependencies": {
     "nodemon": "^2.0.22",

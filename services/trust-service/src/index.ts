@@ -65,7 +65,7 @@ import { prisma } from '@tsudev/db'
 // đối chiếu sessionVersion nên phiên đã bị thu hồi không đi qua được.
 import { createAuthMiddleware, requireRole, resolveUser } from '@tsudev/auth'
 
-import { createRateLimit } from './rateLimit'
+import { createRateLimit } from '@tsudev/ratelimit'
 import { hasAtLeastRole } from '@tsudev/types'
 import crypto from 'crypto'
 

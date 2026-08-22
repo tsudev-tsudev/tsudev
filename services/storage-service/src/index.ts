@@ -89,6 +89,7 @@ const {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, requireRole } from '@tsudev/auth'
+import { createRateLimit } from '@tsudev/ratelimit'
 
 const app = express()
 const port = process.env.PORT || process.env.PORT_STORAGE_SERVICE || 4002
@@ -234,6 +235,22 @@ app.get('/health', (req, res) => res.json({ status: 'ok', service: 'storage-serv
 // đổi hành vi. Đặt nó ở Render (và cùng giá trị cho biến của frontend) là bật.
 // /health đứng ngoài để health check của Render vẫn chạy.
 const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN || ''
+
+// Giới hạn tần suất cho lưu lượng TRỰC TIẾP (không mang internal token tin cậy).
+// Presign là đích lạm dụng đắt nhất của service này (ký URL ghi vào object
+// storage). Lưu lượng qua BFF mang token đúng được MIỄN TRỪ - BFF không chuyển
+// IP client xuống nên giới hạn không miễn trừ sẽ gộp cả site vào một xô (xem
+// @tsudev/ratelimit). Ngưỡng chặt hơn content, chỉnh được qua env.
+const directLimit = createRateLimit({
+  name: 'storage-direct',
+  windowMs: 60_000,
+  max: Number(process.env.RATE_LIMIT_DIRECT_MAX) || 120,
+})
+app.use('/api', (req, res, next) => {
+  if (INTERNAL_TOKEN && req.get('x-internal-token') === INTERNAL_TOKEN) return next()
+  return directLimit(req, res, next)
+})
+
 app.use('/api', (req, res, next) => {
   if (!INTERNAL_TOKEN) return next()
   if (req.get('x-internal-token') === INTERNAL_TOKEN) return next()

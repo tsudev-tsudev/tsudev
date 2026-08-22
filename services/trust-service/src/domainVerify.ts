@@ -11,9 +11,11 @@
  * lại chỉ chứng minh quyền ghi nội dung lên web root.
  */
 
-import { promises as dns } from 'dns'
+import { promises as dns, lookup as dnsLookupCb } from 'dns'
 import type { LookupAddress } from 'dns'
+import https from 'https'
 import net from 'net'
+import type { LookupFunction } from 'net'
 
 /** Kết quả một lần kiểm tra. Luôn có cả hai trường - không nhánh nào trả rỗng. */
 export type CheckResult = { ok: boolean; detail: string }
@@ -34,6 +36,7 @@ const TOKEN_PREFIX = 'tsudev-trust-verification'
 const DNS_LABEL = '_tsudev-trust'
 const FETCH_TIMEOUT_MS = 10000
 const MAX_BODY_BYTES = 512 * 1024
+const MAX_REDIRECTS = 3
 
 /** Chỉ chấp nhận hostname hợp lệ, không cổng, không đường dẫn, không IP trần. */
 function isValidHostname(h: unknown): boolean {
@@ -68,9 +71,10 @@ function isPrivateAddress(ip: string): boolean {
 /**
  * Kiểm tra hostname phân giải ra IP công cộng trước khi gọi HTTP.
  *
- * Đây là biện pháp giảm thiểu SSRF theo thông lệ, không tuyệt đối: vẫn còn khe
- * TOCTOU giữa lúc phân giải và lúc fetch (DNS rebinding). Muốn chặn triệt để
- * thì phải ghim IP đã kiểm tra vào tầng socket - ghi lại đây để sau này siết.
+ * Đây là chốt PRE-FLIGHT cho thông điệp lỗi rõ ràng ở host ban đầu. Chốt CHÍNH
+ * chống SSRF nằm ở `guardedLookup`: nó chạy ở MỖI lần connect (kể cả từng chặng
+ * redirect) và GHIM vào đúng IP đã kiểm, nên đóng cả khe TOCTOU (DNS rebinding)
+ * lẫn SSRF-qua-redirect. Giữ hàm này vì nó bắt lỗi sớm với tên host khách nhập.
  */
 async function assertPublicHost(hostname: string): Promise<void> {
   // `{ all: true }` cho MẢNG địa chỉ. Khai thẳng kiểu vì suy diễn từ
@@ -89,34 +93,95 @@ async function assertPublicHost(hostname: string): Promise<void> {
   }
 }
 
-/** GET có timeout, chặn redirect và giới hạn dung lượng đọc. */
-async function safeGet(url: string): Promise<{ status: number; body: string }> {
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS)
-  try {
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      redirect: 'follow',
-      headers: { 'User-Agent': 'tsudev-trust-verifier/1.0 (+https://tsudev.com/trust)' },
-    })
-    const reader = res.body && res.body.getReader ? res.body.getReader() : null
-    if (!reader) return { status: res.status, body: (await res.text()).slice(0, MAX_BODY_BYTES) }
-    let received = 0
-    const chunks: Uint8Array[] = []
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done || !value) break
-      received += value.length
-      if (received > MAX_BODY_BYTES) {
-        await reader.cancel()
-        break
+/**
+ * Lookup CÓ KIỂM: phân giải hostname, TỪ CHỐI nếu bất kỳ địa chỉ nào là nội bộ,
+ * rồi ghim vào chính địa chỉ đã kiểm. `net`/`https` gọi lookup ở MỖI lần connect,
+ * nên đặt chốt ở đây khoá được cả TOCTOU (địa chỉ đem nối = địa chỉ vừa kiểm, một
+ * nhịp) lẫn SSRF-qua-redirect (mỗi chặng phân giải lại đều đi qua đây).
+ */
+const guardedLookup: LookupFunction = (hostname, options, callback) => {
+  const family = options && typeof options === 'object' ? options.family || 0 : 0
+  dnsLookupCb(hostname, { all: true, family }, (err, addrs) => {
+    if (err) return callback(err, '', 0)
+    if (!addrs.length) return callback(new Error('Tên miền không có bản ghi địa chỉ'), '', 0)
+    for (const a of addrs) {
+      if (isPrivateAddress(a.address)) {
+        return callback(
+          new Error(`Tên miền trỏ vào địa chỉ nội bộ (${a.address}) - không chấp nhận`),
+          '',
+          0
+        )
       }
-      chunks.push(value)
     }
-    return { status: res.status, body: Buffer.concat(chunks.map(Buffer.from)).toString('utf8') }
-  } finally {
-    clearTimeout(timer)
+    const first = addrs[0]
+    if (!first) return callback(new Error('Tên miền không có bản ghi địa chỉ'), '', 0)
+    callback(null, first.address, first.family)
+  })
+}
+
+/** Một lượt GET đơn (không tự theo redirect), có timeout và trần dung lượng. */
+function getOnce(target: string): Promise<{ status: number; location?: string; body: string }> {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const done = (fn: () => void) => {
+      if (settled) return
+      settled = true
+      fn()
+    }
+    const req = https.get(
+      target,
+      {
+        lookup: guardedLookup,
+        timeout: FETCH_TIMEOUT_MS,
+        headers: { 'User-Agent': 'tsudev-trust-verifier/1.0 (+https://tsudev.com/trust)' },
+      },
+      (res) => {
+        const status = res.statusCode || 0
+        const location = res.headers.location
+        if (status >= 300 && status < 400 && location) {
+          res.resume() // rút cạn để socket được tái dùng/đóng gọn
+          return done(() => resolve({ status, location, body: '' }))
+        }
+        let received = 0
+        const chunks: Buffer[] = []
+        res.on('data', (c: Buffer) => {
+          received += c.length
+          if (received > MAX_BODY_BYTES) {
+            res.destroy()
+            done(() => resolve({ status, body: Buffer.concat(chunks).toString('utf8') }))
+            return
+          }
+          chunks.push(c)
+        })
+        res.on('end', () =>
+          done(() => resolve({ status, body: Buffer.concat(chunks).toString('utf8') }))
+        )
+      }
+    )
+    req.on('timeout', () => req.destroy(new Error('Hết thời gian chờ khi tải trang')))
+    req.on('error', (e) => done(() => reject(e)))
+  })
+}
+
+/**
+ * GET an toàn: chỉ https, tự theo tối đa MAX_REDIRECTS chặng, mỗi chặng phải lại
+ * là https và đi qua `guardedLookup`. Redirect sang http (hạ cấp) bị từ chối.
+ */
+async function safeGet(url: string): Promise<{ status: number; body: string }> {
+  let current = url
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await getOnce(current)
+    if (res.status >= 300 && res.status < 400 && res.location) {
+      const next = new URL(res.location, current)
+      if (next.protocol !== 'https:') {
+        throw new Error(`Redirect sang giao thức không phải https: ${next.protocol}`)
+      }
+      current = next.toString()
+      continue
+    }
+    return { status: res.status, body: res.body }
   }
+  throw new Error('Quá nhiều lần chuyển hướng')
 }
 
 async function checkDnsTxt(hostname: string, token: string): Promise<CheckResult> {
@@ -216,4 +281,13 @@ function instructionsFor(hostname: string, method: string, token: string) {
   }
 }
 
-export { verifyDomain, instructionsFor, isValidHostname, isPrivateAddress, TOKEN_PREFIX, DNS_LABEL }
+export {
+  verifyDomain,
+  instructionsFor,
+  isValidHostname,
+  isPrivateAddress,
+  guardedLookup,
+  safeGet,
+  TOKEN_PREFIX,
+  DNS_LABEL,
+}
