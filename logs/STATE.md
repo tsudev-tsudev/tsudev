@@ -157,8 +157,12 @@
   Sentry edge · middleware→proxy) - không ship, revert sạch về next@15; ghi memory
   `nang-cap-next16-express5`. Sharp/qs đều không reachable prod ⇒ **prod không có
   CVE reachable**; B1 để đợt riêng, express@5 không đáng. **C1 hoãn** (chỉ nghiệm
-  thu prod HTTPS được). **Phase A đóng gói thành PR** (chủ dự án cho phép push);
-  cổng chung sạch, test trust 87 · content 46 · storage 15. Phiếu
+  thu prod HTTPS được). **Phase A đóng gói thành PR #60** (chủ dự án cho phép push);
+  cổng chung sạch, test trust 87 · content 46 · storage 15. **Fix CI kèm theo**:
+  `content/storage rateLimit.test.ts` đỏ CI với TS2451 (const `request`/`app`
+  top-level đụng `softDelete.test.ts` vì file dùng `require()` không phải module;
+  local cache che mất) - thêm `export {}` biến thành module. **PR #60 CI 6/6 xanh**,
+  chờ chủ dự án review + merge. Phiếu
   [`20260822-05`](handover/20260822-05_ket-phien-18.md).
 - 22/08/2026 - **Phase A đợt khắc phục triệt để: SSRF + rate limit** (phiên 17).
   A1 vá SSRF `domainVerify` (guarded lookup ghim IP + redirect thủ công, đóng cả
