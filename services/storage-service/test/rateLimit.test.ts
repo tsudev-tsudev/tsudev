@@ -36,3 +36,8 @@ describe('storage-service - giới hạn tần suất /api', () => {
     }
   })
 })
+
+// File này dùng require() không import - thêm export để nó là MODULE (scope
+// riêng), tránh đụng biến top-level `request`/`app` với test khác cùng chương
+// trình TS khi ts-jest type-check cả program (CI).
+export {}

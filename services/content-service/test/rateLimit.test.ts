@@ -38,3 +38,8 @@ describe('content-service - giới hạn tần suất /api', () => {
     }
   })
 })
+
+// File này dùng require() không import - thêm export để nó là MODULE (scope
+// riêng), tránh đụng biến top-level `request`/`app` với test khác cùng chương
+// trình TS (vd softDelete.test.ts) khi ts-jest type-check cả program (CI).
+export {}
