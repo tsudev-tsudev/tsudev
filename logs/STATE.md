@@ -1,15 +1,64 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 17 bắt đầu ở đây**: đọc
-> [`logs/handover/20260822-02`](handover/20260822-02_ket-phien-16.md) - phiếu vào
-> cửa mới nhất. **Frontend tsudev.com đã SẴN SÀNG VẬN HÀNH PRODUCTION** (chủ dự án
-> xác nhận 22/08): kiến trúc tài khoản trọn gói + OAuth + en-dash + **CSP ép thật
-> (băm + nonce)** đều LIVE và đo hành vi trên prod. Không còn task nào trong hàng
-> đợi cần agent - việc còn lại chỉ là vài xác nhận MẮT NGƯỜI (DevTools Console,
-> đăng nhập GitHub thật) và các món nợ kỹ thuật cũ (rate limit, npm audit, ép CSP
-> chặt hơn) chờ chủ dự án quyết mở đợt mới.
+> **Phiên 19 bắt đầu ở đây**: đọc
+> [`logs/handover/20260822-05`](handover/20260822-05_ket-phien-18.md) (kết phiên 18)
+> rồi [`20260822-03`](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md) (hàng đợi
+> chi tiết). **Frontend tsudev.com vẫn SẴN SÀNG VẬN HÀNH PRODUCTION**; không mục
+> nào dưới đây chặn prod. Phiên 18: đóng **Phase 0** (code), **đo B1** (next@16 -
+> measured-then-reverted, cây vẫn next@15), hoãn **C1**, đóng gói **Phase A** thành
+> PR (chủ dự án cho phép). **Prod hiện KHÔNG có CVE reachable** (sharp/qs đều không
+> với tới). B1 là đợt migration riêng; C1 gated-prod.
 
 ## Hàng đợi task (làm từ trên xuống)
+
+**Đợt khắc phục triệt để - chi tiết + tiêu chí xong ở [`handover/20260822-03`](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md). Thứ tự: A2 → A1 → A3 → B1 → C1.**
+
+- [x] **🟠 A2. npm audit non-breaking** - ✅ ĐIỀU TRA XONG 22/08 (phiên 17):
+      **KHÔNG có bản vá non-breaking**. express@4.22.1 ghim `qs ~6.14.0`, loại trừ
+      qs 6.15.2 vá lỗi ⇒ override bị npm từ chối. Lỗi qs (GHSA-q8mj-m7cp-5q26) ở
+      `qs.stringify` mà mã ta KHÔNG dùng (grep sạch cả `qs.stringify` lẫn
+      `encodeValuesOnly`) ⇒ **không với tới được**. 3 moderate này gộp vào B1
+      (nâng express@5 cùng next@16). 4 high vẫn là sharp → B1.
+- [x] **🔴 A1. SSRF `domainVerify` vá triệt để** - ✅ XONG 22/08 (phiên 17). Thay
+      `fetch(redirect:'follow')` bằng `node:https` + `guardedLookup` (kiểm mọi IP,
+      GHIM IP đã kiểm vào socket qua option `lookup` - đóng TOCTOU) + `safeGet`
+      theo redirect THỦ CÔNG tối đa 3 chặng, chỉ https, mỗi chặng qua guardedLookup
+      (đóng redirect-SSRF), từ chối hạ cấp http. Zero-dep (không undici). Test
+      `domainVerify.test.ts` **30** (isPrivateAddress đủ dải metadata/loopback/
+      CGNAT/IPv6-mapped · guardedLookup chặn nội bộ+đa-bản-ghi · safeGet chặn
+      http-downgrade+vòng lặp). trust-service **87/87**; lint/prettier/typecheck
+      sạch. CHƯA phát hành (chờ deploy backend Render - gộp với A3).
+- [x] **🟠 A3. Rate limit content + storage QUA module dùng chung** - ✅ XONG
+      22/08 (phiên 17). Trích `createRateLimit`+`callerIp` thành `@tsudev/ratelimit`
+      (reference ở 3 tsconfig; Dockerfile đã COPY packages/). content+storage gắn
+      limiter `/api` MIỄN TRỪ lưu lượng mang `x-internal-token` đúng (BFF không
+      chuyển IP client xuống, giới hạn không miễn trừ sẽ gộp cả site một xô); chỉ
+      lưu lượng trực tiếp bị giới hạn theo IP thật. Ngưỡng env-chỉnh-được: content
+      300, storage 120/phút. trust **87** · content **46** · storage **15**; cổng
+      chung sạch. CHƯA phát hành (Render tự dựng khi merge - xem phiếu 03 §3).
+- [ ] **🟡 B1. Đợt nâng cấp dependency major** (`infra-deploy` + `frontend-web`) -
+      **ĐÃ ĐO 22/08 (phiên 18), CHƯA làm - cần đợt riêng của chủ dự án.** Đo: sharp
+      KHÔNG reachable prod (chỉ vào qua next/miniflare, Workers không chạy binary
+      native); `next@16.3.2` clear TOÀN BỘ CVE high/critical prod
+      (`npm audit --omit=dev` → còn 3 moderate qs non-reachable). NHƯNG next@16 là migration
+      breaking nhiều mặt: Turbopack mặc định (alias tuyệt đối không nhận) · React
+      #31 dual-copy khi prerender /admin · Sentry edge-runtime · middleware→proxy.
+      Cần debug chuyên sâu + e2e 20/20 + mắt người + nghiệm thu prod. express@5
+      (6 service breaking) không đáng vì qs non-reachable. Chi tiết: memory
+      `nang-cap-next16-express5` + handover phiên 18. **Prod hiện KHÔNG có CVE
+      reachable** - đợt này là dọn audit + vá loạt CVE next@15, không phải chặn.
+- [ ] **⚪ C1. (tuỳ chọn) Siết CSP** (`frontend-web`) - bỏ style-src unsafe-inline +
+      thu hẹp connect-src. **Đánh giá phiên 18: cả hai phần chỉ nghiệm thu được
+      trên prod HTTPS** (bài học #2), style-src unsafe-inline "khó bỏ" (Next/Tailwind
+      chèn style nội tuyến), connect-src cần đúng host R2 presign (ở secret). Ship
+      mù = rủi ro vỡ style/upload IM LẶNG. Để lại như bước gated-prod của chủ dự án.
+- [x] **⚪ Phase 0 (rẻ) - CODE XONG 22/08 (phiên 18).** Rà nốt 7/9 lỗi TS-migrate
+      (#3-#9) bằng grep: TẤT CẢ đã vá (#3 basis enum, #4 certCard guard, #5/#6
+      instanceof, #7 qStr+Array.isArray, #8 routeParam, #9 `|| 'Khác'`). Đóng memory
+      `loi-that-typescript-bat-duoc` (giữ làm tham chiếu lịch sử). CÒN 2 mục mắt
+      người của chủ dự án: DevTools prod Console sạch CSP, đăng nhập GitHub thật.
+
+### Đã hoàn thành trước đợt này (giữ tham chiếu)
 
 - [x] **🔴 BƯỚC 3: bấm nút "Hồi sinh việc đã dừng"** - ✅ chủ dự án đã bấm
       (21/08). Nghiệm thu `npm run newsroom:check`: AgentRun **220 → 224** (+4 lượt).
@@ -100,6 +149,25 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 22/08/2026 - **Phase 0 (code) + đo B1 + đóng gói Phase A** (phiên 18). **Phase 0**:
+  rà 7/9 lỗi TS-migrate còn lại (#3-#9) bằng grep - tất cả đã vá; đóng memory
+  `loi-that-typescript-bat-duoc`. **B1 đo-rồi-revert**: next@16.3.2 clear toàn bộ
+  CVE high/critical prod (`audit --omit=dev` → 3 moderate qs non-reachable) NHƯNG
+  migration breaking nhiều mặt (Turbopack default · React #31 dual-copy prerender ·
+  Sentry edge · middleware→proxy) - không ship, revert sạch về next@15; ghi memory
+  `nang-cap-next16-express5`. Sharp/qs đều không reachable prod ⇒ **prod không có
+  CVE reachable**; B1 để đợt riêng, express@5 không đáng. **C1 hoãn** (chỉ nghiệm
+  thu prod HTTPS được). **Phase A đóng gói thành PR** (chủ dự án cho phép push);
+  cổng chung sạch, test trust 87 · content 46 · storage 15. Phiếu
+  [`20260822-05`](handover/20260822-05_ket-phien-18.md).
+- 22/08/2026 - **Phase A đợt khắc phục triệt để: SSRF + rate limit** (phiên 17).
+  A1 vá SSRF `domainVerify` (guarded lookup ghim IP + redirect thủ công, đóng cả
+  TOCTOU lẫn lỗ redirect-SSRF mới phát hiện; 30 test). A2 điều tra npm audit:
+  không có bản vá non-breaking, dời sang B1. A3 trích `@tsudev/ratelimit` (module
+  dùng chung, chủ dự án chốt) + gắn content/storage với mô hình miễn-trừ-token
+  (BFF không forward IP client). Cổng chung sạch; trust 87 · content 46 ·
+  storage 15. **CHƯA phát hành, CHƯA commit** (để chủ dự án review). Phiếu
+  [`20260822-04`](handover/20260822-04_ket-phien-17.md) + [`20260822-03`](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md).
 - 22/08/2026 - **Sửa CSP runtime: chặn inline script trên /admin,/login** (phiên 16).
   Chủ dự án soi DevTools prod thấy CSP chặn inline script ở /admin,/login. **ĐO**:
   mỗi trang prod có script inline #2 `window.__CF$cv$params...` (nạp
@@ -505,20 +573,23 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 ## Phiếu bàn giao
 
-| Mã                                                                  | Chủ đề                                                  | Trạng thái |
-| ------------------------------------------------------------------- | ------------------------------------------------------- | ---------- |
-| [20260822-02](handover/20260822-02_ket-phien-16.md)                 | Kết phiên 16 - phát hành CSP + en-dash, prod sẵn sàng   | **MỞ**     |
-| [20260822-01](handover/20260822-01_ket-phien-15.md)                 | Kết phiên 15 - kiến trúc tài khoản + OAuth + gạch ngang | HOÀN THÀNH |
-| [20260821-04](handover/20260821-04_ket-phien-14.md)                 | Kết phiên 14 - AUTHOR/OWNER, trang tài khoản, phát hành | HOÀN THÀNH |
-| [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 - repo Public, CI, repo quy ước            | HOÀN THÀNH |
-| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 - gộp #38, hồi sinh toà soạn               | HOÀN THÀNH |
-| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 - gộp #37, mở PR #38                       | HOÀN THÀNH |
-| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 - sổ Neuron, Storybook, dọn nợ             | HOÀN THÀNH |
-| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production                         | HOÀN THÀNH |
-| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 - chuỗi phát hành                           | HOÀN THÀNH |
-| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM                         | HOÀN THÀNH |
-| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện                          | HOÀN THÀNH |
-| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0              | HOÀN THÀNH |
+| Mã                                                                  | Chủ đề                                                   | Trạng thái |
+| ------------------------------------------------------------------- | -------------------------------------------------------- | ---------- |
+| [20260822-05](handover/20260822-05_ket-phien-18.md)                 | Kết phiên 18 - Phase 0 + đo B1 + phát hành Phase A       | **MỞ**     |
+| [20260822-04](handover/20260822-04_ket-phien-17.md)                 | Kết phiên 17 - Phase A (SSRF + rate limit) code-complete | HOÀN THÀNH |
+| [20260822-03](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md)  | Kế hoạch khắc phục triệt để (SSRF · rate limit · audit)  | **MỞ**     |
+| [20260822-02](handover/20260822-02_ket-phien-16.md)                 | Kết phiên 16 - phát hành CSP + en-dash, prod sẵn sàng    | HOÀN THÀNH |
+| [20260822-01](handover/20260822-01_ket-phien-15.md)                 | Kết phiên 15 - kiến trúc tài khoản + OAuth + gạch ngang  | HOÀN THÀNH |
+| [20260821-04](handover/20260821-04_ket-phien-14.md)                 | Kết phiên 14 - AUTHOR/OWNER, trang tài khoản, phát hành  | HOÀN THÀNH |
+| [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 - repo Public, CI, repo quy ước             | HOÀN THÀNH |
+| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 - gộp #38, hồi sinh toà soạn                | HOÀN THÀNH |
+| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 - gộp #37, mở PR #38                        | HOÀN THÀNH |
+| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 - sổ Neuron, Storybook, dọn nợ              | HOÀN THÀNH |
+| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production                          | HOÀN THÀNH |
+| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 - chuỗi phát hành                            | HOÀN THÀNH |
+| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM                          | HOÀN THÀNH |
+| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện                           | HOÀN THÀNH |
+| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0               | HOÀN THÀNH |
 
 ## Ghi chú vận hành
 

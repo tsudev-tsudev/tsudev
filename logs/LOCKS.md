@@ -4,4 +4,4 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - không file nào đang khóa)
+(trống - phiên 18: Phase 0 xong, B1 đo-rồi-revert, đã nhả hết khóa)
