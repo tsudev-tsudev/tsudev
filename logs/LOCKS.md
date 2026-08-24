@@ -4,4 +4,4 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - phiên 18: Phase 0 xong, B1 đo-rồi-revert, đã nhả hết khóa)
+(trống - phiên 20: dọn nhánh stale + xác minh main xanh, không sửa mã nên không khóa file nào)
