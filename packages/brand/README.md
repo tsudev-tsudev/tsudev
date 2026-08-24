@@ -33,6 +33,8 @@ Script ghi vào `public/` của `frontend-main`. Muốn thêm app, bổ sung và
 | `brand/logo-full.png`                                           | `logo.jpeg`                  | logo đầy đủ, nền trong suốt                              |
 | `brand/logo-mark.png`                                           | `logo.jpeg`                  | chỉ biểu tượng cú - dùng ở `SiteHeader`                  |
 | `brand/logo-wordmark.png`                                       | `logo.jpeg`                  | chỉ phần chữ                                             |
+| `brand/logo-full-dark.png`                                      | `logo.jpeg`                  | bản cho nền tối - mực navy đổi sang trắng                |
+| `brand/logo-wordmark-dark.png`                                  | `logo.jpeg`                  | chỉ phần chữ, bản cho nền tối                            |
 | `avatars/default-0N.webp`                                       | vẽ bằng vector trong script  | 6 tông, 256×256, 3 kinh + 5 vĩ                           |
 | `avatars/sm/default-0N.webp`                                    | vẽ bằng vector trong script  | 6 tông, 128×128, 2 kinh + 3 vĩ                           |
 | `favicon.ico`                                                   | `android-chrome-512x512.png` | ICO thật, 3 độ phân giải 16/32/48                        |
@@ -47,6 +49,14 @@ _bên trong_ logo (chữ TSU, nét bộ não, highlight trên cánh). Ngưỡng
 `inner=40 / outer=58` là kết quả dò thực nghiệm: thấp hơn thì còn quầng xám
 quanh cú trên nền đen, cao hơn thì flood fill lách qua vùng quầng sáng và ăn lẹm
 viền bộ não.
+
+**Bản cho nền tối.** Chữ navy `#11355A` chỉ đạt **1.38:1** trên nền Tối - không
+đọc được. Bản `-dark` đổi mực navy sang trắng (**17.28:1**) và **giữ nguyên chữ
+cam**, vốn đã đạt 6.66:1 trên cùng nền đó. Phân biệt hai màu mực bằng hiệu
+`b - r`: navy cho +73, cam cho -208; pixel ở giữa được pha theo tỉ lệ nên không
+sinh viền tối quanh chữ cam. Hình con cú **không bị đụng tới** - nó đủ tương phản
+trên cả hai nền. Lưu ý: quầng sáng của cú vốn được vẽ để tan vào nền trắng, nên ở
+cỡ rất lớn trên nền tối phần đáy thân cú vẫn hơi lộ vệt sáng.
 
 **Lòng chữ kín.** Flood fill từ viền không với tới vùng nền bị bao kín (lòng chữ
 "d", "e"). Phần chữ là hình phẳng không có quầng sáng nên được dọn thêm bằng
