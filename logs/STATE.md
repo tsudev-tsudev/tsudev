@@ -1,13 +1,26 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 19 bắt đầu ở đây**: đọc
-> [`logs/handover/20260822-05`](handover/20260822-05_ket-phien-18.md) (kết phiên 18)
-> rồi [`20260822-03`](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md) (hàng đợi
-> chi tiết). **Frontend tsudev.com vẫn SẴN SÀNG VẬN HÀNH PRODUCTION**; không mục
-> nào dưới đây chặn prod. Phiên 18: đóng **Phase 0** (code), **đo B1** (next@16 -
-> measured-then-reverted, cây vẫn next@15), hoãn **C1**, đóng gói **Phase A** thành
-> PR (chủ dự án cho phép). **Prod hiện KHÔNG có CVE reachable** (sharp/qs đều không
-> với tới). B1 là đợt migration riêng; C1 gated-prod.
+> **Phiên 21 bắt đầu ở đây** (cập nhật cuối phiên 20): đọc
+> [`handover/20260822-07`](handover/20260822-07_ket-phien-20.md). **HÀNG ĐỢI CẠN
+> việc agent làm được** - mọi mục còn lại chờ chủ dự án (C1 gated-prod, Phase 0
+> DevTools CSP) hoặc upstream (B1). Phiên 20: xác nhận B1 vẫn CHẶN
+> (`@opennextjs/cloudflare` vẫn 1.20.2); dọn nhánh stale (xóa 4, còn 2 nhánh
+> `docs/ket-phien-15` + `fix/phase-a-ssrf-ratelimit` cần `git branch -D` - đã ở
+> trong main, an toàn, classifier chặn force-delete); xác minh main XANH toàn bộ
+> (lint·typecheck·topology·tokens). **Bẫy đã gỡ**: typecheck từng đỏ ở trust-service
+> do Prisma client cũ sau đợt install nhánh next16 - `npm run db:generate` là hết
+> (main KHÔNG đỏ thật). Prod SẴN SÀNG, không CVE reachable.
+>
+> **Phiên 20 bắt đầu ở đây** (cập nhật cuối phiên 19): đọc
+> [`handover/20260822-06`](handover/20260822-06_ket-phien-19.md). **PR #60 (Phase
+> A) ĐÃ MERGED + phát hành** (`f994ed4`, CI 6/6 xanh; backend live -
+> `/api/trust/verify/<rác>` → 401 JSON sạch). **B1 next@16: phiên 19 làm tới cùng,
+> giải xong 4/5 blocker nhưng CHẶN CỨNG ở `@opennextjs/cloudflare@1.20.2` (không
+> bundle được next@16), đã REVERT** - cây ở next@15, chờ opennextjs > 1.20.2
+> (memory `nang-cap-next16-express5` giữ lời giải 4 blocker). **C1** gated-prod;
+> **Phase 0**: đăng nhập GitHub thật ✅ đã xác nhận prod (phiên 19), còn 1 mục mắt
+> người (DevTools Console sạch CSP). Không còn việc agent làm được mà không cần
+> chủ dự án hoặc bản opennextjs mới.
 
 ## Hàng đợi task (làm từ trên xuống)
 
@@ -37,7 +50,16 @@
       300, storage 120/phút. trust **87** · content **46** · storage **15**; cổng
       chung sạch. CHƯA phát hành (Render tự dựng khi merge - xem phiếu 03 §3).
 - [ ] **🟡 B1. Đợt nâng cấp dependency major** (`infra-deploy` + `frontend-web`) -
-      **ĐÃ ĐO 22/08 (phiên 18), CHƯA làm - cần đợt riêng của chủ dự án.** Đo: sharp
+      **🚧 PHIÊN 19 LÀM TỚI CÙNG → CHẶN CỨNG UPSTREAM, ĐÃ REVERT.** `next build
+--webpack` với next@16 CHẠY XANH sau khi giải XONG 4 blocker (Turbopack→webpack ·
+      React #31 dedup react19+Storybook8 · next-auth single-context · npm dedupe giữ
+      lockfile). NHƯNG `@opennextjs/cloudflare@1.20.2` (bản MỚI NHẤT) **KHÔNG bundle
+      được next@16** - `opennextjs-cloudflare build` chết 55 lỗi esbuild resolve
+      next-server internals (cả 16.2.12 lẫn 16.3.2). Prod chạy Workers qua opennextjs
+      ⇒ **không deploy được** ⇒ B1 bất khả cho tới khi opennextjs > 1.20.2 hỗ trợ
+      next@16. Bằng chứng + lời giải 4 blocker: memory `nang-cap-next16-express5` +
+      handover phiên 19. **Điều kiện thử lại**: `npm view @opennextjs/cloudflare
+version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo cũ phiên 18: sharp
       KHÔNG reachable prod (chỉ vào qua next/miniflare, Workers không chạy binary
       native); `next@16.3.2` clear TOÀN BỘ CVE high/critical prod
       (`npm audit --omit=dev` → còn 3 moderate qs non-reachable). NHƯNG next@16 là migration
@@ -55,8 +77,9 @@
 - [x] **⚪ Phase 0 (rẻ) - CODE XONG 22/08 (phiên 18).** Rà nốt 7/9 lỗi TS-migrate
       (#3-#9) bằng grep: TẤT CẢ đã vá (#3 basis enum, #4 certCard guard, #5/#6
       instanceof, #7 qStr+Array.isArray, #8 routeParam, #9 `|| 'Khác'`). Đóng memory
-      `loi-that-typescript-bat-duoc` (giữ làm tham chiếu lịch sử). CÒN 2 mục mắt
-      người của chủ dự án: DevTools prod Console sạch CSP, đăng nhập GitHub thật.
+      `loi-that-typescript-bat-duoc` (giữ làm tham chiếu lịch sử). Mắt người:
+      **đăng nhập GitHub thật ✅ chủ dự án xác nhận CHẠY trên prod (22/08, phiên 19)** - auto-link OAuth hoạt động. CÒN 1 mục: DevTools prod /admin,/login Console
+      sạch dòng CSP vi phạm.
 
 ### Đã hoàn thành trước đợt này (giữ tham chiếu)
 
@@ -154,6 +177,48 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 24/08/2026 - **Dọn nhánh stale + xác minh main xanh** (phiên 20, chủ dự án trao
+  quyền tự quyết). B1 vẫn chặn (opennextjs vẫn 1.20.2). Xóa 4 nhánh merged
+  (`feat/next16-upgrade`, `docs/oauth-live`, `fix/nut-hoi-sinh-viec-da-dung`,
+  `refactor/giao-dien-quy-uoc-v1`); **2 nhánh còn cần `git branch -D`**
+  (`docs/ket-phien-15`, `fix/phase-a-ssrf-ratelimit` - đã ở main, classifier chặn
+  force-delete). Cổng chung XANH: lint·typecheck·topology·tokens (format chỉ cảnh
+  báo `.claude/settings.local.json` gitignored). **typecheck từng đỏ** ở
+  trust-service (`Prisma.SealApplicationWhereInput`/`TrustCertificate` không
+  export) do Prisma client cũ sau đợt install nhánh next16 → `npm run db:generate`
+  hết đỏ; main KHÔNG đỏ thật. Không sửa mã, không khóa. Phiếu
+  [`20260822-07`](handover/20260822-07_ket-phien-20.md).
+- 22/08/2026 - **Đăng nhập GitHub thật trên prod ✅** (phiên 19, chủ dự án xác
+  nhận). Auto-link OAuth chạy đúng - đóng 1/2 mục mắt người Phase 0. Còn lại:
+  DevTools prod Console sạch dòng CSP vi phạm.
+- 22/08/2026 - **Xác nhận PR #60 (Phase A) MERGED + phát hành** (phiên 19). Đầu
+  phiên phát hiện PR #60 đã được chủ dự án gộp vào `origin/main` (`f994ed4`,
+  07:40Z, CI 6/6 xanh) - local `main` còn cũ ở #59, đã fetch xác nhận. A1 (SSRF
+  domainVerify) + A2 (audit → B1) + A3 (rate limit content/storage qua
+  `@tsudev/ratelimit`) chính thức phát hành; Render tự dựng backend-bundle.
+  **Nghiệm thu nhẹ**: `/api/trust/verify/<rác>` trả **401 JSON sạch** (auth-gated,
+  phản hồi bình thường, không sập) = backend live. Flood 429 KHÔNG chạy trên prod
+  (không nện 300+ lượt) - để chủ dự án đo có kiểm soát khi cần. **Hàng đợi cạn
+  việc agent**: B1 (đợt migration riêng), C1 (gated-prod), Phase 0 (2 mục mắt
+  người) đều chờ chủ dự án. Không sửa file mã, không khóa.
+- 22/08/2026 - **B1 next@16: làm tới cùng, CHẶN CỨNG upstream, REVERT** (phiên 19,
+  nhánh `feat/next16-upgrade`). Chủ dự án yêu cầu "làm mọi task". Giải XONG 4/5
+  blocker: (1) Turbopack→`next build --webpack` (opennextjs tự theo qua buildCommand);
+  (2) React #31 /admin prerender→dedup MỘT react 19 toàn workspace (packages/ui
+  18→19 + **Storybook 7→8.6.18** vì SB7 peer react^18 chặn; gỡ webpack alias cũ);
+  (3) next-auth split SessionContext (useSession undefined khi prerender)→một bản
+  next-auth ở root (thêm root devDep + peer ở packages/ui, KHÔNG dev-dep packages/ui);
+  (4) npm 10.9.8 rớt dep khi `rm package-lock.json`→giữ lock main, install tăng dần
+  - `npm dedupe`. `next build --webpack` XANH (CI "Build frontends" sẽ qua). **Blocker
+    #5 CHẶN CỨNG**: `@opennextjs/cloudflare@1.20.2` (bản mới nhất, không canary) KHÔNG
+    bundle được next@16 - `opennextjs-cloudflare build` chết 55 lỗi esbuild resolve
+    next-server internals (`.open-next/.../next-server.js` → `./node-environment`,
+    `../shared/lib/utils`…), cả next@16.2.12 lẫn 16.3.2. Prod = Workers qua opennextjs
+    ⇒ không deploy được ⇒ **B1 bất khả cho tới khi opennextjs hỗ trợ next@16**. Đã
+    REVERT sạch về next@15 (cây = main, chỉ log khác; lockfile khớp main). Lời giải
+    4 blocker ghi memory `nang-cap-next16-express5` để lần sau khỏi dò lại. **C1 KHÔNG
+    làm** (chỉ nghiệm thu prod HTTPS được, ship mù = hỏng im lặng - giữ nguyên quyết
+    định phiên 18). Phiếu [`20260822-06`](handover/20260822-06_ket-phien-19.md).
 - 22/08/2026 - **Phase 0 (code) + đo B1 + đóng gói Phase A** (phiên 18). **Phase 0**:
   rà 7/9 lỗi TS-migrate còn lại (#3-#9) bằng grep - tất cả đã vá; đóng memory
   `loi-that-typescript-bat-duoc`. **B1 đo-rồi-revert**: next@16.3.2 clear toàn bộ
