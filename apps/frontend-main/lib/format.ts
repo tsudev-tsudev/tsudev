@@ -1,5 +1,5 @@
 /**
- * Định dạng ngày giờ - BẮT BUỘC toàn hệ thống, `docs/DESIGN_SYSTEM.md` §4.
+ * Định dạng ngày giờ - BẮT BUỘC toàn hệ thống, `.standards/docs/DESIGN_SYSTEM.md` §4.
  *
  *   Ngày     `DD/MM/YYYY`        ví dụ 01/02/2027
  *   Ngày giờ `HH:mm DD/MM/YYYY`  ví dụ 14:30 19/08/2026

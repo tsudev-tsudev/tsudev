@@ -3,7 +3,7 @@
 
    FILE NÀY ĐƯỢC SINH RA. Đừng sửa tay - lần chạy `npm run tokens:sync` kế tiếp
    ghi đè. Nguồn: tokens/design-tokens.json (nguồn chân lý duy nhất của cả hệ
-   sinh thái, xem docs/DESIGN_SYSTEM.md).
+   sinh thái, xem .standards/docs/DESIGN_SYSTEM.md).
 
    Chọn chế độ: thuộc tính `data-theme` trên <html>. Bảng màu ở đây KHÔNG treo
    vào cài đặt hệ điều hành, và đó là cố ý - làm vậy thì hai người mở CÙNG một

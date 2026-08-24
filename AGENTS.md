@@ -80,7 +80,7 @@ song](#chạy-song-song) bên dưới.
 | `docs-curator`  | `docs/` (trừ file viết HOA), mọi `README.md`, `CHANGELOG.md`                                              | giữ tài liệu đúng và gọn                     |
 
 > **Ba nhóm file KHÔNG agent nào sở hữu vì không agent nào được sửa**: `AGENTS.md`
-> phần A, `docs/DESIGN_SYSTEM.md`, `docs/PROJECT_STRUCTURE.md`, `tokens/tokens.css`
+> phần A, `.standards/docs/DESIGN_SYSTEM.md`, `.standards/docs/PROJECT_STRUCTURE.md`, `tokens/tokens.css`
 > và `tokens/design-tokens.json` khối `color`. Chúng đến từ bộ quy ước dùng chung;
 > muốn đổi thì đổi ở repo token trung tâm rồi đồng bộ xuống. `design-system` được
 > ghi vào `tokens/design-tokens.json` **chỉ ở khối `extensions.tsudev-web`**.

@@ -4,4 +4,5 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - phiên 20: dọn nhánh stale + xác minh main xanh, không sửa mã nên không khóa file nào)
+(trống - QU-STD-2 XONG (phiên 23), đã nhả mọi khóa. Chương trình editor nâng cấp
+Pha 1-7 vẫn chờ chủ dự án review + phát hành. Chưa commit.)

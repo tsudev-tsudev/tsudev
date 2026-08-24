@@ -37,9 +37,6 @@ CLAUDE.md
 # và `npm run tokens:check` mới là thứ canh nó.
 tokens/tokens.css
 tokens/design-tokens.json
-docs/DESIGN_SYSTEM.md
-docs/PROJECT_STRUCTURE.md
-docs/templates/HANDOVER.md
 
 # Bản sao chỉ-đọc của bộ quy ước trung tâm. TUYỆT ĐỐI không định dạng lại:
 # mọi thay đổi ở đây làm lệch MANIFEST.sha256 và khiến
