@@ -165,7 +165,7 @@ nguồn là hiện trạng; TSD là đích đến.
 - **Gạch ngang: CHỈ dùng `-` (hyphen, U+002D)** ở mọi nơi - code, comment, chuỗi
   hiển thị, tài liệu, log, commit. **KHÔNG dùng em-dash `—` (U+2014)**: nó phá
   tính thống nhất của giao diện, khó gõ, và không nhất quán giữa các file. En-dash
-  `–` (U+2013) chỉ chấp nhận cho khoảng số (`3-5`, `:4001-:4005`) nhưng nên ưu
+  `-` (U+2013) chỉ chấp nhận cho khoảng số (`3-5`, `:4001-:4005`) nhưng nên ưu
   tiên `-`. Ngoại lệ DUY NHẤT: file migration đã áp dụng là BẤT BIẾN - không sửa
   kể cả em-dash trong comment (lệch checksum). Quy ước gốc: `AGENTS.md` §6.
 - **Commit**: Conventional Commits.

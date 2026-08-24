@@ -40,3 +40,8 @@ tokens/design-tokens.json
 docs/DESIGN_SYSTEM.md
 docs/PROJECT_STRUCTURE.md
 docs/templates/HANDOVER.md
+
+# Bản sao chỉ-đọc của bộ quy ước trung tâm. TUYỆT ĐỐI không định dạng lại:
+# mọi thay đổi ở đây làm lệch MANIFEST.sha256 và khiến
+# ./scripts/sync-standards.sh --check báo lệch vĩnh viễn.
+.standards/

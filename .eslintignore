@@ -7,3 +7,6 @@ verify-output
 
 # Sinh tự động bởi Next mỗi lần build; nội dung của nó không phải mã của repo.
 apps/*/next-env.d.ts
+
+# Bản sao chỉ-đọc của bộ quy ước trung tâm - không lint, không sửa.
+.standards/

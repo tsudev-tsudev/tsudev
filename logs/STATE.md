@@ -141,6 +141,11 @@
       phiên 16). Công cụ: `npm --workspace packages/ui run storybook`, nút **Giao
       diện** đổi ba chế độ trên thanh công cụ.
 
+- [ ] **QU-STD-1** Di trú `tokens/` sang `.standards/tokens/` (nguồn chân lý duy nhất). Hiện có **17 file mã nguồn** đọc token cục bộ. Đây là thay đổi PHÁ VỠ: `text-muted` đổi giá trị ở cả ba chế độ và có thêm `border-control`. Làm theo CHANGELOG mục 2.0.0 "Hướng dẫn nâng cấp", chạy lại ảnh chụp giao diện.
+- [ ] **QU-STD-2** Xóa bản sao quy ước cũ nay đã trùng `.standards/`: docs/DESIGN_SYSTEM.md docs/PROJECT_STRUCTURE.md docs/templates/HANDOVER.md - giữ lại chỉ tạo hai nguồn chân lý.
+- [ ] **QU-STD-3** Rà chỗ dùng `border-strong` cho viền nút phụ hoặc ô nhập, đổi sang `border-control` (`.standards/docs/DESIGN_SYSTEM.md` mục 1).
+- [ ] **QU-STD-4** Chuyển `NEXT_PUBLIC_MAIN_URL` ra khỏi `apps/frontend-main/.env.production` (dùng ở 18 chỗ gồm `scripts/deploy-frontend.js`, `render.yaml`, `config/topology.json`), rồi xóa dòng miễn trừ trong `.standards-allow`. Miễn trừ **hết hạn 31/12/2026**.
+
 ## Đang thực hiện
 
 | Task      | Agent | Bắt đầu |
@@ -220,10 +225,10 @@
   chung sạch; frontend-main jest **36**. CHƯA phát hành (chờ deploy Cloudflare).
 - 22/08/2026 - **Nghiệm thu RBAC + rà giao diện Storybook** - ✅ chủ dự án xác nhận
   hoàn thiện (phiên 16). Gộp PR #3 `tsudev-standards` cũng đã MERGED.
-- 22/08/2026 - **Thống nhất en-dash `–` → hyphen `-`** (phiên 16). Chủ dự án quyết
+- 22/08/2026 - **Thống nhất en-dash `-` → hyphen `-`** (phiên 16). Chủ dự án quyết
   thống nhất luôn. Chuyển en-dash (U+2013) trên **16 file** (hầu hết khoảng số:
   `đợt 1-5`, `:4001-:4005`, `3-32 ký tự`, `14-15px`, `4000-4003`). **GIỮ 4 chỗ cố
-  ý** (trích ký tự `–` để dạy luật): `AGENTS.md:74`, `CLAUDE.md:168`,
+  ý** (trích ký tự `-` để dạy luật): `AGENTS.md:74`, `CLAUDE.md:168`,
   `STATE.md:113`, `handover/20260822-01:59`. **AGENTS.md chỉ sửa dòng 212 (Phần
   B, khoảng số), giữ dòng 74 Phần A.** `docs/DESIGN_SYSTEM.md` KHÔNG đụng - BẤT
   KHẢ XÂM PHẠM (repo trung tâm); 4 en-dash typography còn lại ở đó (`400-480px`,
@@ -240,12 +245,12 @@
   `resolveOAuthEmail` qua GitHub `/user/emails`; backend auto-link theo email đã
   verified). CÒN LẠI cho chủ dự án: thử lại đăng nhập GitHub (giờ liên kết vào
   đúng tài khoản Google sẵn có); gộp PR #3 ở repo `tsudev-standards`.
-- 22/08/2026 - **Thống nhất gạch ngang: em-dash `—` → hyphen `-` toàn repo** (phiên
+- 22/08/2026 - **Thống nhất gạch ngang: em-dash `-` → hyphen `-` toàn repo** (phiên
   15, nhánh `chore/dash-hyphen`). Thay **374 em-dash** trên **29 file** (perl UTF-8
   `s/\x{2014}/-/g`). **NGOẠI LỆ bắt buộc**: `packages/db/prisma/migrations/**` giữ
   nguyên 2 em-dash trong comment SQL - migration BẤT BIẾN, đổi comment lệch checksum
   → prod không boot. tokens/ đổi được vì em-dash nằm ở comment/extensions, không
-  phải khối `color` mà `tokens:check` so. En-dash `–` (17 file, hầu hết khoảng số
+  phải khối `color` mà `tokens:check` so. En-dash `-` (17 file, hầu hết khoảng số
   đúng typography) CHƯA đụng - chờ chủ dự án quyết. **Quy ước mới** thêm vào
   `AGENTS.md` §6 + `CLAUDE.md` (Quy ước code): chỉ dùng `-`, không em-dash. Đồng
   bộ lên repo trung tâm `tsudev-standards` (bên dưới). Nghiệm thu: JSON hợp lệ ·
