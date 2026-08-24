@@ -1,0 +1,5 @@
+# .standards-allow - miễn trừ CÓ GHI CHÉP cho cổng kiểm file nhạy cảm.
+# Định dạng, đủ ba cột: <đường dẫn> | <lý do> | <hết hiệu lực DD/MM/YYYY>
+# Quy tắc đầy đủ và cảnh báo rủi ro: .standards/docs/GITIGNORE_POLICY.md mục 6.
+
+apps/frontend-main/.env.production | Chỉ chứa NEXT_PUBLIC_MAIN_URL. Tiền tố NEXT_PUBLIC_ được Next.js biên dịch thẳng vào bundle trình duyệt nên đã công khai theo thiết kế. Không có secret. Sửa dứt điểm: QU-STD-4 trong logs/STATE.md | 31/12/2026
