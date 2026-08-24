@@ -319,6 +319,45 @@ async function clearEnclosedInBand(pngBuf, fromY, { inner = 40, outer = 58 } = {
 /** PNG nén bảng màu - logo là hình đồ hoạ nên giảm được rất nhiều dung lượng. */
 const pngOpts = { palette: true, quality: 90, effort: 10, compressionLevel: 9 };
 
+/**
+ * Đổi mực chữ navy sang màu sáng để dùng trên nền tối.
+ *
+ * Chỉ áp cho dải chữ (từ `fromY` xuống), nên hình con cú không bị đụng tới - nó
+ * vốn đủ tương phản trên cả nền sáng lẫn nền tối.
+ *
+ * Phân biệt mực navy với chữ cam bằng hiệu `b - r`: navy `#11355A` cho +73, cam
+ * `#FE7B2E` cho -208. Pixel ở giữa hai vùng (viền khử răng cưa giữa hai màu chữ)
+ * được pha theo tỉ lệ, nên không sinh ra viền tối quanh chữ cam. Alpha giữ
+ * nguyên - chính nó mới là thứ mang hình dạng nét chữ.
+ */
+async function inkToLight(pngBuf, fromY, target = [255, 255, 255]) {
+  const { data, info } = await sharp(pngBuf)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width: W, height: H, channels: C } = info;
+
+  let touched = 0;
+  for (let y = fromY; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * C;
+      if (data[i + 3] === 0) continue;
+      const t = Math.max(0, Math.min(1, (data[i + 2] - data[i]) / 40));
+      if (t === 0) continue;
+      for (let ch = 0; ch < 3; ch++) {
+        data[i + ch] = Math.round(data[i + ch] * (1 - t) + target[ch] * t);
+      }
+      touched++;
+    }
+  }
+  const hex = target.map((v) => v.toString(16).padStart(2, '0')).join('');
+  console.log(`  đổi mực ${touched} pixel sang #${hex}`);
+
+  return sharp(data, { raw: { width: W, height: H, channels: C } })
+    .png()
+    .toBuffer();
+}
+
 /** Dựng file .ico thật (container nhiều độ phân giải, dữ liệu PNG bên trong). */
 function buildIco(entries) {
   const header = Buffer.alloc(6);
@@ -381,6 +420,26 @@ async function main() {
     emit(
       'brand/logo-wordmark.png',
       await sharp(logoTrimmed)
+        .extract({ left: 0, top: splitY, width: meta.width, height: meta.height - splitY })
+        .trim()
+        .resize({ width: 640, withoutEnlargement: true })
+        .png(pngOpts)
+        .toBuffer()
+    );
+
+    // Bản cho nền tối: chữ navy #11355A chỉ đạt 1.38:1 trên nền Tối, không đọc
+    // được. Đổi sang trắng thì lên 17.28:1. Chữ cam giữ nguyên - nó đã đạt
+    // 6.66:1 trên cùng nền đó. Quy tắc: .standards/docs/BRAND_ASSETS.md mục 4.
+    const logoDark = await inkToLight(logoTrimmed, splitY);
+
+    emit(
+      'brand/logo-full-dark.png',
+      await sharp(logoDark).resize({ width: 768, withoutEnlargement: true }).png(pngOpts).toBuffer()
+    );
+
+    emit(
+      'brand/logo-wordmark-dark.png',
+      await sharp(logoDark)
         .extract({ left: 0, top: splitY, width: meta.width, height: meta.height - splitY })
         .trim()
         .resize({ width: 640, withoutEnlargement: true })
