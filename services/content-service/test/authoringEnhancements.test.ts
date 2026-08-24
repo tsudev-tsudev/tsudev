@@ -200,3 +200,9 @@ describe('content-service - endpoint tìm/lọc', () => {
     expect(res.body.data.map((p: { slug: string }) => p.slug)).not.toContain(draftSlug)
   })
 })
+
+// Biến file này thành MODULE: các khai báo top-level (request/app/prisma/stamp)
+// thành phạm vi module, không rơi vào global. Thiếu dòng này thì `tsc -b` gộp
+// chúng với cùng tên ở softDelete.test.ts thành "Cannot redeclare" - CI đỏ dù
+// jest (mỗi file một module) ở local vẫn xanh. Xem author.test.ts + rateLimit.test.ts.
+export {}
