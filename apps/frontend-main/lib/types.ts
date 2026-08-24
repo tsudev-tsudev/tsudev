@@ -15,6 +15,11 @@ export type Author = {
   avatarUrl?: string | null;
 };
 
+export type PostRef = {
+  label: string;
+  url: string;
+};
+
 export type Post = {
   id: string;
   slug: string;
@@ -23,8 +28,19 @@ export type Post = {
   contentMd?: string | null;
   createdAt: string;
   updatedAt?: string | null;
+  publishedAt?: string | null;
   author?: Author | null;
   tags?: string[];
+  references?: PostRef[];
+  coverImageUrl?: string | null;
+  metaDescription?: string | null;
+};
+
+/** Kết quả từ endpoint tìm kiếm `/api/posts/search` (SEARCH_AND_FILTER §7). */
+export type PostSearchResult = {
+  data: Post[];
+  meta: { total: number; page: number; page_size: number; query_normalized: string };
+  facets: { tag: Array<{ slug: string; count: number }> };
 };
 
 export type Doc = {

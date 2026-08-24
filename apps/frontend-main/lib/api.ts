@@ -1,7 +1,7 @@
 // Server-side data helpers for frontend-main.
 // In dev these hit the local microservices; override via env in other envs.
 import { CONTENT, internalHeaders } from './services';
-import type { Doc, Post, Project } from './types';
+import type { Doc, Post, PostSearchResult, Project } from './types';
 
 /**
  * Generic ở đây làm một việc cụ thể: buộc giá trị dự phòng và kiểu trả về là
@@ -30,8 +30,20 @@ async function getJSON<T>(url: string, fallback: T): Promise<T> {
 }
 
 export const api = {
-  posts: (limit = 6) => getJSON<Post[]>(`${CONTENT}/api/posts?limit=${limit}`, []),
+  posts: (limit = 6, tag?: string) =>
+    getJSON<Post[]>(
+      `${CONTENT}/api/posts?limit=${limit}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}`,
+      []
+    ),
   post: (slug: string) => getJSON<Post | null>(`${CONTENT}/api/posts/${slug}`, null),
+  // Tìm/lọc theo SEARCH_AND_FILTER §7. `query` là chuỗi truy vấn đã ghép sẵn
+  // (q, tag, sort, page, page_size). Dùng cho SSR trang /search và proxy client.
+  searchPosts: (query: string) =>
+    getJSON<PostSearchResult>(`${CONTENT}/api/posts/search?${query}`, {
+      data: [],
+      meta: { total: 0, page: 1, page_size: 20, query_normalized: '' },
+      facets: { tag: [] },
+    }),
   docs: () => getJSON<Doc[]>(`${CONTENT}/api/docs`, []),
   doc: (slug: string) => getJSON<Doc | null>(`${CONTENT}/api/docs/${slug}`, null),
   projects: (limit = 50) => getJSON<Project[]>(`${CONTENT}/api/projects?limit=${limit}`, []),

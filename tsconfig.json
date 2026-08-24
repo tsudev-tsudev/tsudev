@@ -9,6 +9,7 @@
     { "path": "packages/identity-token" },
     { "path": "packages/auth" },
     { "path": "packages/ratelimit" },
+    { "path": "packages/search" },
     { "path": "packages/ui" },
     { "path": "services/content-service" },
     { "path": "services/storage-service" },

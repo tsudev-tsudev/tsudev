@@ -251,6 +251,28 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// --- Xuất bản & lên lịch ---
+  /// NGÀY HIỂN THỊ, do tác giả sửa được. `createdAt` giữ nguyên làm dấu vết audit
+  /// bất biến. Mọi đường đọc công khai xếp/lọc theo trường này (fallback createdAt
+  /// nếu NULL cho dữ liệu cũ). LÊN LỊCH: `published=true` + `publishedAt` tương lai
+  /// ⇒ bài ẩn tới giờ hẹn - đường đọc công khai PHẢI thêm `publishedAt <= now()`.
+  publishedAt DateTime?
+
+  /// --- Nội dung nâng cao ---
+  /// Nguồn tham khảo: mảng JSON [{ label, url }]. Render ở vùng "Nguồn tham khảo".
+  references      Json?
+  /// Ảnh bìa (URL trong object storage). Hiển thị đầu bài + thẻ OG.
+  coverImageUrl   String?
+  /// Mô tả SEO/OG. Rỗng ⇒ suy từ excerpt.
+  metaDescription String?
+
+  /// --- Chỉ mục tìm kiếm (SEARCH_AND_FILTER.md) ---
+  /// Bản đã CHUẨN HOÁ (NFC → thường → bỏ dấu, đ→d) để so khớp không dấu. TÍNH SẴN
+  /// tại thời điểm ghi qua @tsudev/search, KHÔNG tìm trực tiếp trên title/contentMd.
+  /// Backfill bằng `npm run search:reindex`. Có index GIN pg_trgm (thêm ở migration).
+  searchTitleNorm String?
+  searchBodyNorm  String?
+
   /// --- Toà soạn Agent AI ---
   /// Xoá mềm. Mọi truy vấn đọc công khai PHẢI thêm `deletedAt: null`; quên một
   /// chỗ là bài đã xoá vẫn hiện ra. Xoá cứng bị trigger Postgres chặn.
@@ -261,7 +283,13 @@ model Post {
   authoredByAgentId String?
 
   @@index([published, createdAt])
+  @@index([published, publishedAt])
   @@index([deletedAt])
+  @@index([tags], type: Gin)
+  // Index trigram trên cột đã chuẩn hoá - so khớp không dấu/gần đúng không quét
+  // toàn bảng. `map` khớp tên index dựng tay trong migration để Prisma không báo lệch.
+  @@index([searchTitleNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "Post_searchTitleNorm_trgm_idx")
+  @@index([searchBodyNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "Post_searchBodyNorm_trgm_idx")
 }
 
 model Doc {

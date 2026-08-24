@@ -6,7 +6,8 @@
     "start": "node dist/index.js",
     "dev": "nodemon -L --watch src --ext ts,json --exec 'tsc -b ../.. && node dist/index.js'",
     "test": "NODE_ENV=test jest --runInBand",
-    "pretest": "tsc -b ../.."
+    "pretest": "tsc -b ../..",
+    "search:reindex": "tsc -b ../.. && node dist/scripts/reindex-search.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -14,7 +15,8 @@
     "source-map-support": "^0.5.21",
     "@tsudev/db": "*",
     "@tsudev/types": "*",
-    "@tsudev/auth": "*"
+    "@tsudev/auth": "*",
+    "@tsudev/search": "*"
   },
   "devDependencies": {
     "nodemon": "^2.0.22",

@@ -162,6 +162,15 @@ const asyncHandler =
 const S3_ENDPOINT = process.env.S3_ENDPOINT || process.env.S3_URL || 'http://minio:9000'
 const S3_PUBLIC_ENDPOINT = process.env.S3_PUBLIC_ENDPOINT || null
 const S3_BUCKET = process.env.S3_BUCKET || 'tsudev'
+
+// URL đọc CÔNG KHAI của một object đã tải lên, để nhúng vào bài (ảnh/video).
+// Dùng S3_PUBLIC_ENDPOINT - đích mà trình duyệt với tới được: ở dev là
+// cdn.tsudev.localhost, ở prod là endpoint S3 công khai của R2. Fallback
+// S3_ENDPOINT chỉ cho môi trường không tách (test/CI).
+const publicUrlOf = (key: string): string => {
+  const base = (S3_PUBLIC_ENDPOINT || S3_ENDPOINT).replace(/\/+$/, '')
+  return `${base}/${S3_BUCKET}/${key.split('/').map(encodeURIComponent).join('/')}`
+}
 const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY || process.env.MINIO_ROOT_USER
 const S3_SECRET_KEY = process.env.S3_SECRET_KEY || process.env.MINIO_ROOT_PASSWORD
 
@@ -291,7 +300,7 @@ app.get(
     const url = await generatePresign(cmd)
     console.log('[storage] generated presign (GET)', objectKey)
     console.log('[storage] presign URL (GET):', url)
-    res.json({ url, key: objectKey })
+    res.json({ url, key: objectKey, publicUrl: publicUrlOf(objectKey) })
   })
 )
 
@@ -365,7 +374,7 @@ app.post(
         create: { key: fileName, fileName, contentType, size },
       })
       .catch((e: unknown) => console.warn('[storage] catalog write failed:', errMsg(e)))
-    res.json({ key: fileName, size, storageWarning })
+    res.json({ key: fileName, size, storageWarning, publicUrl: publicUrlOf(fileName) })
   })
 )
 
