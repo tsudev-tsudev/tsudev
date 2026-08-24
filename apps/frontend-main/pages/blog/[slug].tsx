@@ -27,9 +27,10 @@ export default function BlogPost({ post, slug, toc }: BlogPostProps) {
       <Seo
         title={post.title}
         path={`/blog/${slug}`}
-        description={post.excerpt || undefined}
+        description={post.metaDescription || post.excerpt || undefined}
+        image={post.coverImageUrl || undefined}
         type="article"
-        publishedAt={post.createdAt}
+        publishedAt={post.publishedAt || post.createdAt}
       />
       <div className="max-w-6xl mx-auto px-4 py-10">
         <nav className="text-sm text-fg-muted mb-4">
@@ -38,11 +39,18 @@ export default function BlogPost({ post, slug, toc }: BlogPostProps) {
           </a>{' '}
           <span className="mx-1.5">/</span> <span className="text-fg-secondary">{post.title}</span>
         </nav>
+        {post.coverImageUrl && (
+          <img
+            src={post.coverImageUrl}
+            alt=""
+            className="w-full rounded-lg mb-6 max-h-96 object-cover border border-line"
+          />
+        )}
         <div className="flex flex-wrap gap-1.5 mb-4">
           {(post.tags || []).map((t: string) => (
-            <Badge key={t} tone="neutral">
-              {t}
-            </Badge>
+            <a key={t} href={`/blog?tag=${encodeURIComponent(t)}`} aria-label={`Lọc theo thẻ ${t}`}>
+              <Badge tone="neutral">{t}</Badge>
+            </a>
           ))}
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold text-fg text-balance leading-tight">
@@ -53,7 +61,7 @@ export default function BlogPost({ post, slug, toc }: BlogPostProps) {
           <span className="text-fg-secondary font-medium">
             {post.author?.displayName || 'tsudev'}
           </span>
-          <span>· {formatDateVN(post.createdAt)}</span>
+          <span>· {formatDateVN(post.publishedAt || post.createdAt)}</span>
         </div>
         {/* Hai cột từ lg trở lên: thân bài giữ bề rộng đọc được, mục lục bám
             dính bên phải. Dưới lg thì mục lục nằm TRÊN thân bài - trên màn hình
@@ -68,6 +76,31 @@ export default function BlogPost({ post, slug, toc }: BlogPostProps) {
             <TableOfContents items={toc} />
           </aside>
         </div>
+
+        {(post.references?.length ?? 0) > 0 && (
+          <section
+            aria-labelledby="nguon-tham-khao"
+            className="mt-12 pt-6 border-t border-line max-w-[minmax(0,1fr)]"
+          >
+            <h2 id="nguon-tham-khao" className="text-lg font-bold text-fg mb-3">
+              Nguồn tham khảo
+            </h2>
+            <ol className="list-decimal pl-5 space-y-1.5 marker:text-fg-muted">
+              {(post.references || []).map((r, i) => (
+                <li key={i} className="text-sm">
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-link hover:underline break-words"
+                  >
+                    {r.label || r.url}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
       </div>
     </Layout>
   );

@@ -19,6 +19,7 @@ import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
 import { createRateLimit } from '@tsudev/ratelimit'
 import type { Post, Prisma, Project, User } from '@prisma/client'
 import { hasAtLeastRole, emailUsable } from '@tsudev/types'
+import { buildPostSearch, viNormalizeText } from '@tsudev/search'
 
 type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
 
@@ -153,42 +154,180 @@ app.use('/api', optionalAuth)
 // chỉ vô hại vì cổng đó khi ấy là no-op - bật lên là blog biến mất khỏi site.
 //
 // Thứ cần bảo vệ là đường GHI, nằm dưới /api/admin với requireAdmin().
+
+// Điều kiện HIỂN THỊ CÔNG KHAI, gom một chỗ để không đường đọc nào quên:
+//   - `deletedAt: null` BẮT BUỘC (Toà soạn xoá mềm; quên = bài xoá lộ ra).
+//   - cổng LỊCH: publishedAt NULL (dữ liệu cũ) hoặc <= bây giờ. Bài hẹn tương lai ẩn.
+const publicVisibleAnd = (now: Date): Prisma.PostWhereInput[] => [
+  { OR: [{ publishedAt: null }, { publishedAt: { lte: now } }] },
+]
+const publicPostWhere = (now: Date): Prisma.PostWhereInput => ({
+  published: true,
+  deletedAt: null,
+  AND: publicVisibleAnd(now),
+})
+
+type PostWithAuthor = Post & { author: User | null }
+// Thẻ danh sách/tìm kiếm: đủ để render card, KHÔNG lộ cột nội bộ (search*Norm,
+// authoredByAgentId, sourceDraftId). Ngày hiển thị = publishedAt (fallback createdAt).
+const publicPostCard = (p: PostWithAuthor) => ({
+  id: p.id,
+  slug: p.slug,
+  title: p.title,
+  excerpt: p.excerpt,
+  tags: p.tags,
+  coverImageUrl: p.coverImageUrl,
+  publishedAt: p.publishedAt ?? p.createdAt,
+  createdAt: p.createdAt,
+  author: authorCard(p.author),
+})
+const publicPostDetail = (p: PostWithAuthor) => ({
+  ...publicPostCard(p),
+  contentMd: p.contentMd,
+  references: (p.references ?? []) as PostRef[],
+  metaDescription: p.metaDescription,
+  updatedAt: p.updatedAt,
+})
+
+// Xếp hạng độ liên quan (SEARCH_AND_FILTER §5). Khớp trên cột đã chuẩn hoá; qn là
+// từ khoá đã chuẩn hoá không dấu. Tie-break: bài mới hơn trước (§5 tiêu chí phụ).
+const scorePost = (p: Post, qn: string): number => {
+  if (!qn) return 0
+  const t = p.searchTitleNorm ?? ''
+  const b = p.searchBodyNorm ?? ''
+  let s = 0
+  if (t === qn) s += 100
+  else if (t.startsWith(qn)) s += 70
+  else if (t.includes(qn)) s += 50
+  if (p.tags.some((tag) => viNormalizeText(tag).includes(qn))) s += 30
+  if (b.includes(qn)) s += 10
+  return s
+}
+
 app.get(
   '/api/posts',
   asyncHandler(async (req, res) => {
+    const now = new Date()
     const take = Math.min(qInt(req.query.limit, 20), 50)
+    const tag = qStr(req.query.tag)?.trim()
     const posts = await prisma.post.findMany({
-      // `deletedAt: null` là BẮT BUỘC trên mọi đường đọc công khai. Toà soạn
-      // Agent AI xoá mềm, nên thiếu bộ lọc này là bài đã xoá vẫn hiện ra.
-      where: { published: true, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
+      where: tag ? { ...publicPostWhere(now), tags: { has: tag } } : publicPostWhere(now),
+      // Xếp theo ngày HIỂN THỊ (publishedAt), fallback createdAt cho dữ liệu cũ.
+      orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take,
       include: { author: true },
     })
-    res.json(
-      posts.map((p) => ({
-        id: p.id,
-        slug: p.slug,
-        title: p.title,
-        excerpt: p.excerpt,
-        tags: p.tags,
-        createdAt: p.createdAt,
-        author: authorCard(p.author),
-      }))
-    )
+    res.json(posts.map(publicPostCard))
+  })
+)
+
+// Tìm kiếm/lọc theo SEARCH_AND_FILTER §7. ĐỨNG TRƯỚC '/api/posts/:slug' để không
+// bị nuốt thành slug "search". Trần page_size cứng 100 (chống cạn tài nguyên).
+app.get(
+  '/api/posts/search',
+  asyncHandler(async (req, res) => {
+    const now = new Date()
+    const rawQ = (qStr(req.query.q) ?? '').trim()
+    const qn = viNormalizeText(rawQ)
+    const tag = qStr(req.query.tag)?.trim()
+    const sort = qStr(req.query.sort) ?? 'relevance'
+    const page = qInt(req.query.page, 1)
+    const pageSize = Math.min(qInt(req.query.page_size, 20), 100)
+
+    // Truy vấn từ 2 ký tự (§2.1). Không q, không tag ⇒ không tìm gì.
+    const hasQuery = qn.length >= 2
+    if (!hasQuery && !tag) {
+      return res.json({
+        data: [],
+        meta: { total: 0, page, page_size: pageSize, query_normalized: qn },
+        facets: { tag: [] },
+      })
+    }
+
+    const where: Prisma.PostWhereInput = {
+      published: true,
+      deletedAt: null,
+      AND: [
+        ...publicVisibleAnd(now),
+        ...(hasQuery
+          ? [
+              {
+                OR: [{ searchTitleNorm: { contains: qn } }, { searchBodyNorm: { contains: qn } }],
+              } as Prisma.PostWhereInput,
+            ]
+          : []),
+        ...(tag ? [{ tags: { has: tag } } as Prisma.PostWhereInput] : []),
+      ],
+    }
+
+    const total = await prisma.post.count({ where })
+
+    // Sắp theo ngày ⇒ phân trang ở DB (rẻ). Sắp theo độ liên quan ⇒ lấy tập ứng
+    // viên có trần rồi xếp hạng trong bộ nhớ (quy mô nhỏ, §8). Trần 500 giữ chi
+    // phí hữu hạn kể cả khi từ khoá quá phổ biến.
+    let rows: PostWithAuthor[]
+    if (sort === 'newest' || sort === 'oldest' || !hasQuery) {
+      rows = await prisma.post.findMany({
+        where,
+        orderBy: [
+          { publishedAt: sort === 'oldest' ? 'asc' : 'desc' },
+          { createdAt: sort === 'oldest' ? 'asc' : 'desc' },
+        ],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { author: true },
+      })
+    } else {
+      const candidates = await prisma.post.findMany({
+        where,
+        take: 500,
+        include: { author: true },
+      })
+      candidates.sort((a, b) => {
+        const d = scorePost(b, qn) - scorePost(a, qn)
+        if (d !== 0) return d
+        const ta = (a.publishedAt ?? a.createdAt).getTime()
+        const tb = (b.publishedAt ?? b.createdAt).getTime()
+        return tb - ta
+      })
+      rows = candidates.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+    }
+
+    // Facet thẻ: đếm trong tập khớp (trần 500) - "khi khả thi" (§6.3).
+    const facetSource = await prisma.post.findMany({
+      where,
+      take: 500,
+      select: { tags: true },
+    })
+    const tagCount = new Map<string, number>()
+    for (const r of facetSource)
+      for (const tg of r.tags) tagCount.set(tg, (tagCount.get(tg) ?? 0) + 1)
+    const tagFacet = [...tagCount.entries()]
+      .map(([slug, count]) => ({ slug, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20)
+
+    res.json({
+      data: rows.map(publicPostCard),
+      meta: { total, page, page_size: pageSize, query_normalized: qn },
+      facets: { tag: tagFacet },
+    })
   })
 )
 
 app.get(
   '/api/posts/:slug',
   asyncHandler(async (req, res) => {
+    const now = new Date()
     const post = await prisma.post.findUnique({
       where: { slug: req.params.slug },
       include: { author: true },
     })
-    if (!post || !post.published || post.deletedAt)
+    // Cổng lịch: bài hẹn tương lai coi như chưa tồn tại với công chúng.
+    const scheduled = post?.publishedAt ? post.publishedAt.getTime() > now.getTime() : false
+    if (!post || !post.published || post.deletedAt || scheduled)
       return res.status(404).json({ error: 'Post not found' })
-    res.json({ ...post, author: authorCard(post.author) })
+    res.json(publicPostDetail(post))
   })
 )
 
@@ -548,6 +687,7 @@ const slugify = (s: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+type PostRef = { label: string; url: string }
 type PostWritable = {
   slug?: string
   title?: string
@@ -555,8 +695,52 @@ type PostWritable = {
   contentMd?: string
   tags?: string[]
   published?: boolean
+  publishedAt?: Date | null
+  references?: PostRef[]
+  coverImageUrl?: string | null
+  metaDescription?: string | null
 }
 type PostBodyResult = { ok: true; data: PostWritable } | { ok: false; error: string }
+
+// URL người dùng khai (nguồn tham khảo, ảnh bìa) CHỈ chấp nhận http/https - chặn
+// `javascript:`/`data:` (XSS khi render) và giao thức lạ. Trần độ dài chống nhồi.
+const isHttpUrl = (s: string): boolean => {
+  if (s.length > 2048) return false
+  try {
+    const u = new URL(s)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+/** Làm sạch mảng "Nguồn tham khảo": mỗi phần tử {label,url}, url phải http/https. */
+function readReferences(
+  raw: unknown
+): { ok: true; refs: PostRef[] } | { ok: false; error: string } {
+  if (!Array.isArray(raw)) return { ok: false, error: 'references phải là mảng' }
+  if (raw.length > 50) return { ok: false, error: 'references tối đa 50 mục' }
+  const refs: PostRef[] = []
+  for (const item of raw) {
+    const o = (item ?? {}) as Record<string, unknown>
+    const url = String(o.url ?? '').trim()
+    if (!url) continue
+    if (!isHttpUrl(url)) return { ok: false, error: `URL nguồn không hợp lệ: ${url.slice(0, 80)}` }
+    // Nhãn rỗng ⇒ suy từ host để vùng hiển thị luôn có chữ đọc được.
+    let label = String(o.label ?? '')
+      .trim()
+      .slice(0, 200)
+    if (!label) {
+      try {
+        label = new URL(url).host
+      } catch {
+        label = url
+      }
+    }
+    refs.push({ label, url })
+  }
+  return { ok: true, refs }
+}
 
 /**
  * Làm sạch phần thân request cho Post. `authorId`/`authoredByAgentId` CỐ Ý không
@@ -601,6 +785,32 @@ function readPostBody(body: unknown, { partial }: { partial: boolean }): PostBod
   }
   if (b.published !== undefined) data.published = Boolean(b.published)
 
+  // Ngày hiển thị/lên lịch. null = xoá (đọc công khai fallback createdAt). Chuỗi
+  // ISO ⇒ Date; ngày tương lai = hẹn lịch (đường đọc ẩn tới giờ).
+  if (b.publishedAt !== undefined) {
+    if (b.publishedAt === null || b.publishedAt === '') {
+      data.publishedAt = null
+    } else {
+      const d = new Date(String(b.publishedAt))
+      if (Number.isNaN(d.getTime())) return { ok: false, error: 'publishedAt không hợp lệ' }
+      data.publishedAt = d
+    }
+  }
+  if (b.references !== undefined) {
+    const r = readReferences(b.references)
+    if (!r.ok) return { ok: false, error: r.error }
+    data.references = r.refs
+  }
+  if (b.coverImageUrl !== undefined) {
+    const c = b.coverImageUrl === null ? null : String(b.coverImageUrl).trim()
+    if (c && !isHttpUrl(c)) return { ok: false, error: 'coverImageUrl phải là http/https' }
+    data.coverImageUrl = c === '' ? null : c
+  }
+  if (b.metaDescription !== undefined) {
+    const m = b.metaDescription === null ? null : String(b.metaDescription).trim().slice(0, 320)
+    data.metaDescription = m === '' ? null : m
+  }
+
   return { ok: true, data }
 }
 
@@ -614,6 +824,10 @@ const authorPostCard = (p: Post) => ({
   contentMd: p.contentMd,
   tags: p.tags,
   published: p.published,
+  publishedAt: p.publishedAt,
+  references: p.references ?? [],
+  coverImageUrl: p.coverImageUrl,
+  metaDescription: p.metaDescription,
   createdAt: p.createdAt,
   updatedAt: p.updatedAt,
 })
@@ -645,6 +859,12 @@ app.post(
     const clash = await prisma.post.findUnique({ where: { slug: data.slug } })
     if (clash) return res.status(409).json({ error: `slug "${data.slug}" đã tồn tại` })
 
+    // Cột chỉ mục tìm kiếm tính SẴN lúc ghi (SEARCH_AND_FILTER §4). Một nguồn.
+    const search = buildPostSearch({
+      title: data.title,
+      excerpt: data.excerpt ?? null,
+      contentMd: data.contentMd,
+    })
     const post = await prisma.post.create({
       // Tác giả bị GHIM theo phiên; authoredByAgentId null = do người viết.
       data: {
@@ -654,6 +874,12 @@ app.post(
         excerpt: data.excerpt ?? null,
         tags: data.tags ?? [],
         published: data.published ?? true,
+        // Không khai ⇒ đăng ngay (ngày hiển thị = lúc tạo); khai tương lai = lên lịch.
+        publishedAt: data.publishedAt ?? new Date(),
+        references: (data.references ?? []) as unknown as Prisma.InputJsonValue,
+        coverImageUrl: data.coverImageUrl ?? null,
+        metaDescription: data.metaDescription ?? null,
+        ...search,
         authorId: me.id,
         authoredByAgentId: null,
       },
@@ -702,7 +928,23 @@ app.patch(
       if (clash) return res.status(409).json({ error: `slug "${data.slug}" đã tồn tại` })
     }
 
-    const post = await prisma.post.update({ where: { id: current.id }, data })
+    // Tính lại chỉ mục từ giá trị SAU khi trộn (patch có thể chỉ đổi một phần).
+    const { references, ...rest } = data
+    const search = buildPostSearch({
+      title: data.title ?? current.title,
+      excerpt: data.excerpt !== undefined ? data.excerpt : current.excerpt,
+      contentMd: data.contentMd ?? current.contentMd,
+    })
+    const post = await prisma.post.update({
+      where: { id: current.id },
+      data: {
+        ...rest,
+        ...(references !== undefined
+          ? { references: references as unknown as Prisma.InputJsonValue }
+          : {}),
+        ...search,
+      },
+    })
     res.json(authorPostCard(post))
   })
 )

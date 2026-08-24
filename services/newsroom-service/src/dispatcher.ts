@@ -4,7 +4,9 @@
 // dịch, nhật ký và van an toàn nằm ở đây, để không phải đi tìm ở bốn nơi khi
 // một bài đi sai đường.
 import { prisma } from '@tsudev/db'
+import { buildPostSearch } from '@tsudev/search'
 import { runScout, runWriter, runEditor, runSeo, slugify } from './agents'
+import { pickCoverImage } from './images'
 import { fetchSource, fingerprint } from './sources'
 import {
   AllProvidersExhaustedError,
@@ -568,14 +570,29 @@ async function onPublishRequested(draftId: string): Promise<void> {
   } else {
     // BLOG và TRUST cùng đổ vào Post; TRUST được gắn thẻ để lọc lại được.
     const slug = await uniqueSlug('BLOG', base)
+    const tags = draft.target === 'TRUST' ? [...draft.tags, 'con-dau'] : draft.tags
+    // Ảnh bìa tự chọn theo chủ đề (no-op nếu chưa cấu hình nguồn ảnh). Ghi công
+    // tác giả ảnh vào Nguồn tham khảo (Pexels đòi ghi công).
+    const cover = await pickCoverImage([draft.title, ...draft.tags].join(' '))
+    // Cột chỉ mục tìm kiếm PHẢI tính ở đây - bỏ qua là bài của Toà soạn không
+    // tìm được (SEARCH_AND_FILTER §4). Cùng một hàm với đường ghi của người viết.
+    const search = buildPostSearch({
+      title: draft.title,
+      excerpt: draft.excerpt,
+      contentMd: draft.contentMd,
+    })
     const post = await prisma.post.create({
       data: {
         slug,
         title: draft.title,
         excerpt: draft.excerpt,
         contentMd: draft.contentMd,
-        tags: draft.target === 'TRUST' ? [...draft.tags, 'con-dau'] : draft.tags,
+        tags,
         published: true,
+        publishedAt: new Date(),
+        coverImageUrl: cover?.url ?? null,
+        references: cover ? [{ label: cover.credit, url: cover.sourceUrl }] : [],
+        ...search,
         sourceDraftId: draft.id,
         authoredByAgentId: draft.authorAgentId,
       },
