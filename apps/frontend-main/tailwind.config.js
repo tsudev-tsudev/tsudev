@@ -3,7 +3,7 @@
  * packages/ui/src/tokens.css, và file đó được SINH RA từ tokens/design-tokens.json
  * (`npm run tokens:sync`). Nhờ vậy mọi class màu/khoảng cách/bo góc trong app đều
  * truy ngược được về nguồn chân lý duy nhất, đúng yêu cầu của
- * docs/PROJECT_STRUCTURE.md - và ba chế độ Sáng/Ấm/Tối đổi theo `data-theme` mà
+ * .standards/docs/PROJECT_STRUCTURE.md - và ba chế độ Sáng/Ấm/Tối đổi theo `data-theme` mà
  * không class nào phải biết là có ba chế độ.
  *
  * Vì sao chữ nằm trong nhóm `fg` chứ không phẳng ra thành `text-primary`: token

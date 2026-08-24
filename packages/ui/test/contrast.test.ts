@@ -8,7 +8,7 @@ import { join } from 'path';
  * tương phản ở chế độ Tối hoàn toàn có thể không đủ ở chế độ Sáng. Kiểm bằng mắt
  * thì bắt được cái chói, không bắt được cái vừa-đủ-trượt: WCAG AA đòi 4.5:1 cho
  * chữ thường và 3:1 cho chữ lớn hoặc thành phần giao diện, còn
- * docs/DESIGN_SYSTEM.md §1 đòi thêm chữ chính trên nền đạt ≥ 10:1.
+ * .standards/docs/DESIGN_SYSTEM.md §1 đòi thêm chữ chính trên nền đạt ≥ 10:1.
  *
  * Test đọc THẲNG tokens.css - bản SINH RA từ tokens/design-tokens.json - nên
  * không có bản sao nào để trôi lệch. Đổi một mã màu mà làm tụt tương phản là CI

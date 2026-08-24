@@ -1,7 +1,7 @@
 # CHANGELOG
 
 Mỗi bản phát hành **một dòng**, dạng `{version} - {DD/MM/YYYY} - {nội dung}`
-(`docs/DESIGN_SYSTEM.md` §6). Mới nhất trên cùng.
+(`.standards/docs/DESIGN_SYSTEM.md` §6). Mới nhất trên cùng.
 
 tsudev là **website**, không phải app cài đặt, nên nó không mang chuỗi version
 theo khuôn `{YY}.{M}.{DD}{NN}` - khuôn đó chỉ áp cho tool/phần mềm desktop phát

@@ -36,7 +36,7 @@ Ba cổng canh chuỗi này, và `npm run tokens:check` nằm trong CI:
 
 `tokens/tokens.css` là bản chuẩn của **hệ sinh thái** (C#/Python/Qt cũng đọc thư
 mục `tokens/`). Script đồng bộ **không** ghi đè nó - chỉ đối chiếu và báo lệch.
-Nó nằm trong `.prettierignore` cùng `docs/DESIGN_SYSTEM.md`: prettier hạ mã hex
+Nó nằm trong `.prettierignore` cùng `tokens/design-tokens.json`: prettier hạ mã hex
 xuống chữ thường và tách danh sách selector xuống dòng, tức là làm bản ở repo này
 khác bản gốc, và một bộ token dùng chung mà mỗi repo một dạng thì hết là dùng chung.
 

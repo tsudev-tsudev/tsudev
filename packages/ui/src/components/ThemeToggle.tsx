@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 /**
  * Nút chọn giao diện - BỐN lựa chọn: Sáng · Ấm · Tối · Theo hệ thống.
  *
- * Vì sao là bốn chứ không phải ba: `docs/DESIGN_SYSTEM.md` §1 muốn chế độ mặc
+ * Vì sao là bốn chứ không phải ba: `.standards/docs/DESIGN_SYSTEM.md` §1 muốn chế độ mặc
  * định bám theo hệ điều hành, còn `CLAUDE.md` cấm điều đó - một site đổi diện
  * mạo theo cài đặt máy nghĩa là hai người mở CÙNG một đường link thấy hai thứ
  * khác nhau mà không ai chọn gì cả, và người viết bài không biết bài mình trông

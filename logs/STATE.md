@@ -1,5 +1,19 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> **Phiên 23 bắt đầu ở đây** (cập nhật cuối phiên 22): đọc
+> [`handover/20260824-01`](handover/20260824-01_pha1-editor-nang-cap.md) (§6 ghi kết
+> quả Pha 2-7). **CHƯƠNG TRÌNH EDITOR NÂNG CẤP 7 PHA ĐÃ XONG TOÀN BỘ** (chủ dự án
+> trao quyền tự quyết chạy thẳng). Sửa bài đã đăng đầy đủ (nội dung/tiêu đề/thời
+> gian) + lên lịch + xem trước + ảnh bìa/SEO + media ảnh-video (upload + render an
+> toàn) + Nguồn tham khảo {label,url} + tìm/lọc theo tag (chuẩn SEARCH_AND_FILTER
+> GĐ1-3: không dấu, debounce, highlight ánh xạ ngược, ARIA, facet, /search) + agent
+> AI tự chèn ảnh bìa. **Mọi cổng XANH**: typecheck·lint·format·topology·tokens;
+> test content 60 · storage 15 · newsroom 49 · bundle 15 · frontend 40. **CHƯA
+> commit, CHƯA phát hành** - chờ chủ dự án review + phát hành. Phát hành CẦN:
+> `prisma migrate deploy` migration `20260824043047` trên Neon + (tuỳ chọn)
+> `PEXELS_API_KEY` ở Render cho ảnh agent + `npm run search:reindex` backfill bài
+> cũ trên prod. Chi tiết ở §6 phiếu 20260824-01.
+>
 > **Phiên 21 bắt đầu ở đây** (cập nhật cuối phiên 20): đọc
 > [`handover/20260822-07`](handover/20260822-07_ket-phien-20.md). **HÀNG ĐỢI CẠN
 > việc agent làm được** - mọi mục còn lại chờ chủ dự án (C1 gated-prod, Phase 0
@@ -165,7 +179,14 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       diện** đổi ba chế độ trên thanh công cụ.
 
 - [ ] **QU-STD-1** Di trú `tokens/` sang `.standards/tokens/` (nguồn chân lý duy nhất). Hiện có **17 file mã nguồn** đọc token cục bộ. Đây là thay đổi PHÁ VỠ: `text-muted` đổi giá trị ở cả ba chế độ và có thêm `border-control`. Làm theo CHANGELOG mục 2.0.0 "Hướng dẫn nâng cấp", chạy lại ảnh chụp giao diện.
-- [ ] **QU-STD-2** Xóa bản sao quy ước cũ nay đã trùng `.standards/`: docs/DESIGN_SYSTEM.md docs/PROJECT_STRUCTURE.md docs/templates/HANDOVER.md - giữ lại chỉ tạo hai nguồn chân lý.
+- [x] **QU-STD-2** ✅ XONG 24/08 (phiên 23). Xóa 3 bản sao v1.0.0 đã lỗi thời
+      (`.standards/` là v2.0.0): `docs/DESIGN_SYSTEM.md`, `docs/PROJECT_STRUCTURE.md`,
+      `docs/templates/HANDOVER.md` (+ thư mục `docs/templates/` rỗng). Repoint 12 tham
+      chiếu SỐNG sang `.standards/docs/…` (comment ở packages/ui, apps/frontend-main,
+      scripts, tokens/design-tokens.json format-block, AGENTS.md §B, CHANGELOG,
+      docs/{design-system,architecture}.md); `.prettierignore` bỏ 3 dòng chết. GIỮ hồ
+      sơ đóng băng (logs/handover, HANDOFF/STATE lịch sử) + `structure-upstream-proposal.md`
+      (nêu tên v1.0.0 làm chủ đề đề xuất). Cổng: tokens·topology·format XANH.
 - [ ] **QU-STD-3** Rà chỗ dùng `border-strong` cho viền nút phụ hoặc ô nhập, đổi sang `border-control` (`.standards/docs/DESIGN_SYSTEM.md` mục 1).
 - [ ] **QU-STD-4** Chuyển `NEXT_PUBLIC_MAIN_URL` ra khỏi `apps/frontend-main/.env.production` (dùng ở 18 chỗ gồm `scripts/deploy-frontend.js`, `render.yaml`, `config/topology.json`), rồi xóa dòng miễn trừ trong `.standards-allow`. Miễn trừ **hết hạn 31/12/2026**.
 
@@ -177,6 +198,66 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 24/08/2026 - **QU-STD-2: dọn bản sao quy ước trùng `.standards/`** (phiên 23, chủ
+  dự án trao quyền tự chọn+chạy tới hoàn thành). `docs/DESIGN_SYSTEM.md` +
+  `docs/PROJECT_STRUCTURE.md` cục bộ là **v1.0.0 lỗi thời**, `.standards/docs/` đã là
+  **v2.0.0** (thêm `border-control`, bảng tương phản, hình trạng monorepo B). Xóa 3
+  file trùng + repoint 12 tham chiếu sống → `.standards/docs/…` (chỉ comment/text, 0
+  rủi ro runtime; `tokens.css` sinh lại qua `tokens:sync` sau khi sửa template trong
+  `sync-tokens.js`). Cổng XANH: tokens·topology·format (chỉ cảnh báo
+  `.claude/settings.local.json` gitignored). **Phát hiện phụ**: hai đề xuất đẩy ngược
+  (`docs/{token,structure}-upstream-proposal.md`) DƯỜNG NHƯ đã được nhận vào v2.0.0
+  của `.standards/` (border-control + hình trạng B đã có) - việc rà/đóng chúng thuộc
+  docs-curator, NGOÀI phạm vi QU-STD-2. **Chưa commit** (chờ chủ dự án). QU-STD-3 phụ
+  thuộc QU-STD-1 (token `border-control` chưa tồn tại tới khi QU-STD-1 xong).
+- 24/08/2026 - **Chương trình editor nâng cấp: HOÀN TẤT Pha 2-7** (phiên 22, chủ
+  dự án trao quyền tự quyết chạy thẳng). Kết quả đầy đủ ở [`handover/20260824-01`](handover/20260824-01_pha1-editor-nang-cap.md)
+  §6. Tóm tắt:
+  - **Pha 2 backend** (content-service): `readPostBody` nhận publishedAt/references/
+    coverImageUrl/metaDescription (URL http/https-only chống XSS); MỌI đường ghi Post
+    gọi `buildPostSearch`; đọc công khai thêm cổng lịch `publishedAt<=now()` + xếp
+    theo publishedAt; endpoint `GET /api/posts/search` (đặt TRƯỚC `:slug`) chuẩn §7:
+    q không dấu qua cột norm + trigram, ranking §5, facet tag, trần page_size 100;
+    `/api/posts?tag=` lọc tag; script `search:reindex`.
+  - **Pha 3 editor** (`/author`): sửa mọi trường + chọn thời gian đăng (datetime-local)
+    - lên lịch (badge) + nguồn tham khảo nhiều dòng + ảnh bìa + SEO + đếm từ
+      (viWordCount) + nút Xem trước (renderMarkdown chống XSS).
+  - **Pha 4 công khai + search UI**: blog/[slug] render vùng "Nguồn tham khảo"
+    (rel=noopener) + ảnh bìa + OG metaDescription + tag chip bấm được; blog index lọc
+    `?tag=` + thanh chip; trang `/search` tương tác (debounce 350ms, AbortController,
+    min 2 ký tự, highlight ánh xạ ngược `findMatchRanges`, ARIA combobox/listbox,
+    keyboard ↑↓↵Esc, facet, sort, URL state, SSR ban đầu) + proxy `/api/search`.
+  - **Pha 5 media**: `lib/md` render `![](url)` → `<img>`, đuôi video → `<video>`
+    (src qua whitelist, alt escape - md.test 15/15 giữ nguyên); editor có nút tải
+    ảnh/video + ảnh bìa lên object storage; storage presign/upload trả thêm
+    `publicUrl` (từ S3_PUBLIC_ENDPOINT+bucket+key).
+  - **Pha 6 agent AI**: newsroom `dispatcher` gọi `buildPostSearch` + đặt publishedAt
+    - tự chọn ảnh bìa `pickCoverImage` (Pexels free-key, no-op nếu chưa cấu hình
+      `PEXELS_API_KEY`) + ghi công tác giả ảnh vào references.
+  - **Pha 7 test**: `authoringEnhancements.test.ts` (14): unit @tsudev/search (đ/Đ,
+    NFC=NFD, wordcount, buildPostSearch, findMatchRanges) + write mọi trường + lịch
+    ẩn/hiện + references validate 400 + search min-2/facet/page_size-cap + IDOR nháp
+    không lọt search. **Rerun-safe** (chạy 2 lần).
+  - **Cổng XANH toàn bộ**: typecheck·lint·format·topology·tokens; content 60 ·
+    storage 15 · newsroom 49 · bundle 15 · frontend 40. **CHƯA commit/phát hành.**
+- 24/08/2026 - **Pha 1 chương trình editor nâng cấp: nền dữ liệu + module search**
+  (phiên 21). Chủ dự án chốt: publishedAt riêng · toàn bộ tính năng pro (lịch,
+  preview, ảnh bìa/SEO, media ảnh/video, agent AI chèn ảnh) · references
+  {label,url} · search đầy đủ chuẩn GĐ1-3. **Migration
+  `20260824043047_upgrade_post_publishing_search`** (áp local + backfill
+  `publishedAt=createdAt`): Post thêm `publishedAt, references Json, coverImageUrl,
+metaDescription, searchTitleNorm, searchBodyNorm`; index `[published,publishedAt]`
+  - GIN `tags` + 2 GIN trigram (`pg_trgm`/`unaccent`) trên cột chuẩn hoá; drift
+    check **No difference**. **Package mới `@tsudev/search`** (dual Node+Workers,
+    0-dep): `viRemoveDiacritics`/`viNormalizeText` (xử lý đ/Đ, §3.2) ·`viWordCount`·
+    `stripToPlainText`·`buildPostSearch` (tính sẵn 2 cột lúc ghi). Đăng ký ở
+    tsconfig gốc + services. Cổng: typecheck·lint·format·topology **xanh**; smoke-test
+    6/6 (đ/Đ, NFC=NFD, không dấu, wordcount, strip md). **Quyết định**: KHÔNG đổi
+    `published` boolean → enum; lịch suy ra `published=true`+publishedAt tương lai.
+    **Chưa commit, chưa phát hành.** Kế tiếp Pha 2 (backend-api): `readPostBody` mở
+    rộng + `buildPostSearch` khi ghi + đường đọc lọc `publishedAt<=now()` + endpoint
+    `/api/posts?q=&tag=&sort=&page=` chuẩn §7 + `search:reindex` backfill 2 cột cho
+    bài cũ.
 - 24/08/2026 - **Dọn nhánh stale + xác minh main xanh** (phiên 20, chủ dự án trao
   quyền tự quyết). B1 vẫn chặn (opennextjs vẫn 1.20.2). Xóa 4 nhánh merged
   (`feat/next16-upgrade`, `docs/oauth-live`, `fix/nut-hoi-sinh-viec-da-dung`,

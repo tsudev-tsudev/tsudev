@@ -2,7 +2,7 @@
 /**
  * Sinh `packages/ui/src/tokens.css` từ `tokens/design-tokens.json`.
  *
- * Vì sao có script này thay vì chép tay: `docs/PROJECT_STRUCTURE.md` đòi mọi giá
+ * Vì sao có script này thay vì chép tay: `.standards/docs/PROJECT_STRUCTURE.md` đòi mọi giá
  * trị màu/cỡ chữ/spacing phải truy ngược được về MỘT file JSON. Chép tay thì hai
  * bản trôi lệch, và một mã màu lệch không làm gì đỏ - nó chỉ làm trang trông rẻ
  * tiền vài tháng sau. Ở đây bản CSS là ARTIFACT: không sửa tay, sửa JSON rồi chạy
@@ -61,7 +61,7 @@ const header = `/* ============================================================
 
    FILE NÀY ĐƯỢC SINH RA. Đừng sửa tay - lần chạy \`npm run tokens:sync\` kế tiếp
    ghi đè. Nguồn: tokens/design-tokens.json (nguồn chân lý duy nhất của cả hệ
-   sinh thái, xem docs/DESIGN_SYSTEM.md).
+   sinh thái, xem .standards/docs/DESIGN_SYSTEM.md).
 
    Chọn chế độ: thuộc tính \`data-theme\` trên <html>. Bảng màu ở đây KHÔNG treo
    vào cài đặt hệ điều hành, và đó là cố ý - làm vậy thì hai người mở CÙNG một
