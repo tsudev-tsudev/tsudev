@@ -33,6 +33,17 @@ module.exports = {
     // `packages/ui/src/index.tsx`), không phải PropTypes. Đến khi đó, để luật
     // này bật chỉ khiến CI đỏ vĩnh viễn và che mất lỗi thật.
     'react/prop-types': 'off',
+
+    // Mặc định luật này chỉ tha `role="tabpanel"`. Thêm `region` vì quy ước
+    // DATA_TABLE.md mục 7 BUỘC vùng bảng cuộn ngang phải có `tabindex="0"` kèm
+    // nhãn - không có nó thì người dùng bàn phím không cuộn ngang được để nhìn
+    // các cột bên phải (WCAG 2.1.1). Ở đây `tabindex` trên phần tử không tương
+    // tác là ĐÚNG, không phải sơ suất, nên nới đúng một vai trò thay vì tắt luật
+    // hoặc rải `eslint-disable` ở từng bảng.
+    'jsx-a11y/no-noninteractive-tabindex': [
+      'error',
+      { tags: [], roles: ['tabpanel', 'region'], allowExpressionValues: true },
+    ],
   },
   overrides: [
     {

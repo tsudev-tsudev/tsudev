@@ -17,6 +17,8 @@ import { Stat } from './components/Stat';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Icon } from './components/Icon';
 import { TableOfContents } from './components/TableOfContents';
+import { RecordFooter } from './components/RecordFooter';
+import { usePageSize, pageAfterResize } from './lib/usePageSize';
 import { MAIN_URL } from './lib/siteUrls';
 
 export {
@@ -40,6 +42,9 @@ export {
   ThemeToggle,
   Icon,
   TableOfContents,
+  RecordFooter,
+  usePageSize,
+  pageAfterResize,
 };
 
 export default Layout;
@@ -52,3 +57,4 @@ export type { ButtonSize, ButtonVariant } from './components/Button';
 export type { ToastType } from './components/Toast';
 export type { IconName } from './components/Icon';
 export type { TocItem } from './components/TableOfContents';
+export type { RecordFooterProps } from './components/RecordFooter';

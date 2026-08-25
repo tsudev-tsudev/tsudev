@@ -10,5 +10,9 @@
     "types": ["node", "jest"]
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../../packages/types" }, { "path": "../../packages/auth" }]
+  "references": [
+    { "path": "../../packages/types" },
+    { "path": "../../packages/auth" },
+    { "path": "../../packages/ratelimit" }
+  ]
 }

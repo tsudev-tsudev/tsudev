@@ -281,45 +281,42 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       (nêu tên v1.0.0 làm chủ đề đề xuất). Cổng: tokens·topology·format XANH.
 - [ ] **QU-STD-3** Rà chỗ dùng `border-strong` cho viền nút phụ hoặc ô nhập, đổi sang `border-control` (`.standards/docs/DESIGN_SYSTEM.md` mục 1).
 - [ ] **QU-STD-AUTH** Rà luồng đăng nhập theo `.standards/docs/AUTH_AND_ACCOUNT.md` mục 17. Repo này là **hạng A**. Trọng tâm: `tsudev.com` phải là IdP OIDC duy nhất (hiện NextAuth nối thẳng Google/GitHub vào frontend - đó chính là kiểu nối tài liệu mục 2 cấm), ba lối vào đúng thứ tự, và cơ chế Xác minh tài khoản ân hạn 7 ngày ở mục 8. Mọi hạn chế `MUST` thi hành ở tầng máy chủ.
-- [ ] **QU-STD-TABLE** Thêm bộ chọn số bản ghi `10/20/50/100/200` (mặc định `10`, góc dưới bên trái) cho mọi bảng và mọi modal có bản ghi, gồm cả bảng quản trị. Đổi mốc `MUST` giữ nguyên bản ghi đầu đang nhìn thấy và `MUST` tải lại từ máy chủ. Chuẩn: `.standards/docs/DATA_TABLE.md` mục 12. Làm **máy chủ trước, giao diện sau**: nâng trần `page_size` lên 200 kèm giới hạn tần suất trước khi mở mốc 200 trên giao diện.
-- [x] **QU-STD-BRAND** - ✅ **XONG phần tài sản + siêu dữ liệu 25/08 (phiên 24).**
-      Sửa DÂY CHUYỀN `packages/brand/build-assets.js` rồi sinh lại, không cắt tay
-      (BRAND_ASSETS mục 7 cấm). Bốn thứ thiếu, mỗi thứ đều hỏng IM LẶNG:
-      **(a)** `favicon.ico` chỉ 3 lớp 16/32/48 → nay đủ **7 lớp**
-      16/24/32/48/64/128/256 (mục 7 `MUST`; mục 6 liệt kê 3 lớp là bảng TỐI THIỂU,
-      bộ 7 thoả luôn nó - không mâu thuẫn khi thi hành).
-      **(b)** `favicon-96x96.png` thiếu hẳn → đã sinh + khai `<link rel="icon">`.
-      **(c)** `apple-touch-icon.png` **CÒN ALPHA** (đo được: alpha_min=0) mà chuẩn
-      đòi nền ĐẶC - iOS không tôn trọng alpha ở đây mà **tô ĐEN** vào chỗ trong
-      suốt. Lỗi này đang chạy trên prod từ trước. Nay flatten lên `#eef4fb`.
-      **(d)** Icon PWA **maskable** thiếu hoàn toàn → thêm 192/512 riêng (dấu hiệu
-      thu về 80% + đệm nền đặc; Android xén icon theo hình dạng máy nên dùng bản
-      thường làm maskable là mất viền), manifest khai `purpose` **tách bạch** -
-      gộp `"any maskable"` trên MỘT ảnh là sai một trong hai lần dùng.
-      **Cổng kiểm mới `scripts/check-brand-assets.js`** (BRAND_ASSETS mục 12.2 buộc
-      repo tự chặn) chạy trong job "Kiểm quy ước". Thuần Node đọc byte PNG/ICO vì
-      job đó chạy TRƯỚC `npm ci`. Nó kiểm cả HÌNH DẠNG chứ không chỉ sự tồn tại
-      (bản mẫu trong quy ước chỉ kiểm 4 file có mặt). Mẹo làm cho "nền đặc" kiểm
-      được bằng máy: lưu icon đó dạng **RGB không alpha** (color type 2) nên cổng
-      chỉ cần đọc IHDR, khỏi giải mã pixel. **Đã chứng minh cổng BẮT lỗi** bằng ba
-      cách hỏng thật (xoá file · apple-touch có alpha · manifest gộp purpose).
-      **Siêu dữ liệu**: mô tả kho mã GitHub trước đây **có em-dash** (vi phạm chính
-      quy ước gạch ngang) và thiếu hậu tố - nay `… | tsudev.com`, `homepage` =
-      `https://tsudev.com`, thêm nhãn `tsudev`. `README.md` thêm dấu hiệu thu gọn +
-      dòng "Một sản phẩm của tsudev" + **hạng sản phẩm A** (bảng mục 1
-      `AUTH_AND_ACCOUNT.md` nêu đích danh repo `tsudev`). `SiteFooter` thay câu
-      giới thiệu tự nghĩ bằng **bản mô tả chuẩn nguyên văn** + liên kết
-      `tsudev.com` (mục 1 `MUST NOT` cho mỗi repo tự nghĩ một câu riêng).
-      Phụ: `favicon.ico` nén bảng màu **182 kB → 54 kB**, maskable 306 → 71 kB;
-      sai lệch màu chỉ ~1% trên vùng NHÌN THẤY (đo cả vùng trong suốt thì ra
-      21-30/255 và trông như hỏng nặng - vùng alpha=0 không hiển thị ở đâu cả).
-      **CÒN LẠI, chuyển sang việc khác vì chồng lấn**: checklist
-      `ECOSYSTEM_IDENTITY` mục 9 còn ảnh đại diện tài khoản (magic number, xoá
-      EXIF, từ chối SVG/ảnh động, cắt khung tròn), bố cục trang hồ sơ mục 7.1/7.2,
-      thuật ngữ mục 8 → **thuộc QU-STD-AUTH**; bảng trong hồ sơ → **QU-STD-TABLE**.
-      Ảnh đại diện tổ chức/repo trên GitHub cần chủ dự án tải lên bằng tay.
-      Việc treo **TS-8** (chữ "dev" ở `Logo.tsx` ra xanh trong khi `tsudev-cwico`
-      ra cam) CHƯA đụng - đó là quyết định màu của repo trung tâm.
+- [ ] **QU-STD-TABLE** Bộ chọn số bản ghi `10/20/50/100/200` cho MỌI bảng và mọi
+      modal có bản ghi. Chuẩn: `.standards/docs/DATA_TABLE.md` mục 12.
+      **ĐỢT 1 XONG 25/08 (phiên 24): nền tảng + bảng `/admin/accounts` trọn vẹn.**
+      Làm đúng thứ tự CHANGELOG bắt buộc - **máy chủ trước, giao diện sau**. - **Nền tảng máy chủ** (`@tsudev/types`): `PAGE_SIZES` · `normalizePageSize`
+      (quy về mốc gần nhất KHÔNG lớn hơn, không báo lỗi: 15→10, 99→50, 5000→200)
+      · `parsePaging` (ra `skip`/`take` dùng thẳng cho Prisma) · `pageMeta`
+      (`total_pages` tối thiểu 1, vì 0 làm giao diện hiện "trang 1 / 0"). - **Giới hạn tần suất mốc lớn** (`@tsudev/ratelimit.largePageRateLimit`):
+      10 yêu cầu/phút/**tài khoản** cho `page_size >= 100`. Quy ước gọi đây là
+      "cái giá của việc nâng trần lên 200 và là ĐIỀU KIỆN của việc nâng đó".
+      Đếm theo TÀI KHOẢN chứ không IP (một văn phòng chung NAT sẽ chặn lẫn
+      nhau), và CHỈ đếm khi thật sự xin mốc lớn - người lật trang ở mốc 10 cả
+      ngày không được phép tự khoá mình ra khỏi mốc 200. `createRateLimit` nhận
+      thêm `keyOf` + `when` để làm được điều đó. - **`useradmin/list`**: trước đây `take: 500` một phát, trả MẢNG THUẦN -
+      vượt trần cứng 200 của quy ước và bắt trình duyệt dựng 500 dòng. Nay
+      `{data, meta}` + phân trang. ⚠️ **PHÁ VỠ client cũ** nên trang đi cùng
+      commit; `useradmin.test.ts` đã cập nhật và chính nó bắt được thay đổi này. - **Component dùng chung** `RecordFooter` + hook `usePageSize`
+      (`@tsudev/ui`): chân vùng chia ba (trái bộ chọn · giữa tóm tắt · phải
+      phân trang), tối đa 7 ô trang, số có dấu phân cách tiếng Việt, `aria-live`
+      sau khi đổi, tiêu điểm ở lại bộ chọn, nhớ mốc theo TỪNG bảng bằng
+      `tsudev.pagesize.<mã-bảng>` (bọc try/catch - `localStorage` ném lỗi thật
+      trong cửa sổ ẩn danh), và `pageAfterResize` giữ nguyên bản ghi đầu đang
+      nhìn thấy thay vì ném người dùng về trang 1. - **`/admin/accounts`**: URL mang `page`/`page_size`; vùng cuộn ngang có
+      `tabindex`+nhãn (mục 7); khung xương đúng số dòng khi tải lại để bảng
+      không co giãn. Tách cờ `booted` khỏi `loading` - dùng chung một cờ thì mỗi
+      lần lật trang cả trang chớp một cái và tiêu điểm trên bộ chọn bị mất. - `.eslintrc.cjs` nới `jsx-a11y/no-noninteractive-tabindex` cho `role="region"`:
+      quy ước BUỘC vùng cuộn ngang có `tabindex`, nên ở đây nó đúng chứ không
+      phải sơ suất - nới một vai trò thay vì rải `eslint-disable` từng bảng.
+      **ĐỢT 2 CÒN LẠI**: áp khuôn `RecordFooter` cho các bảng/danh sách còn lại và
+      phân trang nốt các endpoint - `invite list` (take 100) · `security events`
+      (take 50, dùng ở `/settings/security` + `/admin/security`) · `trust audit`
+      (take 100/200) · `storage files` (take 100) · `content search` (đã có phân
+      trang nhưng trần còn 100, cần nâng 200 + gắn `largePageRateLimit`).
+      ⚠️ Nợ phát hiện kèm: `content-service` và `storage-service` **import
+      `@tsudev/ratelimit` mà KHÔNG khai trong `package.json`** - chạy được nhờ
+      hoisting của npm workspaces, nhưng sai khai báo và có thể vỡ trong Docker.
+
 - [ ] **QU-STD-4** Chuyển `NEXT_PUBLIC_MAIN_URL` ra khỏi `apps/frontend-main/.env.production` (dùng ở 18 chỗ gồm `scripts/deploy-frontend.js`, `render.yaml`, `config/topology.json`), rồi xóa dòng miễn trừ trong `.standards-allow`. Miễn trừ **hết hạn 31/12/2026**.
 
 ## Đang thực hiện

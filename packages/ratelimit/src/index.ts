@@ -50,12 +50,32 @@ export function createRateLimit(opts: {
   max: number;
   /** Tiền tố log, để biết bộ nào đang chặn. */
   name: string;
+  /**
+   * Khoá của một xô. Mặc định là IP người gọi.
+   *
+   * Đổi được vì có giới hạn phải đếm theo TÀI KHOẢN chứ không theo IP: mốc
+   * `page_size` lớn (DATA_TABLE.md mục 8.4) là quyền của một tài khoản đã đăng
+   * nhập, và đếm theo IP thì cả một văn phòng dùng chung NAT sẽ chặn lẫn nhau,
+   * trong khi một tài khoản đổi IP lại thoát.
+   */
+  keyOf?: (req: Request) => string;
+  /**
+   * Chỉ tính giới hạn khi hàm này trả true. Mặc định: mọi request.
+   *
+   * Dùng cho giới hạn CÓ ĐIỀU KIỆN - ví dụ chỉ chặn khi client xin mốc lớn, còn
+   * lưu lượng bình thường đi thẳng. Trả false là KHÔNG đếm, không chỉ là không
+   * chặn: nếu vẫn đếm thì một người lật trang mốc 10 cả ngày sẽ tự khoá mình ra
+   * khỏi mốc 200.
+   */
+  when?: (req: Request) => boolean;
 }): RequestHandler {
   const buckets = new Map<string, Bucket>();
 
   return function rateLimit(req: Request, res: Response, next: NextFunction) {
+    if (opts.when && !opts.when(req)) return next();
+
     const now = Date.now();
-    const key = callerIp(req);
+    const key = opts.keyOf ? opts.keyOf(req) : callerIp(req);
 
     let b = buckets.get(key);
     if (!b) {
@@ -99,4 +119,49 @@ export function callerIp(req: Request): string {
   const first = Array.isArray(raw) ? raw[0] : raw;
   const ip = first?.split(',')[0]?.trim() || req.ip || 'unknown';
   return ip.slice(0, 45);
+}
+
+/**
+ * Giới hạn riêng cho yêu cầu xin mốc `page_size` LỚN (>= 100).
+ *
+ * DATA_TABLE.md mục 8.4 gọi đây là "cái giá của việc nâng trần từ 100 lên 200,
+ * và là điều kiện của việc nâng đó" - nên nó không phải tuỳ chọn. Một tài khoản
+ * kéo 200 bản ghi mỗi lần, lặp liên tục, là đường cạn tài nguyên rẻ nhất mà một
+ * người ĐÃ ĐĂNG NHẬP có thể tạo ra.
+ *
+ * Đếm theo TÀI KHOẢN (mục 8.4 nói "/tài khoản"), lùi về IP khi chưa nhận dạng
+ * được. Chỉ đếm khi request thật sự xin mốc lớn: người lật trang ở mốc 10 cả
+ * ngày không được phép tự khoá mình ra khỏi mốc 200.
+ *
+ * `identify` do service truyền vào vì mỗi service nhận dạng người gọi một kiểu
+ * (khẳng định danh tính của BFF, phiên, token nội bộ) - module này cố ý không
+ * biết gì về xác thực.
+ */
+export function largePageRateLimit(opts: {
+  /** Mặc định 10 yêu cầu / phút / tài khoản, đúng đề xuất của mục 8.4. */
+  max?: number;
+  windowMs?: number;
+  name?: string;
+  identify?: (req: Request) => string | null | undefined;
+}): RequestHandler {
+  const threshold = 100;
+  return createRateLimit({
+    windowMs: opts.windowMs ?? 60_000,
+    max: opts.max ?? 10,
+    name: opts.name ?? 'page_size lớn',
+    when: (req) => {
+      // Đọc CẢ query lẫn body: bộ tham số chuẩn là của một GET, nhưng vài
+      // endpoint danh sách trong repo này là POST (chúng gác bằng khẳng định
+      // danh tính trong body). Chỉ đọc query thì giới hạn im lặng không bao giờ
+      // kích hoạt trên đúng những endpoint quản trị cần nó nhất.
+      const q = (req.query as Record<string, unknown> | undefined)?.page_size;
+      const b = (req.body as Record<string, unknown> | undefined)?.page_size;
+      const n = parseInt(String(q ?? b ?? ''), 10);
+      return Number.isFinite(n) && n >= threshold;
+    },
+    keyOf: (req) => {
+      const who = opts.identify?.(req);
+      return who ? `u:${who}` : `ip:${callerIp(req)}`;
+    },
+  });
 }

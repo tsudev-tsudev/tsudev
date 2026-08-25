@@ -110,3 +110,92 @@ export function emailGraceRemainingMs(
   const nowMs = typeof now === 'number' ? now : now.getTime();
   return Math.max(0, created + EMAIL_VERIFY_GRACE_MS - nowMs);
 }
+
+// ---------------------------------------------------------------------------
+// Phân trang chuẩn - DATA_TABLE.md mục 8 + SEARCH_AND_FILTER.md mục 7.
+//
+// Đặt ở @tsudev/types vì cả hai phía đều cần cùng một sự thật: máy chủ để CHẶN,
+// giao diện để dựng bộ chọn. Hai bên tự giữ danh sách mốc riêng là cách bộ chọn
+// hiện mốc 200 trong khi máy chủ vẫn cắt ở 100, và không gì báo lỗi.
+// ---------------------------------------------------------------------------
+
+/** Năm mốc chuẩn. Không thêm, không bớt, KHÔNG có "Tất cả" - đó là một truy vấn
+ *  không có trần. */
+export const PAGE_SIZES = [10, 20, 50, 100, 200] as const;
+
+export type PageSize = (typeof PAGE_SIZES)[number];
+
+/** Mặc định lần đầu vào một bảng. */
+export const DEFAULT_PAGE_SIZE: PageSize = 10;
+
+/** Trần cứng phía máy chủ. MUST NOT phục vụ lớn hơn với BẤT KỲ lý do gì, kể cả
+ *  cho quản trị viên hay tác vụ nội bộ - cần nhiều hơn thì đi đường xuất tệp. */
+export const MAX_PAGE_SIZE: PageSize = 200;
+
+/** Từ mốc này trở lên phải chịu giới hạn tần suất riêng, chặt hơn (mục 8.4).
+ *  Đó là CÁI GIÁ của việc nâng trần từ 100 lên 200, và là điều kiện của nó. */
+export const LARGE_PAGE_SIZE: PageSize = 100;
+
+/**
+ * Quy một giá trị `page_size` bất kỳ về mốc hợp lệ.
+ *
+ * Giá trị lạ `MUST` được quy về **mốc gần nhất không lớn hơn nó**, `MUST NOT`
+ * trả lỗi: một tham số hiển thị sai không đáng làm hỏng cả trang. Nhỏ hơn mốc
+ * nhỏ nhất, hoặc không đọc được, thì về mặc định.
+ *
+ *   15 -> 10 · 99 -> 50 · 250 -> 200 · 3 -> 10 · "abc" -> 10
+ */
+export function normalizePageSize(raw: unknown): PageSize {
+  const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
+  if (!Number.isFinite(n) || n < PAGE_SIZES[0]) return DEFAULT_PAGE_SIZE;
+  let out: PageSize = PAGE_SIZES[0];
+  for (const size of PAGE_SIZES) if (size <= n) out = size;
+  return out;
+}
+
+/** `page` bắt đầu từ 1. Giá trị lạ về 1 thay vì báo lỗi, cùng lý do như trên. */
+export function normalizePage(raw: unknown): number {
+  const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1;
+}
+
+export type Paging = {
+  page: number;
+  pageSize: PageSize;
+  /** Dùng thẳng cho Prisma. */
+  skip: number;
+  take: PageSize;
+};
+
+/** Đọc `page` + `page_size` từ query của một request đã chuẩn hoá. */
+export function parsePaging(query: {
+  page?: unknown;
+  page_size?: unknown;
+  pageSize?: unknown;
+}): Paging {
+  const page = normalizePage(query.page);
+  const pageSize = normalizePageSize(query.page_size ?? query.pageSize);
+  return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
+}
+
+export type PageMeta = {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+};
+
+/**
+ * Khối `meta` chuẩn của phản hồi danh sách.
+ *
+ * `total_pages` tối thiểu là 1: bảng rỗng vẫn là "trang 1 trên 1", còn 0 làm
+ * giao diện phân trang hiện "trang 1 / 0".
+ */
+export function pageMeta(total: number, paging: Paging): PageMeta {
+  return {
+    total,
+    page: paging.page,
+    page_size: paging.pageSize,
+    total_pages: Math.max(1, Math.ceil(total / paging.pageSize)),
+  };
+}
