@@ -52,7 +52,16 @@ export const api = {
       },
       facets: { tag: [] },
     }),
-  docs: () => getJSON<Doc[]>(`${CONTENT}/api/docs`, []),
+  // `/api/docs` trả `{data, meta}` từ 26/08/2026 (mục lục có trần). Gỡ vỏ ở
+  // ĐÂY chứ không ở từng trang: ba trang dùng nó (mục lục, trang chủ, sitemap)
+  // và chỉ cần danh sách. `lib/api` nuốt lỗi thành giá trị rỗng, nên hình dạng
+  // sai ở đây sẽ hiện ra dưới dạng TRANG TRỐNG chứ không phải lỗi - vì thế phép
+  // gỡ vỏ phải kiểm `Array.isArray`, đừng tin thẳng.
+  docs: async () => {
+    const body = await getJSON<{ data?: Doc[] } | Doc[]>(`${CONTENT}/api/docs`, { data: [] });
+    if (Array.isArray(body)) return body;
+    return Array.isArray(body?.data) ? body.data : [];
+  },
   doc: (slug: string) => getJSON<Doc | null>(`${CONTENT}/api/docs/${slug}`, null),
   projects: (limit = 50) => getJSON<Project[]>(`${CONTENT}/api/projects?limit=${limit}`, []),
   project: (slug: string) => getJSON<Project | null>(`${CONTENT}/api/projects/${slug}`, null),

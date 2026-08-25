@@ -64,9 +64,13 @@ describe('xoá mềm không lọt ra đường đọc công khai', () => {
   })
 
   test('GET /api/docs bỏ qua tài liệu có deletedAt', async () => {
+    // `{data, meta}` từ 26/08/2026 - mục lục tài liệu nay có trần.
     const res = await withToken('/api/docs')
     expect(res.status).toBe(200)
-    expect(res.body.map((d: { slug: string }) => d.slug)).not.toContain(DOC_GONE)
+    expect(res.body.data.map((d: { slug: string }) => d.slug)).not.toContain(DOC_GONE)
+    // `total` phải đếm theo CÙNG bộ lọc `deletedAt: null`; đếm cả tài liệu đã
+    // xoá thì mục lục nói có nhiều hơn số nó hiện được.
+    expect(res.body.meta.total).toBe(res.body.data.length)
   })
 
   test('GET /api/docs/:slug của tài liệu đã xoá mềm ⇒ 404', async () => {

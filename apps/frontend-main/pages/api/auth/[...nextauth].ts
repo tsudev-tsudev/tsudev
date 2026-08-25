@@ -5,6 +5,7 @@
 require('dotenv').config();
 import NextAuth from 'next-auth';
 import type { NextAuthOptions } from 'next-auth';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GitHubProvider from 'next-auth/providers/github';
 import GoogleProvider from 'next-auth/providers/google';
@@ -36,11 +37,34 @@ import { SESSION_COOKIE_NAME } from '../../../lib/sessionCookie';
  * kiểm nằm ở auth-service, và ràng buộc hạ tầng đó trùng với ranh giới đúng -
  * hash mật khẩu không nên đi qua tầng biên.
  */
+/**
+ * Header mô tả NGƯỜI GỌI THẬT, để auth-service ghi đúng dấu vết đăng nhập.
+ *
+ * `x-forwarded-for` đã có sẵn ở đường mật khẩu từ trước (giới hạn tần suất cần
+ * nó). `cf-ipcountry` là mới: Cloudflare đặt header này ở tầng biên trên MỌI
+ * request, nên lấy quốc gia ở đây là miễn phí và chính xác - không cần cơ sở dữ
+ * liệu GeoIP nào.
+ *
+ * ⚠️ Bỏ sót hàm này ở một đường đăng nhập KHÔNG làm gì đỏ lên: cột IP vẫn đầy,
+ * chỉ là đầy **IP egress của Render** thay vì IP người dùng, và trông y hệt dữ
+ * liệu thật. Đường OAuth từng thiếu đúng chỗ này.
+ */
+function callerHeaders(req: NextApiRequest): Record<string, string> {
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || '';
+  const cc = req.headers['cf-ipcountry'];
+  const country = (Array.isArray(cc) ? cc[0] : cc)?.trim() || '';
+  return {
+    ...(ip ? { 'x-forwarded-for': ip } : {}),
+    ...(country ? { 'cf-ipcountry': country } : {}),
+  };
+}
+
 async function verifyWithIdentityService(
   identifier: string,
   password: string,
   totp: string,
-  ip: string
+  fwd: Record<string, string>
 ) {
   const res = await fetch(`${IDENTITY}/api/identity/verify-credentials`, {
     method: 'POST',
@@ -48,8 +72,8 @@ async function verifyWithIdentityService(
       'Content-Type': 'application/json',
       ...internalHeaders(),
       // Giới hạn tần suất theo IP nằm ở auth-service; nó cần IP THẬT của người
-      // dùng, không phải IP của tiến trình Next.
-      ...(ip ? { 'x-forwarded-for': ip } : {}),
+      // dùng, không phải IP của tiến trình Next. Quốc gia đi cùng đường.
+      ...fwd,
     },
     body: JSON.stringify({ identifier, password, totp }),
   });
@@ -132,13 +156,11 @@ const providers: Provider[] = [
     },
     async authorize(credentials, req) {
       if (!credentials?.identifier || !credentials?.password) return null;
-      const fwd = req?.headers?.['x-forwarded-for'];
-      const ip = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || '';
       const user = await verifyWithIdentityService(
         credentials.identifier,
         credentials.password,
         credentials.totp || '',
-        ip
+        callerHeaders(req as unknown as NextApiRequest)
       );
       if (!user) return null;
       return {
@@ -213,7 +235,8 @@ async function freshSessionState(
 async function upsertOAuthUser(
   provider: string,
   providerAccountId: string,
-  data: { email: string | null; name: string | null; emailVerified: boolean }
+  data: { email: string | null; name: string | null; emailVerified: boolean },
+  fwd: Record<string, string>
 ): Promise<{
   id: string;
   username: string;
@@ -224,7 +247,9 @@ async function upsertOAuthUser(
   try {
     const res = await fetch(`${IDENTITY}/api/identity/oauth/upsert`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...internalHeaders() },
+      // `fwd` là BẮT BUỘC, không phải trang trí: endpoint này ghi dấu vết đăng
+      // nhập, nên thiếu header ở đây là ghi IP của Render vào hồ sơ người dùng.
+      headers: { 'Content-Type': 'application/json', ...internalHeaders(), ...fwd },
       body: JSON.stringify({
         provider,
         providerAccountId,
@@ -302,37 +327,10 @@ export const authOptions: NextAuthOptions = {
   },
   debug: process.env.NODE_ENV !== 'production',
   callbacks: {
-    // OAuth: liên kết / tạo User tsudev TRƯỚC khi phát phiên. Credentials và
-    // passkey đã tự resolve trong authorize() nên đi thẳng qua.
-    async signIn({ user, account, profile }) {
-      if (!account || account.provider === 'credentials' || account.provider === 'passkey') {
-        return true;
-      }
-      if (account.provider === 'github' || account.provider === 'google') {
-        const { email, emailVerified } = await resolveOAuthEmail(
-          account.provider,
-          user,
-          profile,
-          account.access_token
-        );
-        const linked = await upsertOAuthUser(account.provider, account.providerAccountId, {
-          email,
-          name: user.name ?? null,
-          emailVerified,
-        });
-        // Từ chối sạch: đẩy về /login với mã lỗi đã có thông điệp tiếng Việt.
-        if (!linked) return '/login?error=OAuthAccountNotLinked';
-        // Ghi danh tính CHÍNH TẮC vào `user` để callback jwt bên dưới đọc lại:
-        // username thay cho tên hiển thị của bên thứ ba, kèm role + sessionVersion.
-        user.id = linked.id;
-        user.name = linked.username;
-        user.email = linked.email;
-        (user as { role?: string }).role = linked.role;
-        (user as { sessionVersion?: number }).sessionVersion = linked.sessionVersion;
-        return true;
-      }
-      return true;
-    },
+    // Bản không có request: chỉ dùng khi ai đó nạp `authOptions` ngoài đường
+    // HTTP (hiện chưa ai). Đường thật đi qua `export default` bên dưới, nơi có
+    // `req` để lấy IP + quốc gia.
+    signIn: (params) => oauthSignIn(params, {}),
     async jwt({ token, user, trigger }) {
       // `user` chỉ có mặt ở lần đăng nhập đầu; các lần sau token đã mang sẵn.
       if (user) {
@@ -389,4 +387,59 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export default NextAuth(authOptions);
+type SignInParams = Parameters<NonNullable<NonNullable<NextAuthOptions['callbacks']>['signIn']>>[0];
+
+/**
+ * Thân thật của callback `signIn`, tách ra để nhận thêm header của người gọi.
+ *
+ * next-auth không đưa `req` vào callback, mà đường OAuth lại cần IP + quốc gia
+ * THẬT để ghi dấu vết đăng nhập. Cách sửa là dựng lại bộ callback cho từng
+ * request ở handler bên dưới - KHÔNG phải nhét request vào một biến cấp module:
+ * biến đó sẽ bị request khác ghi đè giữa hai lần `await`, và triệu chứng là dấu
+ * vết đăng nhập của người này mang IP của người kia. Một lỗi như thế gần như
+ * không tái hiện được khi đi tìm.
+ */
+async function oauthSignIn(
+  { user, account, profile }: SignInParams,
+  fwd: Record<string, string>
+): Promise<boolean | string> {
+  if (!account || account.provider === 'credentials' || account.provider === 'passkey') {
+    return true;
+  }
+  if (account.provider === 'github' || account.provider === 'google') {
+    const { email, emailVerified } = await resolveOAuthEmail(
+      account.provider,
+      user,
+      profile,
+      account.access_token
+    );
+    const linked = await upsertOAuthUser(
+      account.provider,
+      account.providerAccountId,
+      { email, name: user.name ?? null, emailVerified },
+      fwd
+    );
+    // Từ chối sạch: đẩy về /login với mã lỗi đã có thông điệp tiếng Việt.
+    if (!linked) return '/login?error=OAuthAccountNotLinked';
+    // Ghi danh tính CHÍNH TẮC vào `user` để callback jwt bên dưới đọc lại:
+    // username thay cho tên hiển thị của bên thứ ba, kèm role + sessionVersion.
+    user.id = linked.id;
+    user.name = linked.username;
+    user.email = linked.email;
+    (user as { role?: string }).role = linked.role;
+    (user as { sessionVersion?: number }).sessionVersion = linked.sessionVersion;
+    return true;
+  }
+  return true;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const fwd = callerHeaders(req);
+  return NextAuth(req, res, {
+    ...authOptions,
+    callbacks: {
+      ...authOptions.callbacks,
+      signIn: (params) => oauthSignIn(params, fwd),
+    },
+  });
+}

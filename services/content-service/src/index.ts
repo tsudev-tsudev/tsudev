@@ -18,7 +18,7 @@ import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
 import { createRateLimit, largePageRateLimit } from '@tsudev/ratelimit'
 import type { Post, Prisma, Project, User } from '@prisma/client'
-import { hasAtLeastRole, emailUsable, pageMeta, parsePaging } from '@tsudev/types'
+import { hasAtLeastRole, emailUsable, pageMeta, parsePaging, MAX_PAGE_SIZE } from '@tsudev/types'
 import { buildPostSearch, viNormalizeText } from '@tsudev/search'
 
 type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
@@ -349,12 +349,36 @@ app.get(
 // ---------------- Docs ----------------
 app.get(
   '/api/docs',
+  // Trước 26/08/2026 truy vấn này KHÔNG có trần nào. Nó sống sót qua QU-STD-TABLE
+  // vì `/docs` là mục lục công khai chứ không phải bảng bản ghi - nhưng "không
+  // phải bảng" không có nghĩa là "được phép không có trần", và Toà soạn Agent AI
+  // vừa bắt đầu đăng tài liệu tự động nên số hàng ở đây sẽ tự tăng.
+  //
+  // Mục lục là thứ trang cần ĐỦ để dựng điều hướng, nên mặc định lấy trần cao
+  // nhất thay vì mốc 10 của bảng: khách vào `/docs` phải thấy hết chuyên mục,
+  // không phải trang 1 của chuyên mục.
+  largePageRateLimit({
+    name: 'docs page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
-    const docs = await prisma.doc.findMany({
-      where: { deletedAt: null },
-      orderBy: [{ category: 'asc' }, { position: 'asc' }],
+    const paging = parsePaging({
+      page: req.query.page,
+      page_size: req.query.page_size ?? MAX_PAGE_SIZE,
     })
-    res.json(docs.map((d) => ({ id: d.id, slug: d.slug, title: d.title, category: d.category })))
+    const [total, docs] = await Promise.all([
+      prisma.doc.count({ where: { deletedAt: null } }),
+      prisma.doc.findMany({
+        where: { deletedAt: null },
+        orderBy: [{ category: 'asc' }, { position: 'asc' }],
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ])
+    res.json({
+      data: docs.map((d) => ({ id: d.id, slug: d.slug, title: d.title, category: d.category })),
+      meta: pageMeta(total, paging),
+    })
   })
 )
 

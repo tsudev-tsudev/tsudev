@@ -14,8 +14,10 @@ import express from 'express'
 import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'express'
 
 import { prisma } from '@tsudev/db'
+import type { Prisma } from '@prisma/client'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
-import { hasAtLeastRole, emailUsable, parsePaging, pageMeta } from '@tsudev/types'
+import { hasAtLeastRole, emailUsable, parsePaging, pageMeta, ROLES } from '@tsudev/types'
+import type { Role } from '@tsudev/types'
 import { largePageRateLimit } from '@tsudev/ratelimit'
 import { createHash } from 'crypto'
 
@@ -27,6 +29,7 @@ import {
   isPasswordBreached,
 } from './password'
 import { issueToken, consumeToken, consumeEmailChange, constantTimeEqual } from './tokens'
+import * as cfMail from './cloudflareEmail'
 import { loginOptions, loginVerify, registerOptions, registerVerify } from './passkey'
 import {
   decryptSecret,
@@ -49,6 +52,7 @@ import {
   accountIsLocked,
   callerIp,
   ipIsThrottled,
+  callerCountry,
   noteAccountFailure,
   noteAccountSuccess,
   pruneAttempts,
@@ -241,11 +245,7 @@ app.post(
     }
 
     await recordAttempt(ip, true)
-    await noteAccountSuccess(user.id)
-    // Kiểm thiết bị lạ TRƯỚC khi ghi sự kiện login này (nếu ghi trước thì chính
-    // IP hiện tại đã "từng thấy" và không cảnh báo lần nào).
-    void alertIfNewDevice(user, req)
-    logSecurity(user.id, 'login', req)
+    await recordLogin(user, req, 'password')
     pruneAttempts().catch(() => {
       /* dọn rác hỏng không được làm hỏng đăng nhập */
     })
@@ -350,7 +350,13 @@ app.post(
       where: { provider_providerAccountId: { provider, providerAccountId } },
       include: { user: true },
     })
-    if (linked) return res.json(oauthPublicUser(linked.user))
+    if (linked) {
+      // Đây LÀ một lần đăng nhập, không phải một lần tra cứu. Callback `signIn`
+      // của next-auth chỉ chạy một lần cho mỗi lần đăng nhập (làm mới token đi
+      // qua callback `jwt`), nên ghi ở đây không sinh ra lũ sự kiện - đã kiểm.
+      await recordLogin(linked.user, req, `oauth:${provider}`)
+      return res.json(oauthPublicUser(linked.user))
+    }
 
     // 2. Chưa liên kết: cần email hợp lệ để tạo tài khoản.
     if (!EMAIL_RE.test(email)) return res.status(409).json({ error: 'oauth_no_email' })
@@ -358,7 +364,14 @@ app.post(
     // 3. Email đã thuộc một tài khoản sẵn có.
     const emailOwner = await prisma.user.findUnique({
       where: { email },
-      select: { id: true, username: true, email: true, role: true, sessionVersion: true },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        displayName: true,
+        role: true,
+        sessionVersion: true,
+      },
     })
     if (emailOwner) {
       // Bên thứ ba ĐÃ XÁC MINH người này kiểm soát hộp thư ⇒ TỰ LIÊN KẾT provider
@@ -380,6 +393,10 @@ app.post(
         if ((e as { code?: string })?.code !== 'P2002') throw e
       }
       logSecurity(emailOwner.id, 'oauth_linked', req, { note: provider })
+      // Liên kết XONG là người đó đăng nhập luôn - ba nhánh của endpoint này đều
+      // kết thúc bằng một phiên, nên cả ba đều phải ghi dấu vết. Bỏ sót một
+      // nhánh là lại tạo ra đúng cái lỗ vừa vá.
+      await recordLogin(emailOwner, req, `oauth:${provider}`)
       return res.json(oauthPublicUser(emailOwner))
     }
 
@@ -398,6 +415,7 @@ app.post(
         },
       })
       logSecurity(user.id, 'account_created', req, { note: `oauth:${provider}` })
+      await recordLogin(user, req, `oauth:${provider}`)
       return res.json(oauthPublicUser(user))
     } catch (e) {
       // Hai first-login song song cùng một tài khoản bên thứ ba: ràng buộc
@@ -408,7 +426,10 @@ app.post(
           where: { provider_providerAccountId: { provider, providerAccountId } },
           include: { user: true },
         })
-        if (again) return res.json(oauthPublicUser(again.user))
+        if (again) {
+          await recordLogin(again.user, req, `oauth:${provider}`)
+          return res.json(oauthPublicUser(again.user))
+        }
       }
       throw e
     }
@@ -841,9 +862,7 @@ app.post(
     }
 
     await recordAttempt(ip, true)
-    await noteAccountSuccess(user.id)
-    void alertIfNewDevice(user, req)
-    logSecurity(user.id, 'login', req, { note: 'passkey' })
+    await recordLogin(user, req, 'passkey')
     return res.json({
       id: user.id,
       username: user.username,
@@ -1340,6 +1359,7 @@ function logSecurity(
   opts: { actor?: { id: string; displayName: string | null; username: string }; note?: string } = {}
 ): void {
   const ip = callerIp(req.headers as Record<string, unknown>, req.ip || '')
+  const country = callerCountry(req.headers as Record<string, unknown>)
   const userAgent = str(req.get('user-agent') || '', 400)
   prisma.securityEvent
     .create({
@@ -1347,6 +1367,7 @@ function logSecurity(
         userId,
         type,
         ip: ip || null,
+        country,
         userAgent: userAgent || null,
         actorId: opts.actor ? opts.actor.id : null,
         actorName: opts.actor ? opts.actor.displayName || opts.actor.username : null,
@@ -1408,6 +1429,36 @@ async function alertIfNewDevice(
   } catch (e) {
     console.error('[auth] alertIfNewDevice hỏng:', e instanceof Error ? e.message : e)
   }
+}
+
+/**
+ * Ghi nhận MỘT lần đăng nhập thành công - chỗ DUY NHẤT làm việc đó.
+ *
+ * Gom lại vì ba đường đăng nhập (mật khẩu, passkey, OAuth) phải làm đúng cùng
+ * một bộ ba việc, và trước đợt này **đường OAuth không làm việc nào cả**:
+ * `oauth/upsert` với tài khoản đã liên kết chạy `if (linked) return` là xong.
+ * Hệ quả sống nhiều tháng mà không ai thấy - cột "Đăng nhập gần nhất" của trang
+ * quản trị VĨNH VIỄN trống với mọi tài khoản chỉ dùng GitHub/Google, và
+ * `/settings/security` của họ không có dòng nào. Không có gì báo lỗi, vì không
+ * ghi gì cả thì cũng không hỏng gì cả.
+ *
+ * Thêm một phương pháp đăng nhập mới ⇒ gọi hàm này, đừng chép lại ba lời gọi.
+ */
+async function recordLogin(
+  user: { id: string; email: string; displayName: string | null; username: string },
+  req: Request,
+  method: string
+): Promise<void> {
+  const ip = callerIp(req.headers as Record<string, unknown>, req.ip || '')
+  await noteAccountSuccess(user.id, {
+    method,
+    ip: ip || null,
+    country: callerCountry(req.headers as Record<string, unknown>),
+  })
+  // Kiểm thiết bị lạ TRƯỚC khi ghi sự kiện login này: ghi trước thì chính IP
+  // hiện tại đã "từng thấy" và không cảnh báo lần nào.
+  void alertIfNewDevice(user, req)
+  logSecurity(user.id, 'login', req, { note: method === 'password' ? undefined : method })
 }
 
 /**
@@ -1537,6 +1588,14 @@ const publicUser = (u: {
   emailVerifiedAt: Date | null
   createdAt: Date
   lastLoginAt: Date | null
+  lastLoginIp?: string | null
+  lastLoginCountry?: string | null
+  lastLoginMethod?: string | null
+  lockedUntil?: Date | null
+  passwordHash?: string | null
+  oauthAccounts?: Array<{ provider: string }>
+  _count?: { passkeys: number }
+  totp?: { confirmedAt: Date | null } | null
   deactivatedAt: Date | null
   deletionScheduledAt: Date | null
 }) => ({
@@ -1548,6 +1607,20 @@ const publicUser = (u: {
   emailVerified: u.emailVerifiedAt != null,
   createdAt: u.createdAt,
   lastLoginAt: u.lastLoginAt,
+  lastLoginIp: u.lastLoginIp ?? null,
+  lastLoginCountry: u.lastLoginCountry ?? null,
+  lastLoginMethod: u.lastLoginMethod ?? null,
+  lockedUntil: u.lockedUntil ?? null,
+  // `passwordHash` KHÔNG bao giờ ra khỏi đây - chỉ dùng để biết CÓ hay KHÔNG.
+  loginMethods:
+    u.oauthAccounts && u._count
+      ? loginMethodsOf({
+          passwordHash: u.passwordHash ?? null,
+          oauthAccounts: u.oauthAccounts,
+          _count: u._count,
+        })
+      : undefined,
+  twoFactorEnabled: u.totp?.confirmedAt != null,
   deactivatedAt: u.deactivatedAt,
   deletionScheduledAt: u.deletionScheduledAt,
 })
@@ -1561,9 +1634,36 @@ const USER_SELECT = {
   emailVerifiedAt: true,
   createdAt: true,
   lastLoginAt: true,
+  lastLoginIp: true,
+  lastLoginCountry: true,
+  lastLoginMethod: true,
+  lockedUntil: true,
+  passwordHash: true,
   deactivatedAt: true,
   deletionScheduledAt: true,
+  oauthAccounts: { select: { provider: true } },
+  _count: { select: { passkeys: true } },
+  totp: { select: { confirmedAt: true } },
 } as const
+
+/**
+ * NĂNG LỰC đăng nhập của một tài khoản: những cách người đó ĐĂNG NHẬP ĐƯỢC.
+ *
+ * Khác hẳn `lastLoginMethod`, thứ chỉ nói lần gần nhất họ dùng cách nào. Hai câu
+ * hỏi khác nhau và trang quản trị cần cả hai: "ai đăng nhập được bằng GitHub"
+ * (năng lực, dùng để lọc) và "lần cuối họ vào bằng gì" (dấu vết, dùng để đọc).
+ * Trộn hai thứ là cách để bộ lọc "tài khoản GitHub" bỏ sót đúng những người có
+ * GitHub nhưng lần cuối vào bằng mật khẩu.
+ */
+const loginMethodsOf = (u: {
+  passwordHash: string | null
+  oauthAccounts: Array<{ provider: string }>
+  _count: { passkeys: number }
+}): string[] => [
+  ...(u.passwordHash ? ['password'] : []),
+  ...(u._count.passkeys > 0 ? ['passkey'] : []),
+  ...u.oauthAccounts.map((a) => a.provider),
+]
 
 /**
  * OWNER: liệt kê tài khoản.
@@ -1576,6 +1676,147 @@ const USER_SELECT = {
  * trang `/admin/accounts` phải đi cùng commit - không có bước trung gian nào
  * đọc được cả hai dạng.
  */
+/** Mảng chuỗi đã lọc sạch từ body - bỏ giá trị lạ thay vì báo lỗi cả yêu cầu. */
+const strList = (raw: unknown, allowed?: readonly string[]): string[] => {
+  if (!Array.isArray(raw)) return []
+  const out = raw
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .slice(0, 20)
+  return allowed ? out.filter((v) => allowed.includes(v)) : out
+}
+
+const dateOrNull = (raw: unknown): Date | null => {
+  if (typeof raw !== 'string' || !raw.trim()) return null
+  const d = new Date(raw)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/** Các trạng thái vận hành mà trang quản trị lọc theo. */
+const USER_STATUSES = [
+  'active',
+  'deactivated',
+  'scheduled_deletion',
+  'locked',
+  'unverified',
+] as const
+
+/**
+ * Dựng điều kiện lọc cho bảng tài khoản.
+ *
+ * Hai điểm dễ sai, cả hai đều im lặng:
+ *
+ *  1. `loginMethods` lọc theo NĂNG LỰC (đăng nhập được bằng gì), không theo
+ *     `lastLoginMethod` (lần cuối dùng gì). Lọc nhầm sang cột kia thì "tài khoản
+ *     GitHub" bỏ sót đúng những người có GitHub nhưng lần cuối vào bằng mật khẩu
+ *     - và kết quả vẫn ra một danh sách trông hợp lý.
+ *  2. Phép ĐẾM phải dùng chính điều kiện này. Đếm bằng `where` khác là dòng tóm
+ *     tắt nói một đằng, bảng hiện một nẻo.
+ */
+function buildUserFilter(body: Record<string, unknown>): Prisma.UserWhereInput {
+  const and: Prisma.UserWhereInput[] = []
+
+  const q = str(body.q, 120).trim()
+  if (q) {
+    // `insensitive` là của Postgres, không phải mặc định của Prisma. Không có nó
+    // thì tìm "Alice" không ra "alice" và trông như dữ liệu bị thiếu.
+    and.push({
+      OR: [
+        { username: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { displayName: { contains: q, mode: 'insensitive' } },
+      ],
+    })
+  }
+
+  const roles = strList(body.role, ROLES)
+  if (roles.length) and.push({ role: { in: roles as Role[] } })
+
+  const countries = strList(body.country).map((c) => c.toUpperCase())
+  if (countries.length) and.push({ lastLoginCountry: { in: countries } })
+
+  const ip = str(body.ip, 45).trim()
+  // Tiền tố chứ không phải bằng đúng: điều tra thường bắt đầu từ một dải
+  // ("203.0.113." là cả mạng con), và gõ đủ IP thì `startsWith` vẫn khớp.
+  if (ip) and.push({ lastLoginIp: { startsWith: ip } })
+
+  const methods = strList(body.loginMethods)
+  if (methods.length) {
+    and.push({
+      OR: methods.map((m): Prisma.UserWhereInput => {
+        if (m === 'password') return { passwordHash: { not: null } }
+        if (m === 'passkey') return { passkeys: { some: {} } }
+        return { oauthAccounts: { some: { provider: m } } }
+      }),
+    })
+  }
+
+  const now = new Date()
+  for (const st of strList(body.status, USER_STATUSES)) {
+    if (st === 'active') {
+      and.push({ deactivatedAt: null, deletionScheduledAt: null })
+    } else if (st === 'deactivated') {
+      and.push({ deactivatedAt: { not: null } })
+    } else if (st === 'scheduled_deletion') {
+      and.push({ deletionScheduledAt: { not: null } })
+    } else if (st === 'locked') {
+      // Đang khoá NGAY BÂY GIỜ, không phải "từng bị khoá": `lockedUntil` trong
+      // quá khứ nghĩa là khoá đã hết hạn.
+      and.push({ lockedUntil: { gt: now } })
+    } else if (st === 'unverified') {
+      and.push({ emailVerifiedAt: null })
+    }
+  }
+
+  const createdFrom = dateOrNull(body.createdFrom)
+  const createdTo = dateOrNull(body.createdTo)
+  if (createdFrom || createdTo) {
+    and.push({
+      createdAt: {
+        ...(createdFrom ? { gte: createdFrom } : {}),
+        ...(createdTo ? { lte: createdTo } : {}),
+      },
+    })
+  }
+
+  const loginFrom = dateOrNull(body.lastLoginFrom)
+  const loginTo = dateOrNull(body.lastLoginTo)
+  if (loginFrom || loginTo) {
+    and.push({
+      lastLoginAt: {
+        ...(loginFrom ? { gte: loginFrom } : {}),
+        ...(loginTo ? { lte: loginTo } : {}),
+      },
+    })
+  }
+
+  return and.length ? { AND: and } : {}
+}
+
+/**
+ * Số đếm cho các chip lọc, tính TRÊN bộ lọc hiện tại.
+ *
+ * Đếm trên toàn bảng thì các con số không đổi khi lọc, và người dùng đọc chúng
+ * như lời hứa "chọn thêm cái này sẽ ra ngần này" - một lời hứa sai.
+ */
+async function userFacets(where: Prisma.UserWhereInput) {
+  const [byRole, byCountry] = await Promise.all([
+    prisma.user.groupBy({ by: ['role'], where, _count: { _all: true } }),
+    prisma.user.groupBy({
+      by: ['lastLoginCountry'],
+      where: { AND: [where, { lastLoginCountry: { not: null } }] },
+      _count: { _all: true },
+      orderBy: { _count: { lastLoginCountry: 'desc' } },
+      take: 20,
+    }),
+  ])
+  return {
+    role: byRole.map((r) => ({ value: r.role, count: r._count._all })),
+    country: byCountry.map((r) => ({ value: r.lastLoginCountry as string, count: r._count._all })),
+  }
+}
+
 app.post(
   '/api/identity/useradmin/list',
   largePageRateLimit({
@@ -1585,17 +1826,28 @@ app.post(
   asyncHandler(async (req, res) => {
     if (!(await requireOwner(req, res))) return
     const paging = parsePaging(req.body ?? {})
-    const [total, rows] = await Promise.all([
-      prisma.user.count(),
+    const where = buildUserFilter(req.body ?? {})
+    const [total, rows, unfiltered, facets] = await Promise.all([
+      prisma.user.count({ where }),
       prisma.user.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         skip: paging.skip,
         take: paging.take,
         select: USER_SELECT,
       }),
+      // Tổng TRƯỚC khi lọc: dòng tóm tắt cần nói "12 / 42 (lọc từ 128)", và
+      // không có số này thì người dùng không biết bộ lọc đang giấu bao nhiêu.
+      prisma.user.count(),
+      userFacets(where),
     ])
     // Trang vượt quá trang cuối trả mảng rỗng kèm meta ĐÚNG, không phải 404.
-    return res.json({ data: rows.map(publicUser), meta: pageMeta(total, paging) })
+    return res.json({
+      data: rows.map(publicUser),
+      meta: pageMeta(total, paging),
+      total_unfiltered: unfiltered,
+      facets,
+    })
   })
 )
 
@@ -1756,6 +2008,217 @@ app.post(
     }
     await auditUser(actor, 'user.delete', id, target.username)
     return res.json({ ok: true })
+  })
+)
+
+// Xác thực cho nhánh bí danh thư.
+//
+// ⚠️ auth-service gắn `auth` theo TỪNG NHÁNH (xem loạt `app.use('/api/identity/...', auth)`
+// rải khắp file này), nên thêm một nhánh riêng tư mà quên dòng này là route đó
+// KHÔNG có `req.user` và mọi lời gọi trả 401 - kể cả của OWNER. Bản đầu của đợt
+// này đã quên đúng dòng này. May là nó hỏng ĐÓNG chứ không mở, nhưng triệu
+// chứng ("OWNER cũng bị 401") trông y hệt hỏng cấu hình danh tính.
+app.use('/api/identity/alias', auth)
+
+// ---------------------------------------------------------------------------
+// Bí danh thư nội bộ `*@tsudev.com` (Cloudflare Email Routing).
+//
+// ⚠️ Tên route CỐ Ý chỉ có HAI đoạn (`alias/list`, không phải
+// `useradmin/alias/list`): proxy `apps/frontend-main/pages/api/account/[...path].ts`
+// từ chối mọi đường dẫn quá hai đoạn (`parts.length > 2`). Đặt tên ba đoạn thì
+// route sống ở đây mà trang nhận 404, và 404 đó trông y hệt "chưa làm xong".
+//
+// Cả bốn route đòi OWNER: bí danh thư là bề mặt nhận thư của tổ chức, không
+// phải tiện nghi cá nhân.
+// ---------------------------------------------------------------------------
+
+/** Hình dạng trả ra ngoài, kèm cờ nói bí danh đã sống thật bên Cloudflare chưa. */
+const publicAlias = (a: {
+  id: string
+  localPart: string
+  destination: string
+  cfRuleId: string | null
+  enabled: boolean
+  createdAt: Date
+  user?: { id: string; username: string } | null
+}) => ({
+  id: a.id,
+  localPart: a.localPart,
+  address: cfMail.addressOf(a.localPart),
+  destination: a.destination,
+  // `live=false` nghĩa là bảng có mà Cloudflare không: thư gửi tới sẽ bị trả
+  // về. Trạng thái này PHẢI nhìn thấy được, đừng gộp nó vào `enabled`.
+  live: a.cfRuleId != null,
+  enabled: a.enabled,
+  createdAt: a.createdAt,
+  user: a.user ? { id: a.user.id, username: a.user.username } : null,
+})
+
+const ALIAS_SELECT = {
+  id: true,
+  localPart: true,
+  destination: true,
+  cfRuleId: true,
+  enabled: true,
+  createdAt: true,
+  user: { select: { id: true, username: true } },
+} as const
+
+app.post(
+  '/api/identity/alias/list',
+  largePageRateLimit({
+    name: 'alias/list page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
+  asyncHandler(async (req, res) => {
+    if (!(await requireOwner(req, res))) return
+    const paging = parsePaging(req.body ?? {})
+    const userId = str(req.body?.userId, 60)
+    const where = userId ? { userId } : {}
+    const [total, rows] = await Promise.all([
+      prisma.emailAlias.count({ where }),
+      prisma.emailAlias.findMany({
+        where,
+        orderBy: { localPart: 'asc' },
+        skip: paging.skip,
+        take: paging.take,
+        select: ALIAS_SELECT,
+      }),
+    ])
+    return res.json({
+      data: rows.map(publicAlias),
+      meta: pageMeta(total, paging),
+      domain: cfMail.mailDomain(),
+      // Trả lý do CỤ THỂ thay vì chỉ `configured: false`: "Chưa cấu hình:
+      // CF_ZONE_ID" tự nó là hướng dẫn sửa, còn một cờ boolean thì không.
+      configProblem: cfMail.configProblem(),
+    })
+  })
+)
+
+app.post(
+  '/api/identity/alias/create',
+  asyncHandler(async (req, res) => {
+    if (!(await requireOwner(req, res))) return
+
+    const localPart = str(req.body?.localPart, 40).trim().toLowerCase()
+    const destination = str(req.body?.destination, 200).trim().toLowerCase()
+    const userId = str(req.body?.userId, 60) || null
+
+    if (!cfMail.LOCAL_PART_RE.test(localPart)) {
+      return res.status(400).json({ error: 'invalid_local_part' })
+    }
+    if (!EMAIL_RE.test(destination)) return res.status(400).json({ error: 'invalid_destination' })
+    if (cfMail.configProblem()) {
+      // Từ chối TRƯỚC khi ghi. Ghi vào bảng rồi mới phát hiện không gọi được
+      // Cloudflare sẽ để lại một bí danh chết mà giao diện hiện như đã tạo.
+      return res.status(503).json({ error: 'not_configured', detail: cfMail.configProblem() })
+    }
+    if (await prisma.emailAlias.findUnique({ where: { localPart } })) {
+      return res.status(409).json({ error: 'alias_taken' })
+    }
+    if (
+      userId &&
+      !(await prisma.user.findUnique({ where: { id: userId }, select: { id: true } }))
+    ) {
+      return res.status(404).json({ error: 'not_found' })
+    }
+
+    // Cloudflare TRƯỚC, DB sau. Ngược lại thì lỗi mạng để lại một hàng nói bí
+    // danh tồn tại trong khi không có quy tắc nào - và hình dạng hỏng đó im
+    // lặng (thư bị trả về ở đâu đó, không ai thấy log).
+    let rule: cfMail.AliasRule
+    try {
+      rule = await cfMail.createRule(localPart, destination)
+    } catch (e) {
+      return res
+        .status(502)
+        .json({ error: 'cloudflare_failed', detail: (e as Error).message.slice(0, 300) })
+    }
+
+    const alias = await prisma.emailAlias.create({
+      data: { localPart, destination, cfRuleId: rule.id, userId },
+      select: ALIAS_SELECT,
+    })
+    return res.status(201).json(publicAlias(alias))
+  })
+)
+
+app.post(
+  '/api/identity/alias/delete',
+  asyncHandler(async (req, res) => {
+    if (!(await requireOwner(req, res))) return
+    const id = str(req.body?.id, 60)
+    const alias = await prisma.emailAlias.findUnique({ where: { id }, select: ALIAS_SELECT })
+    if (!alias) return res.status(404).json({ error: 'not_found' })
+
+    if (alias.cfRuleId) {
+      try {
+        await cfMail.deleteRule(alias.cfRuleId)
+      } catch (e) {
+        // KHÔNG xoá hàng khi chưa xoá được quy tắc: xoá đi thì bí danh vẫn nhận
+        // thư thật mà không còn chỗ nào trong hệ thống này biết nó tồn tại.
+        return res
+          .status(502)
+          .json({ error: 'cloudflare_failed', detail: (e as Error).message.slice(0, 300) })
+      }
+    }
+    await prisma.emailAlias.delete({ where: { id } })
+    return res.json({ ok: true })
+  })
+)
+
+/**
+ * Đối soát với Cloudflare.
+ *
+ * Cần có vì Cloudflare là nguồn sự thật và người ta sửa được trực tiếp trên bảng
+ * điều khiển bên đó. Không có thao tác này thì cách duy nhất phát hiện lệch là
+ * có người báo "tôi không nhận được thư".
+ *
+ * Chỉ ĐỌC rồi báo cáo, KHÔNG tự sửa: tự xoá hàng theo Cloudflare sẽ mất liên kết
+ * bí danh ↔ tài khoản mà chỉ bảng này có, còn tự tạo lại quy tắc bên đó là ghi
+ * vào hạ tầng thư dựa trên một bản sao có thể đã cũ. Người vận hành quyết định.
+ */
+app.post(
+  '/api/identity/alias/sync',
+  asyncHandler(async (req, res) => {
+    if (!(await requireOwner(req, res))) return
+    if (cfMail.configProblem()) {
+      return res.status(503).json({ error: 'not_configured', detail: cfMail.configProblem() })
+    }
+    let rules: cfMail.AliasRule[]
+    try {
+      rules = await cfMail.listRules()
+    } catch (e) {
+      return res
+        .status(502)
+        .json({ error: 'cloudflare_failed', detail: (e as Error).message.slice(0, 300) })
+    }
+    const rows = await prisma.emailAlias.findMany({ select: ALIAS_SELECT })
+    const byAddress = new Map(rules.map((r) => [r.address.toLowerCase(), r]))
+    const known = new Set(rows.map((r) => cfMail.addressOf(r.localPart).toLowerCase()))
+
+    return res.json({
+      // Có ở đây, KHÔNG có bên Cloudflare ⇒ bí danh chết, thư bị trả về.
+      missingAtCloudflare: rows
+        .filter((r) => !byAddress.has(cfMail.addressOf(r.localPart).toLowerCase()))
+        .map(publicAlias),
+      // Có bên Cloudflare, KHÔNG có ở đây ⇒ ai đó tạo tay; đang nhận thư thật mà
+      // trang này không biết.
+      unknownAtCloudflare: rules.filter((r) => !known.has(r.address.toLowerCase())),
+      // Cùng địa chỉ nhưng chuyển tiếp tới hộp thư khác nhau - nguy hiểm nhất
+      // trong ba loại lệch, vì cả hai bên đều "có" nên nhìn qua thấy khớp.
+      destinationMismatch: rows
+        .map((r) => ({ row: r, rule: byAddress.get(cfMail.addressOf(r.localPart).toLowerCase()) }))
+        .filter(
+          (p) => p.rule && p.rule.destination.toLowerCase() !== p.row.destination.toLowerCase()
+        )
+        .map((p) => ({
+          ...publicAlias(p.row),
+          cloudflareDestination: p.rule?.destination ?? null,
+        })),
+      checkedAt: new Date(),
+    })
   })
 )
 

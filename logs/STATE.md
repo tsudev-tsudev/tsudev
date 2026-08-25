@@ -1,5 +1,19 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> **Phiên 26 bắt đầu ở đây** (cập nhật cuối phiên 25): đọc
+> [`handover/20260825-03`](handover/20260825-03_ket-phien-25.md).
+> Phiên 25 đã **gộp PR #76** và làm xong **QU-STD-TABLE đợt 2**: mười endpoint
+> danh sách chuyển sang `{data, meta}` + `largePageRateLimit`, bảy trang gắn
+> `RecordFooter`, và trả nốt món nợ khai `@tsudev/ratelimit` của content/storage.
+> Hàng đợi còn: **QU-STD-AUTH** (nặng nhất, cần quyết định OIDC của chủ dự án) →
+> QU-STD-1/3 → B1/C1.
+> ⚠️ Ba điều đáng nhớ của phiên 25: (a) `router.query` **rỗng ở lần dựng đầu**
+> trên trang tối ưu tĩnh, nên bản viết tay của đợt 1 đã **tự ghi đè `?page=3`
+> thành `?page=1`** - nay chữa bằng `lib/useUrlPaging.ts`; (b) ba endpoint hoá ra
+> **không có trần nào** chứ không phải trần sai (`trust applications`,
+> `author/posts`, `admin/projects`); (c) xoá CỨNG bảng `Project` bị chặn ở cấp
+> database - test dọn dữ liệu phải đi qua `tsudev.allow_hard_delete`.
+>
 > **Phiên 25 bắt đầu ở đây** (cập nhật cuối phiên 24): đọc
 > [`handover/20260825-02`](handover/20260825-02_ket-phien-24.md).
 > **VIỆC ĐẦU TIÊN: gộp PR #76** (QU-STD-TABLE đợt 1, CI 7/7 xanh, chờ chủ dự án) -
@@ -294,8 +308,9 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       (nêu tên v1.0.0 làm chủ đề đề xuất). Cổng: tokens·topology·format XANH.
 - [ ] **QU-STD-3** Rà chỗ dùng `border-strong` cho viền nút phụ hoặc ô nhập, đổi sang `border-control` (`.standards/docs/DESIGN_SYSTEM.md` mục 1).
 - [ ] **QU-STD-AUTH** Rà luồng đăng nhập theo `.standards/docs/AUTH_AND_ACCOUNT.md` mục 17. Repo này là **hạng A**. Trọng tâm: `tsudev.com` phải là IdP OIDC duy nhất (hiện NextAuth nối thẳng Google/GitHub vào frontend - đó chính là kiểu nối tài liệu mục 2 cấm), ba lối vào đúng thứ tự, và cơ chế Xác minh tài khoản ân hạn 7 ngày ở mục 8. Mọi hạn chế `MUST` thi hành ở tầng máy chủ.
-- [ ] **QU-STD-TABLE** Bộ chọn số bản ghi `10/20/50/100/200` cho MỌI bảng và mọi
-      modal có bản ghi. Chuẩn: `.standards/docs/DATA_TABLE.md` mục 12.
+- [x] **QU-STD-TABLE** ✅ XONG 25/08/2026 (đợt 1 phiên 24, đợt 2 phiên 25). Bộ
+      chọn số bản ghi `10/20/50/100/200` cho MỌI bảng và mọi modal có bản ghi.
+      Chuẩn: `.standards/docs/DATA_TABLE.md` mục 12.
       **ĐỢT 1 XONG 25/08 (phiên 24): nền tảng + bảng `/admin/accounts` trọn vẹn.**
       Làm đúng thứ tự CHANGELOG bắt buộc - **máy chủ trước, giao diện sau**. - **Nền tảng máy chủ** (`@tsudev/types`): `PAGE_SIZES` · `normalizePageSize`
       (quy về mốc gần nhất KHÔNG lớn hơn, không báo lỗi: 15→10, 99→50, 5000→200)
@@ -321,14 +336,168 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       lần lật trang cả trang chớp một cái và tiêu điểm trên bộ chọn bị mất. - `.eslintrc.cjs` nới `jsx-a11y/no-noninteractive-tabindex` cho `role="region"`:
       quy ước BUỘC vùng cuộn ngang có `tabindex`, nên ở đây nó đúng chứ không
       phải sơ suất - nới một vai trò thay vì rải `eslint-disable` từng bảng.
-      **ĐỢT 2 CÒN LẠI**: áp khuôn `RecordFooter` cho các bảng/danh sách còn lại và
-      phân trang nốt các endpoint - `invite list` (take 100) · `security events`
-      (take 50, dùng ở `/settings/security` + `/admin/security`) · `trust audit`
-      (take 100/200) · `storage files` (take 100) · `content search` (đã có phân
-      trang nhưng trần còn 100, cần nâng 200 + gắn `largePageRateLimit`).
-      ⚠️ Nợ phát hiện kèm: `content-service` và `storage-service` **import
-      `@tsudev/ratelimit` mà KHÔNG khai trong `package.json`** - chạy được nhờ
-      hoisting của npm workspaces, nhưng sai khai báo và có thể vỡ trong Docker.
+      **ĐỢT 2 XONG 25/08 (phiên 25)**. Mười endpoint danh sách nay theo hình dạng
+      chuẩn ở mục 8.2, gắn `largePageRateLimit`; bảy trang có `RecordFooter`:
+
+      | Endpoint | Trần cũ | Trang dùng |
+      | --- | --- | --- |
+      | `identity/invite/list` | 100 | `/admin/trust` |
+      | `identity/security/events` | 50 | `/settings/security` |
+      | `identity/useradmin/security` | 200 | `/admin/security` |
+      | `trust/admin/audit` | 100 | `/admin/trust` |
+      | `trust/admin/certificates` | 200 | `/admin/trust` |
+      | `trust/admin/applications` | **không có trần nào** | `/admin/trust` |
+      | `admin/projects` | **không có trần nào** | `/admin/projects` |
+      | `author/posts` | **không có trần nào** | `/author` |
+      | `files` (storage) | 100 | - |
+      | `posts/search` | page_size trần 100 → **200** | `/search` |
+
+      Ba dòng "không có trần nào" là phát hiện của đợt này: chúng KHÔNG phải trần
+      sai mà là **không có trần**, tức trần duy nhất là "hiện chưa nhiều bản ghi".
+      Nợ khai `@tsudev/ratelimit` của `content-service`/`storage-service` đã trả
+      (thêm vào `dependencies` + `references`); `storage-service` còn thiếu cả
+      `@tsudev/types` nên khai luôn.
+
+      🔑 **Bẫy đã chữa, đáng nhớ**: trang KHÔNG có `getServerSideProps` được Next
+      tối ưu tĩnh, và trên trang đó `router.query` **rỗng ở lần dựng đầu**. Bản
+      viết tay của đợt 1 (`/admin/accounts`) vì thế khởi tạo trang = 1, rồi effect
+      ghi ngược lên URL **xoá `?page=3` của người dùng thành `?page=1`** - liên
+      kết chia sẻ không phải "không chạy", nó bị chính trang đó huỷ khi vừa mở.
+      Nay cả bảy trang dùng chung `apps/frontend-main/lib/useUrlPaging.ts`: chờ
+      `router.isReady` → NHẬN giá trị từ URL → mới bật `ready`, và chỉ ghi ngược
+      khi `ready`. `useUrlPagingSync` nhận CẢ DANH SÁCH bảng và ghi MỘT lần, vì
+      nhiều effect cùng `router.replace` trong một lượt sẽ giẫm lên nhau (mỗi cái
+      trải `router.query` cũ) - `/admin/trust` có bốn bảng nên dính ngay lần dựng
+      đầu; ở đó tham số URL mang tiền tố (`queue_page`, `audit_page_size`…) còn
+      tham số gửi lên máy chủ vẫn đúng tên chuẩn.
+
+      **CỐ Ý ĐỂ NGOÀI**: `/admin/newsroom` là bảng kanban thời gian thực (poll 3
+      giây, cột cắt ở 12 mục), không phải bảng bản ghi - phân trang ở đó là sai
+      hình. Danh sách passkey ở `/settings/security` cũng để ngoài: nó vài mục cho
+      mỗi người và endpoint không có trần thật nào để chạm.
+
+- [x] **ACCOUNTS-ADMIN** (Pha 0-2 XONG 26/08/2026) Nâng `/admin/accounts` thành công cụ quản trị nhân sự
+      đầy đủ: email nội bộ `@tsudev.com`, lọc theo phương pháp đăng nhập / thời
+      gian / IP / quốc gia, và các thao tác vận hành hàng loạt. **Kế hoạch chốt
+      25/08/2026 (phiên 25), chưa viết mã.**
+
+  Hiện trạng đã ĐO (sự kiện, không phải phỏng đoán):
+
+  - **Có sẵn, dùng được ngay**: `OAuthAccount.provider` (github/google) ⇒ lọc
+    theo nền tảng đăng nhập khả thi mà không cần cột mới · `SecurityEvent.ip` +
+    `userAgent` + `createdAt` ⇒ lọc theo IP/thời gian ·
+    `WebAuthnCredential`/`TotpCredential` ⇒ trạng thái 2FA/passkey ·
+    `User.passwordHash IS NULL` ⇒ tài khoản chỉ-OAuth.
+  - **`SecurityEvent.ip` ghi ĐÚNG IP người dùng cuối** - đã lần chuỗi chuyển
+    tiếp: BFF đọc `x-forwarded-for` (Cloudflare đặt) rồi chuyển tiếp, `callerIp`
+    lấy phần tử đầu. Nền móng cho bộ lọc IP là thật.
+  - 🔴 **KHÔNG có dữ liệu địa lý ở bất kỳ đâu** - lọc theo quốc gia cần nguồn mới.
+  - 🔴 **Đăng nhập bằng OAuth KHÔNG để lại dấu vết nào.**
+    `/api/identity/oauth/upsert` với tài khoản ĐÃ liên kết chạy
+    `if (linked) return res.json(...)`: không `logSecurity('login')`, không ghi
+    `lastLoginAt`. Mà `lastLoginAt` chỉ được ghi ở **một** chỗ duy nhất -
+    `services/auth-service/src/throttle.ts:80`, trên đường mật khẩu. Hệ quả đo
+    được: cột "Đăng nhập gần nhất" của `/admin/accounts` **vĩnh viễn là `-`**
+    với mọi tài khoản chỉ dùng GitHub/Google, và `/settings/security` của họ
+    trống. Đây là điều kiện TIÊN QUYẾT: không sửa thì mọi bộ lọc "phương pháp
+    đăng nhập / thời gian / IP" đều mù đúng ở nhóm tài khoản mà yêu cầu nhắm tới.
+
+  Kế hoạch bốn pha, làm đúng thứ tự:
+
+  - **Pha 0 - nền móng dấu vết đăng nhập (ĐIỀU KIỆN TIÊN QUYẾT).** `data-schema`
+    thêm `SecurityEvent.country` + ba cột phi chuẩn hoá trên `User`
+    (`lastLoginIp`, `lastLoginCountry`, `lastLoginMethod`) để lọc bằng chỉ mục
+    thay vì join lại sau mỗi dòng → `backend-api` ghi `logSecurity('login')` +
+    `lastLoginAt` ở nhánh `linked` của `oauth/upsert` → `frontend-web` chuyển
+    tiếp header → `qa-test` canh "một lần đăng nhập = đúng một sự kiện".
+  - **Pha 1 - bộ lọc + bảng.** `useradmin/list` nhận `q`, `role[]`,
+    `loginMethod[]`, `country[]`, `ip`, `status`, khoảng `createdAt` và
+    `lastLoginAt`, kèm facet đếm như `/search` đã làm. Giao diện dùng lại
+    `RecordFooter` + `useUrlPaging` (đã có), thêm chọn nhiều + thao tác hàng
+    loạt (`RecordFooter` vốn đã có `selectedCount`/`onClearSelection`) và ngăn
+    kéo chi tiết từng tài khoản.
+  - **Pha 2 - email nội bộ qua Cloudflare Email Routing** (chủ dự án chọn bí
+    danh chuyển tiếp, miễn phí, không giới hạn địa chỉ). Model `EmailAlias` là
+    bản sao, **CF là nguồn sự thật**, có thao tác đối soát. Secret
+    `CF_API_TOKEN` + `CF_ZONE_ID` đặt ở **Render, KHÔNG ở Worker**. Thiếu env ⇒
+    tính năng tự tắt và nói rõ lý do, không nổ.
+  - **Pha 3 - GeoLite2 cấp thành phố**: để ngỏ, làm khi thật sự cần. Chủ dự án
+    chọn "CF ngay, GeoLite2 sau" nên Pha 0 không được khoá cửa này.
+
+  🔑 Ba cái bẫy đã đo được, đừng dẫm vào:
+
+  1. `apps/frontend-main/pages/api/auth/[...nextauth].ts:225` gọi `oauth/upsert`
+     mà **KHÔNG chuyển tiếp `x-forwarded-for`** - khác hẳn đường mật khẩu, vốn
+     có. Thêm log mà quên chỗ này ⇒ cột IP đầy **IP egress của Render** và trông
+     y hệt dữ liệu thật. `CF-IPCountry` cũng phải chuyển tiếp ở đúng đây.
+  2. Callback `signIn` của next-auth chỉ chạy **một lần mỗi lần đăng nhập**
+     (làm mới token đi qua `jwt`), nên ghi log ở `oauth/upsert` không gây lũ sự
+     kiện. Đã kiểm rồi, đừng kiểm lại.
+  3. Proxy `pages/api/account/[...path].ts` **chặn đường dẫn quá 2 đoạn**
+     (`parts.length > 2`), nên route email phải đặt tên hai đoạn (`alias/list`,
+     `alias/create`…), không phải `useradmin/alias/create`. Và bề mặt useradmin
+     khớp **BỐN chỗ** trong cùng một commit - xem `CLAUDE.md`.
+
+  ⚠️ Chồng lấn nặng với **QU-STD-AUTH**. Chủ dự án chọn **làm song song, chấp
+  nhận sửa lại** (25/08). Lưu ý cho người đọc sau: QU-STD-AUTH vẫn **đang chặn ở
+  quyết định OIDC**, nên trên thực tế đây không phải hai luồng cùng chạy -
+  ACCOUNTS-ADMIN chạy, OIDC nằm chờ.
+
+- [x] **NEWSROOM-DOCS** ✅ XONG 26/08/2026 (phiên 25). Toà soạn Agent AI không đăng bài nào ở `/docs`.
+      **Nguyên nhân đã tìm ra + kế hoạch chốt 25/08/2026 (phiên 25), chưa sửa.**
+
+  Đo trên prod: `https://tsudev.com/docs` trả 200 nhưng chỉ có **2 tài liệu**, cả
+  hai là `getting-started` + `api-reference` từ seed gốc - **0 bài do agent viết**.
+
+  **Nguyên nhân KHÔNG nằm ở đường đăng bài.** `dispatcher.ts:524` đã có nhánh
+  `draft.target === 'DOC'` gọi `prisma.doc.create(...)` đầy đủ, và `Doc` đã có sẵn
+  `sourceDraftId` + `authoredByAgentId`. Chuỗi thật là `NewsroomSource.target` →
+  `TopicIdea.target` (`dispatcher.ts:248,260`) → `ContentDraft.target` → đăng. Mà
+  `seed-newsroom.js` khai **8 nguồn BLOG, 2 nguồn PROJECT, 0 nguồn DOC** ⇒ không
+  bao giờ sinh ra đề tài DOC ⇒ **nhánh đăng DOC chưa từng chạy một lần nào**. Kênh
+  DOC có tồn tại và `enabled` mặc định true (seed dòng 132) - nó chỉ không có gì
+  để làm.
+
+  Ba món phát hiện kèm:
+
+  - `ContentDraft.publishedPostId` đang giữ **id của Doc** khi target=DOC
+    (`dispatcher.ts:538`) - chạy được nhưng là mìn đặt sẵn cho người đọc sau.
+  - `Doc` **không được đánh chỉ mục tìm kiếm**: `buildPostSearch` chỉ chạy cho
+    `Post`, nên tài liệu do agent viết sẽ không hiện ở `/search`.
+  - `GET /api/docs` (`content-service:351`) **không có trần nào** - sót lại sau
+    QU-STD-TABLE vì `/docs` là trang công khai, không phải bảng.
+
+  Kế hoạch: chủ dự án chọn **lấy đề tài từ chính repo/sản phẩm**, không phải RSS,
+  vì tài liệu nói về tsudev chứ không phải tin tức bên ngoài. Năm bước:
+
+  - **B0 (0 dòng mã, làm trước tiên)**: bơm 2-3 đề tài DOC qua route
+    `POST /api/newsroom/admin/idea` vốn đã nhận `target=DOC`. Mục đích không phải
+    "có bài" mà là **chứng minh nhánh đăng DOC chạy thật trên prod** trước khi xây
+    gì lên trên nó - nó chưa từng chạy lần nào.
+  - **B1**: `NewsroomSource.kind` thêm `'repo_docs'`. `kind` là String và
+    `fetchSource(kind, url)` đã là bảng điều phối ⇒ **không cần migration**, chỉ
+    thêm một nhánh. Nguồn đọc GitHub API của chính repo (đã Public từ 21/08/2026)
+    - `docs/`, CHANGELOG, phát hành - rồi trả `RawItem[]` để Scout chọn. Toàn bộ
+      đường ống còn lại dùng lại nguyên vẹn.
+  - **B2**: Scout của kênh DOC phải nhận thêm **tiêu đề `Doc` ĐÃ ĐĂNG**, không chỉ
+    `TopicIdea` chưa tiêu thụ như hiện nay - nếu không nó đề xuất lại thứ đã có.
+    (`fingerprint` chỉ chặn trùng giữa các ý tưởng, không biết gì về `Doc`.)
+  - **B3**: sửa ba món kèm ở trên, cộng `category`/`position` đang cắm cứng
+    (`category: 'huong-dan'`, `position` mặc định 0 ⇒ mọi tài liệu agent dồn một
+    rổ, cùng thứ tự, nên `/docs` sắp xếp tuỳ tiện).
+  - **B4 - nghiệm thu**: test tích hợp lái một bản nháp DOC qua
+    `onPublishRequested` rồi khẳng định có hàng `Doc` thật VÀ nó hiện ở
+    `GET /api/docs`; trên prod thì **đọc PAYLOAD của `/api/docs`**, không `grep`
+    chuỗi hiển thị (bài học phiên 24).
+
+- [ ] **DOCS-SEARCH** Đưa `Doc` vào chỉ mục tìm kiếm. Phát hiện khi làm
+      NEWSROOM-DOCS, **cố ý tách ra** thay vì làm dở: `buildPostSearch` chỉ chạy
+      cho `Post`, và `Doc` không có cột `searchTitleNorm`/`searchBodyNorm` nào.
+      Làm đủ cần 2 cột + 2 index GIN trgm (migration) + đường ghi lúc đăng +
+      script reindex + đổi hợp đồng `/api/posts/search` + thẻ kết quả ở `/search`
+      (hiện `PostSearchResult.data` là `Post[]`). Quy mô ngang một pha của
+      ACCOUNTS-ADMIN. Hệ quả khi chưa làm: tài liệu do agent viết đọc được ở
+      `/docs` nhưng KHÔNG tìm thấy qua ô tìm kiếm.
 
 - [ ] **QU-STD-4** Chuyển `NEXT_PUBLIC_MAIN_URL` ra khỏi `apps/frontend-main/.env.production` (dùng ở 18 chỗ gồm `scripts/deploy-frontend.js`, `render.yaml`, `config/topology.json`), rồi xóa dòng miễn trừ trong `.standards-allow`. Miễn trừ **hết hạn 31/12/2026**.
 
@@ -340,6 +509,48 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 26/08/2026 - **ACCOUNTS-ADMIN Pha 0-2** (phiên 25). **Pha 0**: `oauth/upsert`
+  nay ghi `login` + `lastLoginAt` ở CẢ BỐN nhánh (trước đó nhánh "đã liên kết"
+  không ghi gì, nên cột "Đăng nhập gần nhất" vĩnh viễn trống với tài khoản chỉ
+  dùng GitHub/Google); ba đường đăng nhập gom về một hàm `recordLogin`; thêm
+  `SecurityEvent.country` + `User.lastLogin{Ip,Country,Method}`; BFF chuyển tiếp
+  `x-forwarded-for` + `CF-IPCountry`. **Pha 1**: `useradmin/list` nhận `q`,
+  `role[]`, `loginMethods[]`, `country[]`, `ip` (khớp tiền tố), `status[]`, hai
+  khoảng ngày, kèm facet đếm theo bộ lọc hiện tại và `total_unfiltered`; giao
+  diện có thanh lọc, ba cột mới, chọn nhiều + thu hồi phiên hàng loạt. **Pha 2**:
+  bí danh thư `*@tsudev.com` qua Cloudflare Email Routing (model `EmailAlias`,
+  bốn route hai đoạn, thao tác đối soát ba chiều).
+  Bốn điều đáng nhớ: (a) callback `signIn` của next-auth không có `req`, nên
+  handler dựng lại bộ callback cho TỪNG request - nhét request vào biến cấp
+  module sẽ trộn IP giữa những người đăng nhập cùng lúc; (b) `oauth/upsert`
+  trước đó KHÔNG chuyển tiếp `x-forwarded-for`, nên thêm log mà quên chỗ đó là
+  ghi IP egress của Render vào hồ sơ người dùng; (c) auth-service gắn `auth`
+  theo TỪNG NHÁNH nên nhánh `alias` mới phải khai riêng - quên là OWNER cũng
+  nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
+  có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
+- 26/08/2026 - **NEWSROOM-DOCS** (phiên 25). Nguyên nhân: `seed-newsroom.js`
+  không có nguồn nào `target: 'DOC'`, nên nhánh đăng DOC (vốn đã đầy đủ trong
+  `dispatcher.ts`) **chưa từng chạy lần nào**. Đã thêm nguồn `kind: 'repo_docs'`
+  đọc GitHub API của chính repo (`docs/` + commit `feat`) - đo thật: 19 đề tài;
+  Scout của kênh DOC nay nhận thêm tiêu đề `Doc` đã đăng để không viết lại thứ
+  đã có; `position` nối vào cuối chuyên mục thay vì để mọi tài liệu cùng khoá
+  sắp xếp; `publishedPostId` đổi tên trường thành `publishedRefId` (giữ nguyên
+  tên cột bằng `@map` - đổi tên cột thật sẽ thành DROP + ADD và mất dữ liệu);
+  `GET /api/docs` có trần. **Test newsroom-service trước đó KHÔNG nằm trong CI**
+
+  - đã đưa vào, cùng lúc với test đầu tiên của toà soạn chạm DB thật.
+
+- 25/08/2026 - **QU-STD-TABLE đợt 2: mười endpoint + bảy trang** (phiên 25).
+  Chi tiết ở mục QU-STD-TABLE trong hàng đợi. Ba điểm đáng nhớ: (a) `router.query`
+  rỗng ở lần dựng đầu trên trang tối ưu tĩnh làm trang **tự xoá `?page=` của chính
+  liên kết chia sẻ** - đã chữa bằng `lib/useUrlPaging.ts` và sửa cả bản đợt 1;
+  (b) ba endpoint hoá ra **không có trần nào**, không phải trần sai; (c) xoá CỨNG
+  bảng `Project` bị chặn ở cấp database (trigger + `tsudev.allow_hard_delete`),
+  nên test dọn dữ liệu phải đi qua đúng cửa thoát đó chứ không `deleteMany` được.
+  Test mới: `trust-service/test/adminPagination.test.ts` ·
+  `storage-service/test/filesPagination.test.ts` ·
+  `content-service/test/adminProjectsPagination.test.ts`.
+- 25/08/2026 - **Gộp PR #76** (QU-STD-TABLE đợt 1) vào `main` bằng rebase.
 - 25/08/2026 - **QU-STD-TABLE đợt 1: nền tảng phân trang + `/admin/accounts`**
   (phiên 24, PR **#76** CI 7/7 xanh, **CHƯA merge**). Chi tiết ở mục QU-STD-TABLE
   trong hàng đợi. Điểm đáng nhớ: `useradmin/list` từng lấy `take: 500` một phát và
