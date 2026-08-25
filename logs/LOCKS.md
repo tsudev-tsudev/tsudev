@@ -4,5 +4,7 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - QU-STD-2 XONG (phiên 23), đã nhả mọi khóa. Chương trình editor nâng cấp
-Pha 1-7 vẫn chờ chủ dự án review + phát hành. Chưa commit.)
+(trống - phiên 24 đã trả hết khóa: 4 file docs + CLAUDE.md sửa xong, cổng
+format·tokens·topology xanh.
+Phiên 23-24 đã kết. Việc còn lại duy nhất là deploy frontend Cloudflare
+`node scripts/deploy-frontend.js deploy` - chủ dự án tự chạy, không cần khóa file.)
