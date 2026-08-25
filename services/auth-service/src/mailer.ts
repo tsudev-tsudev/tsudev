@@ -11,7 +11,54 @@
 
 const API = 'https://api.resend.com/emails'
 
+type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
+let notify: Notifier = { alert: async () => {} }
+try {
+  notify = require('../../../packages/observability/notify')
+} catch (e) {
+  /* observability không bắt buộc */
+}
+
 export type MailResult = { ok: true } | { ok: false; reason: string }
+
+// Cảnh báo "chưa cấu hình" chỉ phát MỘT lần cho mỗi tiến trình. Nó là tình trạng
+// tĩnh chứ không phải sự cố lặp lại: bắn ở mỗi lá thư sẽ dội hàng trăm cảnh báo
+// giống hệt nhau và chôn mất cảnh báo thật nằm giữa chúng.
+let warnedMissingKey = false
+
+/**
+ * Đổi thân HTML thành bản chữ thuần.
+ *
+ * SINH RA từ chính HTML thay vì bắt mỗi khuôn thư viết hai bản: hai bản viết tay
+ * sẽ lệch nhau, và bản lệch là bản không ai đọc lại - người sửa nội dung chỉ sửa
+ * cái mình nhìn thấy.
+ *
+ * Vì sao cần bản chữ: thư chỉ-có-HTML bị nhiều bộ lọc chấm điểm rác cao hơn, và
+ * trình đọc màn hình cùng đồng hồ thông minh hiển thị phần `text` chứ không phải
+ * `html`. Địa chỉ liên kết được giữ lại trong ngoặc - bỏ đi thì bản chữ mất đúng
+ * thứ mà thư xác minh tồn tại để mang.
+ */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href, label) => {
+      const text = String(label)
+        .replace(/<[^>]+>/g, '')
+        .trim()
+      return text && text !== href ? `${text} (${href})` : String(href)
+    })
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
 const from = () => process.env.MAIL_FROM || 'tsudev <no-reply@tsudev.com>'
 
@@ -23,30 +70,79 @@ const from = () => process.env.MAIL_FROM || 'tsudev <no-reply@tsudev.com>'
  * log, còn phản hồi cho người dùng thì GIỐNG NHAU dù gửi được hay không -
  * "nếu địa chỉ này tồn tại, chúng tôi đã gửi thư".
  */
-export async function sendMail(to: string, subject: string, html: string): Promise<MailResult> {
+export async function sendMail(
+  to: string,
+  subject: string,
+  html: string,
+  kind = 'unknown'
+): Promise<MailResult> {
   const key = process.env.RESEND_API_KEY
   if (!key) {
     // Không cấu hình = no-op ồn ào ở log, không phải lỗi. Local dev và CI không
     // có khoá, và chúng cũng không nên gửi thư thật cho ai.
     console.warn(`[auth] RESEND_API_KEY chưa đặt - bỏ qua mail "${subject}" gửi tới ${to}`)
+    if (!warnedMissingKey && process.env.NODE_ENV === 'production') {
+      // Chỉ ồn ào ở production. Thiếu khoá ở đó nghĩa là MỌI thư giao dịch -
+      // xác minh email, đặt lại mật khẩu, cảnh báo đăng nhập - đang biến mất
+      // trong im lặng, và không người dùng nào báo được chuyện đó: họ chỉ thấy
+      // "thư không tới", một triệu chứng trông y hệt thư vào hộp rác.
+      warnedMissingKey = true
+      void notify
+        .alert({
+          service: 'auth-service',
+          level: 'error',
+          message: 'RESEND_API_KEY chưa đặt - mọi thư giao dịch đang bị bỏ qua',
+          context: `mail:${kind}`,
+        })
+        .catch(() => {})
+    }
     return { ok: false, reason: 'not_configured' }
   }
   try {
     const res = await fetch(API, {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: from(), to, subject, html }),
+      // `text` đi kèm `html` chứ không thay thế: Resend gửi thư nhiều phần và
+      // bên nhận tự chọn phần đọc được.
+      body: JSON.stringify({ from: from(), to, subject, html, text: htmlToText(html) }),
     })
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       console.error(`[auth] Resend trả ${res.status}: ${body.slice(0, 300)}`)
+      void reportFailure(kind, subject, `http_${res.status}`, body.slice(0, 300))
       return { ok: false, reason: `http_${res.status}` }
     }
     return { ok: true }
   } catch (e) {
-    console.error('[auth] gửi mail hỏng:', e instanceof Error ? e.message : e)
+    const detail = e instanceof Error ? e.message : String(e)
+    console.error('[auth] gửi mail hỏng:', detail)
+    void reportFailure(kind, subject, 'network', detail)
     return { ok: false, reason: 'network' }
   }
+}
+
+/**
+ * Đẩy một lần gửi HỎNG ra kênh cảnh báo.
+ *
+ * KHÔNG kèm địa chỉ người nhận: cảnh báo đi tới Telegram và email vận hành, nên
+ * đưa địa chỉ vào đó là mang dữ liệu cá nhân sang một hệ thống thứ ba chỉ để
+ * chẩn đoán. `kind` đủ để biết đường nào hỏng, và log máy chủ giữ phần còn lại.
+ */
+async function reportFailure(
+  kind: string,
+  subject: string,
+  reason: string,
+  detail: string
+): Promise<void> {
+  await notify
+    .alert({
+      service: 'auth-service',
+      level: 'error',
+      message: `Gửi thư hỏng (${reason}): ${subject}`,
+      context: `mail:${kind}`,
+      error: detail,
+    })
+    .catch(() => {})
 }
 
 /**

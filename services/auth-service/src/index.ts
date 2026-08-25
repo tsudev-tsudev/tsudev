@@ -39,6 +39,7 @@ import {
   otpauthUri,
   verifyTotp,
 } from './totp'
+import { deviceLabel, shouldAlertNewDevice } from './device'
 import {
   sendMail,
   verifyEmailHtml,
@@ -135,7 +136,8 @@ app.post(
       await sendMail(
         email,
         'Có người thử đăng ký bằng email của bạn',
-        `<p>Địa chỉ này đã có tài khoản tsudev. Nếu bạn vừa thử đăng ký, hãy <a href="${link}">đăng nhập</a> hoặc dùng chức năng quên mật khẩu.</p>`
+        `<p>Địa chỉ này đã có tài khoản tsudev. Nếu bạn vừa thử đăng ký, hãy <a href="${link}">đăng nhập</a> hoặc dùng chức năng quên mật khẩu.</p>`,
+        'register_duplicate_email'
       )
       return res.status(201).json({ ok: true })
     }
@@ -155,7 +157,8 @@ app.post(
     await sendMail(
       email,
       'Xác minh email cho tài khoản tsudev',
-      verifyEmailHtml(user.displayName || username, `${siteUrl()}/verify-email?token=${token.raw}`)
+      verifyEmailHtml(user.displayName || username, `${siteUrl()}/verify-email?token=${token.raw}`),
+      'verify_email'
     )
     logSecurity(user.id, 'account_created', req)
     return res.status(201).json({ ok: true })
@@ -462,7 +465,8 @@ app.post(
       resetPasswordHtml(
         user.displayName || user.username,
         `${siteUrl()}/reset-password?token=${token.raw}`
-      )
+      ),
+      'password_reset'
     )
     return res.json(generic)
   })
@@ -568,7 +572,8 @@ app.post(
     await sendMail(
       before.email,
       'Email tài khoản tsudev vừa được đổi',
-      emailChangedNoticeHtml(before.displayName || before.username, newEmail)
+      emailChangedNoticeHtml(before.displayName || before.username, newEmail),
+      'email_changed_notice'
     )
     return res.json({ ok: true })
   })
@@ -680,7 +685,8 @@ app.post(
       verifyEmailHtml(
         user.displayName || user.username,
         `${siteUrl()}/verify-email?token=${token.raw}`
-      )
+      ),
+      'verify_email_resend'
     )
     return res.json({ ok: true })
   })
@@ -726,7 +732,8 @@ app.post(
         user.displayName || user.username,
         newEmail,
         `${siteUrl()}/confirm-email-change?token=${token.raw}`
-      )
+      ),
+      'email_change_confirm'
     )
     return res.json({ ok: true })
   })
@@ -1399,33 +1406,50 @@ function sendAlert(
   sendMail(
     user.email,
     `Cảnh báo bảo mật: ${title}`,
-    securityAlertHtml(user.displayName || user.username, title, context)
+    securityAlertHtml(user.displayName || user.username, title, context),
+    'security_alert'
   ).catch((e) => console.error('[auth] sendAlert hỏng:', e instanceof Error ? e.message : e))
 }
 
 /**
- * Đăng nhập từ thiết bị/vị trí LẠ thì gửi cảnh báo. "Lạ" = chưa từng có
- * SecurityEvent nào của tài khoản mang đúng IP này. Fire-and-forget, và fail-safe:
- * không có IP thì bỏ qua (không đoán bừa), lỗi truy vấn không chặn đăng nhập.
+ * Đăng nhập từ thiết bị/vị trí LẠ thì gửi cảnh báo. Quy tắc "lạ" nằm ở
+ * `device.ts` cùng lý do của nó - tóm tắt: trùng IP, HOẶC trùng dòng thiết bị và
+ * trùng quốc gia, thì coi là quen. Fire-and-forget và fail-safe: không có tín
+ * hiệu nào thì bỏ qua (không đoán bừa), lỗi truy vấn không chặn đăng nhập.
  */
 async function alertIfNewDevice(
   user: { id: string; email: string; displayName: string | null; username: string },
   req: Request
 ): Promise<void> {
   try {
-    const ip = callerIp(req.headers as Record<string, unknown>, req.ip || '')
-    if (!ip) return
-    const seen = await prisma.securityEvent.findFirst({
-      where: { userId: user.id, ip },
-      select: { id: true },
+    const cur = {
+      ip: callerIp(req.headers as Record<string, unknown>, req.ip || '') || null,
+      country: callerCountry(req.headers as Record<string, unknown>),
+      userAgent: str(req.get('user-agent') || '', 200) || null,
+    }
+    // Trần 200: đủ để một thiết bị quen xuất hiện ít nhất một lần, và giữ truy
+    // vấn nằm gọn trong chỉ mục [userId, createdAt]. Không có trần thì tài khoản
+    // dùng lâu năm kéo về hàng nghìn hàng ở MỖI lượt đăng nhập.
+    const past = await prisma.securityEvent.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: { ip: true, country: true, userAgent: true },
     })
-    if (seen) return
-    const ua = str(req.get('user-agent') || '', 200)
+    if (!shouldAlertNewDevice(past, cur)) return
+
+    const where = [cur.ip ? `IP: ${cur.ip}` : null, cur.country ? `Quốc gia: ${cur.country}` : null]
+      .filter(Boolean)
+      .join(' · ')
     sendAlert(
       user,
       'Có đăng nhập mới từ thiết bị hoặc vị trí chưa từng thấy',
-      `IP: ${ip}${ua ? ` · ${ua}` : ''}`
+      [deviceLabel(cur.userAgent), where].filter(Boolean).join(' · ')
     )
+    // Ghi lại chính lượt cảnh báo này. Hai công dụng, và cái thứ hai mới là lý do
+    // chính: nó đưa thiết bị vừa báo vào tập "đã thấy", nên một thiết bị mới chỉ
+    // sinh ĐÚNG MỘT thư dù người dùng đăng nhập lại bao nhiêu lần sau đó.
+    logSecurity(user.id, 'new_device_alert', req, { note: deviceLabel(cur.userAgent) })
   } catch (e) {
     console.error('[auth] alertIfNewDevice hỏng:', e instanceof Error ? e.message : e)
   }
