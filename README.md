@@ -1,11 +1,19 @@
-# tsudev - Developer Ecosystem
+<img src="apps/frontend-main/public/brand/logo-mark.png" alt="Dấu hiệu tsudev" width="96" />
+
+# tsudev
 
 [![CI](https://github.com/tsudev-tsudev/tsudev/actions/workflows/ci.yml/badge.svg)](https://github.com/tsudev-tsudev/tsudev/actions/workflows/ci.yml)
 
 Website dự án cá nhân của tsudev: **dự án & bản quyền** (ứng dụng, công cụ, thư
 viện - kèm giấy phép và trạng thái đăng ký quyền tác giả), blog, kho tài liệu,
-**SSO**, và **con dấu tín nhiệm** cấp cho website dùng mã nguồn tsudev hoặc do
-đội ngũ tsudev thực hiện.
+**xác thực**, và **con dấu tín nhiệm** cấp cho website dùng mã nguồn tsudev hoặc
+do đội ngũ tsudev thực hiện.
+
+Một sản phẩm của [tsudev](https://tsudev.com).
+
+**Hạng sản phẩm: A - Web có tài khoản** (`.standards/docs/AUTH_AND_ACCOUNT.md`
+mục 1). Hạng A `MUST NOT` tự dựng kho người dùng riêng: danh tính của hệ sinh
+thái là một, ở `tsudev.com`.
 
 Monorepo npm workspaces. Đặc tả gốc: [`documents-tsudev.md`](documents-tsudev.md).
 
