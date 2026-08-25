@@ -112,16 +112,11 @@ microservice về mặt tiến trình, không phải về mặt dữ liệu.
   giám sát. Cố ý không quy về một con số.
 - `services/api-gateway` xuất hiện trong TSD nhưng **không tồn tại** trong repo;
   vai trò gateway hiện do các route proxy của Next đảm nhiệm.
-- **Cây thư mục lệch `.standards/docs/PROJECT_STRUCTURE.md`, CÓ CHỦ ĐÍCH.** Quy ước đó mô
-  tả một cây `src/` duy nhất (`src/components`, `src/features`, `src/services`,
-  `src/utils`…) - hình trạng của một ứng dụng ĐƠN. Repo này là npm workspaces:
-  `apps/` · `services/` · `packages/`, mỗi workspace có `src/` riêng và ranh giới
-  build/test riêng. Ép về một cây `src/` chung sẽ xoá đúng thứ đang giữ cho bốn
-  service và một app không dẫm chân nhau, và làm hỏng cả bảng sở hữu đường dẫn
-  của `AGENTS.md`.
-
-  Quy ước là file **bất khả xâm phạm** nên repo này không tự sửa; điểm lệch được
-  ghi ở đây thay vì im lặng, để phiên sau khỏi tưởng là quên. Nội dung áp dụng
-  được của quy ước thì vẫn theo đủ: quy tắc đặt tên, một file một trách nhiệm,
-  `logs/` và `tokens/` đặt đúng chỗ, sản phẩm build nằm trong `.gitignore`.
-  Gói đề xuất gửi repo trung tâm: [`structure-upstream-proposal.md`](structure-upstream-proposal.md).
+- **Cây thư mục theo Hình trạng B (monorepo) của
+  `.standards/docs/PROJECT_STRUCTURE.md` §2 - HẾT LỆCH từ 25/08/2026.** Repo này
+  là npm workspaces (`apps/` · `services/` · `packages/`, mỗi workspace có `src/`
+  riêng và ranh giới build/test riêng), và quy ước v2.8.0 nay mô tả đúng hình
+  trạng đó. Trước v2.8.0 quy ước chỉ có một cây `src/` chung - hình trạng của ứng
+  dụng ĐƠN - nên đây từng là điểm lệch có chủ đích; đề xuất sửa từ repo này đã
+  được trung tâm nhận. Hồ sơ:
+  [`structure-upstream-proposal.md`](structure-upstream-proposal.md).

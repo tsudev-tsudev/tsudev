@@ -1,9 +1,28 @@
 # Đề xuất đẩy ngược lên repo token trung tâm
 
-> **Trạng thái**: chờ gửi. Repo token trung tâm không nằm trong repo này, nên file
-> này là gói bàn giao - đủ để dán thẳng vào issue/PR bên đó mà không phải đo lại.
+> **Trạng thái: ĐÃ ĐƯỢC NHẬN, đóng ngày 25/08/2026 (phiên 24).** Bộ quy ước
+> `.standards/` **v2.8.0** đã mang **nguyên văn cả ba đề nghị** dưới đây:
+> `text-muted` đổi sang giá trị mục A · thêm vai trò `border-control` với giá trị
+> mục B · `border-strong` **giữ nguyên** mã màu cũ, thu về vai trò trang trí.
+> Đối chiếu: `.standards/tokens/design-tokens.json`,
+> `.standards/tokens/tokens.css`, `.standards/docs/DESIGN_SYSTEM.md` §1.
+> Issue nguồn: [tsudev-standards#1](https://github.com/tsudev-tsudev/tsudev-standards/issues/1).
 >
-> Nguồn của vấn đề: `$accessibility_gap` trong `tokens/design-tokens.json`.
+> File giữ lại làm **hồ sơ đo**, không phải việc còn dở. Số đo bốn tầng nền × ba
+> chế độ vẫn dùng được để kiểm chứng lại giá trị hiện hành.
+>
+> **Hệ quả cho tsudev-web**: khối `color` cục bộ trong `tokens/design-tokens.json`
+> vẫn là bản v1.0.0 cũ, còn `extensions.tsudev-web` ghi đè lên nó - và giá trị ghi
+> đè đó **trùng khít** giá trị chuẩn mới. Tức là gỡ phần ghi đè khi làm **QU-STD-1**
+> sẽ **không đổi một pixel nào** ở `text-muted`/`border-control`; mô tả "thay đổi
+> PHÁ VỠ" trong hàng đợi có từ thời `.standards/` còn là v1.0.0 và nay đã hết đúng
+> ở hai token này. Bằng chứng: trong `packages/ui/src/tokens.css` sinh ra, khối
+> `extensions` nằm SAU khối `color` trong cùng scope `:root` nên thắng cascade -
+> giá trị đang render là `#52627a`/`#5e5646`/`#9bb0c9`, đúng bảng mục A.
+>
+> Nguồn của vấn đề: `$accessibility_gap` trong `tokens/design-tokens.json` (chuỗi
+> đó nay đã LỖI THỜI - còn nói "bảng chuẩn v1.0.0 không đạt"; việc cập nhật thuộc
+> `design-system`).
 > Cổng đang canh phía tsudev-web: `packages/ui/test/contrast.test.ts`.
 
 ## Vấn đề
