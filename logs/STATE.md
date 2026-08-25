@@ -1,5 +1,18 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> **Phiên 25 bắt đầu ở đây** (cập nhật cuối phiên 24): đọc
+> [`handover/20260825-02`](handover/20260825-02_ket-phien-24.md).
+> **VIỆC ĐẦU TIÊN: gộp PR #76** (QU-STD-TABLE đợt 1, CI 7/7 xanh, chờ chủ dự án) -
+> log của cả phiên 24 nằm trong PR đó, chưa merge thì `main` chưa có.
+> Phiên 24 đã phát hành xong chương trình editor (frontend Cloudflare Version
+> `2c9dd20c` → LIVE đủ ba tầng), đóng hai đề xuất đẩy ngược (v2.8.0 đã nhận),
+> nâng bộ quy ước **v3.0.0 → v3.1.1**, và làm xong **QU-STD-BRAND** + **QU-STD-TABLE
+> đợt 1**. Hàng đợi còn: QU-STD-TABLE **đợt 2** (bảng còn lại + 5 endpoint) →
+> QU-STD-AUTH (nặng nhất, cần quyết định OIDC của chủ dự án) → QU-STD-1/3 → B1/C1.
+> ⚠️ Hai bẫy vừa gặp, đừng lặp: `.standards-version` phải **ghim nhãn**
+> (`ref=v3.1.1`, KHÔNG để `ref=main`), và nghiệm thu tính năng mới trên prod phải
+> đọc **payload** chứ đừng `grep` chuỗi hiển thị.
+>
 > **Phiên 24 bắt đầu ở đây** (cập nhật cuối phiên 23): đọc
 > [`handover/20260824-02`](handover/20260824-02_ket-phien-23.md). **CHƯƠNG TRÌNH
 > EDITOR NÂNG CẤP ĐÃ PHÁT HÀNH backend+DB** (chủ dự án trao quyền tự chạy + cấp Neon
@@ -326,6 +339,24 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
 | _(trống)_ |       |         |
 
 ## Đã hoàn thành (mới nhất trên cùng)
+
+- 25/08/2026 - **QU-STD-TABLE đợt 1: nền tảng phân trang + `/admin/accounts`**
+  (phiên 24, PR **#76** CI 7/7 xanh, **CHƯA merge**). Chi tiết ở mục QU-STD-TABLE
+  trong hàng đợi. Điểm đáng nhớ: `useradmin/list` từng lấy `take: 500` một phát và
+  trả **mảng thuần** - vượt trần cứng 200 của quy ước.
+- 25/08/2026 - **QU-STD-BRAND: tài sản nhận diện + cổng kiểm** (phiên 24, PR #73
+  `9ea5abe`). Bốn thứ thiếu đều hỏng IM LẶNG; nặng nhất là `apple-touch-icon` còn
+  alpha nên **iOS tô nền đen** - lỗi đang chạy trên prod từ trước. Cổng kiểm mới
+  `scripts/check-brand-assets.js` đã chứng minh bắt được lỗi bằng ba cách hỏng thật.
+- 25/08/2026 - **Nâng bộ quy ước v3.0.0 → v3.1.1** (phiên 24, PR #75 `64ec7ca`;
+  v3.0.0 do chủ dự án tự chạy ở PR #71). v3.1.x vá hai lỗ hổng của chính cơ chế
+  đồng bộ (TS-16, TS-17) - xem mục QU-STD-V3.
+- 25/08/2026 - **Đóng hai đề xuất đẩy ngược** (phiên 24, PR #70 `7c70096`).
+  `.standards/` v2.8.0 đã nhận NGUYÊN VĂN cả hai; Issue #1/#2 ở `tsudev-standards`
+  đã close. Dọn kèm 2 link CHẾT trong `docs/README.md` mà QU-STD-2 bỏ sót.
+- 25/08/2026 - **PHÁT HÀNH frontend Cloudflare** (phiên 24, chủ dự án chạy lệnh,
+  agent nghiệm thu). Version `2c9dd20c` ⇒ chương trình editor nâng cấp **LIVE đủ ba
+  tầng**. Nghiệm thu prod xanh; tìm không dấu chạy thật (`bao mat` = `bảo mật` = 7).
 
 - 25/08/2026 - **PHÁT HÀNH frontend Cloudflare - chương trình editor nâng cấp LIVE
   đủ ba tầng** (phiên 24, chủ dự án chạy lệnh, agent nghiệm thu). Version
