@@ -1,7 +1,40 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
 > **Phiên 26 bắt đầu ở đây** (cập nhật cuối phiên 25): đọc
-> [`handover/20260825-03`](handover/20260825-03_ket-phien-25.md).
+> [`handover/20260826-01`](handover/20260826-01_ket-phien-25.md) - phiếu kết
+> phiên ĐẦY ĐỦ, gồm cả phần phát hành. Phiếu `20260825-03` là bản giữa phiên,
+> đã đóng.
+>
+> **`main` = `3ec27ee`.** Toàn bộ việc của phiên 25 đã vào `main` và **đã phát
+> hành cả hai tầng**: backend qua Render autoDeploy, frontend Cloudflare Version
+> `546522e7`. Không còn PR nào mở.
+>
+> ⚠️ **VIỆC ĐẦU TIÊN của phiên 26: ba việc CHỈ CHỦ DỰ ÁN làm được**, và tới khi
+> làm xong thì hai tính năng vừa dựng vẫn nằm im (chi tiết + lệnh: phiếu
+> `20260826-01` §2):
+> `db:seed:newsroom` trên prod · xác nhận `NEWSROOM_ENABLED=true` ở Render ·
+> đặt `CF_API_TOKEN`/`CF_ZONE_ID` rồi gửi một lá thư THẬT để nghiệm thu.
+>
+> 🔴 **Và một lỗi ĐANG SỐNG trên trang công khai: `BLOG-500`** - `/blog` cùng
+> `/feed.xml` không hiện bài nào. **Không do phiên 25 gây ra.** Đã khoanh vùng
+> hết mức đo được từ ngoài; còn thiếu đúng nguyên văn ngoại lệ trong log Render.
+> Xem mục `BLOG-500` trong hàng đợi bên dưới - có sẵn lệnh tái hiện một dòng.
+>
+> Hàng đợi còn: **BLOG-500** (ưu tiên - lỗi đang sống) → **QU-STD-AUTH** (nặng
+> nhất, cần quyết định OIDC của chủ dự án) → DOCS-SEARCH → QU-STD-1/3 → B1/C1.
+>
+> ⚠️ Bốn điều đáng nhớ của phiên 25: (a) `router.query` **rỗng ở lần dựng đầu**
+> trên trang tối ưu tĩnh, nên bản viết tay của đợt 1 đã **tự ghi đè `?page=3`
+> thành `?page=1`** - nay chữa bằng `lib/useUrlPaging.ts`; (b) ba endpoint hoá ra
+> **không có trần nào** chứ không phải trần sai (`trust applications`,
+> `author/posts`, `admin/projects`); (c) xoá CỨNG bảng `Project` bị chặn ở cấp
+> database - test dọn dữ liệu phải đi qua `tsudev.allow_hard_delete`; (d) **đổi
+> hợp đồng một endpoint là đổi ở HAI tầng phát hành lệch pha nhau** - Render tự
+> deploy khi merge, Cloudflare thì thủ công, và khoảng lệch đó đã là một sự cố
+> 500 thật trên `/docs`.
+>
+> <details><summary>Lịch sử phiên trước</summary>
+>
 > Phiên 25 đã **gộp PR #76** và làm xong **QU-STD-TABLE đợt 2**: mười endpoint
 > danh sách chuyển sang `{data, meta}` + `largePageRateLimit`, bảy trang gắn
 > `RecordFooter`, và trả nốt món nợ khai `@tsudev/ratelimit` của content/storage.
@@ -13,6 +46,8 @@
 > **không có trần nào** chứ không phải trần sai (`trust applications`,
 > `author/posts`, `admin/projects`); (c) xoá CỨNG bảng `Project` bị chặn ở cấp
 > database - test dọn dữ liệu phải đi qua `tsudev.allow_hard_delete`.
+>
+> </details>
 >
 > **Phiên 25 bắt đầu ở đây** (cập nhật cuối phiên 24): đọc
 > [`handover/20260825-02`](handover/20260825-02_ket-phien-24.md).
