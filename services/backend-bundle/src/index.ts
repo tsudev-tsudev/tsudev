@@ -25,6 +25,9 @@ import * as storage from 'storage-service'
 import * as trust from 'trust-service'
 import * as identity from 'auth-service'
 import * as newsroom from 'newsroom-service'
+import { prisma } from '@tsudev/db'
+
+import { assertSchemaUpToDate } from './migrationGate'
 
 // BẢNG SỞ HỮU ĐƯỜNG DẪN - cũng là tài liệu sống về ranh giới ba service.
 // Thêm route mới vào service nào mà tiền tố chưa có ở đây thì route đó KHÔNG
@@ -114,6 +117,11 @@ const port = Number(process.env.PORT) || 4000
 const bindHost = process.env.BIND_HOST || '0.0.0.0'
 
 async function startServer() {
+  // Cổng lệch migration TRƯỚC mọi thứ khác: `init()` của storage và trust chạm
+  // DB, và một schema lệch làm chúng hỏng theo kiểu khó đọc hơn nhiều so với
+  // câu "DB thiếu migration X". Lý do cổng này tồn tại: migrationGate.ts.
+  await assertSchemaUpToDate(prisma)
+
   // Chuẩn bị của từng service: ensureBucket() của storage, bộ giám sát định kỳ
   // của trust. Bỏ qua là hỏng âm thầm, không phải hỏng ồn ào.
   for (const s of SERVICES) {

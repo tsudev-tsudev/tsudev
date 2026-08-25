@@ -15,12 +15,14 @@
 > `db:seed:newsroom` trên prod · xác nhận `NEWSROOM_ENABLED=true` ở Render ·
 > đặt `CF_API_TOKEN`/`CF_ZONE_ID` rồi gửi một lá thư THẬT để nghiệm thu.
 >
-> 🔴 **Và một lỗi ĐANG SỐNG trên trang công khai: `BLOG-500`** - `/blog` cùng
-> `/feed.xml` không hiện bài nào. **Không do phiên 25 gây ra.** Đã khoanh vùng
-> hết mức đo được từ ngoài; còn thiếu đúng nguyên văn ngoại lệ trong log Render.
-> Xem mục `BLOG-500` trong hàng đợi bên dưới - có sẵn lệnh tái hiện một dòng.
+> 🔴 **`BLOG-500` - nguyên nhân ĐÃ XÁC ĐỊNH (phiên 26), việc còn lại là của chủ
+> dự án**: migration `20260825165439_dau_vet_dang_nhap` chưa chạy trên Neon prod
+> ⇒ `The column User.lastLoginIp does not exist`. **DO phiên 25 gây ra** (bước
+> `db:migrate` thủ công bị quên), trái với ghi chép cũ. Sửa bằng đúng một lệnh:
+> `DATABASE_URL='<neon-prod-url>' npm run db:migrate`. Nó cũng nhiều khả năng
+> đang làm hỏng ĐĂNG NHẬP, không riêng blog - xem mục `BLOG-500` bên dưới.
 >
-> Hàng đợi còn: **BLOG-500** (ưu tiên - lỗi đang sống) → **QU-STD-AUTH** (nặng
+> Hàng đợi còn: **BLOG-500** (chờ 1 lệnh của chủ dự án) → **QU-STD-AUTH** (nặng
 > nhất, cần quyết định OIDC của chủ dự án) → DOCS-SEARCH → QU-STD-1/3 → B1/C1.
 >
 > ⚠️ Bốn điều đáng nhớ của phiên 25: (a) `router.query` **rỗng ở lần dựng đầu**
@@ -525,46 +527,63 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
     `GET /api/docs`; trên prod thì **đọc PAYLOAD của `/api/docs`**, không `grep`
     chuỗi hiển thị (bài học phiên 24).
 
-- [ ] 🔴 **BLOG-500** `/blog` và `/feed.xml` trên production KHÔNG hiện bài nào.
-      Phát hiện 26/08/2026 khi nghiệm thu sau khi gộp #77. **KHÔNG do #77 gây ra**
-      (xem bằng chứng bên dưới) - đây là lỗi có sẵn, và nó đang sống trên trang
-      công khai chính của site.
+- [ ] 🔴 **BLOG-500** - ✅ **NGUYÊN NHÂN ĐÃ XÁC ĐỊNH 26/08/2026 (phiên 26)**, đã
+      tái hiện được nguyên văn ngoại lệ. **Còn một việc CHỈ CHỦ DỰ ÁN làm được**:
 
-  Triệu chứng đo được:
+  ```
+  DATABASE_URL='<neon-prod-url>' npm run db:migrate
+  ```
 
-  - `/blog` trả 200 nhưng hiện "Chưa có bài viết."; `/feed.xml` 200 mà 0 mục;
-    `sitemap.xml` không có URL bài nào. Trang chủ thì **có** 3 bài.
-  - Tái hiện gọn nhất, không cần đăng nhập:
+  **Nguyên văn ngoại lệ**: `The column User.lastLoginIp does not exist in the
+current database.` Migration `20260825165439_dau_vet_dang_nhap` (phiên 25)
+  **chưa chạy trên Neon prod**; client đã sinh sẵn cứ SELECT ba cột đó.
+  `docs/deployment.md` §Migration đã nói rõ `prisma migrate deploy` KHÔNG tự chạy
+  lúc boot - bước thủ công đó bị quên, và §2.1 của phiếu `20260826-01` liệt kê ba
+  việc của chủ dự án nhưng KHÔNG có việc này.
 
-    ```
-    curl -s -o /dev/null -w '%{http_code}\n' \
-      'https://tsudev.com/api/search?q=ng&sort=newest&page_size=50'   # 500
-    curl -s -o /dev/null -w '%{http_code}\n' \
-      'https://tsudev.com/api/search?q=ng&sort=newest&page_size=20'   # 200
-    ```
+  ⚠️ **Kết luận "ngưỡng là SỐ BẢN GHI trong một phản hồi" của phiên 25 là SAI** -
+  đừng mang nó đi tiếp. Hai công cụ đo tự sinh ra nó:
 
-  Đã khoanh vùng được (và đã loại trừ các hướng sai):
+  - `parsePaging` **kẹp `page_size` về mốc chuẩn** (10/20/50/100/200). `page_size`
+    21/25/30 trả 200 với payload Y HỆT `page_size=20` - đó là 20 bản ghi, không
+    phải 21-30. Cả "ngưỡng nằm giữa 20 và 50" dựng trên phép đo này.
+  - Phép "lật bốn trang page_size=10 đều 200" **dừng ở bản ghi 40** trong tập 48.
+    `page_size=10&page=5` (bản ghi 41-48) trả **500**. Bản ghi hỏng nằm đúng
+    trong tám cái không được lật tới.
 
-  - **Ngưỡng là SỐ BẢN GHI trong MỘT phản hồi**, nằm giữa 20 và 50. `page_size`
-    10 và 20 đều 200; 50 thì 500.
-  - **Không phải một bản ghi hỏng.** Lật `sort=newest&page_size=10` qua bốn
-    trang (bản ghi 1-40) đều 200 - mọi hàng ánh xạ và tuần tự hoá được.
-  - **Không phải hết giờ hay cạn tài nguyên.** Hỏng TẤT ĐỊNH trong ~0,3 giây,
-    năm lần liên tiếp; lời gọi thành công còn chậm hơn.
-  - **Không phải độ dài từ khoá.** `q=zz` và `q=qx` (2 ký tự, 0 kết quả) trả 200;
-    `q=ng` (2 ký tự, khớp gần hết) trả 500.
-  - **Lỗi phát ra từ content-service**, không phải từ Worker: chuỗi
-    `{"error":"internal error"}` là của bộ bắt lỗi ở `content-service/src/index.ts`.
-  - **Không do QU-STD-TABLE đợt 2**: `/api/posts` KHÔNG nằm trong diff của #77
-    (`git diff 70fc56f..58c50d6 -- services/content-service/src/index.ts` không
-    có dòng nào chạm route đó), mà chính nó hỏng cùng kiểu - `/blog?tag=linux`
-    (4 bài) chạy, `/blog` không lọc (~35 bài) thì rỗng, cùng endpoint cùng
-    `limit=50`. Lỗi lộ ra dần khi Toà soạn AI đăng thêm bài và tập kết quả vượt
-    ngưỡng.
+  **Cơ chế thật**: ba bài SEED (`welcome-to-tsudev`, `kien-truc-microservices`,
+  `toi-uu-seo-nextjs`) có `authorId` = tài khoản `tsudev`; bài của Toà soạn AI có
+  `authorId` NULL. Prisma chỉ phát truy vấn `User` khi tập kết quả có ít nhất một
+  `authorId` khác NULL ⇒ **trang nào chứa bài seed thì nổ**, trang toàn bài agent
+  thì xanh. `count` và facet (`select: { tags: true }`) không chạm `User` nên
+  `total` vẫn đúng - đó là lý do trang hiện "0 bài" mà `meta.total` báo 48.
 
-  **Bước tiếp theo cần quyền mà agent không có**: đọc log Render của
-  `tsudev-backend` (hoặc Sentry) lúc gọi lệnh `curl` tái hiện ở trên để lấy
-  NGUYÊN VĂN ngoại lệ. Mọi thứ đo được từ ngoài đã đo hết; thiếu đúng dòng đó.
+  Đo trên prod xác nhận: `tag=backend|frontend|seo|kiến trúc|thông báo` → 500,
+  `total=1` mỗi cái; 20 bài chạy được có `author` = `null` **cả 20**;
+  `/blog/toi-uu-seo-nextjs` trả 200 nhưng là trang 404. Tái hiện local: áp đủ
+  migration rồi `DROP COLUMN lastLoginIp/Country/Method` → khớp 4/4 (có tác giả
+  THROW · không tác giả OK · tags-only OK · count OK).
+
+  🔴 **Rộng hơn blog**: `packages/auth/src/index.ts:110` là
+  `findUnique({ where: { username } })` KHÔNG có `select` ⇒ cùng đường nổ. Phân
+  quyền và đăng nhập trên prod nhiều khả năng cũng đang hỏng. Nghiệm thu sau khi
+  chạy migration phải gồm **đăng nhập thật**, không chỉ `/blog`.
+
+  **Đã làm trong phiên 26 để chống tái phát** (quyết định của chủ dự án: chặn ồn
+  ào): `services/backend-bundle/src/migrationGate.ts` đối chiếu
+  `packages/db/prisma/migrations/` với bảng `_prisma_migrations` lúc khởi động;
+  thiếu một cái là log + `notify.alert` rồi `exit(1)`. Không kiểm được (DB ngủ,
+  mạng chập) thì chỉ cảnh báo. 5 test ở `test/migrationGate.test.ts`.
+  ⚠️ **Hệ quả: từ nay merge một PR có migration mà chưa chạy `db:migrate` trên
+  prod ⇒ Render autoDeploy làm SẬP CẢ SITE.** Thứ tự bắt buộc: migration TRƯỚC,
+  merge SAU. Đã ghi vào `docs/deployment.md`.
+
+  **Nghiệm thu sau khi chủ dự án chạy migration:**
+
+  ```
+  curl -s -o /dev/null -w '%{http_code}\n' 'https://tsudev.com/api/search?q=ng&sort=newest&page_size=50'   # phải 200
+  curl -s 'https://tsudev.com/blog/toi-uu-seo-nextjs' | grep -c '<h1'                                       # phải >0
+  ```
 
 - [ ] **DOCS-SEARCH** Đưa `Doc` vào chỉ mục tìm kiếm. Phát hiện khi làm
       NEWSROOM-DOCS, **cố ý tách ra** thay vì làm dở: `buildPostSearch` chỉ chạy
