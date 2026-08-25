@@ -22,9 +22,8 @@
 > `prisma migrate deploy`; sáu phép đo trên prod lật hết, `/blog` có 48 bài.
 > Cổng chặn tái phát đã vào `main` (`4a739c3`, PR #80).
 >
-> ⚠️ **Còn MỘT việc cần mắt người**: đăng nhập thật trên prod. `packages/auth`
-> đi qua đúng đường vừa hỏng nên nhiều khả năng đã tự khỏi, nhưng đó là SUY
-> LUẬN chứ chưa phải phép đo - xem mục `BLOG-500` bên dưới.
+> Đăng nhập trên prod cũng đã được chủ dự án kiểm tay và vào `/admin` được ⇒
+> việc con BLOG-500-AUTH đóng luôn. **Không còn phần nào của BLOG-500 mở.**
 >
 > Hàng đợi còn: **QU-STD-AUTH** (nặng nhất, cần quyết định OIDC của chủ dự án) →
 > DOCS-SEARCH → QU-STD-1/3 → B1/C1.
@@ -581,13 +580,12 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
   Render autoDeploy làm SẬP CẢ SITE.** Thứ tự bắt buộc: migration TRƯỚC, merge
   SAU. Đã ghi vào `docs/deployment.md`.
 
-- [ ] 🟠 **BLOG-500-AUTH (việc con còn mở, cần MẮT NGƯỜI)** - xác nhận đăng nhập
-      trên prod đã lành. `packages/auth/src/index.ts:110` là
+- [x] ✅ **BLOG-500-AUTH - ĐÓNG 26/08/2026.** `packages/auth/src/index.ts:110` là
       `findUnique({ where: { username } })` KHÔNG có `select` ⇒ nó đi qua đúng
       đường đã nổ, nên trong ba ngày BLOG-500 sống thì phân quyền và đăng nhập
-      nhiều khả năng cũng hỏng. Chạy `db:migrate` xong thì nhiều khả năng đã tự
-      khỏi - nhưng đó là SUY LUẬN, chưa phải phép đo, và agent không có
-      credentials để đo. Việc: đăng nhập thật vào `tsudev.com` rồi vào `/admin`.
+      nhiều khả năng cũng hỏng. Sau khi chạy migration, **chủ dự án đã đăng nhập
+      thật và vào được `/admin`** - phép đo, không phải suy luận. Agent không có
+      credentials nên việc này bắt buộc phải là mắt người.
 
 - [ ] **DOCS-SEARCH** Đưa `Doc` vào chỉ mục tìm kiếm. Phát hiện khi làm
       NEWSROOM-DOCS, **cố ý tách ra** thay vì làm dở: `buildPostSearch` chỉ chạy

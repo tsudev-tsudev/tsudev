@@ -1,6 +1,6 @@
 import React from 'react';
 import Seo from '../components/Seo';
-import { Layout, Button, Card, Badge, SectionHeading, Avatar, Stat } from '@tsudev/ui';
+import { Layout, Button, Card, Badge, SectionHeading, Avatar } from '@tsudev/ui';
 import { api } from '../lib/api';
 import { KIND_LABEL, STATUS_LABEL, copyrightMeta } from '../lib/projectLabels';
 import type { Post, Project } from '../lib/types';
@@ -47,10 +47,9 @@ function timeAgo(date: string | Date | null | undefined): string {
 type HomeProps = {
   posts: Post[];
   projects: Project[];
-  totals: Record<string, string>;
 };
 
-export default function Home({ posts, projects, totals }: HomeProps) {
+export default function Home({ posts, projects }: HomeProps) {
   return (
     <Layout active="/" bare>
       <Seo
@@ -97,11 +96,6 @@ export default function Home({ posts, projects, totals }: HomeProps) {
               <Button as="a" href="/blog" variant="secondary" size="lg">
                 Đọc blog
               </Button>
-            </div>
-            <div className="mt-12 flex flex-wrap gap-10">
-              <Stat value={totals.projects} label="Dự án" />
-              <Stat value={totals.posts} label="Bài viết" />
-              <Stat value={totals.docs} label="Tài liệu" />
             </div>
           </div>
 
@@ -294,13 +288,12 @@ export async function getServerSideProps() {
   // liệu chỉ VIP mới được thấy (docs/refactor-trust-invite-access.md, Phần A).
   // Gọi mà không có danh tính thì chỉ nhận 401 rồi rơi về [] - một lời gọi mạng
   // vô nghĩa ở MỌI lượt tải trang chủ.
-  const [posts, docs, projects] = await Promise.all([api.posts(6), api.docs(), api.projects(100)]);
+  // Lấy đúng số mục mà trang này VẼ RA (mỗi khu ba cái). Bản trước lấy 6 bài,
+  // 100 dự án và toàn bộ tài liệu chỉ để đếm cho hàng số liệu ở hero - mà phép
+  // đếm đó đếm nhầm: nó đếm số bản ghi VỪA TẢI VỀ chứ không phải số bản ghi
+  // trên site, nên "Bài viết" đứng yên ở 6 trong khi blog có 48. Hàng số liệu
+  // đã bỏ; đừng dựng lại bằng `.length` của một truy vấn có trần.
+  const [posts, projects] = await Promise.all([api.posts(3), api.projects(3)]);
 
-  const totals = {
-    posts: String(posts.length),
-    docs: String(docs.length),
-    projects: String(projects.length),
-  };
-
-  return { props: { posts, projects, totals } };
+  return { props: { posts, projects } };
 }

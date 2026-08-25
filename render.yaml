@@ -115,3 +115,24 @@ services:
       # là Google chuyển sang bậc trả tiền ngay, xem docs/free-tier.md.
       - key: GEMINI_API_KEY
         sync: false
+      # --- bí danh thư nội bộ `*@tsudev.com` (Cloudflare Email Routing) ---
+      # Đặt ở ĐÂY chứ không ở Cloudflare Worker: secret khai ở Worker lộ trong
+      # bản dựng. Bí danh do nhánh identity gọi, mà nhánh đó chạy trên Render;
+      # frontend chỉ proxy qua /api/account/alias/*.
+      #
+      # Thiếu hai biến này KHÔNG làm service chết - `isConfigured()` trả false và
+      # trang quản trị hiện thẳng "Chưa cấu hình: CF_API_TOKEN, CF_ZONE_ID". Cố ý:
+      # bí danh là tính năng phụ, chết cả site vì nó là đổi sai thứ lấy sai thứ.
+      #
+      # Token phải hẹp đúng một quyền: Zone → Email Routing Rules → Edit, và chỉ
+      # cho zone tsudev.com. `CF_ZONE_ID` là Zone ID ở trang Overview của tên
+      # miền - KHÔNG phải `CF_ACCOUNT_ID` ở trên (cái đó cho Workers AI).
+      #
+      # ⚠️ Đặt biến chưa đủ. Bên Cloudflare phải bật Email Routing cho zone (bước
+      # này GHI ĐÈ bản ghi MX) và XÁC MINH địa chỉ đích - mã chỉ tạo quy tắc
+      # forward, không tạo và không xác minh destination. Đích chưa verified thì
+      # Cloudflare từ chối lúc tạo bí danh. Nghiệm thu: gửi một lá thư THẬT.
+      - key: CF_API_TOKEN
+        sync: false
+      - key: CF_ZONE_ID
+        sync: false
