@@ -81,6 +81,38 @@ export function buildPostSearch(input: {
 }
 
 /**
+ * Tính SẴN hai cột chỉ mục cho một TÀI LIỆU (`Doc`). Tách khỏi `buildPostSearch`
+ * vì Doc không có cột tóm tắt - gộp chung bằng một hàm nhận `excerpt?` sẽ khiến
+ * chỗ gọi im lặng truyền thiếu và không ai biết. Gọi ở MỌI đường ghi Doc.
+ */
+export function buildDocSearch(input: { title: string; contentMd: string }): {
+  searchTitleNorm: string;
+  searchBodyNorm: string;
+} {
+  return {
+    searchTitleNorm: viNormalizeText(input.title),
+    searchBodyNorm: viNormalizeText(stripToPlainText(input.contentMd)),
+  };
+}
+
+/**
+ * Rút một đoạn trích quanh vị trí khớp ĐẦU TIÊN, để thẻ kết quả của Doc có phần
+ * mô tả (Doc không có cột tóm tắt). Trả về văn bản GỐC đã cắt, nên `findMatchRanges`
+ * vẫn tô sáng đúng trên đó. Không khớp ⇒ lấy phần đầu bài.
+ */
+export function buildSnippet(contentMd: string, query: string, radius = 90): string {
+  const plain = stripToPlainText(contentMd);
+  if (!plain) return '';
+  const ranges = query ? findMatchRanges(plain, query) : [];
+  const hit = ranges[0];
+  const width = radius * 2;
+  if (!hit) return plain.length <= width ? plain : plain.slice(0, width).trimEnd() + '…';
+  const start = Math.max(0, hit[0] - radius);
+  const end = Math.min(plain.length, hit[1] + radius);
+  return (start > 0 ? '…' : '') + plain.slice(start, end).trim() + (end < plain.length ? '…' : '');
+}
+
+/**
  * Tìm các đoạn KHỚP trong chuỗi GỐC để tô sáng, kể cả khi người dùng gõ KHÔNG
  * DẤU mà văn bản gốc CÓ DẤU (SEARCH_AND_FILTER §2.3). Trả về mảng [start, end)
  * theo chỉ số của chuỗi GỐC - đây là chỗ hầu hết cách làm sai, vì vị trí ký tự

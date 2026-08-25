@@ -11,7 +11,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 import { CONTENT, internalHeaders } from '../../lib/services';
 
-const PASS = ['q', 'tag', 'sort', 'page', 'page_size'] as const;
+// `type` và `category` là hai trục lọc thêm từ DOCS-SEARCH. Vẫn KHÔNG nhận
+// `status` hay tham số nhạy cảm nào - xem chú thích đầu file.
+const PASS = ['q', 'type', 'tag', 'category', 'sort', 'page', 'page_size'] as const;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Chỉ hỗ trợ GET' });

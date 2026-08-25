@@ -38,13 +38,35 @@ export type Post = {
   metaDescription?: string | null;
 };
 
+/** Một mục facet: giá trị lọc kèm số kết quả dự kiến (SEARCH_AND_FILTER §6.3). */
+export type Facet = { slug: string; count: number };
+
+/**
+ * Một hàng kết quả tìm kiếm. Phạm vi tìm kiếm phủ NHIỀU loại nội dung từ
+ * DOCS-SEARCH (26/08/2026), nên `data` không còn là `Post[]`. Phân biệt bằng
+ * `kind` chứ đừng đoán theo trường nào có mặt - thêm loại mới (§10.4) chỉ là thêm
+ * một nhánh vào union này, và TypeScript sẽ chỉ ra mọi chỗ phải xử lý nó.
+ */
+export type SearchHit =
+  | ({ kind: 'post' } & Post)
+  | {
+      kind: 'doc';
+      id: string;
+      slug: string;
+      title: string;
+      /** Đoạn trích dựng quanh chỗ khớp - Doc không có cột tóm tắt. */
+      excerpt: string;
+      category: string;
+      updatedAt: string;
+    };
+
 /** Kết quả từ endpoint tìm kiếm `/api/posts/search` (SEARCH_AND_FILTER §7). */
 export type PostSearchResult = {
-  data: Post[];
+  data: SearchHit[];
   // `total_pages` đến từ `pageMeta` của @tsudev/types - RecordFooter dựng dãy ô
   // trang từ nó, nên thiếu trường này là bộ phân trang câm.
   meta: PageMeta & { query_normalized: string };
-  facets: { tag: Array<{ slug: string; count: number }> };
+  facets: { tag: Facet[]; category: Facet[]; type: Facet[] };
 };
 
 export type Doc = {

@@ -377,6 +377,15 @@ model Doc {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// --- Chỉ mục tìm kiếm (SEARCH_AND_FILTER.md) ---
+  /// Giống hệt cặp cột của Post và vì đúng lý do đó: bản đã CHUẨN HOÁ (NFC →
+  /// thường → bỏ dấu, đ→d) để so khớp không dấu, TÍNH SẴN lúc GHI qua
+  /// @tsudev/search. Doc không có cột tóm tắt nên `searchBodyNorm` chỉ gộp thân
+  /// bài đã rút văn bản thuần. Backfill bằng `npm run search:reindex` (script đó
+  /// lập chỉ mục CẢ Post lẫn Doc). Có index GIN pg_trgm (thêm ở migration).
+  searchTitleNorm String?
+  searchBodyNorm  String?
+
   /// --- Toà soạn Agent AI ---
   /// Xoá mềm. Mọi truy vấn đọc công khai PHẢI thêm `deletedAt: null`; quên một
   /// chỗ là bài đã xoá vẫn hiện ra. Xoá cứng bị trigger Postgres chặn.
