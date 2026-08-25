@@ -1,19 +1,27 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 26 bắt đầu ở đây** (cập nhật cuối phiên 25): đọc
+> **Phiên 27 bắt đầu ở đây** (cập nhật cuối phiên 26): đọc
+> [`handover/20260826-02`](handover/20260826-02_ket-phien-26.md) - phiếu kết phiên 26.
+> Phiếu cũ hơn giữ làm tham chiếu:
 > [`handover/20260826-01`](handover/20260826-01_ket-phien-25.md) - phiếu kết
 > phiên ĐẦY ĐỦ, gồm cả phần phát hành. Phiếu `20260825-03` là bản giữa phiên,
 > đã đóng.
 >
-> **`main` = `3ec27ee`.** Toàn bộ việc của phiên 25 đã vào `main` và **đã phát
+> **`main` = `2bbeaf0`.** Toàn bộ việc của phiên 26 đã vào `main` và **đã phát
 > hành cả hai tầng**: backend qua Render autoDeploy, frontend Cloudflare Version
-> `546522e7`. Không còn PR nào mở.
+> `cd78358d`. Không còn PR nào mở, không còn nhánh dở.
 >
-> ⚠️ **VIỆC ĐẦU TIÊN của phiên 26: ba việc CHỈ CHỦ DỰ ÁN làm được**, và tới khi
-> làm xong thì hai tính năng vừa dựng vẫn nằm im (chi tiết + lệnh: phiếu
-> `20260826-01` §2):
-> `db:seed:newsroom` trên prod · xác nhận `NEWSROOM_ENABLED=true` ở Render ·
-> đặt `CF_API_TOKEN`/`CF_ZONE_ID` rồi gửi một lá thư THẬT để nghiệm thu.
+> ⚠️ **VIỆC ĐẦU TIÊN của phiên 27: hai phép ĐO đang chờ, chỉ chủ dự án làm được**
+> (chi tiết + năm bước chẩn đoán: phiếu `20260826-02` §2.1):
+>
+> - **Bí danh thư `security@tsudev.com` gửi thử KHÔNG TỚI.** MX/SPF của zone đã
+>   đúng và quy tắc đã được Cloudflare tạo thật, nên hỏng nằm ở khâu chuyển tiếp.
+>   Nghi phạm số một: địa chỉ ĐÍCH chưa được xác minh riêng.
+> - **Chưa biết `RESEND_API_KEY` đã có ở Render chưa.** Đo 30 giây: vào
+>   `/forgot-password`, nhập email của mình, xem thư có về không.
+>
+> Hai việc cũ của phiên 25 vẫn còn nguyên: `db:seed:newsroom` trên prod và xác
+> nhận `NEWSROOM_ENABLED=true` ở Render (phiếu `20260826-01` §2.1a, §2.1b).
 >
 > ✅ **`BLOG-500` ĐÃ ĐÓNG 26/08/2026 (phiên 26).** Nguyên nhân: migration
 > `20260825165439_dau_vet_dang_nhap` chưa chạy trên Neon prod ⇒
@@ -1241,23 +1249,24 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 ## Phiếu bàn giao
 
-| Mã                                                                  | Chủ đề                                                   | Trạng thái |
-| ------------------------------------------------------------------- | -------------------------------------------------------- | ---------- |
-| [20260822-05](handover/20260822-05_ket-phien-18.md)                 | Kết phiên 18 - Phase 0 + đo B1 + phát hành Phase A       | **MỞ**     |
-| [20260822-04](handover/20260822-04_ket-phien-17.md)                 | Kết phiên 17 - Phase A (SSRF + rate limit) code-complete | HOÀN THÀNH |
-| [20260822-03](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md)  | Kế hoạch khắc phục triệt để (SSRF · rate limit · audit)  | **MỞ**     |
-| [20260822-02](handover/20260822-02_ket-phien-16.md)                 | Kết phiên 16 - phát hành CSP + en-dash, prod sẵn sàng    | HOÀN THÀNH |
-| [20260822-01](handover/20260822-01_ket-phien-15.md)                 | Kết phiên 15 - kiến trúc tài khoản + OAuth + gạch ngang  | HOÀN THÀNH |
-| [20260821-04](handover/20260821-04_ket-phien-14.md)                 | Kết phiên 14 - AUTHOR/OWNER, trang tài khoản, phát hành  | HOÀN THÀNH |
-| [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 - repo Public, CI, repo quy ước             | HOÀN THÀNH |
-| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 - gộp #38, hồi sinh toà soạn                | HOÀN THÀNH |
-| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 - gộp #37, mở PR #38                        | HOÀN THÀNH |
-| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 - sổ Neuron, Storybook, dọn nợ              | HOÀN THÀNH |
-| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production                          | HOÀN THÀNH |
-| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 - chuỗi phát hành                            | HOÀN THÀNH |
-| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM                          | HOÀN THÀNH |
-| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện                           | HOÀN THÀNH |
-| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0               | HOÀN THÀNH |
+| Mã                                                                  | Chủ đề                                                                      | Trạng thái |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
+| [20260826-02](handover/20260826-02_ket-phien-26.md)                 | Kết phiên 26 - đóng BLOG-500, cổng chặn migration, dọn trang chủ, siết mail | **MỞ**     |
+| [20260822-05](handover/20260822-05_ket-phien-18.md)                 | Kết phiên 18 - Phase 0 + đo B1 + phát hành Phase A                          | **MỞ**     |
+| [20260822-04](handover/20260822-04_ket-phien-17.md)                 | Kết phiên 17 - Phase A (SSRF + rate limit) code-complete                    | HOÀN THÀNH |
+| [20260822-03](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md)  | Kế hoạch khắc phục triệt để (SSRF · rate limit · audit)                     | **MỞ**     |
+| [20260822-02](handover/20260822-02_ket-phien-16.md)                 | Kết phiên 16 - phát hành CSP + en-dash, prod sẵn sàng                       | HOÀN THÀNH |
+| [20260822-01](handover/20260822-01_ket-phien-15.md)                 | Kết phiên 15 - kiến trúc tài khoản + OAuth + gạch ngang                     | HOÀN THÀNH |
+| [20260821-04](handover/20260821-04_ket-phien-14.md)                 | Kết phiên 14 - AUTHOR/OWNER, trang tài khoản, phát hành                     | HOÀN THÀNH |
+| [20260821-03](handover/20260821-03_ket-phien-13.md)                 | Kết phiên 13 - repo Public, CI, repo quy ước                                | HOÀN THÀNH |
+| [20260821-02](handover/20260821-02_ket-phien-12.md)                 | Kết phiên 12 - gộp #38, hồi sinh toà soạn                                   | HOÀN THÀNH |
+| [20260821-01](handover/20260821-01_ket-phien-11.md)                 | Kết phiên 11 - gộp #37, mở PR #38                                           | HOÀN THÀNH |
+| [20260820-06](handover/20260820-06_ket-phien-10.md)                 | Kết phiên 10 - sổ Neuron, Storybook, dọn nợ                                 | HOÀN THÀNH |
+| [20260820-05](handover/20260820-05_phat-hanh-phien-9.md)            | Phát hành PR #36 lên production                                             | HOÀN THÀNH |
+| [20260820-04](handover/20260820-04_ket-phien-8.md)                  | Kết phiên 8 - chuỗi phát hành                                               | HOÀN THÀNH |
+| [20260820-03](handover/20260820-03_chuan-hoa-url-va-van-han-muc.md) | Chuẩn hoá URL + van hạn mức LLM                                             | HOÀN THÀNH |
+| [20260820-02](handover/20260820-02_viec-con-lai-sau-giao-dien.md)   | Việc còn lại sau đợt giao diện                                              | HOÀN THÀNH |
+| [20260820-01](handover/20260820-01_tai-cau-truc-giao-dien.md)       | Tái cấu trúc giao diện theo quy ước v1.0.0                                  | HOÀN THÀNH |
 
 ## Ghi chú vận hành
 
