@@ -105,8 +105,34 @@ describe('liệt kê & tạo', () => {
   test('OWNER liệt kê được, và KHÔNG bao giờ lộ passwordHash', async () => {
     const res = await post('list', OWNER)
     expect(res.status).toBe(200)
-    expect(Array.isArray(res.body)).toBe(true)
-    for (const row of res.body) expect(row.passwordHash).toBeUndefined()
+    // Từ 25/08/2026 route trả `{ data, meta }` chứ không còn mảng thuần
+    // (DATA_TABLE.md mục 8.2). Đổi này PHÁ VỠ client cũ, nên `/admin/accounts`
+    // đi cùng commit.
+    expect(Array.isArray(res.body.data)).toBe(true)
+    expect(res.body.meta).toMatchObject({ page: 1, page_size: 10 })
+    for (const row of res.body.data) expect(row.passwordHash).toBeUndefined()
+  }, 20000)
+
+  test('phân trang: mốc lạ quy về mốc hợp lệ, trần cứng 200', async () => {
+    // 15 không phải mốc chuẩn -> quy về 10, KHÔNG trả lỗi: một tham số hiển thị
+    // sai không đáng làm hỏng cả trang.
+    const odd = await post('list', OWNER, { page: 1, page_size: 15 })
+    expect(odd.status).toBe(200)
+    expect(odd.body.meta.page_size).toBe(10)
+
+    // Xin 5000 cũng chỉ được 200. Trần này áp cho MỌI người gọi, kể cả OWNER.
+    const huge = await post('list', OWNER, { page: 1, page_size: 5000 })
+    expect(huge.status).toBe(200)
+    expect(huge.body.meta.page_size).toBe(200)
+    expect(huge.body.data.length).toBeLessThanOrEqual(200)
+  }, 20000)
+
+  test('trang vượt quá trang cuối trả mảng rỗng kèm meta đúng, KHÔNG 404', async () => {
+    const res = await post('list', OWNER, { page: 9999, page_size: 10 })
+    expect(res.status).toBe(200)
+    expect(res.body.data).toEqual([])
+    expect(res.body.meta.page).toBe(9999)
+    expect(res.body.meta.total).toBeGreaterThanOrEqual(0)
   }, 20000)
 
   test('OWNER tạo tài khoản AUTHOR, email đặt sẵn xác minh, không lộ passwordHash', async () => {

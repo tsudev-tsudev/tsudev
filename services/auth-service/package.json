@@ -18,6 +18,7 @@
     "@tsudev/auth": "*",
     "@tsudev/db": "*",
     "@tsudev/types": "*",
+    "@tsudev/ratelimit": "*",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "source-map-support": "^0.5.21"

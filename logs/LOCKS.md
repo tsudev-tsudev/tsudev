@@ -4,6 +4,6 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - phiên 24 đã trả hết khóa sau QU-STD-BRAND: 7 file sửa xong, mọi cổng xanh
-(typecheck·lint·format·tokens·topology·check-standards·check-brand-assets; ui 199,
-frontend 40). Việc kế tiếp trong hàng đợi: QU-STD-TABLE rồi QU-STD-AUTH.)
+(trống - phiên 24 đã trả hết khóa sau QU-STD-TABLE đợt 1: nền tảng phân trang +
+bảng /admin/accounts. Mọi cổng xanh. Việc kế tiếp: áp khuôn RecordFooter cho các
+bảng còn lại (đợt 2), rồi QU-STD-AUTH.)

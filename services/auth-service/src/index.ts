@@ -15,7 +15,8 @@ import type { ErrorRequestHandler, Request, RequestHandler, Response } from 'exp
 
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
-import { hasAtLeastRole, emailUsable } from '@tsudev/types'
+import { hasAtLeastRole, emailUsable, parsePaging, pageMeta } from '@tsudev/types'
+import { largePageRateLimit } from '@tsudev/ratelimit'
 import { createHash } from 'crypto'
 
 import {
@@ -1545,17 +1546,37 @@ const USER_SELECT = {
   deletionScheduledAt: true,
 } as const
 
-/** OWNER: liệt kê tài khoản. */
+/**
+ * OWNER: liệt kê tài khoản.
+ *
+ * Phân trang theo DATA_TABLE.md mục 8. Trước đây route này lấy `take: 500` một
+ * phát và trả MẢNG THUẦN - vượt trần cứng 200 của quy ước, và bảng phía giao
+ * diện phải dựng 500 dòng cùng lúc.
+ *
+ * Phản hồi nay là `{ data, meta }`. Đó là thay đổi PHÁ VỠ với client cũ, nên
+ * trang `/admin/accounts` phải đi cùng commit - không có bước trung gian nào
+ * đọc được cả hai dạng.
+ */
 app.post(
   '/api/identity/useradmin/list',
+  largePageRateLimit({
+    name: 'useradmin/list page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     if (!(await requireOwner(req, res))) return
-    const rows = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 500,
-      select: USER_SELECT,
-    })
-    return res.json(rows.map(publicUser))
+    const paging = parsePaging(req.body ?? {})
+    const [total, rows] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+        select: USER_SELECT,
+      }),
+    ])
+    // Trang vượt quá trang cuối trả mảng rỗng kèm meta ĐÚNG, không phải 404.
+    return res.json({ data: rows.map(publicUser), meta: pageMeta(total, paging) })
   })
 )
 
