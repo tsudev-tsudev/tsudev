@@ -1,5 +1,24 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> **Phiên 24 bắt đầu ở đây** (cập nhật cuối phiên 23): đọc
+> [`handover/20260824-02`](handover/20260824-02_ket-phien-23.md). **CHƯƠNG TRÌNH
+> EDITOR NÂNG CẤP ĐÃ PHÁT HÀNH backend+DB** (chủ dự án trao quyền tự chạy + cấp Neon
+> creds). Đã làm: `prisma migrate deploy 20260824043047` trên Neon prod (status "up to
+> date") · gộp **PR #68 (editor) + #69 (QU-STD-2)** vào `main` (`7f3b622`, squash) →
+> Render tự deploy backend · `search:reindex` 35 bài prod · nghiệm thu prod XANH
+> (homepage 200 có nội dung, /blog liệt kê bài thật, /api/auth/providers sạch không rò
+> dev). **CÒN ĐÚNG 1 BƯỚC = deploy frontend Cloudflare**:
+> `node scripts/deploy-frontend.js deploy` - **classifier CHẶN**, chủ dự án phải tự chạy
+> (gõ `!node scripts/deploy-frontend.js deploy` để mình nghiệm thu ngay). Tới khi chạy,
+> UI mới (`/author` editor, `/search`, cover/references/tag-chip) CHƯA hiện; backend+DB
+> đã sẵn và **tương thích ngược** (frontend cũ + backend mới chạy chung được, mọi thay
+> đổi additive). Nghiệm thu sau deploy: `curl /api/auth/providers` CHỈ credentials·
+> passkey·github·google (đai chống rò config dev). Tuỳ chọn: `PEXELS_API_KEY` ở Render
+> (ảnh bìa agent) + kiểm `S3_PUBLIC_ENDPOINT` prod cho GET công khai (ảnh/video nhúng).
+> **QU-STD-2 XONG** (đã merge). **QU-STD-4 KHÔNG làm - là BẪY** (`.env.production` commit
+> CHỦ ĐÍCH cho tái lập CI/máy khác; xem memory `qu-std-4-env-production-bay` + handover
+> §5). QU-STD-1/3 cần mắt người (đổi màu phá vỡ).
+>
 > **Phiên 23 bắt đầu ở đây** (cập nhật cuối phiên 22): đọc
 > [`handover/20260824-01`](handover/20260824-01_pha1-editor-nang-cap.md) (§6 ghi kết
 > quả Pha 2-7). **CHƯƠNG TRÌNH EDITOR NÂNG CẤP 7 PHA ĐÃ XONG TOÀN BỘ** (chủ dự án
@@ -35,6 +54,28 @@
 > **Phase 0**: đăng nhập GitHub thật ✅ đã xác nhận prod (phiên 19), còn 1 mục mắt
 > người (DevTools Console sạch CSP). Không còn việc agent làm được mà không cần
 > chủ dự án hoặc bản opennextjs mới.
+
+> **🎉 CHƯƠNG TRÌNH EDITOR NÂNG CẤP ĐÃ LIVE ĐỦ BA TẦNG (25/08/2026, phiên 24).**
+> Chủ dự án chạy `node scripts/deploy-frontend.js deploy` → exit 0, **Version
+> `2c9dd20c`**, `.env.local` được dời khỏi bản dựng rồi trả lại. Nghiệm thu prod
+> XANH: providers sạch (credentials·github·google·passkey) · `/search` 404→**200** ·
+> tìm KHÔNG DẤU chạy thật (`bao mat`=`bảo mật`=7, `tuong tac`=`tương tác`=3) · chặn
+> min-2 · facet tag · tag chip + `/blog?tag=` lọc đúng · `/author` 200 · homepage
+> và `/blog` 200 KÈM nội dung · canonical/OG = `tsudev.com`, 0 chuỗi `localhost`.
+> **CHƯA nghiệm thu được vì thiếu DỮ LIỆU (không phải mã hỏng)**: vùng "Nguồn tham
+> khảo" (quét 12 bài, 0 bài có `references` thật) và ảnh bìa riêng (0 bài có
+> `coverImageUrl` - `PEXELS_API_KEY` chưa đặt ở Render). Đóng bằng cách đặt
+> `PEXELS_API_KEY` rồi chờ agent ra bài mới, hoặc đăng 1 bài qua `/author`.
+> Chi tiết + **hai lần công cụ đo tự sinh lỗi giả**: phiếu
+> [`20260825-01`](handover/20260825-01_ket-phien-24.md) §7.
+>
+> **Phiên 24 (25/08/2026)**: đóng hai đề xuất đẩy ngược - `.standards/` **v2.8.0
+> đã nhận NGUYÊN VĂN cả hai** (Issue #1/#2 ở `tsudev-standards` đã close). **Hệ quả
+> đo được, đổi bản chất QU-STD-1**: giá trị `extensions.tsudev-web` ghi đè cục bộ
+> TRÙNG KHÍT khối `color` chuẩn mới ⇒ di trú token **KHÔNG đổi pixel nào** ở
+> `text-muted`/`border-control`; nhãn "thay đổi PHÁ VỠ" có từ thời `.standards/`
+> v1.0.0 và nay hết đúng. Sửa kèm 2 link CHẾT trong `docs/README.md` mà QU-STD-2
+> bỏ sót. **Frontend Cloudflare VẪN CHƯA deploy** (`/search` prod = 404).
 
 ## Hàng đợi task (làm từ trên xuống)
 
@@ -178,7 +219,16 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       phiên 16). Công cụ: `npm --workspace packages/ui run storybook`, nút **Giao
       diện** đổi ba chế độ trên thanh công cụ.
 
-- [ ] **QU-STD-1** Di trú `tokens/` sang `.standards/tokens/` (nguồn chân lý duy nhất). Hiện có **17 file mã nguồn** đọc token cục bộ. Đây là thay đổi PHÁ VỠ: `text-muted` đổi giá trị ở cả ba chế độ và có thêm `border-control`. Làm theo CHANGELOG mục 2.0.0 "Hướng dẫn nâng cấp", chạy lại ảnh chụp giao diện.
+- [ ] **QU-STD-1** Di trú `tokens/` sang `.standards/tokens/` (nguồn chân lý duy
+      nhất). Hiện có **17 file mã nguồn** đọc token cục bộ. ⚠️ **ĐÁNH GIÁ LẠI
+      25/08 (phiên 24) - KHÔNG còn phá vỡ về MÀU**: `.standards/` v2.8.0 đã nhận
+      đề xuất token, nên khối `color` chuẩn nay mang đúng giá trị mà
+      `extensions.tsudev-web` đang ghi đè (`text-muted` `#52627A`/`#5E5646`/`#9BB0C9` + `border-control` `#74899F`/`#8E8064`/`#6E88AE`, `border-strong` giữ nguyên).
+      Đo: `diff` khối `color` local vs `.standards/` chỉ lệch đúng `text-muted`
+      (bản local là v1.0.0 cũ, bị extensions đè trong cùng scope `:root` nên
+      **không** hiệu lực) và khoảng trắng trong `rgba()`. Việc còn lại là **cơ khí**
+      (repoint 17 file + gỡ ghi đè dư thừa + `tokens:sync`), rủi ro thấp hơn nhãn
+      cũ nhiều. Vẫn nên chụp lại ảnh giao diện để nghiệm thu.
 - [x] **QU-STD-2** ✅ XONG 24/08 (phiên 23). Xóa 3 bản sao v1.0.0 đã lỗi thời
       (`.standards/` là v2.0.0): `docs/DESIGN_SYSTEM.md`, `docs/PROJECT_STRUCTURE.md`,
       `docs/templates/HANDOVER.md` (+ thư mục `docs/templates/` rỗng). Repoint 12 tham
@@ -198,6 +248,55 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 25/08/2026 - **PHÁT HÀNH frontend Cloudflare - chương trình editor nâng cấp LIVE
+  đủ ba tầng** (phiên 24, chủ dự án chạy lệnh, agent nghiệm thu). Version
+  **`2c9dd20c`**; `.env.local` dời khỏi bản dựng rồi trả lại. Nghiệm thu XANH toàn
+  bộ (bảng đầy đủ ở phiếu [`20260825-01`](handover/20260825-01_ket-phien-24.md) §7).
+  Điểm đáng nhớ: **tìm không dấu chạy thật trên prod** - `bao mat` cho đúng 7 kết quả
+  như `bảo mật`, `tuong tac` đúng 3 như `tương tác`. Hai mục **chưa nghiệm thu được vì
+  chưa có dữ liệu** (references + ảnh bìa), không phải mã hỏng. **Bài học mới, đã ghi
+  vào phiếu**: nghiệm thu tính năng mới trên prod phải đọc PAYLOAD (`__NEXT_DATA__`/
+  API), đừng `grep` chuỗi hiển thị - phiên này grep "Nguồn tham khảo" trúng 2 bài
+  nhưng đó là VĂN BẢN THÂN BÀI do agent AI viết, còn `references` thật là `[]`; và
+  một script đo dò sai tên khoá JSON (`items` thay vì `data`) suýt kết luận "search
+  hỏng". Cùng loại bài học §0.7 #4, sai được theo CẢ HAI chiều.
+- 25/08/2026 - **Đóng hai đề xuất đẩy ngược lên repo quy ước trung tâm** (phiên 24,
+  `docs-curator`). Đối chiếu `.standards/` **v2.8.0** (`bf4ea54`): **cả hai đề xuất
+  đã được nhận NGUYÊN VĂN**. (1) Token - `text-muted` = `#52627A`/`#5E5646`/`#9BB0C9`
+  (khớp bảng A), `border-control` mới = `#74899F`/`#8E8064`/`#6E88AE` (khớp bảng B),
+  `border-strong` **giữ nguyên** mã cũ và `DESIGN_SYSTEM.md` §1 nay tách vai trò
+  trang trí vs vùng tương tác + ngưỡng 3:1 (WCAG 1.4.11). (2) Cấu trúc -
+  `PROJECT_STRUCTURE.md` tách **§1 Hình trạng A** / **§2 Hình trạng B - monorepo**,
+  còn thêm bảng phân biệt `services/` gốc repo (tiến trình độc lập) vs `src/services/`
+  trong app - đúng chỗ dễ nhầm nhất mà đề xuất gốc chưa nêu. **Issue #1 + #2 ở
+  `tsudev-tsudev/tsudev-standards` đã CLOSE** kèm bảng đối chiếu. Hai file
+  `docs/*-upstream-proposal.md` GIỮ LẠI làm hồ sơ đo, đổi header sang "ĐÃ ĐƯỢC NHẬN".
+  **Phát hiện kèm theo, đổi bản chất QU-STD-1**: ghi đè cục bộ nay TRÙNG KHÍT chuẩn
+  ⇒ di trú không đổi pixel (chi tiết ở mục QU-STD-1). **Sửa 2 link CHẾT**:
+  `docs/README.md` còn trỏ `DESIGN_SYSTEM.md`/`PROJECT_STRUCTURE.md` đã bị QU-STD-2
+  xoá (bỏ sót vì lần đó chỉ repoint tham chiếu dạng text) → trỏ `.standards/docs/…`;
+  §"Hai tài liệu viết HOA" viết lại (còn nói v1.0.0 + như thể file nằm trong `docs/`).
+  `docs/architecture.md` §Điểm lệch: mục cây thư mục **hết lệch**, rút xuống một dòng
+  khai báo Hình trạng B. Quét lại toàn bộ link trong `docs/README.md`: **0 link chết**.
+  Cổng: format·tokens·topology XANH; 0 em/en-dash. **CÒN NỢ** (vùng `design-system`,
+  không tự vượt biên): `$accessibility_gap` trong `tokens/design-tokens.json` vẫn ghi
+  "bảng `color` chuẩn v1.0.0 KHÔNG đạt" - nay lỗi thời, nên viết lại khi làm QU-STD-1.
+  `CLAUDE.md` mục Tài liệu cũng mô tả hai file là "gói đề xuất gửi ngược lên trung
+  tâm" - sửa vào CUỐI phiên theo quy ước không bust cache.
+- 24/08/2026 - **PHÁT HÀNH chương trình editor nâng cấp (backend+DB) + gộp 2 PR**
+  (phiên 23, chủ dự án trao quyền tự chạy release + cấp Neon creds). (1) **Migration
+  prod**: `prisma migrate deploy 20260824043047` trên Neon qua DIRECT_URL (datasource
+  KHÔNG có `directUrl`, pooler không giữ được advisory lock → phải dùng URL non-pooled);
+  status cuối "Database schema is up to date!". Additive/tương thích ngược. (2) **Merge**:
+  PR #68 (editor Pha 1-7, kèm fix `export {}` cho `authoringEnhancements.test.ts` - CI
+  bắt lỗi TS2451 global-collision mà local jest giấu) + PR #69 (QU-STD-2) squash vào
+  `main` (`7f3b622`/`24e7805`) → Render autoDeploy backend (render.yaml KHÔNG khai
+  `autoDeploy` ⇒ mặc định true). (3) **Reindex**: `search:reindex` prod = 35 bài
+  backfill `search*Norm` (chạy sau `db:generate`; pooler URL OK cho query app).
+  (4) **Nghiệm thu prod XANH**: homepage 200 có nội dung · /blog bài thật · providers
+  sạch. **CÒN LẠI**: deploy frontend Cloudflare (classifier chặn agent - chủ dự án tự
+  chạy `node scripts/deploy-frontend.js deploy`). Chi tiết + runbook: handover
+  [`20260824-02`](handover/20260824-02_ket-phien-23.md).
 - 24/08/2026 - **QU-STD-2: dọn bản sao quy ước trùng `.standards/`** (phiên 23, chủ
   dự án trao quyền tự chọn+chạy tới hoàn thành). `docs/DESIGN_SYSTEM.md` +
   `docs/PROJECT_STRUCTURE.md` cục bộ là **v1.0.0 lỗi thời**, `.standards/docs/` đã là
