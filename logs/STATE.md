@@ -87,11 +87,28 @@
 
 ## Hàng đợi task (làm từ trên xuống)
 
-- [x] **🔴 QU-STD-V3. Nâng bộ quy ước lên v3.0.0** - ✅ **XONG 25/08/2026**, chủ dự
-      án tự chạy (PR #71 `0dc6d1f`, merge 09:58Z): `.standards/` nay v3.0.0
-      (`7a0387a`), cả hai cổng XANH - `sync-standards.sh --check` = "khớp bản trung
-      tâm 3.0.0", `check-standards.sh` = "đạt cổng kiểm (2 lưu ý)". Ba việc phái sinh
-      QU-STD-AUTH/TABLE/BRAND đã mở ở hàng đợi bên dưới.
+- [x] **🔴 QU-STD-V3. Nâng bộ quy ước lên v3.0.0 → v3.1.1** - ✅ **XONG 25/08/2026.**
+      v3.0.0 do chủ dự án tự chạy (PR #71 `0dc6d1f`, 09:58Z). **v3.1.1 do phiên 24
+      đồng bộ tiếp** (PR #75 `64ec7ca`) - trung tâm phát hành v3.1.0 rồi v3.1.1 ngay
+      trong lúc phiên chạy. Ba việc phái sinh QU-STD-AUTH/TABLE/BRAND ở hàng đợi.
+      🔑 **v3.1.x vá hai lỗ hổng của CHÍNH cơ chế đồng bộ, cả hai đã cắn repo này:** - **TS-17**: `--check` từng đối chiếu với `main` thay vì nhãn đang ghim, nên
+      cổng chặn merge hỏi "tôi đã nâng cấp chưa" thay vì "bản sao của tôi có bị
+      sửa trộm không". Đó là lý do PR #70 và #73 đỏ job "Kiểm quy ước" dù không
+      PR nào đụng `.standards/`. ⚠️ **`.standards-version` phải GHIM NHÃN**
+      (`ref=v3.1.1`), KHÔNG để `ref=main`: chạy `sync-standards.sh` mà quên
+      `--ref` sẽ ghim `main` và tái tạo đúng cái bẫy này - phiên 24 đã dính rồi
+      sửa lại. `SYNC.md` mục 5.1 nói thẳng điều đó. Dấu hiệu đúng: dòng OK của
+      `--check` in kèm `(ref=v3.1.1)`. - **TS-16**: `scripts/` không nằm trong gói đồng bộ, nên repo con lấy
+      `check-standards.sh` đúng một lần lúc bootstrap rồi không bao giờ lấy lại.
+      v3.0.0 mở cổng gạch ngang từ 10 lên **47 đuôi file** và cải tiến đó không
+      đến được repo nào - cổng vẫn xanh trong khi bỏ sót `.py/.cs/.html/.sql/.toml`.
+      **Cổng kiểm tự cũ đi trong im lặng thì tệ hơn không có cổng**, vì nó phát
+      tín hiệu "đạt chuẩn" sai. Nay `.standards/scripts/` có mặt và mỗi lần đồng
+      bộ ghi đè luôn `scripts/check-standards.sh` ở gốc.
+      **Nâng `scripts/sync-standards.sh` phải chép TAY đúng một lần** (`SYNC.md`
+      mục 2): script không tự ghi đè chính nó khi đang chạy. Đối chiếu `sha256` với
+      `MANIFEST.sha256` đã xác minh TRƯỚC khi chạy thứ tải về; dùng `mv` chứ không
+      `cp` (cp ghi đè đúng inode đang mở, mà bash đọc script theo từng đoạn).
       **Hai điều đo được trong phiên 24, giữ lại vì chúng gỡ lo cho việc sau:** - ✅ **Bước 1 (dọn em-dash trước khi sync) ĐÃ ĐẠT SẴN.** CHANGELOG cảnh báo cổng
       kiểm mới quét rộng gấp ~5 lần nên "repo đang xanh vẫn có thể đỏ ngay sau khi
       đồng bộ". Đo `git grep -lP '\x{2014}'` toàn repo: đúng **1 file**,
