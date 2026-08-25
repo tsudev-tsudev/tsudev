@@ -490,6 +490,47 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
     `GET /api/docs`; trên prod thì **đọc PAYLOAD của `/api/docs`**, không `grep`
     chuỗi hiển thị (bài học phiên 24).
 
+- [ ] 🔴 **BLOG-500** `/blog` và `/feed.xml` trên production KHÔNG hiện bài nào.
+      Phát hiện 26/08/2026 khi nghiệm thu sau khi gộp #77. **KHÔNG do #77 gây ra**
+      (xem bằng chứng bên dưới) - đây là lỗi có sẵn, và nó đang sống trên trang
+      công khai chính của site.
+
+  Triệu chứng đo được:
+
+  - `/blog` trả 200 nhưng hiện "Chưa có bài viết."; `/feed.xml` 200 mà 0 mục;
+    `sitemap.xml` không có URL bài nào. Trang chủ thì **có** 3 bài.
+  - Tái hiện gọn nhất, không cần đăng nhập:
+
+    ```
+    curl -s -o /dev/null -w '%{http_code}\n' \
+      'https://tsudev.com/api/search?q=ng&sort=newest&page_size=50'   # 500
+    curl -s -o /dev/null -w '%{http_code}\n' \
+      'https://tsudev.com/api/search?q=ng&sort=newest&page_size=20'   # 200
+    ```
+
+  Đã khoanh vùng được (và đã loại trừ các hướng sai):
+
+  - **Ngưỡng là SỐ BẢN GHI trong MỘT phản hồi**, nằm giữa 20 và 50. `page_size`
+    10 và 20 đều 200; 50 thì 500.
+  - **Không phải một bản ghi hỏng.** Lật `sort=newest&page_size=10` qua bốn
+    trang (bản ghi 1-40) đều 200 - mọi hàng ánh xạ và tuần tự hoá được.
+  - **Không phải hết giờ hay cạn tài nguyên.** Hỏng TẤT ĐỊNH trong ~0,3 giây,
+    năm lần liên tiếp; lời gọi thành công còn chậm hơn.
+  - **Không phải độ dài từ khoá.** `q=zz` và `q=qx` (2 ký tự, 0 kết quả) trả 200;
+    `q=ng` (2 ký tự, khớp gần hết) trả 500.
+  - **Lỗi phát ra từ content-service**, không phải từ Worker: chuỗi
+    `{"error":"internal error"}` là của bộ bắt lỗi ở `content-service/src/index.ts`.
+  - **Không do QU-STD-TABLE đợt 2**: `/api/posts` KHÔNG nằm trong diff của #77
+    (`git diff 70fc56f..58c50d6 -- services/content-service/src/index.ts` không
+    có dòng nào chạm route đó), mà chính nó hỏng cùng kiểu - `/blog?tag=linux`
+    (4 bài) chạy, `/blog` không lọc (~35 bài) thì rỗng, cùng endpoint cùng
+    `limit=50`. Lỗi lộ ra dần khi Toà soạn AI đăng thêm bài và tập kết quả vượt
+    ngưỡng.
+
+  **Bước tiếp theo cần quyền mà agent không có**: đọc log Render của
+  `tsudev-backend` (hoặc Sentry) lúc gọi lệnh `curl` tái hiện ở trên để lấy
+  NGUYÊN VĂN ngoại lệ. Mọi thứ đo được từ ngoài đã đo hết; thiếu đúng dòng đó.
+
 - [ ] **DOCS-SEARCH** Đưa `Doc` vào chỉ mục tìm kiếm. Phát hiện khi làm
       NEWSROOM-DOCS, **cố ý tách ra** thay vì làm dở: `buildPostSearch` chỉ chạy
       cho `Post`, và `Doc` không có cột `searchTitleNorm`/`searchBodyNorm` nào.
