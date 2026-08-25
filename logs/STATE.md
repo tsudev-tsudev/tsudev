@@ -238,6 +238,9 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       sơ đóng băng (logs/handover, HANDOFF/STATE lịch sử) + `structure-upstream-proposal.md`
       (nêu tên v1.0.0 làm chủ đề đề xuất). Cổng: tokens·topology·format XANH.
 - [ ] **QU-STD-3** Rà chỗ dùng `border-strong` cho viền nút phụ hoặc ô nhập, đổi sang `border-control` (`.standards/docs/DESIGN_SYSTEM.md` mục 1).
+- [ ] **QU-STD-AUTH** Rà luồng đăng nhập theo `.standards/docs/AUTH_AND_ACCOUNT.md` mục 17. Repo này là **hạng A**. Trọng tâm: `tsudev.com` phải là IdP OIDC duy nhất (hiện NextAuth nối thẳng Google/GitHub vào frontend - đó chính là kiểu nối tài liệu mục 2 cấm), ba lối vào đúng thứ tự, và cơ chế Xác minh tài khoản ân hạn 7 ngày ở mục 8. Mọi hạn chế `MUST` thi hành ở tầng máy chủ.
+- [ ] **QU-STD-TABLE** Thêm bộ chọn số bản ghi `10/20/50/100/200` (mặc định `10`, góc dưới bên trái) cho mọi bảng và mọi modal có bản ghi, gồm cả bảng quản trị. Đổi mốc `MUST` giữ nguyên bản ghi đầu đang nhìn thấy và `MUST` tải lại từ máy chủ. Chuẩn: `.standards/docs/DATA_TABLE.md` mục 12. Làm **máy chủ trước, giao diện sau**: nâng trần `page_size` lên 200 kèm giới hạn tần suất trước khi mở mốc 200 trên giao diện.
+- [ ] **QU-STD-BRAND** Bổ sung tài sản nhận diện còn thiếu và siêu dữ liệu nối về `tsudev.com` (`og:site_name` `MUST` là chuỗi `tsudev`). Chuẩn: `.standards/docs/BRAND_ASSETS.md` mục 14 và `.standards/docs/ECOSYSTEM_IDENTITY.md` mục 9. Xem thêm việc treo TS-8 ở `tsudev-standards`: chữ "dev" ở `packages/ui/src/components/Logo.tsx` đang ra màu xanh trong khi `tsudev-cwico` ra màu cam.
 - [ ] **QU-STD-4** Chuyển `NEXT_PUBLIC_MAIN_URL` ra khỏi `apps/frontend-main/.env.production` (dùng ở 18 chỗ gồm `scripts/deploy-frontend.js`, `render.yaml`, `config/topology.json`), rồi xóa dòng miễn trừ trong `.standards-allow`. Miễn trừ **hết hạn 31/12/2026**.
 
 ## Đang thực hiện
