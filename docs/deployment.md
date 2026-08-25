@@ -389,9 +389,29 @@ không URL presign trả về cho trình duyệt sẽ trỏ vào host nội bộ
 
 ## Migration khi deploy
 
-`prisma migrate deploy` **không** tự chạy khi service khởi động. Chạy nó trước
-khi phát hành phiên bản có migration mới, nếu không service boot lên rồi lỗi
-runtime vì thiếu cột.
+`prisma migrate deploy` **không** tự chạy khi service khởi động. Thứ tự bắt buộc
+là **migration TRƯỚC, merge SAU** - Render autoDeploy dựng lại ngay khi `main`
+đổi, nên đảo thứ tự là tự tạo một khoảng lệch schema.
+
+```bash
+DATABASE_URL='<neon-prod-url>' npm run db:migrate
+```
+
+Từ 26/08/2026 `backend-bundle` **từ chối khởi động** khi DB thiếu migration đã
+nằm trong image (`services/backend-bundle/src/migrationGate.ts`): nó đối chiếu
+`packages/db/prisma/migrations/` với bảng `_prisma_migrations`, ghi log + cảnh
+báo rồi `exit(1)`. Nghĩa là quên bước trên thì **deploy hỏng ồn ào**, không phải
+site chạy nửa vời.
+
+Không kiểm được (DB ngủ, mạng chập) thì cổng chỉ cảnh báo rồi cho chạy tiếp -
+"không biết" khác "biết là lệch".
+
+Vì sao đắt đến mức phải có cổng: bỏ bước này ngày 25/08/2026 đã để lỗi
+**BLOG-500** sống ba ngày trên trang công khai. Migration
+`20260825165439_dau_vet_dang_nhap` thêm ba cột vào `User`; client đã sinh sẵn cứ
+SELECT chúng, nên **mọi truy vấn chạm bảng `User` nổ** còn `count`, facet
+(`select: { tags: true }`) và bài không có `authorId` vẫn xanh. `lib/api.ts`
+nuốt lỗi thành `[]` ⇒ `/blog` và `/feed.xml` chỉ TRỐNG chứ không báo lỗi.
 
 ## Giám sát
 

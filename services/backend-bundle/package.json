@@ -9,10 +9,11 @@
     "pretest": "tsc -b ../.."
   },
   "dependencies": {
+    "@tsudev/db": "*",
     "auth-service": "*",
-    "newsroom-service": "*",
     "content-service": "*",
     "express": "^4.18.2",
+    "newsroom-service": "*",
     "storage-service": "*",
     "trust-service": "*"
   },
