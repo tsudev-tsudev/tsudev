@@ -99,9 +99,16 @@ Mục lục: `docs/README.md`. Theo vùng: kiến trúc → `docs/architecture.m
 chạy local → `docs/development.md` · địa chỉ chính tắc → `docs/url-convention.md` ·
 auth/RBAC → `docs/auth.md` · test/CI → `docs/testing.md` · giao diện →
 `docs/design-system.md` · production → `docs/deployment.md` · con dấu →
-`docs/trust-seal.md`. Hai điểm repo này lệch bộ quy ước chung, kèm gói đề xuất
-gửi ngược lên trung tâm: `docs/token-upstream-proposal.md` (hai mã màu không đạt
-WCAG) và `docs/structure-upstream-proposal.md` (cây thư mục monorepo).
+`docs/trust-seal.md`. Quy ước dùng chung nằm ở `.standards/` (bản chỉ-đọc, phiên
+bản ở `.standards-version`) - `docs/` **không giữ bản sao nào** của chúng từ
+24/08/2026.
+
+Hai điểm repo này từng lệch bộ quy ước chung nay **HẾT LỆCH**: cả hai đề xuất đẩy
+ngược đã được nhận vào `.standards/` v2.8.0 (25/08/2026) - `text-muted` đổi giá
+trị + thêm vai trò `border-control`, và `PROJECT_STRUCTURE.md` có thêm "Hình trạng
+B - monorepo". `docs/token-upstream-proposal.md` cùng
+`docs/structure-upstream-proposal.md` nay là **hồ sơ đã đóng**, giữ lại làm số đo
+tham chiếu và làm ví dụ mẫu cho lần đẩy ngược sau, không phải việc còn dở.
 
 `documents-tsudev.md` là **đặc tả yêu cầu**, không phải mô tả hiện trạng. Mã
 nguồn là hiện trạng; TSD là đích đến.

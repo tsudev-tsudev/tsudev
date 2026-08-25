@@ -1,11 +1,21 @@
 # Đề xuất: quy ước cấu trúc thư mục cần một hình trạng thứ hai (monorepo)
 
-> **Trạng thái**: chờ gửi. Cùng loại với
-> [`token-upstream-proposal.md`](token-upstream-proposal.md) - gói dán thẳng được
-> vào issue của repo quy ước trung tâm.
+> **Trạng thái: ĐÃ ĐƯỢC NHẬN, đóng ngày 25/08/2026 (phiên 24).** Bộ quy ước
+> `.standards/` **v2.8.0** đã tách `PROJECT_STRUCTURE.md` thành **§1 Hình trạng A -
+> ứng dụng đơn** và **§2 Hình trạng B - monorepo nhiều workspace**, đúng đề nghị
+> dưới đây, kèm bảng phân biệt `services/` ở gốc repo (tiến trình độc lập) với
+> `src/services/` bên trong một app.
+> Issue nguồn: [tsudev-standards#2](https://github.com/tsudev-tsudev/tsudev-standards/issues/2).
 >
-> Đối tượng: `docs/PROJECT_STRUCTURE.md` v1.0.0 (file bất khả xâm phạm ở các repo
-> con, nên chỉ sửa được từ trung tâm).
+> Hệ quả: tsudev-web **hết lệch** quy ước cấu trúc - repo khai theo Hình trạng B.
+> Mục "Điểm lệch cần biết" của [`architecture.md`](architecture.md) đã rút xuống
+> một dòng khai báo, đúng như đoạn cuối file này dự trù.
+>
+> File giữ lại làm hồ sơ, không phải việc còn dở. Cùng loại với
+> [`token-upstream-proposal.md`](token-upstream-proposal.md).
+>
+> Đối tượng lúc soạn: `docs/PROJECT_STRUCTURE.md` v1.0.0 (file bất khả xâm phạm ở
+> các repo con, nên chỉ sửa được từ trung tâm).
 
 ## Vấn đề
 
