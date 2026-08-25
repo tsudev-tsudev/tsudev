@@ -104,22 +104,51 @@ describe('phạm vi đọc', () => {
       () => prisma.securityEvent.findFirst({ where: { userId: u2Id, type: 'login' } }),
       (e: unknown) => e != null
     )
-    const res = await authPost('security/events', U1)
+    // Hình dạng `{data, meta}` chuẩn (DATA_TABLE.md 8.2), mốc mặc định 10.
+    const res = await authPost('security/events', U1, { page_size: 200 })
     expect(res.status).toBe(200)
-    expect(Array.isArray(res.body)).toBe(true)
+    expect(Array.isArray(res.body.data)).toBe(true)
     // Không có trường userId ở bề mặt own; kiểm gián tiếp: mọi mục là của U1 bằng
     // cách đối chiếu tổng số với DB.
     const mine = await prisma.securityEvent.count({ where: { userId: u1Id } })
-    expect(res.body.length).toBe(Math.min(mine, 50))
-    expect(res.body.length).toBeGreaterThan(0)
+    expect(res.body.meta.total).toBe(mine)
+    expect(res.body.data.length).toBe(Math.min(mine, 200))
+    expect(res.body.data.length).toBeGreaterThan(0)
+  })
+
+  test('security/events: mốc mặc định là 10 và meta khớp trang đang xem', async () => {
+    const res = await authPost('security/events', U1)
+    expect(res.status).toBe(200)
+    expect(res.body.meta.page).toBe(1)
+    expect(res.body.meta.page_size).toBe(10)
+    // `total_pages` tối thiểu 1 - bảng rỗng vẫn là "trang 1 / 1".
+    expect(res.body.meta.total_pages).toBeGreaterThanOrEqual(1)
+    expect(res.body.data.length).toBeLessThanOrEqual(10)
+  })
+
+  test('security/events: trang vượt trang cuối trả mảng rỗng kèm meta đúng, KHÔNG 404', async () => {
+    const res = await authPost('security/events', U1, { page: 9999, page_size: 10 })
+    expect(res.status).toBe(200)
+    expect(res.body.data).toEqual([])
+    expect(res.body.meta.page).toBe(9999)
+    expect(res.body.meta.total).toBeGreaterThan(0)
   })
 
   test('useradmin/security: OWNER xem xuyên tài khoản, có cột tài khoản', async () => {
-    const res = await authPost('useradmin/security', OWN)
+    const res = await authPost('useradmin/security', OWN, { page_size: 200 })
     expect(res.status).toBe(200)
-    const usernames = new Set(res.body.map((e: { username: string }) => e.username))
+    const usernames = new Set(res.body.data.map((e: { username: string }) => e.username))
     expect(usernames.has(U1)).toBe(true)
     expect(usernames.has(U2)).toBe(true)
+  })
+
+  test('useradmin/security: lọc theo userId thì `total` đếm theo ĐÚNG bộ lọc', async () => {
+    const res = await authPost('useradmin/security', OWN, { userId: u1Id, page_size: 200 })
+    expect(res.status).toBe(200)
+    const mine = await prisma.securityEvent.count({ where: { userId: u1Id } })
+    // Đếm bằng `where` khác với truy vấn là cách dòng tóm tắt nói "12 / 4.000".
+    expect(res.body.meta.total).toBe(mine)
+    expect(res.body.data.every((e: { userId: string }) => e.userId === u1Id)).toBe(true)
   })
 
   test('useradmin/security: người thường ⇒ 403', async () => {

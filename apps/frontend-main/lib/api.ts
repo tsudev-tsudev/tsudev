@@ -1,5 +1,7 @@
 // Server-side data helpers for frontend-main.
 // In dev these hit the local microservices; override via env in other envs.
+import { DEFAULT_PAGE_SIZE } from '@tsudev/types';
+
 import { CONTENT, internalHeaders } from './services';
 import type { Doc, Post, PostSearchResult, Project } from './types';
 
@@ -41,7 +43,13 @@ export const api = {
   searchPosts: (query: string) =>
     getJSON<PostSearchResult>(`${CONTENT}/api/posts/search?${query}`, {
       data: [],
-      meta: { total: 0, page: 1, page_size: 20, query_normalized: '' },
+      meta: {
+        total: 0,
+        page: 1,
+        page_size: DEFAULT_PAGE_SIZE,
+        total_pages: 1,
+        query_normalized: '',
+      },
       facets: { tag: [] },
     }),
   docs: () => getJSON<Doc[]>(`${CONTENT}/api/docs`, []),

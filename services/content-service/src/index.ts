@@ -16,9 +16,9 @@ import express from 'express'
 import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express'
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
-import { createRateLimit } from '@tsudev/ratelimit'
+import { createRateLimit, largePageRateLimit } from '@tsudev/ratelimit'
 import type { Post, Prisma, Project, User } from '@prisma/client'
-import { hasAtLeastRole, emailUsable } from '@tsudev/types'
+import { hasAtLeastRole, emailUsable, pageMeta, parsePaging } from '@tsudev/types'
 import { buildPostSearch, viNormalizeText } from '@tsudev/search'
 
 type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
@@ -225,21 +225,29 @@ app.get(
 // bị nuốt thành slug "search". Trần page_size cứng 100 (chống cạn tài nguyên).
 app.get(
   '/api/posts/search',
+  // Trần nay là 200 (mốc chuẩn cao nhất) thay vì 100, và giới hạn tần suất mốc
+  // lớn là ĐIỀU KIỆN của việc nâng đó, không phải tuỳ chọn (DATA_TABLE.md 8.4).
+  // Tìm kiếm công khai nên phần lớn người gọi không có danh tính - khi đó
+  // largePageRateLimit tự lùi về đếm theo IP.
+  largePageRateLimit({
+    name: 'posts/search page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     const now = new Date()
     const rawQ = (qStr(req.query.q) ?? '').trim()
     const qn = viNormalizeText(rawQ)
     const tag = qStr(req.query.tag)?.trim()
     const sort = qStr(req.query.sort) ?? 'relevance'
-    const page = qInt(req.query.page, 1)
-    const pageSize = Math.min(qInt(req.query.page_size, 20), 100)
+    const paging = parsePaging(req.query)
+    const { page, pageSize } = paging
 
     // Truy vấn từ 2 ký tự (§2.1). Không q, không tag ⇒ không tìm gì.
     const hasQuery = qn.length >= 2
     if (!hasQuery && !tag) {
       return res.json({
         data: [],
-        meta: { total: 0, page, page_size: pageSize, query_normalized: qn },
+        meta: { ...pageMeta(0, paging), query_normalized: qn },
         facets: { tag: [] },
       })
     }
@@ -265,6 +273,13 @@ app.get(
     // Sắp theo ngày ⇒ phân trang ở DB (rẻ). Sắp theo độ liên quan ⇒ lấy tập ứng
     // viên có trần rồi xếp hạng trong bộ nhớ (quy mô nhỏ, §8). Trần 500 giữ chi
     // phí hữu hạn kể cả khi từ khoá quá phổ biến.
+    //
+    // ⚠️ Trần 500 này là trần của NHÁNH XẾP HẠNG, không phải của phép đếm:
+    // `total` (và do đó `total_pages`) đếm đủ trong DB, nên ở mốc 200 người dùng
+    // vẫn thấy trang 4 tồn tại mà nội dung rỗng nếu tập khớp vượt 500. Trước đây
+    // mốc cao nhất là 100 nên chỗ này bắt đầu từ trang 6 và gần như không ai
+    // chạm tới. Sửa dứt điểm cần xếp hạng ở tầng DB - việc riêng, không thuộc
+    // QU-STD-TABLE.
     let rows: PostWithAuthor[]
     if (sort === 'newest' || sort === 'oldest' || !hasQuery) {
       rows = await prisma.post.findMany({
@@ -309,7 +324,7 @@ app.get(
 
     res.json({
       data: rows.map(publicPostCard),
-      meta: { total, page, page_size: pageSize, query_normalized: qn },
+      meta: { ...pageMeta(total, paging), query_normalized: qn },
       facets: { tag: tagFacet },
     })
   })
@@ -534,17 +549,31 @@ app.get(
 /// Danh sách đầy đủ cho trang quản trị - gồm cả dự án chưa công bố.
 app.get(
   '/api/admin/projects',
+  largePageRateLimit({
+    name: 'admin/projects page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     if (!(await requireAdmin(req, res))) return
     // `?trash=1` xem thùng rác. Mặc định ẩn đã xoá: trang quản trị mà trộn lẫn
     // dự án còn sống với dự án đã xoá là cách để một ngày nào đó sửa nhầm cái
     // đã bỏ đi rồi tưởng mình vừa sửa cái đang chạy.
     const trash = req.query.trash === '1'
-    const projects = await prisma.project.findMany({
-      where: trash ? { deletedAt: { not: null } } : { deletedAt: null },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-    })
-    res.json(projects)
+    // Thùng rác và danh sách sống là HAI tập khác nhau, nên `where` của phép
+    // đếm phải là chính `where` của truy vấn - đếm lệch làm dòng tóm tắt nói
+    // một đằng, bảng hiện một nẻo.
+    const where = trash ? { deletedAt: { not: null } } : { deletedAt: null }
+    const paging = parsePaging(req.query)
+    const [total, projects] = await Promise.all([
+      prisma.project.count({ where }),
+      prisma.project.findMany({
+        where,
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ])
+    res.json({ data: projects, meta: pageMeta(total, paging) })
   })
 )
 
@@ -835,14 +864,25 @@ const authorPostCard = (p: Post) => ({
 /** Bài còn sống của CHÍNH tác giả (gồm bản chưa công bố). Không lộ bài đã xoá. */
 app.get(
   '/api/author/posts',
+  largePageRateLimit({
+    name: 'author/posts page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     const me = await requireAuthor(req, res)
     if (!me) return
-    const posts = await prisma.post.findMany({
-      where: { authorId: me.id, deletedAt: null },
-      orderBy: { updatedAt: 'desc' },
-    })
-    res.json(posts.map(authorPostCard))
+    const where = { authorId: me.id, deletedAt: null }
+    const paging = parsePaging(req.query)
+    const [total, posts] = await Promise.all([
+      prisma.post.count({ where }),
+      prisma.post.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ])
+    res.json({ data: posts.map(authorPostCard), meta: pageMeta(total, paging) })
   })
 )
 

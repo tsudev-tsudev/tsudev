@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Seo from '../components/Seo';
-import { Layout, Card, Badge, Avatar } from '@tsudev/ui';
+import { Layout, Card, Badge, Avatar, RecordFooter, usePageSize } from '@tsudev/ui';
+import { DEFAULT_PAGE_SIZE, normalizePage } from '@tsudev/types';
 import { findMatchRanges } from '@tsudev/search';
 import { api } from '../lib/api';
 import type { Post, PostSearchResult } from '../lib/types';
@@ -43,16 +44,36 @@ type SearchProps = {
   initialQ: string;
   initialTag: string | null;
   initialSort: SortKey;
+  initialPage: number;
   initial: PostSearchResult;
 };
 
-export default function SearchPage({ initialQ, initialTag, initialSort, initial }: SearchProps) {
+export default function SearchPage({
+  initialQ,
+  initialTag,
+  initialSort,
+  initialPage,
+  initial,
+}: SearchProps) {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
   const [tag, setTag] = useState<string | null>(initialTag);
   const [sort, setSort] = useState<SortKey>(initialSort);
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = usePageSize('search', router.query.page_size);
   const [result, setResult] = useState<PostSearchResult>(initial);
   const [loading, setLoading] = useState(false);
+  /**
+   * Chân vùng chỉ dựng SAU khi gắn vào DOM.
+   *
+   * `usePageSize` đọc `localStorage` ngay ở lần dựng đầu, mà trang này render
+   * phía máy chủ - máy chủ không có `localStorage` nên nó trả mốc mặc định.
+   * Dựng thẳng thì giá trị của `<select>` ở máy chủ và ở trình duyệt khác nhau
+   * và React báo lệch hydrat. Các bảng khác không gặp vì chúng dựng phía máy
+   * khách hoàn toàn.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [error, setError] = useState(false);
   const [active, setActive] = useState(-1);
 
@@ -66,49 +87,76 @@ export default function SearchPage({ initialQ, initialTag, initialSort, initial 
     inputRef.current?.focus();
   }, []);
 
-  const runSearch = useCallback(async (query: string, tg: string | null, srt: SortKey) => {
-    const enough = query.trim().length >= MIN_QUERY;
-    if (!enough && !tg) {
-      setResult({
-        data: [],
-        meta: { total: 0, page: 1, page_size: 20, query_normalized: '' },
-        facets: { tag: [] },
-      });
-      setLoading(false);
+  const runSearch = useCallback(
+    async (query: string, tg: string | null, srt: SortKey, pg: number, size: number) => {
+      const enough = query.trim().length >= MIN_QUERY;
+      if (!enough && !tg) {
+        setResult({
+          data: [],
+          meta: {
+            total: 0,
+            page: 1,
+            page_size: DEFAULT_PAGE_SIZE,
+            total_pages: 1,
+            query_normalized: '',
+          },
+          facets: { tag: [] },
+        });
+        setLoading(false);
+        setError(false);
+        return;
+      }
+      // Huỷ yêu cầu cũ đang chờ để tránh tranh chấp thứ tự (§2.2).
+      abortRef.current?.abort();
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      setLoading(true);
       setError(false);
-      return;
-    }
-    // Huỷ yêu cầu cũ đang chờ để tránh tranh chấp thứ tự (§2.2).
-    abortRef.current?.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-    setLoading(true);
-    setError(false);
-    try {
-      const params = new URLSearchParams();
-      if (enough) params.set('q', query.trim());
-      if (tg) params.set('tag', tg);
-      params.set('sort', srt);
-      const res = await fetch(`/api/search?${params.toString()}`, { signal: ctrl.signal });
-      if (!res.ok) throw new Error('bad status');
-      setResult(await res.json());
-      setActive(-1);
-    } catch (e) {
-      if ((e as { name?: string }).name === 'AbortError') return;
-      setError(true);
-    } finally {
-      if (abortRef.current === ctrl) setLoading(false);
-    }
-  }, []);
+      try {
+        const params = new URLSearchParams();
+        if (enough) params.set('q', query.trim());
+        if (tg) params.set('tag', tg);
+        params.set('sort', srt);
+        // Đổi mốc PHẢI tải lại từ máy chủ (DATA_TABLE.md mục 4) - cắt ở máy
+        // khách thì mốc 10 không tiết kiệm được gì.
+        params.set('page', String(pg));
+        params.set('page_size', String(size));
+        const res = await fetch(`/api/search?${params.toString()}`, { signal: ctrl.signal });
+        if (!res.ok) throw new Error('bad status');
+        setResult(await res.json());
+        setActive(-1);
+      } catch (e) {
+        if ((e as { name?: string }).name === 'AbortError') return;
+        setError(true);
+      } finally {
+        if (abortRef.current === ctrl) setLoading(false);
+      }
+    },
+    []
+  );
 
-  // Debounce khi q/tag/sort đổi + đồng bộ URL (chia sẻ được, nút back trả đúng).
+  // Đổi từ khoá / thẻ / cách sắp xếp là ĐỔI TẬP KẾT QUẢ, nên phải về trang 1:
+  // giữ nguyên trang 7 của truy vấn cũ thì truy vấn mới gần như luôn rỗng và
+  // trông y hệt "không tìm thấy gì".
+  const resetKey = `${q}\u0000${tag ?? ''}\u0000${sort}`;
+  const prevResetKey = useRef(resetKey);
+  useEffect(() => {
+    if (prevResetKey.current === resetKey) return;
+    prevResetKey.current = resetKey;
+    setPage(1);
+  }, [resetKey]);
+
+  // Debounce khi q/tag/sort/trang/mốc đổi + đồng bộ URL (chia sẻ được, nút back
+  // trả đúng).
   useEffect(() => {
     const handle = setTimeout(() => {
-      runSearch(q, tag, sort);
+      runSearch(q, tag, sort, page, pageSize);
       const params = new URLSearchParams();
       if (q.trim().length >= MIN_QUERY) params.set('q', q.trim());
       if (tag) params.set('tag', tag);
       if (sort !== 'relevance') params.set('sort', sort);
+      if (page !== 1) params.set('page', String(page));
+      params.set('page_size', String(pageSize));
       router.replace(`/search${params.toString() ? `?${params}` : ''}`, undefined, {
         shallow: true,
       });
@@ -116,7 +164,7 @@ export default function SearchPage({ initialQ, initialTag, initialSort, initial 
     return () => clearTimeout(handle);
     // router cố ý không nằm trong deps: nó đổi định danh mỗi lần replace shallow.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, tag, sort, runSearch]);
+  }, [q, tag, sort, page, pageSize, runSearch]);
 
   const results = result.data;
   const go = (p: Post) => router.push(`/blog/${p.slug}`);
@@ -238,7 +286,9 @@ export default function SearchPage({ initialQ, initialTag, initialSort, initial 
             </Card>
           ) : (
             <>
-              <p className="text-xs text-fg-muted mb-3">{result.meta.total} bài viết</p>
+              <p className="text-xs text-fg-muted mb-3">
+                {result.meta.total.toLocaleString('vi-VN')} bài viết
+              </p>
               <ul id="listbox" role="listbox" ref={listRef} className="space-y-3">
                 {results.map((p, i) => (
                   <li
@@ -279,6 +329,19 @@ export default function SearchPage({ initialQ, initialTag, initialSort, initial 
                   </li>
                 ))}
               </ul>
+              {mounted && (
+                <RecordFooter
+                  meta={result.meta}
+                  pageSize={pageSize}
+                  loading={loading}
+                  label="bài viết"
+                  onPageSize={(size, nextPage) => {
+                    setPageSize(size);
+                    setPage(nextPage);
+                  }}
+                  onPage={setPage}
+                />
+              )}
             </>
           )}
         </div>
@@ -292,20 +355,33 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
   const initialTag = typeof query.tag === 'string' && query.tag.trim() ? query.tag.trim() : null;
   const initialSort: SortKey =
     query.sort === 'newest' || query.sort === 'oldest' ? query.sort : 'relevance';
+  const initialPage = normalizePage(query.page);
 
   const params = new URLSearchParams();
   if (initialQ.trim().length >= MIN_QUERY) params.set('q', initialQ.trim());
   if (initialTag) params.set('tag', initialTag);
   params.set('sort', initialSort);
+  // Chuyển tiếp NGUYÊN VĂN: máy chủ quy về mốc hợp lệ bằng `normalizePageSize`,
+  // nên trang dựng sẵn khớp đúng liên kết được chia sẻ.
+  params.set('page', String(initialPage));
+  if (typeof query.page_size === 'string' && query.page_size) {
+    params.set('page_size', query.page_size);
+  }
 
   const initial =
     initialQ.trim().length >= MIN_QUERY || initialTag
       ? await api.searchPosts(params.toString())
       : {
           data: [],
-          meta: { total: 0, page: 1, page_size: 20, query_normalized: '' },
+          meta: {
+            total: 0,
+            page: 1,
+            page_size: DEFAULT_PAGE_SIZE,
+            total_pages: 1,
+            query_normalized: '',
+          },
           facets: { tag: [] },
         };
 
-  return { props: { initialQ, initialTag, initialSort, initial } };
+  return { props: { initialQ, initialTag, initialSort, initialPage, initial } };
 }

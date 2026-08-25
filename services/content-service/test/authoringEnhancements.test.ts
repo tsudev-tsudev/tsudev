@@ -171,11 +171,31 @@ describe('content-service - endpoint tìm/lọc', () => {
     expect(res.body.data).toHaveLength(0)
     expect(res.body.meta.total).toBe(0)
   })
-  test('page_size bị chặn trần 100', async () => {
+  test('page_size bị chặn trần 200 (mốc chuẩn cao nhất)', async () => {
     const res = await request(app)
       .get('/api/posts/search')
       .query({ tag: 'tuong-tac', page_size: 99999 })
-    expect(res.body.meta.page_size).toBe(100)
+    expect(res.body.meta.page_size).toBe(200)
+  })
+  test('page_size lạ quy về mốc gần nhất KHÔNG lớn hơn, không báo lỗi', async () => {
+    for (const [raw, want] of [
+      [15, 10],
+      [99, 50],
+      [150, 100],
+    ] as const) {
+      const res = await request(app)
+        .get('/api/posts/search')
+        .query({ tag: 'tuong-tac', page_size: raw })
+      expect(res.status).toBe(200)
+      expect(res.body.meta.page_size).toBe(want)
+    }
+  })
+  test('meta có total_pages, tối thiểu 1 kể cả khi rỗng', async () => {
+    // 0 làm giao diện phân trang hiện "trang 1 / 0".
+    const empty = await request(app).get('/api/posts/search').query({ q: 'a' })
+    expect(empty.body.meta.total_pages).toBe(1)
+    const hit = await request(app).get('/api/posts/search').query({ tag: 'tuong-tac' })
+    expect(hit.body.meta.total_pages).toBeGreaterThanOrEqual(1)
   })
   test('lọc theo tag trả facet', async () => {
     const res = await request(app).get('/api/posts/search').query({ tag: 'tuong-tac' })

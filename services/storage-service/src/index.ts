@@ -89,7 +89,8 @@ const {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, requireRole } from '@tsudev/auth'
-import { createRateLimit } from '@tsudev/ratelimit'
+import { pageMeta, parsePaging } from '@tsudev/types'
+import { createRateLimit, largePageRateLimit } from '@tsudev/ratelimit'
 
 const app = express()
 const port = process.env.PORT || process.env.PORT_STORAGE_SERVICE || 4002
@@ -268,18 +269,31 @@ app.use('/api', (req, res, next) => {
 
 app.get(
   '/api/files',
+  largePageRateLimit({
+    name: 'files page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     // Prefer the DB catalog (works even when object storage is offline in local dev).
-    const rows = await prisma.fileObject.findMany({ orderBy: { createdAt: 'desc' }, take: 100 })
-    res.json(
-      rows.map((r) => ({
+    const paging = parsePaging(req.query)
+    const [total, rows] = await Promise.all([
+      prisma.fileObject.count(),
+      prisma.fileObject.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ])
+    res.json({
+      data: rows.map((r) => ({
         key: r.key,
         fileName: r.fileName,
         size: r.size,
         contentType: r.contentType,
         createdAt: r.createdAt,
-      }))
-    )
+      })),
+      meta: pageMeta(total, paging),
+    })
   })
 )
 

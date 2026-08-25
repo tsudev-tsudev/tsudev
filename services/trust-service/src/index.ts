@@ -65,8 +65,8 @@ import { prisma } from '@tsudev/db'
 // đối chiếu sessionVersion nên phiên đã bị thu hồi không đi qua được.
 import { createAuthMiddleware, requireRole, resolveUser } from '@tsudev/auth'
 
-import { createRateLimit } from '@tsudev/ratelimit'
-import { hasAtLeastRole } from '@tsudev/types'
+import { createRateLimit, largePageRateLimit } from '@tsudev/ratelimit'
+import { hasAtLeastRole, pageMeta, parsePaging } from '@tsudev/types'
 import crypto from 'crypto'
 
 import * as signing from './signing'
@@ -914,6 +914,10 @@ app.get(
 
 app.get(
   '/api/trust/admin/applications',
+  largePageRateLimit({
+    name: 'trust applications page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     const user = await requireReviewer(req, res)
     if (!user) return
@@ -921,13 +925,23 @@ app.get(
     const where: Prisma.SealApplicationWhereInput = status
       ? { status: status as Prisma.SealApplicationWhereInput['status'] }
       : { status: { in: ['SUBMITTED', 'IN_REVIEW', 'NEEDS_INFO'] } }
-    const list = await prisma.sealApplication.findMany({
-      where,
-      include: { program: true, domain: true, org: true, evidence: true },
-      orderBy: { submittedAt: 'asc' },
-    })
-    res.json(
-      list.map((a) => ({
+    // Trước đây truy vấn này KHÔNG có trần nào - hàng đợi dài bao nhiêu thì tải
+    // về bấy nhiêu, kèm cả `evidence`. Đó là trần ngầm bằng "hiện chưa nhiều
+    // đơn", không phải một trần.
+    const paging = parsePaging(req.query)
+    const [total, list] = await Promise.all([
+      prisma.sealApplication.count({ where }),
+      prisma.sealApplication.findMany({
+        where,
+        include: { program: true, domain: true, org: true, evidence: true },
+        orderBy: { submittedAt: 'asc' },
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ])
+    res.json({
+      meta: pageMeta(total, paging),
+      data: list.map((a) => ({
         id: a.id,
         status: a.status,
         scope: a.scope,
@@ -939,8 +953,8 @@ app.get(
         evidenceCount: a.evidence.length,
         submittedAt: a.submittedAt,
         createdAt: a.createdAt,
-      }))
-    )
+      })),
+    })
   })
 )
 
@@ -1104,25 +1118,46 @@ app.post(
 
 app.get(
   '/api/trust/admin/certificates',
+  largePageRateLimit({
+    name: 'trust certificates page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     const user = await requireReviewer(req, res)
     if (!user) return
-    const certs = await prisma.trustCertificate.findMany({
-      include: { domain: true, org: true, program: true },
-      orderBy: { issuedAt: 'desc' },
-      take: 200,
-    })
-    res.json(certs.map(certCard))
+    const paging = parsePaging(req.query)
+    const [total, certs] = await Promise.all([
+      prisma.trustCertificate.count(),
+      prisma.trustCertificate.findMany({
+        include: { domain: true, org: true, program: true },
+        orderBy: { issuedAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ])
+    res.json({ data: certs.map(certCard), meta: pageMeta(total, paging) })
   })
 )
 
 app.get(
   '/api/trust/admin/audit',
+  largePageRateLimit({
+    name: 'trust audit page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     const user = await requireReviewer(req, res)
     if (!user) return
-    const logs = await prisma.trustAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 100 })
-    res.json(logs)
+    const paging = parsePaging(req.query)
+    const [total, logs] = await Promise.all([
+      prisma.trustAuditLog.count(),
+      prisma.trustAuditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ])
+    res.json({ data: logs, meta: pageMeta(total, paging) })
   })
 )
 

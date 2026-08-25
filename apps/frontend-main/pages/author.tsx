@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Seo from '../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
-import { Layout, Card, Button, Input, Badge, Icon, SectionHeading } from '@tsudev/ui';
+import { Layout, Card, Button, Input, Badge, Icon, SectionHeading, RecordFooter } from '@tsudev/ui';
 import { viWordCount } from '@tsudev/search';
 import { formatDateTimeVN } from '../lib/format';
 import { renderMarkdown } from '../lib/md';
+import type { PageMeta } from '@tsudev/types';
+
+import { useUrlPaging, useUrlPagingSync } from '../lib/useUrlPaging';
 
 /** Một nguồn tham khảo {nhãn, đường dẫn}. */
 interface PostRef {
@@ -92,9 +95,16 @@ export default function AuthorEditor() {
   const [denied, setDenied] = useState(false);
   const [preview, setPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const paging = useUrlPaging('author-posts');
+  const { page, setPage, pageSize, setPageSize, meta } = paging;
+  useUrlPagingSync([paging]);
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/content/author/posts');
+    if (!paging.ready) return;
+    setLoading(true);
+    const res = await fetch(`/api/content/author/posts?page=${page}&page_size=${pageSize}`);
+    setLoading(false);
     if (res.status === 403) {
       // Backend là nơi quyết định quyền (đọc User.role từ DB). `session.role` có
       // thể cũ vì token next-auth chỉ ghi vai trò ở lần đăng nhập đầu, nên ta bám
@@ -107,8 +117,12 @@ export default function AuthorEditor() {
       return;
     }
     setDenied(false);
-    setPosts(await res.json());
-  }, []);
+    const body = (await res.json()) as { data?: AuthorPost[]; meta?: PageMeta };
+    if (Array.isArray(body?.data)) setPosts(body.data);
+    if (body?.meta) paging.setMeta(body.meta);
+    // `paging` cố ý không nằm trong deps: nó là object mới mỗi lần dựng.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, paging.ready]);
 
   useEffect(() => {
     if (session) load();
@@ -558,7 +572,9 @@ export default function AuthorEditor() {
         )}
 
         <div className="space-y-3">
-          {posts.length === 0 && <Card className="p-6 text-fg-muted">Bạn chưa có bài nào.</Card>}
+          {!loading && posts.length === 0 && (
+            <Card className="p-6 text-fg-muted">Bạn chưa có bài nào.</Card>
+          )}
           {posts.map((p) => (
             <Card key={p.id} className="p-5 flex flex-wrap items-start gap-4">
               <div className="flex-1 min-w-[16rem]">
@@ -602,6 +618,17 @@ export default function AuthorEditor() {
               </div>
             </Card>
           ))}
+          <RecordFooter
+            meta={meta}
+            pageSize={pageSize}
+            loading={loading}
+            label="bài viết"
+            onPageSize={(size, nextPage) => {
+              setPageSize(size);
+              setPage(nextPage);
+            }}
+            onPage={setPage}
+          />
         </div>
       </div>
     </Layout>

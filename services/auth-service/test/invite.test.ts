@@ -222,10 +222,27 @@ describe('quản lý mã mời', () => {
     // Mã vừa cấp phải đổi được - chứng minh cái được băm và cái được in ra khớp.
     expect((await post('redeem', MEMBER, { code: res.body.code })).status).toBe(200)
 
+    // `{data, meta}` chuẩn (DATA_TABLE.md 8.2) - trước đây là mảng thuần take 100.
     const list = await post('list', ADMIN)
-    expect(list.body[0].codeHash).toBeUndefined()
-    expect(list.body[0].label).toBe('Mã test đối tác')
-    expect(list.body[0].grantsRole).toBe('VIP')
+    expect(list.body.data[0].codeHash).toBeUndefined()
+    expect(list.body.data[0].label).toBe('Mã test đối tác')
+    expect(list.body.data[0].grantsRole).toBe('VIP')
+    expect(list.body.meta.page).toBe(1)
+    expect(list.body.meta.page_size).toBe(10)
+    expect(list.body.meta.total).toBeGreaterThanOrEqual(1)
+  }, 20000)
+
+  test('invite/list: mốc lạ quy về mốc gần nhất KHÔNG lớn hơn, không báo lỗi', async () => {
+    // 15 -> 10 · 99 -> 50 · 5000 -> 200 (trần cứng). Quy ước cấm trả lỗi ở đây.
+    for (const [raw, want] of [
+      [15, 10],
+      [99, 50],
+      [5000, 200],
+    ] as const) {
+      const r = await post('list', ADMIN, { page_size: raw })
+      expect(r.status).toBe(200)
+      expect(r.body.meta.page_size).toBe(want)
+    }
   }, 20000)
 
   // Regression: OWNER (bậc TRÊN ADMIN) phải kế thừa quyền admin. requireAdmin
