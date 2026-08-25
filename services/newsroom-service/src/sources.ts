@@ -91,9 +91,88 @@ export function fingerprint(title: string): string {
   return createHash('sha256').update(norm).digest('hex')
 }
 
+/**
+ * Mục lục tài liệu của CHÍNH repo tsudev, dùng làm đề tài cho chuyên mục Tài liệu.
+ *
+ * Vì sao không phải RSS: RSS là dòng tin của người khác. Tài liệu thì nói về sản
+ * phẩm của mình - một chuyên mục Tài liệu nuôi bằng RSS sẽ đầy bài dịch lại tin
+ * công nghệ, đúng thể loại mà `/blog` đã làm. Nguồn đúng của tài liệu là bề mặt
+ * thật của sản phẩm: những gì `docs/` đang mô tả, và những gì CHANGELOG nói là
+ * vừa đổi.
+ *
+ * Đọc qua API công khai của GitHub, không cần khoá: repo đã Public từ
+ * 21/08/2026. Không có khoá thì trần là 60 lượt/giờ theo IP - lượt quét chạy
+ * mỗi giờ và dùng 2 lượt, nên biên vẫn rất rộng.
+ *
+ * `url` của nguồn là địa chỉ repo dạng `owner/name`, KHÔNG phải một URL tải về:
+ * ở đây `kind` quyết định cách lấy, còn `url` chỉ là tham số.
+ */
+export async function fetchRepoDocs(repo: string, limit = 20): Promise<RawItem[]> {
+  const gh = async (path: string): Promise<unknown> => {
+    const res = await fetch(`https://api.github.com/repos/${repo}${path}`, {
+      signal: AbortSignal.timeout(15_000),
+      headers: {
+        'user-agent': 'tsudev-newsroom/1.0 (+https://tsudev.com)',
+        accept: 'application/vnd.github+json',
+      },
+    })
+    if (!res.ok) throw new Error(`GitHub HTTP ${res.status} (${path})`)
+    return res.json()
+  }
+
+  const out: RawItem[] = []
+  const base = `https://github.com/${repo}/blob/main`
+
+  // 1. Các tệp trong `docs/`. Đây là tài liệu NỘI BỘ dành cho người phát triển;
+  //    đề tài rút ra từ chúng là "viết bản công khai của chủ đề này cho người
+  //    dùng", không phải "đăng lại tệp này".
+  const tree = (await gh('/contents/docs')) as Array<{ name?: string; type?: string }>
+  if (Array.isArray(tree)) {
+    for (const f of tree) {
+      if (f.type !== 'file' || !f.name?.endsWith('.md')) continue
+      const stem = f.name.replace(/\.md$/, '')
+      // Tệp viết HOA là quy ước nội bộ (README, CHANGELOG...) - không phải chủ đề.
+      if (stem === stem.toUpperCase()) continue
+      out.push({
+        title: stem.replace(/[-_]/g, ' '),
+        url: `${base}/docs/${f.name}`,
+        summary: `Tài liệu nội bộ docs/${f.name} của tsudev. Đề tài: viết bản công khai, dành cho người đọc ngoài dự án.`,
+      })
+      if (out.length >= limit) return out
+    }
+  }
+
+  // 2. Những gì vừa đổi. Một thay đổi vừa phát hành mà tài liệu công khai chưa
+  //    nói tới chính là khoảng trống rõ nhất.
+  const commits = (await gh('/commits?per_page=20')) as Array<{
+    sha?: string
+    commit?: { message?: string }
+  }>
+  if (Array.isArray(commits)) {
+    for (const c of commits) {
+      const msg = (c.commit?.message || '').split('\n')[0]?.trim()
+      // Chỉ lấy tính năng: `fix`/`chore`/`docs` phần lớn không thành tài liệu.
+      if (!msg || !/^feat(\(|:)/.test(msg)) continue
+      out.push({
+        title: msg.replace(/^feat(\([^)]*\))?:\s*/, ''),
+        url: c.sha ? `https://github.com/${repo}/commit/${c.sha}` : base,
+        summary: `Tính năng vừa được phát hành ở tsudev. Đề tài: tài liệu hướng dẫn dùng tính năng này.`,
+      })
+      if (out.length >= limit) return out
+    }
+  }
+
+  return out
+}
+
 /// Lấy một nguồn. Ném lỗi thì người gọi ghi vào NewsroomSource.lastError và đi
 /// tiếp nguồn khác - đó là hợp đồng, đừng bắt lỗi ở đây.
 export async function fetchSource(kind: string, url: string): Promise<RawItem[]> {
+  // `repo_docs` KHÔNG tải `url` như một trang: `url` của nó là `owner/name`.
+  // Đặt nhánh này TRƯỚC lời gọi fetch bên dưới, nếu không nó sẽ cố tải
+  // "tsudev-tsudev/tsudev" như một địa chỉ và hỏng với lỗi chẳng liên quan gì.
+  if (kind === 'repo_docs') return fetchRepoDocs(url)
+
   // Timeout cứng: một nguồn treo không được giữ cả lượt quét. AbortSignal.timeout
   // có từ Node 18, và repo yêu cầu Node >= 20.
   const res = await fetch(url, {

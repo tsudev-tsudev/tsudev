@@ -129,6 +129,12 @@ jobs:
           # nuốt" mất người canh, mà triệu chứng của nó là huy hiệu im lặng biến
           # mất trên site khách chứ không phải CI đỏ.
           npm --workspace services/backend-bundle test
+          # Toà soạn Agent AI. Trước 26/08/2026 workspace này KHÔNG nằm trong CI,
+          # nên toàn bộ test của nó chỉ tồn tại trong repo mà không ai chạy - một
+          # cổng kiểm không chạy thì không phải cổng kiểm. Nó vào đây cùng lúc với
+          # test đầu tiên chạm DB thật của toà soạn (đường đăng TÀI LIỆU, thứ chưa
+          # từng chạy một lần nào trên production).
+          npm --workspace services/newsroom-service test
           # renderMarkdown là ranh giới XSS (đầu ra đi thẳng vào
           # dangerouslySetInnerHTML ở ba trang). Test của nó phải chạy trong CI,
           # không phải chỉ tồn tại trong repo.

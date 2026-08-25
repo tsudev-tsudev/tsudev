@@ -239,6 +239,22 @@ async function scanSources(): Promise<void> {
           select: { title: true },
           take: 20,
         })
+        // Với chuyên mục Tài liệu, "đã có rồi" phải tính cả thứ ĐÃ ĐĂNG, không
+        // chỉ ý tưởng đang chờ. Blog thì viết thêm về một chủ đề cũ vẫn có
+        // nghĩa; tài liệu thì không - `/docs` có hai bài trả lời cùng một câu
+        // hỏi là tài liệu hỏng. `fingerprint` không đỡ được chỗ này: nó chỉ
+        // chặn trùng GIỮA CÁC Ý TƯỞNG và không biết gì về bảng `Doc`.
+        const publishedTitles =
+          src.target === 'DOC'
+            ? (
+                await prisma.doc.findMany({
+                  where: { deletedAt: null },
+                  select: { title: true },
+                  orderBy: { createdAt: 'desc' },
+                  take: 50,
+                })
+              ).map((d) => d.title)
+            : []
 
         const { picks } = await withRun(scout.id, 'scan', null, () =>
           runScout({
@@ -246,7 +262,7 @@ async function scanSources(): Promise<void> {
             model: scout.model,
             items,
             target: src.target,
-            existingTitles: existing.map((e) => e.title),
+            existingTitles: [...existing.map((e) => e.title), ...publishedTitles],
           })
         )
 
@@ -515,7 +531,18 @@ async function uniqueSlug(target: string, base: string): Promise<string> {
   return `${slug}-${Date.now()}`
 }
 
-async function onPublishRequested(draftId: string): Promise<void> {
+/**
+ * XUẤT RA để test được trực tiếp.
+ *
+ * Đường vào thật là `tick()`, nhưng `tick()` đòi `NEWSROOM_ENABLED=true`, một
+ * nhà cung cấp mô hình còn hạn mức, và chạy `scanSources()` trước - tức là muốn
+ * kiểm nhánh đăng bài thì phải dựng cả toà soạn. Nhánh `target === 'DOC'` bên
+ * dưới **chưa từng chạy một lần nào trên production** (không có nguồn DOC nào
+ * nên không có đề tài DOC nào), nên nó cần được chứng minh là chạy được TRƯỚC
+ * khi có thứ gì xây lên trên nó. Xuất ra một hàm thuần DB là cái giá rẻ nhất
+ * cho chứng minh đó.
+ */
+export async function onPublishRequested(draftId: string): Promise<void> {
   const draft = await prisma.contentDraft.findUnique({ where: { id: draftId } })
   if (!draft || draft.deletedAt || draft.status === 'PUBLISHED') return
 
@@ -523,19 +550,30 @@ async function onPublishRequested(draftId: string): Promise<void> {
 
   if (draft.target === 'DOC') {
     const slug = await uniqueSlug('DOC', base)
+    const category = 'huong-dan'
+    // `/api/docs` sắp theo `[category asc, position asc]`. Để `position` ở mặc
+    // định 0 nghĩa là MỌI tài liệu do agent viết đều mang cùng một khoá sắp xếp,
+    // và thứ tự trong chuyên mục thành ra do Postgres quyết định - đổi giữa hai
+    // lần tải trang mà không ai đụng gì. Nối vào cuối chuyên mục thay vì thế.
+    const last = await prisma.doc.findFirst({
+      where: { category, deletedAt: null },
+      orderBy: { position: 'desc' },
+      select: { position: true },
+    })
     const doc = await prisma.doc.create({
       data: {
         slug,
         title: draft.title,
         contentMd: draft.contentMd,
-        category: 'huong-dan',
+        category,
+        position: (last?.position ?? 0) + 1,
         sourceDraftId: draft.id,
         authoredByAgentId: draft.authorAgentId,
       },
     })
     await prisma.contentDraft.update({
       where: { id: draft.id },
-      data: { status: 'PUBLISHED', slug, publishedPostId: doc.id },
+      data: { status: 'PUBLISHED', slug, publishedRefId: doc.id },
     })
   } else if (draft.target === 'PROJECT') {
     // Agent KHÔNG được tạo dự án mới: Project mang phiên bản, giấy phép và số
@@ -565,7 +603,7 @@ async function onPublishRequested(draftId: string): Promise<void> {
     })
     await prisma.contentDraft.update({
       where: { id: draft.id },
-      data: { status: 'PUBLISHED', slug: base, publishedPostId: project.id },
+      data: { status: 'PUBLISHED', slug: base, publishedRefId: project.id },
     })
   } else {
     // BLOG và TRUST cùng đổ vào Post; TRUST được gắn thẻ để lọc lại được.
@@ -599,7 +637,7 @@ async function onPublishRequested(draftId: string): Promise<void> {
     })
     await prisma.contentDraft.update({
       where: { id: draft.id },
-      data: { status: 'PUBLISHED', slug, publishedPostId: post.id },
+      data: { status: 'PUBLISHED', slug, publishedRefId: post.id },
     })
   }
 

@@ -36,12 +36,22 @@ const ALLOWED = new Set([
   'passkey/login-verify',
 ]);
 
-/** IP thật của người gọi, để auth-service đếm giới hạn tần suất theo đúng trục. */
-function callerIp(req: NextApiRequest): string {
+/**
+ * Header mô tả NGƯỜI GỌI THẬT: IP để auth-service đếm giới hạn tần suất theo
+ * đúng trục, và quốc gia (`cf-ipcountry`, do Cloudflare đặt ở tầng biên) để nó
+ * ghi được dấu vết đăng nhập. Đường passkey đi qua đây, nên thiếu chỗ này là
+ * đăng nhập bằng passkey mất quốc gia trong khi mật khẩu và OAuth thì có.
+ */
+function callerHeaders(req: NextApiRequest): Record<string, string> {
   const raw = req.headers['x-forwarded-for'];
   const first = Array.isArray(raw) ? raw[0] : raw;
-  const ip = first?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
-  return ip.slice(0, 45);
+  const ip = (first?.split(',')[0]?.trim() || req.socket?.remoteAddress || '').slice(0, 45);
+  const cc = req.headers['cf-ipcountry'];
+  const country = (Array.isArray(cc) ? cc[0] : cc)?.trim() || '';
+  return {
+    ...(ip ? { 'x-forwarded-for': ip } : {}),
+    ...(country ? { 'cf-ipcountry': country } : {}),
+  };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -58,14 +68,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Không tìm thấy' });
   }
 
-  const ip = callerIp(req);
+  const fwd = callerHeaders(req);
   try {
     const upstream = await fetch(`${IDENTITY}/api/identity/${action}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...internalHeaders(),
-        ...(ip ? { 'x-forwarded-for': ip } : {}),
+        ...fwd,
       },
       body: JSON.stringify(req.body || {}),
     });

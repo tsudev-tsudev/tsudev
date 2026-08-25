@@ -161,6 +161,23 @@ const CHANNELS = [
 // `rewriteOnly: true` với mọi nguồn báo chí - chỉ lấy tiêu đề/mô tả/URL rồi
 // viết mới. Đăng lại toàn văn là vi phạm bản quyền.
 const SOURCES = [
+  // --- Tài liệu: nguồn là CHÍNH sản phẩm, không phải tin tức bên ngoài ---
+  //
+  // Trước 26/08/2026 không có dòng nào ở đây mang `target: 'DOC'`, và đó là toàn
+  // bộ lý do `/docs` không có bài nào do agent viết: chuỗi là
+  // NewsroomSource.target → TopicIdea.target → ContentDraft.target, nên không có
+  // nguồn thì không có đề tài, không có đề tài thì nhánh đăng DOC không chạy lần
+  // nào - dù nhánh đó vẫn nằm trong mã và trông hoàn chỉnh.
+  //
+  // `url` ở đây là `owner/name`, KHÔNG phải địa chỉ tải về: với kind `repo_docs`
+  // thì `kind` quyết định cách lấy còn `url` chỉ là tham số.
+  {
+    label: 'Kho mã tsudev (tài liệu và thay đổi)',
+    kind: 'repo_docs',
+    url: 'tsudev-tsudev/tsudev',
+    target: 'DOC',
+  },
+
   // --- Công nghệ quốc tế ---
   {
     label: 'Hacker News (front page)',

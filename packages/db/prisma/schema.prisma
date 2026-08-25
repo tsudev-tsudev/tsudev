@@ -63,6 +63,28 @@ model User {
   lockedUntil      DateTime?
   lastLoginAt      DateTime?
 
+  /// --- Dấu vết đăng nhập gần nhất, PHI CHUẨN HOÁ có chủ đích ---
+  ///
+  /// Ba cột này lặp lại thông tin đã có trong `SecurityEvent` của lần đăng nhập
+  /// cuối. Lặp là cố ý: trang quản trị lọc theo IP/quốc gia/phương pháp trên
+  /// hàng nghìn tài khoản, mà lấy chúng từ `SecurityEvent` nghĩa là "sự kiện mới
+  /// nhất của từng người" - một truy vấn con cho MỖI dòng, và không lọc bằng
+  /// chỉ mục được. Ghi thẳng vào đây ở đúng chỗ đang ghi `lastLoginAt` thì bộ
+  /// lọc thành một câu WHERE có chỉ mục.
+  ///
+  /// `SecurityEvent` vẫn là sổ cái đầy đủ; ba cột này chỉ là ảnh chụp cuối cùng.
+  /// Chúng PHẢI được ghi cùng lúc với `lastLoginAt`, không bao giờ tách ra -
+  /// lệch nhau là trang quản trị nói một đằng, nhật ký bảo mật nói một nẻo.
+  lastLoginIp      String?
+  /// Mã quốc gia ISO-3166-1 alpha-2 do Cloudflare cấp (`CF-IPCountry`). Hai ký
+  /// tự, hoặc "XX" khi Cloudflare không xác định được. KHÔNG suy ra từ IP ở đây
+  /// - việc đó cần cơ sở dữ liệu GeoIP, để dành cho pha sau.
+  lastLoginCountry String?
+  /// 'password' | 'passkey' | 'oauth:github' | 'oauth:google'. Chuỗi chứ không
+  /// enum: thêm nhà cung cấp là dữ liệu, không phải migration - giống hệt lý do
+  /// `OAuthAccount.provider` là chuỗi.
+  lastLoginMethod  String?
+
   posts Post[]
   files FileObject[]
 
@@ -74,6 +96,13 @@ model User {
   securityEvents SecurityEvent[]
 
   trustInviteRedemptions TrustInviteRedemption[]
+  emailAliases           EmailAlias[]
+
+  /// Trang quản trị lọc và sắp theo ba trục này. Không có chỉ mục thì mỗi lần
+  /// lọc là một lượt quét toàn bảng.
+  @@index([lastLoginAt])
+  @@index([lastLoginCountry])
+  @@index([role, createdAt])
 }
 
 /// Tài khoản bên thứ ba đã liên kết (GitHub, Google). Một User có thể liên kết
@@ -213,6 +242,46 @@ model LoginAttempt {
 /// pháp lý của Con dấu và có console OWNER đọc 100 dòng gần nhất - đổ mọi lượt
 /// đăng nhập vào đó sẽ nhấn chìm sự kiện Con dấu. Sự kiện admin/vai trò
 /// (invite.*, user.*) vẫn ở TrustAuditLog; bảng này chỉ giữ sự kiện tự-phục-vụ.
+/// Bí danh thư nội bộ `*@tsudev.com`, đối chiếu với Cloudflare Email Routing.
+///
+/// Đây là BẢN SAO, không phải nguồn sự thật. Nguồn sự thật là Cloudflare: thư
+/// đi theo quy tắc bên đó, không theo bảng này. Bảng này tồn tại để trang quản
+/// trị gắn được bí danh với TÀI KHOẢN (thứ Cloudflare không biết) và để hiện
+/// danh sách mà không phải gọi API ở mỗi lần tải trang.
+///
+/// Hai bên lệch nhau là chuyện BÌNH THƯỜNG - ai đó sửa tay trên bảng điều khiển
+/// Cloudflare là lệch. Vì thế có thao tác đối soát, và mọi chỗ đọc phải coi
+/// `cfRuleId = NULL` là "chưa tồn tại thật", không phải "sắp có".
+model EmailAlias {
+  id String @id @default(cuid())
+
+  /// Phần trước dấu @, đã chuẩn hoá về chữ thường: `lien-he` cho
+  /// lien-he@tsudev.com. Lưu riêng phần này chứ không lưu cả địa chỉ vì tên
+  /// miền là cấu hình (`INTERNAL_MAIL_DOMAIN`), không phải dữ liệu.
+  localPart String @unique
+
+  /// Hộp thư nhận chuyển tiếp. Cloudflare CHỈ chuyển tới địa chỉ đã xác minh ở
+  /// phía họ - đặt một địa chỉ chưa xác minh thì quy tắc tạo ra vẫn im lặng
+  /// không giao thư.
+  destination String
+
+  /// Định danh quy tắc bên Cloudflare. NULL = bảng này có mà Cloudflare KHÔNG -
+  /// bí danh chưa sống, thư gửi tới sẽ trả về. Trạng thái này phải nhìn thấy
+  /// được trên giao diện, đừng ẩn nó đi.
+  cfRuleId String?
+
+  /// Tài khoản sở hữu. NULL = bí danh dùng chung (lien-he@, bao-mat@) không
+  /// thuộc riêng ai.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
 model SecurityEvent {
   id     String @id @default(cuid())
   userId String
@@ -227,6 +296,12 @@ model SecurityEvent {
   /// IP và User-Agent của người gây ra sự kiện, để chủ tài khoản nhận ra đăng
   /// nhập bất thường. Dữ liệu cá nhân - chỉ chủ tài khoản và OWNER đọc được.
   ip        String?
+  /// Mã quốc gia ISO-3166-1 alpha-2 lấy từ header `CF-IPCountry` của Cloudflare
+  /// - miễn phí và chính xác vì frontend vốn đã chạy trên Workers. NULL với mọi
+  /// sự kiện ghi TRƯỚC khi cột này ra đời, và với lời gọi không đi qua tầng
+  /// biên (test, kịch bản nội bộ). Đừng suy ra quốc gia từ `ip` ở tầng đọc: dữ
+  /// liệu cũ sẽ im lặng khác dữ liệu mới.
+  country   String?
   userAgent String?
   note      String?
   createdAt DateTime @default(now())
@@ -867,7 +942,17 @@ model ContentDraft {
   revisionCount  Int     @default(0)
   reviewFeedback String?
 
-  publishedPostId String?
+  /// Id của bản ghi ĐÃ ĐĂNG mà bản nháp này sinh ra. Tên trường là `Ref` chứ
+  /// không phải `Post` vì nó giữ id của `Post`, `Doc` HOẶC `Project` tuỳ
+  /// `target` - bản đầu đặt tên theo trường hợp phổ biến nhất, và người đọc sau
+  /// sẽ tin rằng mọi giá trị trong đó là id bài viết.
+  ///
+  /// `@map` giữ nguyên tên cột cũ trong database CÓ CHỦ ĐÍCH: đổi tên cột thật
+  /// là một migration mà Prisma sinh ra dưới dạng DROP + ADD nếu không được dẫn
+  /// tay, tức là mất sạch dữ liệu cột này. Cái giá phải trả cho tên đúng ở tầng
+  /// mã không đáng bằng rủi ro đó; cột trong DB vẫn tên `publishedPostId` và
+  /// dòng chú thích này là chỗ giải thích vì sao.
+  publishedRefId  String?  @map("publishedPostId")
   /// Xoá mềm. CHỈ người đặt được - agent không có route nào chạm tới cột này.
   deletedAt       DateTime?
 

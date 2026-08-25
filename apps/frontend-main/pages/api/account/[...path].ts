@@ -53,6 +53,13 @@ const ALLOWED = new Set([
   'useradmin/role',
   'useradmin/revoke',
   'useradmin/delete',
+  // Bí danh thư nội bộ. Tên HAI đoạn là bắt buộc: handler bên dưới từ chối mọi
+  // đường dẫn quá hai đoạn, nên `useradmin/alias/create` sẽ 404 dù route ở
+  // auth-service vẫn sống - và cái 404 đó trông y hệt "chưa làm xong".
+  'alias/list',
+  'alias/create',
+  'alias/delete',
+  'alias/sync',
 ]);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

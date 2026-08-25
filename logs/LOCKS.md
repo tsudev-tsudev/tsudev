@@ -4,6 +4,6 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - phiên 24 đã trả hết khóa sau QU-STD-TABLE đợt 1: nền tảng phân trang +
-bảng /admin/accounts. Mọi cổng xanh. Việc kế tiếp: áp khuôn RecordFooter cho các
-bảng còn lại (đợt 2), rồi QU-STD-AUTH.)
+(trống - phiên 25 đã trả hết khóa sau ACCOUNTS-ADMIN Pha 0-2 và NEWSROOM-DOCS.
+Mọi cổng xanh. Việc kế tiếp: nghiệm thu trên production (xem phiếu 20260825-03
+§6), rồi DOCS-SEARCH hoặc QU-STD-AUTH.)

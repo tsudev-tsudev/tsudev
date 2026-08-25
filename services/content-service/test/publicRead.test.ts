@@ -20,10 +20,20 @@ afterAll(() => {
 })
 
 describe('content-service - đọc công khai không cần JWT', () => {
-  test.each(['/api/posts', '/api/docs', '/api/projects'])('GET %s ⇒ 200', async (p) => {
+  test.each(['/api/posts', '/api/projects'])('GET %s ⇒ 200 kèm mảng', async (p) => {
     const res = await withToken(p)
     expect(res.status).toBe(200)
     expect(Array.isArray(res.body)).toBe(true)
+  })
+
+  // Mục lục tài liệu trả `{data, meta}` từ 26/08/2026. Tách khỏi bảng trên thay
+  // vì nới lỏng khẳng định cho cả ba: "là mảng HOẶC có khoá data" sẽ xanh cả khi
+  // endpoint trả về hình dạng sai hoàn toàn.
+  test('GET /api/docs ⇒ 200 kèm {data, meta}', async () => {
+    const res = await withToken('/api/docs')
+    expect(res.status).toBe(200)
+    expect(Array.isArray(res.body.data)).toBe(true)
+    expect(res.body.meta.total_pages).toBeGreaterThanOrEqual(1)
   })
 
   test('vẫn phải qua cổng x-internal-token', async () => {
