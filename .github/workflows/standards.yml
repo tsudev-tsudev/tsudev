@@ -23,3 +23,10 @@ jobs:
 
       - name: Đối chiếu với bộ quy ước trung tâm
         run: ./scripts/sync-standards.sh --check
+
+      # BRAND_ASSETS.md mục 12.2 buộc repo con tự chặn khi thiếu tài sản nhận diện.
+      # Kiểm cả SỰ TỒN TẠI lẫn HÌNH DẠNG: thiếu file thì trang vẫn chạy và không gì
+      # đỏ lên - tab trình duyệt chỉ lặng lẽ trống, đúng loại hỏng im lặng mà bộ quy
+      # ước gọi là "điều kiện phát hành".
+      - name: Kiểm tài sản nhận diện
+        run: ./scripts/check-brand-assets.js

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Logo } from './Logo';
 import { useCanSeeTrust } from '../lib/useTrustNav';
+import { MAIN_URL } from '../lib/siteUrls';
 
 // Riêng đăng nhập giữ đường dẫn tương đối: phiên next-auth thuộc về chính app
 // đang mở, đẩy sang origin khác sẽ đăng nhập nhầm chỗ.
@@ -56,9 +57,21 @@ export const SiteFooter = () => {
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-6 grid gap-x-8 gap-y-7 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div>
           <Logo />
+          {/*
+            Câu này là BẢN MÔ TẢ CHUẨN của hệ sinh thái, chép nguyên văn từ
+            `.standards/docs/ECOSYSTEM_IDENTITY.md` mục 1. Tài liệu đó `MUST NOT`
+            cho mỗi repo tự nghĩ một câu giới thiệu riêng - một câu lệch ở một
+            repo là một mảnh nhận diện lệch. Đổi câu này thì phải đổi ở repo quy
+            ước trung tâm trước, đừng sửa tại chỗ.
+          */}
           <p className="mt-2.5 text-sm text-fg-muted max-w-xs leading-relaxed">
-            Hệ sinh thái công nghệ đa nền tảng cho developer. Decoding the Future, One Commit at a
-            Time.
+            <strong className="font-semibold">tsudev</strong> là hệ sinh thái sản phẩm và công cụ
+            phần mềm tại{' '}
+            <a href={MAIN_URL} className="text-fg-secondary hover:text-link transition-colors">
+              tsudev.com
+            </a>
+            . Mọi sản phẩm trong hệ sinh thái dùng chung một tài khoản, một bộ quy ước kỹ thuật, và
+            một bộ nhận diện.
           </p>
         </div>
         {COLS.map((c) => (

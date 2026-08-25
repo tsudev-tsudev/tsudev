@@ -472,15 +472,82 @@ async function main() {
       .png({ compressionLevel: 9 })
       .toBuffer();
 
+  // Nền đặc cho những icon mà HỆ ĐIỀU HÀNH tự tô nền nếu ta để trong suốt.
+  // #eef4fb là `--bg-base` chế độ Sáng - trùng `background_color` của manifest bên
+  // dưới, nên màn hình chờ PWA không nháy đổi màu. Chọn nó thay vì trắng tinh vì
+  // nền của chính bộ nguồn là #f7fbfc (gần trắng, hơi ngả xanh): đặt dấu hiệu lên
+  // nền cùng họ thì tương quan màu giữ nguyên như bản gốc, còn 17% pixel sáng ở
+  // vành ngoài dấu hiệu vẫn phân biệt được.
+  const SOLID_BG = { r: 0xee, g: 0xf4, b: 0xfb, alpha: 1 };
+
+  // Nén bảng màu cho những bản KHÔNG phải icon hiển thị chính: các lớp trong
+  // .ico và hai bản maskable. Đo trên chính bộ này: 182 kB -> 54 kB cho .ico
+  // (giảm 70%), đổi lại sai lệch màu trung bình 2.4/255 (~1%) trên vùng NHÌN
+  // THẤY được và alpha gần như không đổi (0.2-0.5/255).
+  //
+  // Đo sai lệch đó phải BỎ vùng trong suốt ra: tính cả vùng alpha=0 thì con số
+  // vọt lên 21-30/255 và trông y như mất chất lượng nặng, trong khi giá trị RGB
+  // dưới alpha=0 không hiển thị ở đâu cả.
+  const PNG_SMALL = { compressionLevel: 9, palette: true, quality: 90, effort: 10 };
+
+  // `removeAlpha()` sau `flatten()` không phải thừa: nó hạ PNG xuống color type 2
+  // (RGB không alpha), nhờ đó "nền đặc" trở thành thứ cổng kiểm ĐỌC ĐƯỢC từ header
+  // ảnh (`scripts/check-brand-assets.js`) thay vì phải giải mã từng pixel - mà
+  // giải mã pixel thì cổng kiểm sẽ cần sharp, và job CI đó không cài dependency.
+  const iconOnSolid = (size) =>
+    sharp(iconMaster)
+      .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .flatten({ background: SOLID_BG })
+      .removeAlpha()
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+
+  // Bản maskable: Android cắt icon theo hình dạng của máy (tròn, squircle, giọt
+  // nước...) nên phần ngoài rìa CÓ THỂ bị xén. Đặc tả maskable dành 40% đường
+  // kính giữa làm vùng an toàn; ta thu dấu hiệu về 80% cạnh rồi đệm nền đặc ra
+  // xung quanh. Dùng bản thường làm maskable là cách icon bị xén mất viền.
+  const iconMaskable = async (size) => {
+    const inner = Math.round(size * 0.8);
+    const pad = Math.round((size - inner) / 2);
+    return sharp({
+      create: {
+        width: size,
+        height: size,
+        channels: 4,
+        background: SOLID_BG,
+      },
+    })
+      .composite([{ input: await iconAt(inner), top: pad, left: pad }])
+      .flatten({ background: SOLID_BG })
+      .removeAlpha()
+      .png(PNG_SMALL)
+      .toBuffer();
+  };
+
   emit('android-chrome-512x512.png', await iconAt(512));
   emit('android-chrome-192x192.png', await iconAt(192));
-  emit('apple-touch-icon.png', await iconAt(180));
+  emit('android-chrome-maskable-512x512.png', await iconMaskable(512));
+  emit('android-chrome-maskable-192x192.png', await iconMaskable(192));
+  // apple-touch-icon `MUST` có nền ĐẶC (BRAND_ASSETS.md mục 12.1): iOS không tôn
+  // trọng alpha ở đây mà tô ĐEN vào chỗ trong suốt, nên bản có alpha ra một dấu
+  // hiệu nổi trên nền đen giữa màn hình chủ sáng màu.
+  emit('apple-touch-icon.png', await iconOnSolid(180));
+  emit('favicon-96x96.png', await iconAt(96));
   emit('favicon-32x32.png', await iconAt(32));
   emit('favicon-16x16.png', await iconAt(16));
 
   // File .ico gốc trong bộ nguồn thực chất là PNG đổi đuôi - dựng lại ICO thật.
+  // Bảy lớp theo BRAND_ASSETS.md mục 7 (`MUST`). Mục 6 của cùng tài liệu chỉ liệt
+  // kê 16/32/48 - đó là bảng KÍCH THƯỚC TỐI THIỂU, và bộ bảy lớp thoả luôn nó.
+  const icoSmall = (size) =>
+    sharp(iconMaster)
+      .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png(PNG_SMALL)
+      .toBuffer();
+
   const icoEntries = [];
-  for (const size of [16, 32, 48]) icoEntries.push({ size, data: await iconAt(size) });
+  for (const size of [16, 24, 32, 48, 64, 128, 256])
+    icoEntries.push({ size, data: await icoSmall(size) });
   emit('favicon.ico', buildIco(icoEntries));
 
   console.log('\n[4/5] Web app manifest');
@@ -501,10 +568,26 @@ async function main() {
     // Nay `apps/frontend-main/test/themeTokens.test.ts` canh cả bản này.
     theme_color: '#eef4fb',
     background_color: '#eef4fb',
+    // `purpose` phải khai TÁCH BẠCH: bản thường ('any') và bản maskable là hai
+    // ảnh khác nhau. Gộp thành 'any maskable' trên MỘT ảnh là cách Android vừa
+    // dùng nó nguyên khung vừa xén nó theo hình dạng máy - một trong hai lần
+    // chắc chắn sai.
     icons: [
-      { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
-      { src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      {
+        src: '/android-chrome-maskable-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      {
+        src: '/android-chrome-maskable-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+      { src: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png', purpose: 'any' },
     ],
   };
   emit('site.webmanifest', Buffer.from(JSON.stringify(manifest, null, 2) + '\n'));
