@@ -55,6 +55,14 @@
 > người (DevTools Console sạch CSP). Không còn việc agent làm được mà không cần
 > chủ dự án hoặc bản opennextjs mới.
 
+> **⚠️ BỘ QUY ƯỚC ĐÃ LÊN v3.0.0 (25/08), sinh ba việc mã nguồn.** Chủ dự án tự
+> chạy đồng bộ (PR #71) nên **QU-STD-V3 xong, cổng kiểm xanh trở lại** - v3.0.0 là
+> THAY ĐỔI PHÁ VỠ về **chức năng sản phẩm**: đăng nhập OIDC tập trung · xác minh
+> tài khoản · bộ chọn số bản ghi · nhận diện. Ba việc phái sinh **QU-STD-AUTH /
+> TABLE / BRAND** nay nằm trong hàng đợi; CHANGELOG nói rõ chúng `MUST NOT` làm
+> vội trong cùng PR đồng bộ. Tin tốt đã đo: **không token màu nào đổi** (QU-STD-1
+> vẫn đúng nguyên) và bước dọn em-dash **đã đạt sẵn**. Chi tiết: mục QU-STD-V3.
+>
 > **🎉 CHƯƠNG TRÌNH EDITOR NÂNG CẤP ĐÃ LIVE ĐỦ BA TẦNG (25/08/2026, phiên 24).**
 > Chủ dự án chạy `node scripts/deploy-frontend.js deploy` → exit 0, **Version
 > `2c9dd20c`**, `.env.local` được dời khỏi bản dựng rồi trả lại. Nghiệm thu prod
@@ -78,6 +86,23 @@
 > bỏ sót. **Frontend Cloudflare VẪN CHƯA deploy** (`/search` prod = 404).
 
 ## Hàng đợi task (làm từ trên xuống)
+
+- [x] **🔴 QU-STD-V3. Nâng bộ quy ước lên v3.0.0** - ✅ **XONG 25/08/2026**, chủ dự
+      án tự chạy (PR #71 `0dc6d1f`, merge 09:58Z): `.standards/` nay v3.0.0
+      (`7a0387a`), cả hai cổng XANH - `sync-standards.sh --check` = "khớp bản trung
+      tâm 3.0.0", `check-standards.sh` = "đạt cổng kiểm (2 lưu ý)". Ba việc phái sinh
+      QU-STD-AUTH/TABLE/BRAND đã mở ở hàng đợi bên dưới.
+      **Hai điều đo được trong phiên 24, giữ lại vì chúng gỡ lo cho việc sau:** - ✅ **Bước 1 (dọn em-dash trước khi sync) ĐÃ ĐẠT SẴN.** CHANGELOG cảnh báo cổng
+      kiểm mới quét rộng gấp ~5 lần nên "repo đang xanh vẫn có thể đỏ ngay sau khi
+      đồng bộ". Đo `git grep -lP '\x{2014}'` toàn repo: đúng **1 file**,
+      `CLAUDE.md:173` - dòng trích chính ký tự để DẠY LUẬT, đã có mã điểm
+      `(U+2014)` trên cùng dòng = đúng ngoại lệ v3.0.0 cho phép. Không phải sửa gì,
+      và thực tế cổng đã xanh sau khi sync. - ✅ **KHÔNG token màu nào đổi giá trị** giữa v2.8.0 và v3.0.0 (so khối `color`
+      bằng script; CHANGELOG §"Điều KHÔNG đổi" cũng tự khẳng định). ⇒ giao diện
+      không phải vẽ lại, và **kết luận QU-STD-1 bên dưới vẫn đúng nguyên**.
+      ⚠️ Nhắc cho ba việc phái sinh: CHANGELOG nói **máy chủ trước, giao diện sau** -
+      nâng trần `page_size` lên 200 kèm giới hạn tần suất TRƯỚC khi mở mốc 200 trên
+      giao diện; mở giao diện trước là tự tạo đường cạn tài nguyên trong khoảng giữa.
 
 **Đợt khắc phục triệt để - chi tiết + tiêu chí xong ở [`handover/20260822-03`](handover/20260822-03_ke-hoach-khac-phuc-triet-de.md). Thứ tự: A2 → A1 → A3 → B1 → C1.**
 
