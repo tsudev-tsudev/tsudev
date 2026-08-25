@@ -4,6 +4,7 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - phiên 25 đã trả hết khóa sau ACCOUNTS-ADMIN Pha 0-2 và NEWSROOM-DOCS.
-Mọi cổng xanh. Việc kế tiếp: nghiệm thu trên production (xem phiếu 20260825-03
-§6), rồi DOCS-SEARCH hoặc QU-STD-AUTH.)
+(trống - phiên 25 đã nhả TOÀN BỘ khóa. Mọi thay đổi đã vào `main` (`3ec27ee`)
+và đã phát hành cả hai tầng; không còn nhánh dở, không còn PR mở.
+
+Phiên sau đọc `logs/handover/20260826-01_ket-phien-25.md` trước khi khoá gì.)
