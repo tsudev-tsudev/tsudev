@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Seo from '../../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
-import { Layout, Card, Button, Input, Badge, Icon, SectionHeading } from '@tsudev/ui';
+import { Layout, Card, Button, Input, Badge, Icon, SectionHeading, RecordFooter } from '@tsudev/ui';
 import {
   KIND_LABEL,
   STATUS_LABEL,
@@ -12,6 +12,9 @@ import {
   copyrightMeta,
 } from '../../lib/projectLabels';
 import type { Project } from '../../lib/types';
+import type { PageMeta } from '@tsudev/types';
+
+import { useUrlPaging, useUrlPagingSync } from '../../lib/useUrlPaging';
 
 /** Thông báo hiện cho người quản trị, kèm tông màu. */
 type AdminMessage = { tone: string; text: string };
@@ -113,15 +116,26 @@ export default function AdminProjects() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [msg, setMsg] = useState<AdminMessage | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const paging = useUrlPaging('admin-projects');
+  const { page, setPage, pageSize, setPageSize, meta } = paging;
+  useUrlPagingSync([paging]);
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/content/admin/projects');
+    if (!paging.ready) return;
+    setLoading(true);
+    const res = await fetch(`/api/content/admin/projects?page=${page}&page_size=${pageSize}`);
+    setLoading(false);
     if (!res.ok) {
       setMsg({ tone: 'error', text: 'Không tải được danh sách dự án.' });
       return;
     }
-    setProjects(await res.json());
-  }, []);
+    const body = (await res.json()) as { data?: Project[]; meta?: PageMeta };
+    if (Array.isArray(body?.data)) setProjects(body.data);
+    if (body?.meta) paging.setMeta(body.meta);
+    // `paging` cố ý không nằm trong deps: nó là object mới mỗi lần dựng.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, paging.ready]);
 
   useEffect(() => {
     if (session) load();
@@ -402,7 +416,9 @@ export default function AdminProjects() {
         </Card>
 
         <div className="space-y-3">
-          {projects.length === 0 && <Card className="p-6 text-fg-muted">Chưa có dự án nào.</Card>}
+          {!loading && projects.length === 0 && (
+            <Card className="p-6 text-fg-muted">Chưa có dự án nào.</Card>
+          )}
           {projects.map((p) => {
             const cr = copyrightMeta(p.copyrightStatus);
             return (
@@ -442,6 +458,17 @@ export default function AdminProjects() {
               </Card>
             );
           })}
+          <RecordFooter
+            meta={meta}
+            pageSize={pageSize}
+            loading={loading}
+            label="dự án"
+            onPageSize={(size, nextPage) => {
+              setPageSize(size);
+              setPage(nextPage);
+            }}
+            onPage={setPage}
+          />
         </div>
       </div>
     </Layout>

@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Seo from '../../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
-import { Layout, Card, Button, SectionHeading } from '@tsudev/ui';
+import { Layout, Card, Button, SectionHeading, RecordFooter } from '@tsudev/ui';
+import type { PageMeta } from '@tsudev/types';
+
+import { useUrlPaging, useUrlPagingSync } from '../../lib/useUrlPaging';
 
 import { SecurityEventList, type SecurityEvent } from '../../components/SecurityEventList';
 
@@ -26,23 +29,37 @@ export default function AdminSecurity() {
   const [events, setEvents] = useState<SecurityEvent[]>([]);
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
+  // URL thắng lựa chọn đã nhớ, lựa chọn đã nhớ thắng mặc định 10 (mục 5).
+  const paging = useUrlPaging('admin-security');
+  const { page, setPage, pageSize, setPageSize, meta } = paging;
+  useUrlPagingSync([paging]);
+  // Tách khỏi `loading`: lần đầu được thay cả trang bằng "Đang tải…", còn mỗi
+  // lần lật trang thì bảng phải đứng yên và bộ chọn chỉ mờ đi (mục 4).
+  const [booted, setBooted] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await call('useradmin/security', {});
+    if (!paging.ready) return;
+    setLoading(true);
+    const r = await call('useradmin/security', { page, page_size: pageSize });
     setLoading(false);
+    setBooted(true);
     if (r.status === 401 || r.status === 403) {
       setDenied(true);
       return;
     }
-    if (Array.isArray(r.data)) setEvents(r.data as SecurityEvent[]);
-  }, []);
+    const body = r.data as { data?: SecurityEvent[]; meta?: PageMeta };
+    if (Array.isArray(body?.data)) setEvents(body.data);
+    if (body?.meta) paging.setMeta(body.meta);
+    // `paging` cố ý không nằm trong deps: nó là object mới mỗi lần dựng.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, paging.ready]);
 
   useEffect(() => {
     if (status === 'authenticated') load();
     if (status === 'unauthenticated') setLoading(false);
   }, [status, load]);
 
-  if (status === 'loading' || loading)
+  if (status === 'loading' || (!booted && loading))
     return (
       <Layout>
         <Seo title="Nhật ký bảo mật" path="/admin/security" noindex />
@@ -80,8 +97,8 @@ export default function AdminSecurity() {
       <SectionHeading eyebrow="Chủ sở hữu" title="Nhật ký bảo mật" />
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-fg-muted">
-          Sự kiện bảo mật của mọi tài khoản (200 mới nhất): đăng nhập, đổi mật khẩu/email, 2FA,
-          passkey, đổi vai trò, thu hồi phiên.
+          Sự kiện bảo mật của mọi tài khoản: đăng nhập, đổi mật khẩu/email, 2FA, passkey, đổi vai
+          trò, thu hồi phiên.
         </p>
         <Button variant="secondary" size="sm" onClick={load}>
           Làm mới
@@ -90,6 +107,17 @@ export default function AdminSecurity() {
 
       <Card className="mt-6 p-6">
         <SecurityEventList events={events} variant="admin" />
+        <RecordFooter
+          meta={meta}
+          pageSize={pageSize}
+          loading={loading}
+          label="sự kiện"
+          onPageSize={(size, nextPage) => {
+            setPageSize(size);
+            setPage(nextPage);
+          }}
+          onPage={setPage}
+        />
       </Card>
     </Layout>
   );

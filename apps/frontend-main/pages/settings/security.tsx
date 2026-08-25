@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { startRegistration } from '@simplewebauthn/browser';
-import { Button, Input, Layout } from '@tsudev/ui';
+import { Button, Input, Layout, RecordFooter } from '@tsudev/ui';
+import type { PageMeta } from '@tsudev/types';
+
+import { useUrlPaging, useUrlPagingSync } from '../../lib/useUrlPaging';
 
 import Seo from '../../components/Seo';
 import { Notice } from '../../components/AuthShell';
@@ -52,6 +55,10 @@ export default function SecurityPage() {
 
   // --- Nhật ký bảo mật ---
   const [events, setEvents] = useState<SecurityEvent[]>([]);
+  const paging = useUrlPaging('settings-security-events');
+  const { page, setPage, pageSize, setPageSize, meta: eventsMeta } = paging;
+  useUrlPagingSync([paging]);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
   // --- Vùng nguy hiểm ---
   const [dangerPw, setDangerPw] = useState('');
@@ -63,9 +70,17 @@ export default function SecurityPage() {
   }, []);
 
   const refreshEvents = useCallback(async () => {
-    const { ok, data } = await post('security/events');
-    if (ok && Array.isArray(data)) setEvents(data as unknown as SecurityEvent[]);
-  }, []);
+    if (!paging.ready) return;
+    setEventsLoading(true);
+    const { ok, data } = await post('security/events', { page, page_size: pageSize });
+    setEventsLoading(false);
+    if (!ok) return;
+    const body = data as unknown as { data?: SecurityEvent[]; meta?: PageMeta };
+    if (Array.isArray(body?.data)) setEvents(body.data);
+    if (body?.meta) paging.setMeta(body.meta);
+    // `paging` cố ý không nằm trong deps: nó là object mới mỗi lần dựng.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, paging.ready]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -372,6 +387,17 @@ export default function SecurityPage() {
               hoạt động lạ thì đổi mật khẩu ngay - nó sẽ đăng xuất mọi thiết bị.
             </p>
             <SecurityEventList events={events} />
+            <RecordFooter
+              meta={eventsMeta}
+              pageSize={pageSize}
+              loading={eventsLoading}
+              label="sự kiện"
+              onPageSize={(size, nextPage) => {
+                setPageSize(size);
+                setPage(nextPage);
+              }}
+              onPage={setPage}
+            />
           </Section>
 
           <section className="rounded-lg border border-danger bg-surface p-5 sm:p-6">

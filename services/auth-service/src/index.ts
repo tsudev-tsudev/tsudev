@@ -1222,16 +1222,25 @@ app.post(
 /** ADMIN: liệt kê. KHÔNG bao giờ trả `codeHash` - nó là bí mật đã băm, không phải id. */
 app.post(
   '/api/identity/invite/list',
+  largePageRateLimit({
+    name: 'invite/list page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     const actor = await requireAdmin(req, res)
     if (!actor) return
 
-    const rows = await prisma.trustInvite.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-      include: { _count: { select: { redemptions: true } } },
-    })
-    return res.json(rows.map(publicInvite))
+    const paging = parsePaging(req.body ?? {})
+    const [total, rows] = await Promise.all([
+      prisma.trustInvite.count(),
+      prisma.trustInvite.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+        include: { _count: { select: { redemptions: true } } },
+      }),
+    ])
+    return res.json({ data: rows.map(publicInvite), meta: pageMeta(total, paging) })
   })
 )
 
@@ -1491,16 +1500,26 @@ app.post(
 /** Chính chủ: nhật ký bảo mật của mình (mới nhất trước). */
 app.post(
   '/api/identity/security/events',
+  largePageRateLimit({
+    name: 'security/events page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     const user = await lookupUser(req)
     if (!user) return res.status(401).json({ error: 'unauthenticated' })
-    const rows = await prisma.securityEvent.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-      select: SECURITY_EVENT_SELECT,
-    })
-    return res.json(rows.map(publicSecurityEvent))
+    const paging = parsePaging(req.body ?? {})
+    const where = { userId: user.id }
+    const [total, rows] = await Promise.all([
+      prisma.securityEvent.count({ where }),
+      prisma.securityEvent.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+        select: SECURITY_EVENT_SELECT,
+      }),
+    ])
+    return res.json({ data: rows.map(publicSecurityEvent), meta: pageMeta(total, paging) })
   })
 )
 
@@ -1743,27 +1762,41 @@ app.post(
 /** OWNER: nhật ký bảo mật xuyên tài khoản. Lọc theo `userId` nếu có, mặc định toàn bộ. */
 app.post(
   '/api/identity/useradmin/security',
+  largePageRateLimit({
+    name: 'useradmin/security page_size lớn',
+    identify: (req) => req.user?.preferred_username || req.user?.sub,
+  }),
   asyncHandler(async (req, res) => {
     if (!(await requireOwner(req, res))) return
     const userId = str(req.body?.userId, 60)
-    const rows = await prisma.securityEvent.findMany({
-      where: userId ? { userId } : {},
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-      select: {
-        ...SECURITY_EVENT_SELECT,
-        userId: true,
-        user: { select: { username: true, displayName: true } },
-      },
-    })
-    return res.json(
-      rows.map((e) => ({
+    const paging = parsePaging(req.body ?? {})
+    // Lọc theo tài khoản đổi TỔNG SỐ chứ không chỉ đổi danh sách - đếm phải
+    // dùng ĐÚNG `where` của truy vấn, nếu không dòng tóm tắt nói "12 / 4.000"
+    // trong khi bảng chỉ có 12 bản ghi.
+    const where = userId ? { userId } : {}
+    const [total, rows] = await Promise.all([
+      prisma.securityEvent.count({ where }),
+      prisma.securityEvent.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: paging.skip,
+        take: paging.take,
+        select: {
+          ...SECURITY_EVENT_SELECT,
+          userId: true,
+          user: { select: { username: true, displayName: true } },
+        },
+      }),
+    ])
+    return res.json({
+      data: rows.map((e) => ({
         ...publicSecurityEvent(e),
         userId: e.userId,
         username: e.user.username,
         userDisplayName: e.user.displayName,
-      }))
-    )
+      })),
+      meta: pageMeta(total, paging),
+    })
   })
 )
 

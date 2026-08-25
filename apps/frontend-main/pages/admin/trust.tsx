@@ -1,7 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Seo from '../../components/Seo';
 import { useSession, signIn } from 'next-auth/react';
-import { Layout, Button, Badge, SectionHeading, Stat } from '@tsudev/ui';
+import { Layout, Button, Badge, SectionHeading, Stat, RecordFooter } from '@tsudev/ui';
+import type { PageMeta } from '@tsudev/types';
+
+import {
+  EMPTY_PAGE_META,
+  useUrlPaging,
+  useUrlPagingSync,
+  type UrlPaging,
+} from '../../lib/useUrlPaging';
 import { statusMeta, fmtDate } from '../../lib/trust';
 import type {
   AdminApplication,
@@ -22,6 +30,13 @@ const BASIS = [
 const inputCls =
   'w-full rounded-md border border-line bg-base px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:border-primary outline-none';
 const labelCls = 'block text-sm font-medium text-fg-secondary mb-1.5';
+
+/** Đọc `{data, meta}`; lùi về mảng rỗng khi lỗi thay vì để trang vỡ. */
+function readPage<T>(body: unknown, t: UrlPaging): T[] {
+  const b = body as { data?: T[]; meta?: PageMeta } | null;
+  t.setMeta(b?.meta ?? EMPTY_PAGE_META);
+  return Array.isArray(b?.data) ? (b.data as T[]) : [];
+}
 
 export default function AdminTrust() {
   const { data: session, status } = useSession();
@@ -45,32 +60,64 @@ export default function AdminTrust() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Bốn vùng bản ghi độc lập ⇒ tham số URL mang tiền tố riêng, và MỘT effect
+  // ghi ngược cho cả bốn (xem `useUrlPagingSync`).
+  const queueT = useUrlPaging('trust-queue', 'queue');
+  const certsT = useUrlPaging('trust-certs', 'certs');
+  const invitesT = useUrlPaging('trust-invites', 'invites');
+  const auditT = useUrlPaging('trust-audit', 'audit');
+  useUrlPagingSync([queueT, certsT, invitesT, auditT]);
 
   const load = useCallback(async () => {
+    if (!queueT.ready) return;
+    setLoading(true);
     const r = await fetch('/api/trust/admin/summary');
     if (r.status === 401 || r.status === 403) {
       setDenied(true);
       return;
     }
     setSummary(await r.json());
+    const paged = (base: string, t: UrlPaging) =>
+      `${base}${base.includes('?') ? '&' : '?'}page=${t.page}&page_size=${t.pageSize}`;
     const [q, c, a, cfg] = await Promise.all([
-      fetch('/api/trust/admin/applications').then((x) => x.json()),
-      fetch('/api/trust/admin/certificates').then((x) => x.json()),
-      fetch('/api/trust/admin/audit').then((x) => x.json()),
+      fetch(paged('/api/trust/admin/applications', queueT)).then((x) => x.json()),
+      fetch(paged('/api/trust/admin/certificates', certsT)).then((x) => x.json()),
+      fetch(paged('/api/trust/admin/audit', auditT)).then((x) => x.json()),
       fetch('/api/trust/admin/recheck/config')
         .then((x) => (x.ok ? x.json() : null))
         .catch(() => null),
     ]);
-    setQueue(q);
-    setCerts(c);
-    setAudit(a);
+    setQueue(readPage<AdminApplication>(q, queueT));
+    setCerts(readPage<AdminCertificate>(c, certsT));
+    setAudit(readPage<AuditEntry>(a, auditT));
     setRecheck(cfg);
     // Mã mời do auth-service quản, không phải trust-service - đổi mã ghi vào
     // User.role nên nó thuộc ranh giới danh tính. Đường đi cũng khác: proxy CÓ
     // PHIÊN /api/account/*, không phải /api/trust/*.
-    const inv = await fetch('/api/account/invite/list', { method: 'POST' });
-    setInvites(inv.ok ? await inv.json() : []);
-  }, []);
+    const inv = await fetch('/api/account/invite/list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ page: invitesT.page, page_size: invitesT.pageSize }),
+    });
+    setInvites(inv.ok ? readPage<TrustInvite>(await inv.json(), invitesT) : []);
+    setLoading(false);
+    // Bốn bảng dùng CHUNG một lần tải, nên đổi trang ở bất kỳ bảng nào cũng gọi
+    // lại `load`. Chấp nhận được ở đây (trang quản trị, dữ liệu nhỏ) và đổi lại
+    // là không có bốn đường tải gần trùng nhau để lệch nhau.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    queueT.ready,
+    queueT.page,
+    queueT.pageSize,
+    certsT.page,
+    certsT.pageSize,
+    invitesT.page,
+    invitesT.pageSize,
+    auditT.page,
+    auditT.pageSize,
+  ]);
 
   useEffect(() => {
     if (status === 'authenticated') load();
@@ -191,7 +238,7 @@ export default function AdminTrust() {
         {/* --- Hàng đợi thẩm định --- */}
         <section className="mb-14">
           <h2 className="text-lg font-semibold text-fg mb-4">Hàng đợi thẩm định</h2>
-          {queue.length === 0 && (
+          {!loading && queue.length === 0 && (
             <p className="py-8 text-fg-muted text-sm">Không có hồ sơ nào chờ xử lý.</p>
           )}
           <div className="divide-y divide-line">
@@ -216,6 +263,17 @@ export default function AdminTrust() {
               </button>
             ))}
           </div>
+          <RecordFooter
+            meta={queueT.meta}
+            pageSize={queueT.pageSize}
+            loading={loading}
+            label="hồ sơ"
+            onPageSize={(size, nextPage) => {
+              queueT.setPageSize(size);
+              queueT.setPage(nextPage);
+            }}
+            onPage={queueT.setPage}
+          />
         </section>
 
         {/* --- Bảng thẩm định chi tiết --- */}
@@ -436,10 +494,21 @@ export default function AdminTrust() {
                 </div>
               );
             })}
-            {certs.length === 0 && (
+            {!loading && certs.length === 0 && (
               <p className="py-8 text-fg-muted text-sm">Chưa cấp chứng chỉ nào.</p>
             )}
           </div>
+          <RecordFooter
+            meta={certsT.meta}
+            pageSize={certsT.pageSize}
+            loading={loading}
+            label="chứng chỉ"
+            onPageSize={(size, nextPage) => {
+              certsT.setPageSize(size);
+              certsT.setPage(nextPage);
+            }}
+            onPage={certsT.setPage}
+          />
         </section>
 
         {/* --- Giám sát tên miền --- */}
@@ -640,8 +709,21 @@ export default function AdminTrust() {
                 </div>
               );
             })}
-            {invites.length === 0 && <p className="py-8 text-fg-muted text-sm">Chưa cấp mã nào.</p>}
+            {!loading && invites.length === 0 && (
+              <p className="py-8 text-fg-muted text-sm">Chưa cấp mã nào.</p>
+            )}
           </div>
+          <RecordFooter
+            meta={invitesT.meta}
+            pageSize={invitesT.pageSize}
+            loading={loading}
+            label="mã mời"
+            onPageSize={(size, nextPage) => {
+              invitesT.setPageSize(size);
+              invitesT.setPage(nextPage);
+            }}
+            onPage={invitesT.setPage}
+          />
         </section>
 
         {/* --- Nhật ký --- */}
@@ -658,8 +740,21 @@ export default function AdminTrust() {
                 </span>
               </div>
             ))}
-            {audit.length === 0 && <p className="py-8 text-fg-muted text-sm">Chưa có hoạt động.</p>}
+            {!loading && audit.length === 0 && (
+              <p className="py-8 text-fg-muted text-sm">Chưa có hoạt động.</p>
+            )}
           </div>
+          <RecordFooter
+            meta={auditT.meta}
+            pageSize={auditT.pageSize}
+            loading={loading}
+            label="mục nhật ký"
+            onPageSize={(size, nextPage) => {
+              auditT.setPageSize(size);
+              auditT.setPage(nextPage);
+            }}
+            onPage={auditT.setPage}
+          />
         </section>
       </div>
     </Layout>

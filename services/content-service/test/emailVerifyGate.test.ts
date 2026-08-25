@@ -131,7 +131,7 @@ describe('quá ân hạn: sửa/xoá bị chặn, đọc vẫn được', () => 
       .get('/api/author/posts')
       .set(await asUser(A_EXPIRED))
     expect(res.status).toBe(200)
-    expect(Array.isArray(res.body)).toBe(true)
+    expect(Array.isArray(res.body.data)).toBe(true)
   })
 
   test('đọc một bài của mình VẪN được (200)', async () => {

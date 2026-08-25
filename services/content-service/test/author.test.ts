@@ -133,11 +133,14 @@ describe('scope theo tác giả', () => {
       .set(await asUser(A2))
       .send({ slug: SLUG_A2, title: TITLE_A2, contentMd: 'x' })
 
+    // `{data, meta}` chuẩn (DATA_TABLE.md 8.2) - trước đây trả mảng thuần KHÔNG
+    // có trần nào, tức trần duy nhất là "hiện chưa nhiều bài".
     const res = await request(app)
-      .get('/api/author/posts')
+      .get('/api/author/posts?page_size=200')
       .set(await asUser(A1))
     expect(res.status).toBe(200)
-    const slugs = res.body.map((p: { slug: string }) => p.slug)
+    expect(res.body.meta.page_size).toBe(200)
+    const slugs = res.body.data.map((p: { slug: string }) => p.slug)
     expect(slugs).toContain(SLUG_A1)
     expect(slugs).not.toContain(SLUG_A2)
   })
@@ -184,9 +187,9 @@ describe('sửa và xoá bài của mình', () => {
     expect(del.status).toBe(200)
 
     const list = await request(app)
-      .get('/api/author/posts')
+      .get('/api/author/posts?page_size=200')
       .set(await asUser(A1))
-    expect(list.body.map((p: { slug: string }) => p.slug)).not.toContain(SLUG_A1)
+    expect(list.body.data.map((p: { slug: string }) => p.slug)).not.toContain(SLUG_A1)
 
     const row = await prisma.post.findUnique({ where: { slug: SLUG_A1 } })
     expect(row).not.toBeNull()
@@ -207,9 +210,9 @@ describe('nháp và bài đã xoá không lọt ra đường đọc công khai',
     expect(pub.body.map((p: { slug: string }) => p.slug)).not.toContain(slug)
 
     const mine = await request(app)
-      .get('/api/author/posts')
+      .get('/api/author/posts?page_size=200')
       .set(await asUser(A1))
-    expect(mine.body.map((p: { slug: string }) => p.slug)).toContain(slug)
+    expect(mine.body.data.map((p: { slug: string }) => p.slug)).toContain(slug)
   })
 })
 

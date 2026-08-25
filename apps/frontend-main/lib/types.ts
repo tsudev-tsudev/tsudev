@@ -8,6 +8,8 @@
 // Trước đây mọi thứ đi qua `getJSON()` đều là `any`, nên một lần đổi tên trường
 // ở service chỉ lộ ra dưới dạng "undefined" hiện trên trang thật.
 
+import type { PageMeta } from '@tsudev/types';
+
 export type Author = {
   id: string;
   username: string;
@@ -39,7 +41,9 @@ export type Post = {
 /** Kết quả từ endpoint tìm kiếm `/api/posts/search` (SEARCH_AND_FILTER §7). */
 export type PostSearchResult = {
   data: Post[];
-  meta: { total: number; page: number; page_size: number; query_normalized: string };
+  // `total_pages` đến từ `pageMeta` của @tsudev/types - RecordFooter dựng dãy ô
+  // trang từ nó, nên thiếu trường này là bộ phân trang câm.
+  meta: PageMeta & { query_normalized: string };
   facets: { tag: Array<{ slug: string; count: number }> };
 };
 
