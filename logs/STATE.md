@@ -1,5 +1,20 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> 🔴 **TOÀ SOẠN ĐANG TẮT TRÊN PROD - đo 26/08/2026.** `NEWSROOM_ENABLED` không
+> còn là `'true'` ở Render, nên `tick()` thoát ở dòng đầu và không sinh sự kiện
+> nào. Bằng chứng: ngày 25/08 có 125 sự kiện/13 loại, ngày 26/08 có **đúng 2**,
+> cả hai do người bấm tay. Nguyên nhân gốc: `render.yaml` khai `value: 'false'`
+> literal nên blueprint ghi đè giá trị đang chạy mỗi lần đồng bộ - đã vá thành
+> `sync: false` ở nhánh `fix/newsroom-duyet-dang`.
+>
+> **Hai việc chỉ chủ dự án làm được** (agent bị cổng an toàn chặn ghi vào prod),
+> lệnh cụ thể ở phiếu [`handover/20260826-05`](handover/20260826-05_toa-soan-im-lang.md) §2:
+> (1) đặt `NEWSROOM_ENABLED=true` ở Render; (2) chạy `seed-newsroom.js` trên prod
+> để kênh DOC có nguồn - việc này treo từ phiên 25 và nay đo được hệ quả: `/docs`
+> có đúng 2 tài liệu, cả hai từ seed gốc, 0 bài của agent.
+>
+> Chẩn đoán lại bất cứ lúc nào: **`npm run newsroom:chan-doan`** (mới, chỉ đọc).
+>
 > **Phiên 27 bắt đầu ở đây** (cập nhật cuối phiên 26): đọc
 > [`handover/20260826-02`](handover/20260826-02_ket-phien-26.md) - phiếu kết phiên 26.
 > Phiếu cũ hơn giữ làm tham chiếu:
@@ -633,6 +648,22 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
   theo TỪNG NHÁNH nên nhánh `alias` mới phải khai riêng - quên là OWNER cũng
   nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
   có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
+- 26/08/2026 - **Toà soạn im lặng: ba lỗi cùng một họ** (phiên 28, nhánh
+  `fix/newsroom-duyet-dang`). Chi tiết + số đo ở phiếu `20260826-05`. Điều đáng
+  nhớ nhất không phải ba bản vá mà là **họ** của chúng: cả ba đều là một nhánh
+  trả về sớm mà không ghi lại gì.
+  (a) `tick()` thoát ở dòng đầu khi `NEWSROOM_ENABLED` chưa bật - TRƯỚC mọi lệnh
+  ghi nhật ký ⇒ toà soạn tắt mà không sự kiện nào chứng kiến. Chính sự vắng mặt
+  tuyệt đối đó lại là bằng chứng khép kín, vì mọi đường thoát KHÁC đều để lại dấu.
+  (b) `reclaimStale` giết sự kiện kẹt CLAIMED mà không emit `event.dead` ⇒
+  `reviveQuotaCasualties` không bao giờ khớp được chúng ⇒ nút "Hồi sinh" trả 0
+  vĩnh viễn. Kẹt CLAIMED chính là thứ Render restart gây ra, tức lớp phổ biến nhất.
+  (c) `act()` ở dashboard vứt phản hồi đi ⇒ 401, 404, 500 và `{revived:0}` trông
+  y hệt thành công. Cùng họ §0.7 "mã 200 không chứng minh trang có nội dung",
+  nặng hơn một bậc.
+  **Im lặng không phải trạng thái trung tính - nó là trạng thái sai khó phát hiện
+  nhất.** Kèm theo: `render.yaml` khai `value:` literal cho một công tắc vận hành
+  là tự cài bẫy ghi đè; `sync: false` giữ nguyên mặc định an toàn mà bỏ được vế đó.
 - 26/08/2026 - **NEWSROOM-DOCS** (phiên 25). Nguyên nhân: `seed-newsroom.js`
   không có nguồn nào `target: 'DOC'`, nên nhánh đăng DOC (vốn đã đầy đủ trong
   `dispatcher.ts`) **chưa từng chạy lần nào**. Đã thêm nguồn `kind: 'repo_docs'`
