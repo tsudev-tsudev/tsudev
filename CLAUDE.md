@@ -136,12 +136,20 @@ nguồn là hiện trạng; TSD là đích đến.
 - **Điều hướng trong site dùng href tương đối** - tsudev chỉ còn MỘT origin.
   `MAIN_URL` của `@tsudev/ui` chỉ cho URL tuyệt đối thật sự cần (canonical, OG,
   mã nhúng huy hiệu).
-- **Token giao diện: sửa `tokens/design-tokens.json`, KHÔNG sửa
+- **Token giao diện: sửa `tokens/extensions.tsudev-web.json`, KHÔNG sửa
   `packages/ui/src/tokens.css`.** File CSS đó là ARTIFACT sinh ra bởi
-  `npm run tokens:sync`; sửa tay thì thay đổi sống ở local rồi biến mất ở lần
-  sinh kế tiếp, im lặng. `npm run tokens:check` canh trong CI. Khối `color` của
-  file JSON và `tokens/tokens.css` thuộc bộ quy ước dùng chung, **bất khả xâm
-  phạm** - token riêng của repo sống ở khối `extensions.tsudev-web`.
+  `npm run tokens:sync` từ HAI nguồn: bảng dùng chung
+  `.standards/tokens/design-tokens.json` (chỉ-đọc, **bất khả xâm phạm**) ghép với
+  khối riêng của web. Sửa tay artifact thì thay đổi sống ở local rồi biến mất ở
+  lần sinh kế tiếp, im lặng; `npm run tokens:check` canh trong CI.
+  ⚠️ **Repo này KHÔNG còn bản sao cục bộ của bảng dùng chung** (`tokens/design-tokens.json`
+  và `tokens/tokens.css` đã xoá 26/08/2026, QU-STD-1). **Đừng dựng lại.** Bản sao
+  đó ở lại v1.0.0 trong khi bộ quy ước đi tới v2.0.0 và **không cổng nào bắt
+  được**, vì mỗi cổng chỉ đối chiếu bản sao với chính nó. Giá đã trả: bản chuẩn
+  đổi tên `line-height.long-text` thành `long`, app viết `var(--lh-long)`, biến đó
+  không tồn tại trong artifact ⇒ thân bài Markdown của blog và tài liệu chạy sai
+  chiều cao dòng suốt nhiều tháng mà không gì đỏ lên. Cần token dùng chung khác đi
+  thì mở đề xuất ở repo `tsudev-standards` theo `.standards/docs/SYNC.md`.
 - **Giao diện có BA chế độ: Sáng (mặc định) · Ấm · Tối**, chọn bằng `data-theme`
   trên `<html>`. `:root` trần mang bảng Sáng, nên khách vãng lai luôn thấy Sáng.
   Bảng màu KHÔNG treo vào `prefers-color-scheme` - hai người mở cùng một đường

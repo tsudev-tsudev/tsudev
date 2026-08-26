@@ -11,8 +11,9 @@ trong `apps/*` chỉ được phép khi nó thật sự chỉ dùng ở một ap
 ## Đường đi của một giá trị màu
 
 ```
-tokens/design-tokens.json          ← NGUỒN CHÂN LÝ DUY NHẤT (sửa ở đây)
-   │  npm run tokens:sync
+.standards/tokens/design-tokens.json    ← NGUỒN CHÂN LÝ DUY NHẤT (chỉ-đọc)
+tokens/extensions.tsudev-web.json       ← phần riêng của web (sửa ở đây)
+   │  npm run tokens:sync   (ghép hai file, phần riêng đứng sau)
    ▼
 packages/ui/src/tokens.css         ← BẢN SINH RA, đừng sửa tay
    │  @import
@@ -28,17 +29,23 @@ class trong .tsx  (bg-surface, text-fg-muted, border-line-control…)
 
 Ba cổng canh chuỗi này, và `npm run tokens:check` nằm trong CI:
 
-| Cổng                                          | Bắt được gì                                                           |
-| --------------------------------------------- | --------------------------------------------------------------------- |
-| `npm run tokens:check`                        | `tokens.css` bị sửa tay, hoặc `tokens/tokens.css` trôi lệch khỏi JSON |
-| `packages/ui/test/contrast.test.ts`           | một mã màu làm tụt tương phản dưới WCAG AA, ở **bất kỳ** chế độ nào   |
-| `apps/frontend-main/test/themeTokens.test.ts` | ba bản sao màu nền ngoài `tokens.css` trôi lệch nhau                  |
+| Cổng                                          | Bắt được gì                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `npm run tokens:check`                        | `tokens.css` bị sửa tay, hoặc hai artifact trong `.standards/tokens/` trôi lệch nhau |
+| `packages/ui/test/contrast.test.ts`           | một mã màu làm tụt tương phản dưới WCAG AA, ở **bất kỳ** chế độ nào                  |
+| `apps/frontend-main/test/themeTokens.test.ts` | ba bản sao màu nền ngoài `tokens.css` trôi lệch nhau                                 |
 
-`tokens/tokens.css` là bản chuẩn của **hệ sinh thái** (C#/Python/Qt cũng đọc thư
-mục `tokens/`). Script đồng bộ **không** ghi đè nó - chỉ đối chiếu và báo lệch.
-Nó nằm trong `.prettierignore` cùng `tokens/design-tokens.json`: prettier hạ mã hex
-xuống chữ thường và tách danh sách selector xuống dòng, tức là làm bản ở repo này
-khác bản gốc, và một bộ token dùng chung mà mỗi repo một dạng thì hết là dùng chung.
+Bảng dùng chung của **hệ sinh thái** (C#/Python/Qt cũng đọc nó) sống ở
+`.standards/tokens/`, đến từ repo quy ước trung tâm và cả cây đó nằm trong
+`.prettierignore` - định dạng lại một byte là lệch `MANIFEST.sha256`. Repo này
+**không giữ bản sao nào** của bảng đó từ 26/08/2026 (QU-STD-1).
+
+Vì sao đáng gỡ: bản sao cũ (`tokens/design-tokens.json` + `tokens/tokens.css`) ở
+lại v1.0.0 trong khi bộ quy ước đi tới v2.0.0, và **không cổng nào bắt được** - mỗi
+cổng chỉ đối chiếu bản sao với chính nó. Giá phải trả đã đo được: bản chuẩn đổi tên
+`line-height.long-text` thành `long`, app viết `var(--lh-long)`, biến đó **không tồn
+tại** trong artifact sinh từ bản sao, nên mọi khối `.prose-tsu` (nội dung Markdown
+của blog và tài liệu) rơi về `--lh-body` 1.55 thay vì 1.6. Không có gì đỏ lên.
 
 ## Ba chế độ, và chuyện `prefers-color-scheme`
 
@@ -78,18 +85,20 @@ Bộ chuẩn v1.0.0 không có sẵn ba nhóm dưới đây; chúng nằm ở
 | `--<trạng thái>-ink` / `-tint`      | §5 đòi badge "nền trạng thái nhạt 12% + chữ màu trạng thái đậm", nhưng ở chế độ Sáng cặp đó chỉ đạt ~4.1-4.3:1. `-ink` là sắc đậm hơn cho chữ, `-tint` là nền tính sẵn. |
 | `--accent`, `--glow`, `--grid-line` | Sắc phụ (teal) của con dấu tín nhiệm và hai hoạ tiết nền.                                                                                                               |
 
-⚠️ **Hai token của bộ chuẩn KHÔNG đạt chính quy tắc bắt buộc của §1**, đo được
-bằng `contrast.test.ts` - xem `$accessibility_gap` trong `tokens/design-tokens.json`:
+⚠️ **Hai token của bảng chuẩn v1.0.0 KHÔNG đạt chính quy tắc bắt buộc của §1**, đo
+được bằng `contrast.test.ts` - số đo giữ ở `$accessibility_gap` trong
+`tokens/extensions.tsudev-web.json`:
 
 - `text-muted` chỉ đạt 3.69-4.58:1 (ngưỡng AA là 4.5:1), và đây là token bị dùng
   nhiều nhất trong app.
 - `border-strong` chỉ đạt 1.65-2.49:1 (WCAG 1.4.11 đòi 3:1 cho ranh giới thành
   phần giao diện).
 
-Không sửa được khối `color`, nên repo này **ghi đè `text-muted`** và thêm vai trò
-mới **`border-control`** cho ranh giới vùng tương tác (viền nút phụ, viền ô nhập).
-`border-strong` giữ giá trị chuẩn và từ nay chỉ dùng cho ranh giới trang trí.
-**Cần đẩy ngược lên repo token trung tâm.**
+Repo này từng vá bằng cách ghi đè `text-muted` và thêm vai trò mới
+**`border-control`** cho ranh giới vùng tương tác (viền nút phụ, viền ô nhập).
+**Đề xuất đẩy ngược đã được nhận** vào bộ quy ước v2.8.0, nên bảng chuẩn nay mang
+sẵn cả hai giá trị và khối ghi đè đã bị gỡ - giao diện không đổi một pixel nào.
+`border-strong` giữ giá trị chuẩn và chỉ dùng cho ranh giới trang trí.
 
 ## Bản đồ tên: token CSS ↔ class Tailwind
 

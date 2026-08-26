@@ -1,5 +1,5 @@
 /* Token trước Tailwind: mọi class bên dưới đều phân giải thành var(--…) khai ở
-   đây. packages/ui/src/tokens.css là ARTIFACT sinh từ tokens/design-tokens.json
+   đây. packages/ui/src/tokens.css là ARTIFACT sinh từ .standards/tokens/design-tokens.json
    (`npm run tokens:sync`) - đừng sửa nó, sửa file JSON. */
 @import '../../../packages/ui/src/tokens.css';
 /* Weight 300 cố ý KHÔNG được nạp: DESIGN_SYSTEM.md §4 cấm dùng nó vì nét mảnh

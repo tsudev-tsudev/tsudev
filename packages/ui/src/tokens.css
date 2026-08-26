@@ -2,8 +2,9 @@
    tsudev design tokens - BA chế độ: Sáng (mặc định) / Ấm / Tối.
 
    FILE NÀY ĐƯỢC SINH RA. Đừng sửa tay - lần chạy `npm run tokens:sync` kế tiếp
-   ghi đè. Nguồn: tokens/design-tokens.json (nguồn chân lý duy nhất của cả hệ
-   sinh thái, xem .standards/docs/DESIGN_SYSTEM.md).
+   ghi đè. Nguồn: .standards/tokens/design-tokens.json (nguồn chân lý duy nhất của
+   cả hệ sinh thái, xem .standards/docs/DESIGN_SYSTEM.md) ghép với
+   tokens/extensions.tsudev-web.json (phần riêng của web).
 
    Chọn chế độ: thuộc tính `data-theme` trên <html>. Bảng màu ở đây KHÔNG treo
    vào cài đặt hệ điều hành, và đó là cố ý - làm vậy thì hai người mở CÙNG một
@@ -23,16 +24,17 @@
 :root[data-theme='light'] {
   color-scheme: light;
 
-  /* Bảng chuẩn hệ sinh thái - tokens/design-tokens.json > color.light */
+  /* Bảng chuẩn hệ sinh thái - .standards/tokens/design-tokens.json > color.light */
   --bg-base: #eef4fb;
   --bg-surface: #ffffff;
   --bg-subtle: #e3edf8;
   --bg-hover: #dce8f6;
   --border: #c9d9ec;
   --border-strong: #9fb8d4;
+  --border-control: #74899f;
   --text-primary: #1c2b3a;
   --text-secondary: #44607c;
-  --text-muted: #5f7891;
+  --text-muted: #52627a;
   --text-link: #1d4ed8;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
@@ -46,7 +48,7 @@
   --on-status: #ffffff;
   --overlay: rgba(15, 27, 45, 0.45);
 
-  /* Mở rộng riêng của tsudev-web - > extensions.tsudev-web.light */
+  /* Mở rộng riêng của tsudev-web - tokens/extensions.tsudev-web.json > light */
   --accent: #0a6a5b;
   --glow: rgba(37, 99, 235, 0.14);
   --grid-line: rgba(28, 43, 58, 0.06);
@@ -64,8 +66,6 @@
   --warning-tint: #f6eae1;
   --danger-tint: #fbe5e5;
   --info-tint: #e1edf4;
-  --text-muted: #52627a;
-  --border-control: #74899f;
 }
 
 /* Ấm (sepia) - cho phiên làm việc dài hoặc ánh sáng gắt. Chỉ đến bằng lựa chọn
@@ -73,16 +73,17 @@
 :root[data-theme='warm'] {
   color-scheme: light;
 
-  /* Bảng chuẩn hệ sinh thái - tokens/design-tokens.json > color.warm */
+  /* Bảng chuẩn hệ sinh thái - .standards/tokens/design-tokens.json > color.warm */
   --bg-base: #f6f1e6;
   --bg-surface: #fcf8ef;
   --bg-subtle: #efe8d9;
   --bg-hover: #e9e1cf;
   --border: #dcd1ba;
   --border-strong: #bcae90;
+  --border-control: #8e8064;
   --text-primary: #2e2a21;
   --text-secondary: #5b5342;
-  --text-muted: #6e6552;
+  --text-muted: #5e5646;
   --text-link: #1a56b8;
   --primary: #1e5fc2;
   --primary-hover: #174fa6;
@@ -96,7 +97,7 @@
   --on-status: #ffffff;
   --overlay: rgba(46, 42, 33, 0.45);
 
-  /* Mở rộng riêng của tsudev-web - > extensions.tsudev-web.warm */
+  /* Mở rộng riêng của tsudev-web - tokens/extensions.tsudev-web.json > warm */
   --accent: #0a5f52;
   --glow: rgba(30, 95, 194, 0.12);
   --grid-line: rgba(46, 42, 33, 0.07);
@@ -114,8 +115,6 @@
   --warning-tint: #f0e3d3;
   --danger-tint: #f5ded6;
   --info-tint: #dfe6e2;
-  --text-muted: #5e5646;
-  --border-control: #8e8064;
 }
 
 /* Tối - cho phòng tối. Nền là navy #0F1B2D chứ KHÔNG phải đen tuyền: đen tuyệt
@@ -124,16 +123,17 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  /* Bảng chuẩn hệ sinh thái - tokens/design-tokens.json > color.dark */
+  /* Bảng chuẩn hệ sinh thái - .standards/tokens/design-tokens.json > color.dark */
   --bg-base: #0f1b2d;
   --bg-surface: #16263c;
   --bg-subtle: #1c2f4a;
   --bg-hover: #223a5a;
   --border: #2c4363;
   --border-strong: #3f5b80;
+  --border-control: #6e88ae;
   --text-primary: #e6edf5;
   --text-secondary: #a9bbd0;
-  --text-muted: #8298b2;
+  --text-muted: #9bb0c9;
   --text-link: #7fb2f7;
   --primary: #66a3f2;
   --primary-hover: #7fb2f7;
@@ -147,7 +147,7 @@
   --on-status: #0c1930;
   --overlay: rgba(0, 0, 0, 0.6);
 
-  /* Mở rộng riêng của tsudev-web - > extensions.tsudev-web.dark */
+  /* Mở rộng riêng của tsudev-web - tokens/extensions.tsudev-web.json > dark */
   --accent: #3fddc4;
   --glow: rgba(102, 163, 242, 0.22);
   --grid-line: rgba(230, 237, 245, 0.06);
@@ -165,8 +165,6 @@
   --warning-tint: #313839;
   --danger-tint: #312f42;
   --info-tint: #1a3853;
-  --text-muted: #9bb0c9;
-  --border-control: #6e88ae;
 }
 
 /* ------------------------------------------------------------
@@ -191,7 +189,7 @@
   --fs-display-lg: 60px;
   --lh-heading: 1.3;
   --lh-body: 1.55;
-  --lh-long-text: 1.6;
+  --lh-long: 1.6;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;

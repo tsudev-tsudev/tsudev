@@ -4,12 +4,17 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG - phiên 27 đã nhả TOÀN BỘ khóa của DOCS-SEARCH. Cây làm việc sạch, mọi thay
-đổi đã commit và đẩy.
+(TRỐNG - không agent nào đang giữ khóa.
 
-⚠️ Khác các lần trước: **có một PR đang mở**. `feat/docs-search` = PR #81, CI 7/7
-xanh, CHƯA merge vì đợt này có MIGRATION - thứ tự phát hành bị ràng buộc.
-`main` vẫn = `2bbeaf0`.
+**`main` = `4bb3ae3`**, PR #81 đã merge và migration đã áp dụng trên prod.
 
-Phiên sau đọc `logs/handover/20260826-03_ket-phien-27.md` §2.1 TRƯỚC khi merge hay
-khoá gì.)
+Hai nhánh còn mở, cả hai đều **KHÔNG có migration** nên không ràng buộc thứ tự
+phát hành:
+
+1. `chore/qu-std-1-tokens` = **PR #82** (QU-STD-1 + QU-STD-3).
+   Đọc `logs/handover/20260826-04_ket-phien-28.md`.
+2. `fix/newsroom-duyet-dang` = **PR #83** (toà soạn im lặng).
+   Đọc `logs/handover/20260826-05_toa-soan-im-lang.md`.
+
+Cả hai đụng `logs/STATE.md` + `logs/LOCKS.md` khi merge, đều kiểu "cả hai cùng
+thêm". Giữ cả hai khối, mới nhất lên trên.)

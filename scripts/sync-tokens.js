@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * Sinh `packages/ui/src/tokens.css` từ `tokens/design-tokens.json`.
+ * Sinh `packages/ui/src/tokens.css` từ HAI nguồn:
+ *   - bảng dùng chung: `.standards/tokens/design-tokens.json` (chỉ-đọc, đến từ
+ *     repo quy ước trung tâm) - NGUỒN CHÂN LÝ DUY NHẤT;
+ *   - phần riêng của web:  `tokens/extensions.tsudev-web.json`.
  *
  * Vì sao có script này thay vì chép tay: `.standards/docs/PROJECT_STRUCTURE.md` đòi mọi giá
  * trị màu/cỡ chữ/spacing phải truy ngược được về MỘT file JSON. Chép tay thì hai
@@ -8,10 +11,16 @@
  * tiền vài tháng sau. Ở đây bản CSS là ARTIFACT: không sửa tay, sửa JSON rồi chạy
  * `npm run tokens:sync`.
  *
- * `tokens/tokens.css` là bản chuẩn của HỆ SINH THÁI (C#/Python/Qt cũng đọc bộ
- * `tokens/`), thuộc nhóm "bất khả xâm phạm" của AGENTS.md nên script KHÔNG ghi
- * đè nó. Thay vào đó chế độ `--check` đối chiếu nó với JSON và báo lệch - đủ để
- * bắt trôi, không giành quyền sở hữu file.
+ * ⚠️ Repo này TỪNG giữ bản sao cục bộ `tokens/design-tokens.json` +
+ * `tokens/tokens.css`. Đó chính là cái bẫy mà đoạn trên mô tả, chỉ ở một tầng cao
+ * hơn: bản sao ở lại v1.0.0 trong khi bộ quy ước đi tới v2.0.0, và **không cổng
+ * nào bắt được** vì mỗi cổng chỉ đối chiếu bản sao với chính nó. Hai file đó đã bị
+ * xoá 26/08/2026 (QU-STD-1). Đừng dựng lại: cần thêm token thì thêm vào
+ * `tokens/extensions.tsudev-web.json`, cần đổi token dùng chung thì mở đề xuất ở
+ * repo `tsudev-standards` theo `.standards/docs/SYNC.md`.
+ *
+ * Chế độ `--check` còn đối chiếu `.standards/tokens/tokens.css` với file JSON cùng
+ * thư mục - hai artifact của cùng một nguồn, lệch nhau nghĩa là gói đồng bộ hỏng.
  *
  *   node scripts/sync-tokens.js           # sinh lại tokens.css của packages/ui
  *   node scripts/sync-tokens.js --check   # chỉ kiểm, khác là thoát mã 1 (CI)
@@ -21,12 +30,15 @@ const path = require('path');
 const prettier = require('prettier');
 
 const ROOT = path.join(__dirname, '..');
-const JSON_PATH = path.join(ROOT, 'tokens', 'design-tokens.json');
-const CANON_CSS = path.join(ROOT, 'tokens', 'tokens.css');
+const STD_DIR = path.join(ROOT, '.standards', 'tokens');
+const JSON_PATH = path.join(STD_DIR, 'design-tokens.json');
+const CANON_CSS = path.join(STD_DIR, 'tokens.css');
+const EXT_PATH = path.join(ROOT, 'tokens', 'extensions.tsudev-web.json');
 const UI_CSS = path.join(ROOT, 'packages', 'ui', 'src', 'tokens.css');
 
 const tokens = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8'));
-const ext = tokens.extensions['tsudev-web'];
+const ext = JSON.parse(fs.readFileSync(EXT_PATH, 'utf8'));
+const usage = ext.$usage;
 
 /** Thứ tự khai báo giữ 1:1 với JSON - DESIGN_SYSTEM.md §7 đòi vậy. */
 const emitVars = (obj, indent = '  ') =>
@@ -60,8 +72,9 @@ const header = `/* ============================================================
    tsudev design tokens - BA chế độ: Sáng (mặc định) / Ấm / Tối.
 
    FILE NÀY ĐƯỢC SINH RA. Đừng sửa tay - lần chạy \`npm run tokens:sync\` kế tiếp
-   ghi đè. Nguồn: tokens/design-tokens.json (nguồn chân lý duy nhất của cả hệ
-   sinh thái, xem .standards/docs/DESIGN_SYSTEM.md).
+   ghi đè. Nguồn: .standards/tokens/design-tokens.json (nguồn chân lý duy nhất của
+   cả hệ sinh thái, xem .standards/docs/DESIGN_SYSTEM.md) ghép với
+   tokens/extensions.tsudev-web.json (phần riêng của web).
 
    Chọn chế độ: thuộc tính \`data-theme\` trên <html>. Bảng màu ở đây KHÔNG treo
    vào cài đặt hệ điều hành, và đó là cố ý - làm vậy thì hai người mở CÙNG một
@@ -80,9 +93,9 @@ let out = header;
 
 for (const [mode, selector, colorScheme, note] of MODES) {
   out += `\n/* ${note} */\n${selector} {\n  color-scheme: ${colorScheme};\n\n`;
-  out += `  /* Bảng chuẩn hệ sinh thái - tokens/design-tokens.json > color.${mode} */\n`;
+  out += `  /* Bảng chuẩn hệ sinh thái - .standards/tokens/design-tokens.json > color.${mode} */\n`;
   out += emitVars(tokens.color[mode]);
-  out += `\n\n  /* Mở rộng riêng của tsudev-web - > extensions.tsudev-web.${mode} */\n`;
+  out += `\n\n  /* Mở rộng riêng của tsudev-web - tokens/extensions.tsudev-web.json > ${mode} */\n`;
   out += emitVars(ext[mode]);
   out += '\n}\n';
 }
@@ -94,8 +107,8 @@ out += `
 :root {
   /* Chữ */
   --font-family: ${tokens.typography['font-family']};
-  --font-mono: ${tokens.typography['font-family-mono']};
-${Object.entries(tokens.typography.size)
+  --font-mono: ${tokens.typography['font-mono']};
+${Object.entries(tokens.typography['font-size'])
   .map(([k, v]) => `  --fs-${k}: ${v};`)
   .join('\n')}
 ${Object.entries(ext.typography.size)
@@ -111,21 +124,18 @@ ${Object.entries(tokens.typography['letter-spacing'])
   .map(([k, v]) => `  --ls-${k}: ${v};`)
   .join('\n')}
 
-  /* Bo góc - ${tokens.radius.usage} */
+  /* Bo góc - ${usage.radius} */
 ${Object.entries(tokens.radius)
-  .filter(([k]) => k !== 'usage')
   .map(([k, v]) => `  --radius-${k}: ${v};`)
   .join('\n')}
 
-  /* Khoảng cách - ${tokens.spacing.usage} */
+  /* Khoảng cách - ${usage.spacing} */
 ${Object.entries(tokens.spacing)
-  .filter(([k]) => k !== 'usage')
   .map(([k, v]) => `  --sp-${k}: ${v};`)
   .join('\n')}
 
-  /* Đổ bóng - ${tokens.shadow.usage} */
+  /* Đổ bóng - ${usage.shadow} */
 ${Object.entries(tokens.shadow)
-  .filter(([k]) => k !== 'usage')
   .map(([k, v]) => `  --shadow-${k}: ${v};`)
   .join('\n')}
 
@@ -134,9 +144,8 @@ ${Object.entries(tokens['z-index'])
   .map(([k, v]) => `  --z-${k}: ${v};`)
   .join('\n')}
 
-  /* Chuyển động - ${tokens.motion.usage} */
+  /* Chuyển động - ${usage.motion} */
 ${Object.entries(tokens.motion)
-  .filter(([k]) => k !== 'usage')
   .map(([k, v]) => `  --motion-${k === 'easing' ? 'easing' : k}: ${v};`)
   .join('\n')}
 
@@ -159,25 +168,27 @@ ${Object.entries(tokens.motion)
 }
 `;
 
-/** Đối chiếu bản chuẩn hệ sinh thái với JSON; trả về danh sách chỗ lệch. */
+/**
+ * Đối chiếu `.standards/tokens/tokens.css` với `.standards/tokens/design-tokens.json`.
+ * Cả hai đến từ cùng một gói đồng bộ nên lệch nhau là lỗi của gói, không phải của
+ * repo này - nhưng bắt ở đây rẻ, và im lặng thì đắt.
+ */
 function driftInCanonical() {
   const css = fs.readFileSync(CANON_CSS, 'utf8');
   const drift = [];
   for (const [mode] of MODES) {
-    // Khối của chế độ trong tokens/tokens.css: `:root, [data-theme="light"]` hoặc `[data-theme="warm"]`.
-    const start =
-      mode === 'light'
-        ? css.indexOf(':root, [data-theme="light"]')
-        : css.indexOf(`[data-theme="${mode}"]`);
+    // Cả ba chế độ đều có bộ chọn `[data-theme="<mode>"]`; riêng light còn đứng
+    // sau `:root,` trên dòng trước, nên bắt đầu từ bộ chọn là đủ và đồng nhất.
+    const start = css.indexOf(`[data-theme="${mode}"]`);
     if (start < 0) {
-      drift.push(`tokens/tokens.css thiếu khối chế độ "${mode}"`);
+      drift.push(`.standards/tokens/tokens.css thiếu khối chế độ "${mode}"`);
       continue;
     }
     const body = css.slice(start, css.indexOf('\n}', start));
     for (const [name, value] of Object.entries(tokens.color[mode])) {
       const m = body.match(new RegExp(`--${name}:\\s*([^;]+);`));
       if (!m) {
-        drift.push(`${mode}: tokens/tokens.css thiếu --${name}`);
+        drift.push(`${mode}: .standards/tokens/tokens.css thiếu --${name}`);
       } else if (m[1].trim().replace(/\s+/g, '') !== String(value).replace(/\s+/g, '')) {
         drift.push(`${mode}: --${name} lệch - JSON "${value}" vs CSS "${m[1].trim()}"`);
       }
@@ -194,8 +205,8 @@ function driftInCanonical() {
  * đòi chạy lại tokens:sync - và mỗi lần chạy một cái thì cái kia đỏ. Cho bộ sinh
  * dùng đúng cấu hình prettier là hết vòng lặp đó.
  *
- * (`tokens/tokens.css` thì ngược lại: nó nằm trong .prettierignore vì là bản
- * chuẩn dùng chung của cả hệ sinh thái và phải giữ nguyên văn.)
+ * (`.standards/` thì ngược lại: cả cây nằm trong .prettierignore vì định dạng lại
+ * một byte cũng làm lệch MANIFEST.sha256 của gói đồng bộ.)
  */
 const pretty = (css) =>
   prettier.format(css, { ...prettier.resolveConfig.sync(UI_CSS), parser: 'css' });
@@ -205,7 +216,7 @@ out = pretty(out);
 const check = process.argv.includes('--check');
 const drift = driftInCanonical();
 if (drift.length) {
-  console.error('tokens/tokens.css đã trôi lệch khỏi design-tokens.json:');
+  console.error('.standards/tokens/tokens.css đã trôi lệch khỏi design-tokens.json cùng thư mục:');
   for (const d of drift) console.error('  - ' + d);
   process.exit(1);
 }
@@ -214,7 +225,7 @@ if (check) {
   const current = fs.existsSync(UI_CSS) ? fs.readFileSync(UI_CSS, 'utf8') : '';
   if (current !== out) {
     console.error(
-      'packages/ui/src/tokens.css không khớp tokens/design-tokens.json.\n' +
+      'packages/ui/src/tokens.css không khớp nguồn token.\n' +
         'Chạy `npm run tokens:sync` rồi commit lại bản sinh ra.'
     );
     process.exit(1);
