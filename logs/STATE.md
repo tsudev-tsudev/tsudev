@@ -1,25 +1,32 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> ⚠️ **NHÁNH `chore/qu-std-1-tokens` (phiên 28) - đọc trước khi merge.**
-> Tách từ `main`, nên khối sổ sách bên dưới là bản TRƯỚC phiên 27; phiên 27
-> (DOCS-SEARCH / PR #81) ghi sổ trên nhánh của nó. Hai nhánh **không chạm file mã
-> nguồn nào chung** và nhánh này **không có migration**, nên merge theo thứ tự nào
-> cũng được. Chi tiết + chỗ đụng nhau khi merge: phiếu
-> [`handover/20260826-04`](handover/20260826-04_ket-phien-28.md).
+> **Phiên 29 bắt đầu ở đây** (cập nhật cuối phiên 28).
 >
-> Việc phiên 28: **QU-STD-1** (gỡ bản sao token cục bộ) + **QU-STD-3** (rà xong,
-> không phải sửa gì). **PR #82 mở, CI 7/7 XANH** (đo trên commit `65e8983`),
-> **chưa merge** - còn chờ MẮT NGƯỜI, xem phiếu §2.1.
+> **`main` = `4bb3ae3`. PR #81 (DOCS-SEARCH) ĐÃ MERGE**, và migration đã áp dụng
+> trên prod - đo bằng `prisma migrate status`: 22 migration, "Database schema is
+> up to date". Backend Render và tsudev.com đều trả 200.
 >
-> ⚠️ E2E smoke xanh **không** thay được bước đó: nó chứng minh trang dựng được và
-> không vỡ, không chứng minh khối văn bản dài đọc tốt hơn. Hai câu hỏi khác nhau.
+> 🟠 **Đợt DOCS-SEARCH còn HAI bước chưa xong, bỏ qua thì trông y hệt chưa làm:**
 >
-> Dự đoán xung đột merge ở phiếu §2.2 **đã kiểm bằng merge khô** (rồi `--abort`):
-> chỉ `logs/LOCKS.md` và `logs/STATE.md` đụng nhau, đều kiểu "cả hai cùng thêm";
-> chín file mã của PR #81 gộp sạch.
+> 1. **`search:reindex` trên prod** - mọi `Doc` tạo trước migration mang
+>    `search*Norm` NULL nên vẫn không tìm thấy được, và **không có gì báo lỗi**.
+>    `set -a && . ~/.tsudev-prod.env && set +a && npm --workspace services/content-service run search:reindex`
+> 2. **Deploy frontend Cloudflare** qua `npm --workspace apps/frontend-main run deploy`
+>    (đừng gọi thẳng `opennextjs-cloudflare`), rồi nghiệm thu bằng PAYLOAD:
+>    `curl -s 'https://tsudev.com/api/search?q=tai%20lieu&type=doc'` phải có ít nhất
+>    một hàng `"kind":"doc"`.
 >
-> **Phiên 27 bắt đầu ở đây** (cập nhật cuối phiên 26): đọc
-> [`handover/20260826-02`](handover/20260826-02_ket-phien-26.md) - phiếu kết phiên 26.
+> **Toà soạn Agent AI đã chạy lại** sau khi bật `NEWSROOM_ENABLED=true` ở Render
+> (đo 26/08: `AgentRun` 515 → 520). Việc còn lại của nó ở phiếu
+> [`handover/20260826-05`](handover/20260826-05_toa-soan-im-lang.md): seed nguồn
+> kênh DOC trên prod, và bấm "Hồi sinh việc đã dừng" sau khi #83 lên.
+>
+> Ba phiếu của đợt này:
+> [`20260826-03`](20260826-03_ket-phien-27.md) DOCS-SEARCH ·
+> [`20260826-04`](20260826-04_ket-phien-28.md) QU-STD-1 ·
+> [`20260826-05`](20260826-05_toa-soan-im-lang.md) toà soạn im lặng.
+>
+> Phiếu cũ hơn: [`handover/20260826-02`](handover/20260826-02_ket-phien-26.md) - kết phiên 26.
 > Phiếu cũ hơn giữ làm tham chiếu:
 > [`handover/20260826-01`](handover/20260826-01_ket-phien-25.md) - phiếu kết
 > phiên ĐẦY ĐỦ, gồm cả phần phát hành. Phiếu `20260825-03` là bản giữa phiên,
@@ -52,7 +59,7 @@
 > việc con BLOG-500-AUTH đóng luôn. **Không còn phần nào của BLOG-500 mở.**
 >
 > Hàng đợi còn: **QU-STD-AUTH** (nặng nhất, cần quyết định OIDC của chủ dự án) →
-> DOCS-SEARCH → QU-STD-1/3 → B1/C1.
+> QU-STD-1/3 → B1/C1. **DOCS-SEARCH đã xong ở phiên 27** (chờ phát hành, xem trên).
 >
 > ⚠️ Bốn điều đáng nhớ của phiên 25: (a) `router.query` **rỗng ở lần dựng đầu**
 > trên trang tối ưu tĩnh, nên bản viết tay của đợt 1 đã **tự ghi đè `?page=3`
@@ -639,14 +646,17 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       thật và vào được `/admin`** - phép đo, không phải suy luận. Agent không có
       credentials nên việc này bắt buộc phải là mắt người.
 
-- [ ] **DOCS-SEARCH** Đưa `Doc` vào chỉ mục tìm kiếm. Phát hiện khi làm
-      NEWSROOM-DOCS, **cố ý tách ra** thay vì làm dở: `buildPostSearch` chỉ chạy
-      cho `Post`, và `Doc` không có cột `searchTitleNorm`/`searchBodyNorm` nào.
-      Làm đủ cần 2 cột + 2 index GIN trgm (migration) + đường ghi lúc đăng +
-      script reindex + đổi hợp đồng `/api/posts/search` + thẻ kết quả ở `/search`
-      (hiện `PostSearchResult.data` là `Post[]`). Quy mô ngang một pha của
-      ACCOUNTS-ADMIN. Hệ quả khi chưa làm: tài liệu do agent viết đọc được ở
-      `/docs` nhưng KHÔNG tìm thấy qua ô tìm kiếm.
+- [x] **DOCS-SEARCH** ✅ CODE XONG 26/08/2026 (phiên 27, nhánh `feat/docs-search`,
+      **PR #81 mở, CI 7/7 xanh, chưa merge - chờ chạy migration trên prod trước**).
+      Hai commit: `74dfaa9` (mã) + `bec9d0b` (sổ sách). Đủ sáu phần đã nêu:
+      2 cột + 2 index GIN trgm (migration `20260825230122_doc_search_index`),
+      `buildDocSearch` ở `@tsudev/search` gắn vào đường ghi Doc DUY NHẤT của
+      production (`newsroom-service/dispatcher.ts`), `search:reindex` nay phủ cả
+      Post lẫn Doc, hợp đồng `/api/posts/search` đổi sang **hàng có `kind`** kèm
+      hai trục lọc mới `type`/`category`, và `/search` dựng thẻ riêng cho tài liệu.
+      Đo thật trên endpoint đã dựng: gõ **`tai lieu api`** (không dấu) ra
+      `doc/api-reference` "Tài liệu API" - đúng triệu chứng việc này ra đời để
+      chấm dứt. Ba điều đáng nhớ ghi ở mục "Đã hoàn thành" bên dưới.
 
 - [ ] **QU-STD-4** Chuyển `NEXT_PUBLIC_MAIN_URL` ra khỏi `apps/frontend-main/.env.production` (dùng ở 18 chỗ gồm `scripts/deploy-frontend.js`, `render.yaml`, `config/topology.json`), rồi xóa dòng miễn trừ trong `.standards-allow`. Miễn trừ **hết hạn 31/12/2026**.
 
@@ -657,6 +667,34 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
 | _(trống)_ |       |         |
 
 ## Đã hoàn thành (mới nhất trên cùng)
+
+- 26/08/2026 - **DOCS-SEARCH: tài liệu vào chỉ mục tìm kiếm** (phiên 27, nhánh
+  `feat/docs-search`, **PR #81 - CI 7/7 xanh, chưa merge**). Chi tiết ở mục
+  DOCS-SEARCH trong hàng đợi. Năm điều đáng nhớ:
+  (a) **Bản đầu tính chỉ mục ngay trong `packages/db/prisma/seed.js` và đó là
+  bẫy**: `@tsudev/search` chỉ có `dist/` sau `build:services`, mà `dev:full` chạy
+  `db:seed` TRƯỚC bước đó ⇒ lần dựng máy đầu tiên sẽ chết. Đã hoàn nguyên; seed
+  cũng không lập chỉ mục Post từ trước, nên đường chuẩn cho dữ liệu seed là
+  `search:reindex`, không phải seed.
+  (b) **Xếp hạng Doc CỐ Ý không đọc `searchBodyNorm`.** Cột đó lớn ngang cả bài mà
+  tập ứng viên tới 500 hàng. Vì `WHERE` đã lọc "khớp tiêu đề HOẶC khớp thân bài",
+  không khớp tiêu đề tức là khớp thân bài - suy ra được, không phải kéo về. Cùng
+  lý do, `contentMd` chỉ nạp cho đúng các hàng LÊN TRANG để dựng đoạn trích.
+  (c) **Phân trang theo NGÀY nay CHÍNH XÁC ở mọi trang, kể cả khi trộn hai nguồn**:
+  để lấy trang P mốc S chỉ cần P\*S hàng đầu của MỖI nguồn, nên nhánh này không cần
+  trần. Trần 500 chỉ còn ở nhánh xếp hạng theo độ liên quan (phải chấm điểm cả tập)
+
+  - đúng như trước, không phải hồi quy mới.
+    (d) **Thẻ là trục của bài viết, chuyên mục là trục của tài liệu.** Lọc AND giữa
+    các nhóm ⇒ chọn `tag` thì tài liệu rơi khỏi phạm vi và ngược lại. Máy chủ thi
+    hành; giao diện ẩn luôn ô chip không áp dụng được, để người dùng không tự đưa
+    mình vào tổ hợp cho ra 0 kết quả.
+    (e) **Byte NUL THẬT trong nguồn làm `git diff` báo file là NHỊ PHÂN** -
+    `search.tsx` đã dính một lần, ở dấu tách của `resetKey` vốn phải là DÃY THOÁT.
+    Cả trang thành không rà soát được, trong khi prettier, eslint và typecheck đều
+    XANH. Dấu hiệu nhận ra: `file <đường dẫn>` in `data` thay vì `JavaScript
+source`. Đã sửa trước khi commit; nó tái diễn ngay trong phiếu bàn giao nên
+    đáng ghi lại.
 
 - 26/08/2026 - **ACCOUNTS-ADMIN Pha 0-2** (phiên 25). **Pha 0**: `oauth/upsert`
   nay ghi `login` + `lastLoginAt` ở CẢ BỐN nhánh (trước đó nhánh "đã liên kết"
@@ -1313,6 +1351,7 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 | Mã                                                                  | Chủ đề                                                                      | Trạng thái |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
+| [20260826-03](handover/20260826-03_ket-phien-27.md)                 | Kết phiên 27 - DOCS-SEARCH (chờ migration prod + merge)                     | **MỞ**     |
 | [20260826-02](handover/20260826-02_ket-phien-26.md)                 | Kết phiên 26 - đóng BLOG-500, cổng chặn migration, dọn trang chủ, siết mail | **MỞ**     |
 | [20260822-05](handover/20260822-05_ket-phien-18.md)                 | Kết phiên 18 - Phase 0 + đo B1 + phát hành Phase A                          | **MỞ**     |
 | [20260822-04](handover/20260822-04_ket-phien-17.md)                 | Kết phiên 17 - Phase A (SSRF + rate limit) code-complete                    | HOÀN THÀNH |

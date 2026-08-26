@@ -5,7 +5,7 @@ import { Layout, Card, Badge, Avatar, RecordFooter, usePageSize } from '@tsudev/
 import { DEFAULT_PAGE_SIZE, normalizePage } from '@tsudev/types';
 import { findMatchRanges } from '@tsudev/search';
 import { api } from '../lib/api';
-import type { Post, PostSearchResult } from '../lib/types';
+import type { PostSearchResult, SearchHit } from '../lib/types';
 import type { GetServerSidePropsContext } from 'next';
 import { formatDateVN } from '../lib/format';
 
@@ -16,8 +16,38 @@ const SORTS: Array<{ key: SortKey; label: string }> = [
   { key: 'oldest', label: 'Cũ nhất' },
 ];
 
+/**
+ * Trục lọc "loại nội dung" (SEARCH_AND_FILTER §6.1). Chuẩn ghi là chọn NHIỀU;
+ * với đúng hai loại thì "Tất cả / Bài viết / Tài liệu" biểu diễn trọn vẹn cùng
+ * tập lựa chọn đó mà đỡ một lớp thao tác. Thêm loại thứ ba thì đổi sang chọn
+ * nhiều thật - `type` của API đã nhận danh sách ngăn cách bằng dấu phẩy sẵn.
+ */
+type TypeKey = 'all' | 'post' | 'doc';
+const TYPES: Array<{ key: TypeKey; label: string }> = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'post', label: 'Bài viết' },
+  { key: 'doc', label: 'Tài liệu' },
+];
+
 const MIN_QUERY = 2;
 const DEBOUNCE_MS = 350;
+
+const EMPTY_RESULT: PostSearchResult = {
+  data: [],
+  meta: {
+    total: 0,
+    page: 1,
+    page_size: DEFAULT_PAGE_SIZE,
+    total_pages: 1,
+    query_normalized: '',
+  },
+  facets: { tag: [], category: [], type: [] },
+};
+
+/** Đường dẫn đích của một hàng kết quả. Một chỗ duy nhất, vì cả thẻ, phím Enter
+ *  và thuộc tính href đều cần nó - lệch nhau là bàn phím đi một nơi, chuột đi
+ *  một nẻo. */
+const hrefOf = (h: SearchHit) => (h.kind === 'post' ? `/blog/${h.slug}` : `/docs/${h.slug}`);
 
 /** Tô sáng đoạn khớp, ánh xạ NGƯỢC về chuỗi gốc (chuẩn §2.3) - đúng cả khi gõ
  *  không dấu mà tiêu đề có dấu. Từ khoá là dữ liệu người dùng nhưng ta chèn qua
@@ -42,7 +72,9 @@ function Highlight({ text, query }: { text: string; query: string }) {
 
 type SearchProps = {
   initialQ: string;
+  initialType: TypeKey;
   initialTag: string | null;
+  initialCategory: string | null;
   initialSort: SortKey;
   initialPage: number;
   initial: PostSearchResult;
@@ -50,14 +82,18 @@ type SearchProps = {
 
 export default function SearchPage({
   initialQ,
+  initialType,
   initialTag,
+  initialCategory,
   initialSort,
   initialPage,
   initial,
 }: SearchProps) {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
+  const [type, setType] = useState<TypeKey>(initialType);
   const [tag, setTag] = useState<string | null>(initialTag);
+  const [category, setCategory] = useState<string | null>(initialCategory);
   const [sort, setSort] = useState<SortKey>(initialSort);
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = usePageSize('search', router.query.page_size);
@@ -88,20 +124,18 @@ export default function SearchPage({
   }, []);
 
   const runSearch = useCallback(
-    async (query: string, tg: string | null, srt: SortKey, pg: number, size: number) => {
+    async (
+      query: string,
+      ty: TypeKey,
+      tg: string | null,
+      cat: string | null,
+      srt: SortKey,
+      pg: number,
+      size: number
+    ) => {
       const enough = query.trim().length >= MIN_QUERY;
-      if (!enough && !tg) {
-        setResult({
-          data: [],
-          meta: {
-            total: 0,
-            page: 1,
-            page_size: DEFAULT_PAGE_SIZE,
-            total_pages: 1,
-            query_normalized: '',
-          },
-          facets: { tag: [] },
-        });
+      if (!enough && !tg && !cat) {
+        setResult(EMPTY_RESULT);
         setLoading(false);
         setError(false);
         return;
@@ -115,7 +149,9 @@ export default function SearchPage({
       try {
         const params = new URLSearchParams();
         if (enough) params.set('q', query.trim());
+        if (ty !== 'all') params.set('type', ty);
         if (tg) params.set('tag', tg);
+        if (cat) params.set('category', cat);
         params.set('sort', srt);
         // Đổi mốc PHẢI tải lại từ máy chủ (DATA_TABLE.md mục 4) - cắt ở máy
         // khách thì mốc 10 không tiết kiệm được gì.
@@ -135,10 +171,10 @@ export default function SearchPage({
     []
   );
 
-  // Đổi từ khoá / thẻ / cách sắp xếp là ĐỔI TẬP KẾT QUẢ, nên phải về trang 1:
-  // giữ nguyên trang 7 của truy vấn cũ thì truy vấn mới gần như luôn rỗng và
-  // trông y hệt "không tìm thấy gì".
-  const resetKey = `${q}\u0000${tag ?? ''}\u0000${sort}`;
+  // Đổi từ khoá / loại / thẻ / chuyên mục / cách sắp xếp là ĐỔI TẬP KẾT QUẢ, nên
+  // phải về trang 1: giữ nguyên trang 7 của truy vấn cũ thì truy vấn mới gần như
+  // luôn rỗng và trông y hệt "không tìm thấy gì".
+  const resetKey = [q, type, tag ?? '', category ?? '', sort].join('\u0000');
   const prevResetKey = useRef(resetKey);
   useEffect(() => {
     if (prevResetKey.current === resetKey) return;
@@ -146,14 +182,16 @@ export default function SearchPage({
     setPage(1);
   }, [resetKey]);
 
-  // Debounce khi q/tag/sort/trang/mốc đổi + đồng bộ URL (chia sẻ được, nút back
-  // trả đúng).
+  // Debounce khi truy vấn/bộ lọc/trang/mốc đổi + đồng bộ URL (chia sẻ được, nút
+  // back trả đúng).
   useEffect(() => {
     const handle = setTimeout(() => {
-      runSearch(q, tag, sort, page, pageSize);
+      runSearch(q, type, tag, category, sort, page, pageSize);
       const params = new URLSearchParams();
       if (q.trim().length >= MIN_QUERY) params.set('q', q.trim());
+      if (type !== 'all') params.set('type', type);
       if (tag) params.set('tag', tag);
+      if (category) params.set('category', category);
       if (sort !== 'relevance') params.set('sort', sort);
       if (page !== 1) params.set('page', String(page));
       params.set('page_size', String(pageSize));
@@ -164,10 +202,19 @@ export default function SearchPage({
     return () => clearTimeout(handle);
     // router cố ý không nằm trong deps: nó đổi định danh mỗi lần replace shallow.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, tag, sort, page, pageSize, runSearch]);
+  }, [q, type, tag, category, sort, page, pageSize, runSearch]);
 
   const results = result.data;
-  const go = (p: Post) => router.push(`/blog/${p.slug}`);
+  const go = (h: SearchHit) => router.push(hrefOf(h));
+
+  // Thẻ là trục của bài viết, chuyên mục là trục của tài liệu - máy chủ loại trừ
+  // loại không mang trục đang lọc. Dọn luôn ở đây để người dùng không tự đưa mình
+  // vào tổ hợp cho ra 0 kết quả (ví dụ type=doc kèm một thẻ).
+  const pickType = (k: TypeKey) => {
+    setType(k);
+    if (k === 'doc') setTag(null);
+    if (k === 'post') setCategory(null);
+  };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
@@ -177,7 +224,8 @@ export default function SearchPage({
       e.preventDefault();
       setActive((i) => Math.max(i - 1, -1));
     } else if (e.key === 'Enter') {
-      if (active >= 0 && results[active]) go(results[active]);
+      const hit = active >= 0 ? results[active] : undefined;
+      if (hit) go(hit);
     } else if (e.key === 'Escape') {
       setQ('');
     }
@@ -190,15 +238,23 @@ export default function SearchPage({
     (el as HTMLElement | null)?.scrollIntoView({ block: 'nearest' });
   }, [active]);
 
-  const hasQuery = q.trim().length >= MIN_QUERY || !!tag;
+  const hasQuery = q.trim().length >= MIN_QUERY || !!tag || !!category;
+  const countOf = (slug: string) => result.facets.type.find((f) => f.slug === slug)?.count ?? 0;
+  const postCount = countOf('post');
+  const docCount = countOf('doc');
 
   return (
     <Layout active="/blog" bare>
-      <Seo title="Tìm kiếm" path="/search" description="Tìm bài viết trên tsudev." noindex />
+      <Seo
+        title="Tìm kiếm"
+        path="/search"
+        description="Tìm bài viết và tài liệu trên tsudev."
+        noindex
+      />
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-bold text-fg mb-1">Tìm kiếm bài viết</h1>
+        <h1 className="text-2xl font-bold text-fg mb-1">Tìm kiếm</h1>
         <p className="text-sm text-fg-muted mb-5">
-          Gõ không dấu vẫn ra kết quả có dấu. Từ {MIN_QUERY} ký tự trở lên.
+          Bài viết và tài liệu. Gõ không dấu vẫn ra kết quả có dấu. Từ {MIN_QUERY} ký tự trở lên.
         </p>
 
         <div className="relative">
@@ -208,7 +264,7 @@ export default function SearchPage({
             aria-expanded={results.length > 0}
             aria-controls="search-results"
             aria-activedescendant={active >= 0 ? `result-${active}` : undefined}
-            aria-label="Tìm kiếm bài viết"
+            aria-label="Tìm kiếm bài viết và tài liệu"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKeyDown}
@@ -217,7 +273,38 @@ export default function SearchPage({
           />
         </div>
 
-        {/* Sắp xếp + facet thẻ */}
+        {/* Loại nội dung */}
+        <div className="flex flex-wrap items-center gap-2 mt-3" aria-label="Lọc theo loại nội dung">
+          <span className="text-xs text-fg-muted">Loại:</span>
+          {TYPES.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => pickType(t.key)}
+              aria-pressed={type === t.key}
+              className={`text-xs rounded-sm px-2 py-1 border ${
+                type === t.key
+                  ? 'border-primary text-link'
+                  : 'border-line-control text-fg-muted hover:text-fg'
+              }`}
+            >
+              {t.label}
+              {hasQuery && (
+                <span className="ml-1 tabular-nums">
+                  {' · '}
+                  {(t.key === 'all'
+                    ? postCount + docCount
+                    : t.key === 'post'
+                    ? postCount
+                    : docCount
+                  ).toLocaleString('vi-VN')}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Sắp xếp */}
         <div className="flex flex-wrap items-center gap-2 mt-3">
           <span className="text-xs text-fg-muted">Sắp xếp:</span>
           {SORTS.map((s) => (
@@ -236,7 +323,8 @@ export default function SearchPage({
           ))}
           {tag && (
             <span className="ml-2 text-xs text-fg-muted">
-              Thẻ: <span className="text-fg font-medium">{tag}</span> ·{' '}
+              Thẻ: <span className="text-fg font-medium">{tag}</span>
+              {' · '}
               <button
                 type="button"
                 onClick={() => setTag(null)}
@@ -246,9 +334,22 @@ export default function SearchPage({
               </button>
             </span>
           )}
+          {category && (
+            <span className="ml-2 text-xs text-fg-muted">
+              Chuyên mục: <span className="text-fg font-medium">{category}</span>
+              {' · '}
+              <button
+                type="button"
+                onClick={() => setCategory(null)}
+                className="text-link hover:underline"
+              >
+                bỏ
+              </button>
+            </span>
+          )}
         </div>
 
-        {result.facets.tag.length > 0 && (
+        {type !== 'doc' && result.facets.tag.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3" aria-label="Lọc theo thẻ">
             {result.facets.tag.map((f) => (
               <button
@@ -258,6 +359,23 @@ export default function SearchPage({
                 aria-pressed={f.slug === tag}
               >
                 <Badge tone={f.slug === tag ? 'brand' : 'neutral'}>
+                  {f.slug} · {f.count}
+                </Badge>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {type !== 'post' && result.facets.category.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3" aria-label="Lọc theo chuyên mục tài liệu">
+            {result.facets.category.map((f) => (
+              <button
+                key={f.slug}
+                type="button"
+                onClick={() => setCategory(f.slug === category ? null : f.slug)}
+                aria-pressed={f.slug === category}
+              >
+                <Badge tone={f.slug === category ? 'brand' : 'neutral'}>
                   {f.slug} · {f.count}
                 </Badge>
               </button>
@@ -278,21 +396,26 @@ export default function SearchPage({
               ))}
             </div>
           ) : !hasQuery ? (
-            <p className="text-sm text-fg-muted">Nhập từ khoá hoặc chọn một thẻ để bắt đầu.</p>
+            <p className="text-sm text-fg-muted">
+              Nhập từ khoá, hoặc chọn một thẻ / chuyên mục để bắt đầu.
+            </p>
           ) : results.length === 0 ? (
             <Card className="p-6 text-sm text-fg-muted">
-              Không tìm thấy kết quả phù hợp với “{q || tag}”. Thử kiểm tra chính tả hoặc dùng từ
-              khoá khác.
+              Không tìm thấy kết quả phù hợp với “{q || tag || category}”. Thử kiểm tra chính tả,
+              dùng từ khoá khác, hoặc nới bộ lọc loại nội dung.
             </Card>
           ) : (
             <>
+              {/* §6.4: nói rõ số kết quả THEO TỪNG LOẠI, không chỉ tổng. */}
               <p className="text-xs text-fg-muted mb-3">
-                {result.meta.total.toLocaleString('vi-VN')} bài viết
+                {type !== 'doc' && `${postCount.toLocaleString('vi-VN')} bài viết`}
+                {type === 'all' && ', '}
+                {type !== 'post' && `${docCount.toLocaleString('vi-VN')} tài liệu`}
               </p>
               <ul id="listbox" role="listbox" ref={listRef} className="space-y-3">
-                {results.map((p, i) => (
+                {results.map((h, i) => (
                   <li
-                    key={p.id}
+                    key={`${h.kind}-${h.id}`}
                     id={`result-${i}`}
                     data-idx={i}
                     role="option"
@@ -300,30 +423,46 @@ export default function SearchPage({
                   >
                     <Card
                       as="a"
-                      href={`/blog/${p.slug}`}
+                      href={hrefOf(h)}
                       hover
                       className={`p-5 block ${i === active ? 'border-primary' : ''}`}
                       onMouseEnter={() => setActive(i)}
                     >
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {(p.tags || []).map((t) => (
-                          <Badge key={t} tone={t === tag ? 'brand' : 'neutral'}>
-                            {t}
-                          </Badge>
-                        ))}
+                      <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                        <Badge tone={h.kind === 'doc' ? 'info' : 'brand'}>
+                          {h.kind === 'doc' ? 'Tài liệu' : 'Bài viết'}
+                        </Badge>
+                        {h.kind === 'post'
+                          ? (h.tags || []).map((t) => (
+                              <Badge key={t} tone={t === tag ? 'brand' : 'neutral'}>
+                                {t}
+                              </Badge>
+                            ))
+                          : h.category && (
+                              <Badge tone={h.category === category ? 'brand' : 'neutral'}>
+                                {h.category}
+                              </Badge>
+                            )}
                       </div>
                       <h2 className="text-lg font-bold text-fg leading-snug">
-                        <Highlight text={p.title} query={q} />
+                        <Highlight text={h.title} query={q} />
                       </h2>
-                      {p.excerpt && (
+                      {h.excerpt && (
                         <p className="mt-1 text-sm text-fg-muted">
-                          <Highlight text={p.excerpt} query={q} />
+                          <Highlight text={h.excerpt} query={q} />
                         </p>
                       )}
                       <div className="mt-3 flex items-center gap-2 text-xs text-fg-muted">
-                        <Avatar name={p.author?.displayName || 'tsudev'} size={20} />
-                        {p.author?.displayName || 'tsudev'} ·{' '}
-                        {formatDateVN(p.publishedAt || p.createdAt)}
+                        {h.kind === 'post' ? (
+                          <>
+                            <Avatar name={h.author?.displayName || 'tsudev'} size={20} />
+                            {h.author?.displayName || 'tsudev'}
+                            {' · '}
+                            {formatDateVN(h.publishedAt || h.createdAt)}
+                          </>
+                        ) : (
+                          <>Cập nhật {formatDateVN(h.updatedAt)}</>
+                        )}
                       </div>
                     </Card>
                   </li>
@@ -334,7 +473,7 @@ export default function SearchPage({
                   meta={result.meta}
                   pageSize={pageSize}
                   loading={loading}
-                  label="bài viết"
+                  label="kết quả"
                   onPageSize={(size, nextPage) => {
                     setPageSize(size);
                     setPage(nextPage);
@@ -352,14 +491,19 @@ export default function SearchPage({
 
 export async function getServerSideProps({ query }: GetServerSidePropsContext) {
   const initialQ = typeof query.q === 'string' ? query.q : '';
+  const initialType: TypeKey = query.type === 'post' || query.type === 'doc' ? query.type : 'all';
   const initialTag = typeof query.tag === 'string' && query.tag.trim() ? query.tag.trim() : null;
+  const initialCategory =
+    typeof query.category === 'string' && query.category.trim() ? query.category.trim() : null;
   const initialSort: SortKey =
     query.sort === 'newest' || query.sort === 'oldest' ? query.sort : 'relevance';
   const initialPage = normalizePage(query.page);
 
   const params = new URLSearchParams();
   if (initialQ.trim().length >= MIN_QUERY) params.set('q', initialQ.trim());
+  if (initialType !== 'all') params.set('type', initialType);
   if (initialTag) params.set('tag', initialTag);
+  if (initialCategory) params.set('category', initialCategory);
   params.set('sort', initialSort);
   // Chuyển tiếp NGUYÊN VĂN: máy chủ quy về mốc hợp lệ bằng `normalizePageSize`,
   // nên trang dựng sẵn khớp đúng liên kết được chia sẻ.
@@ -369,19 +513,19 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
   }
 
   const initial =
-    initialQ.trim().length >= MIN_QUERY || initialTag
+    initialQ.trim().length >= MIN_QUERY || initialTag || initialCategory
       ? await api.searchPosts(params.toString())
-      : {
-          data: [],
-          meta: {
-            total: 0,
-            page: 1,
-            page_size: DEFAULT_PAGE_SIZE,
-            total_pages: 1,
-            query_normalized: '',
-          },
-          facets: { tag: [] },
-        };
+      : EMPTY_RESULT;
 
-  return { props: { initialQ, initialTag, initialSort, initialPage, initial } };
+  return {
+    props: {
+      initialQ,
+      initialType,
+      initialTag,
+      initialCategory,
+      initialSort,
+      initialPage,
+      initial,
+    },
+  };
 }
