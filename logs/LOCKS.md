@@ -4,17 +4,11 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG - phiên 28 đã nhả TOÀN BỘ khóa.
+(TRỐNG - không agent nào đang giữ khóa.
 
-⚠️ **BA nhánh đang mở, không nhánh nào chạm file mã nguồn của nhánh kia:**
+**PR #81 (DOCS-SEARCH) và PR #82 (QU-STD-1) đã merge**; migration của #81 đã áp
+dụng trên prod.
 
-1. `feat/docs-search` = **PR #81**, CI 7/7 xanh. CHƯA merge vì có MIGRATION -
-   thứ tự phát hành bị ràng buộc. Đọc `logs/handover/20260826-03_ket-phien-27.md` §2.1.
-2. `chore/qu-std-1-tokens` = **PR #82**, CI 7/7 xanh. Chờ mắt người.
-   Đọc `logs/handover/20260826-04_ket-phien-28.md` §2.1.
-3. `fix/newsroom-duyet-dang` = toà soạn im lặng. Không migration.
-   Đọc `logs/handover/20260826-05_toa-soan-im-lang.md` - **§2 có hai việc chỉ chủ
-   dự án làm được, và chúng phải làm TRƯỚC thì merge mới có tác dụng nhìn thấy.**
-
-Cả ba đều đụng `logs/STATE.md` + `logs/LOCKS.md` khi merge, đều kiểu "cả hai cùng
-thêm". Giữ cả hai khối, mới nhất lên trên.)
+**`fix/newsroom-duyet-dang` = PR #83** là nhánh cuối còn mở. Không có migration.
+Đọc `logs/handover/20260826-05_toa-soan-im-lang.md` - §2 còn việc chỉ chủ dự án
+làm được (seed nguồn kênh DOC trên prod), và nó phải xong thì `/docs` mới có bài.)

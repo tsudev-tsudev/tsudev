@@ -10,7 +10,7 @@ import { join } from 'path';
  * chữ thường và 3:1 cho chữ lớn hoặc thành phần giao diện, còn
  * .standards/docs/DESIGN_SYSTEM.md §1 đòi thêm chữ chính trên nền đạt ≥ 10:1.
  *
- * Test đọc THẲNG tokens.css - bản SINH RA từ tokens/design-tokens.json - nên
+ * Test đọc THẲNG tokens.css - bản SINH RA từ .standards/tokens/design-tokens.json - nên
  * không có bản sao nào để trôi lệch. Đổi một mã màu mà làm tụt tương phản là CI
  * đỏ, không phải một khiếu nại của người dùng vài tháng sau.
  */
@@ -155,9 +155,10 @@ const PAIRS: Array<[string, string, number, string]> = [
   // Thành phần giao diện và viền - 3:1 theo WCAG 1.4.11.
   // `border-control` chứ không phải `border-strong`: giá trị chuẩn của
   // `border-strong` chỉ đạt 1.65-2.49:1 trên ba nền, tức là ranh giới của nút phụ
-  // và ô nhập KHÔNG nhìn thấy được theo WCAG 1.4.11. Xem `$accessibility_gap`
-  // trong tokens/design-tokens.json - đây là khiếm khuyết của bảng màu v1.0.0,
-  // không phải của app, và cần được đẩy ngược lên repo token trung tâm.
+  // và ô nhập KHÔNG nhìn thấy được theo WCAG 1.4.11. Đó là khiếm khuyết của bảng
+  // màu v1.0.0, không phải của app; nó đã được đẩy ngược lên repo token trung tâm
+  // và bảng chuẩn từ v2.8.0 mang sẵn `border-control`. Số đo đầy đủ giữ ở
+  // `$accessibility_gap` trong tokens/extensions.tsudev-web.json.
   ['--border-control', '--bg-base', 3, 'viền vùng tương tác trên nền trang'],
   ['--border-control', '--bg-surface', 3, 'viền vùng tương tác trên card'],
   ['--border-control', '--bg-subtle', 3, 'viền vùng tương tác trên khối lồng'],

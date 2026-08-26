@@ -4,7 +4,7 @@
 // dịch, nhật ký và van an toàn nằm ở đây, để không phải đi tìm ở bốn nơi khi
 // một bài đi sai đường.
 import { prisma } from '@tsudev/db'
-import { buildPostSearch } from '@tsudev/search'
+import { buildDocSearch, buildPostSearch } from '@tsudev/search'
 import { runScout, runWriter, runEditor, runSeo, slugify } from './agents'
 import { pickCoverImage } from './images'
 import { fetchSource, fingerprint } from './sources'
@@ -611,6 +611,11 @@ export async function onPublishRequested(draftId: string): Promise<void> {
         position: (last?.position ?? 0) + 1,
         sourceDraftId: draft.id,
         authoredByAgentId: draft.authorAgentId,
+        // Chỉ mục tìm kiếm phải tính TẠI ĐÂY, cùng lượt ghi. Đây là đường ghi Doc
+        // duy nhất ở production (Toà soạn Agent AI) - bỏ sót thì tài liệu đọc
+        // được ở /docs mà không tìm thấy, đúng triệu chứng DOCS-SEARCH ra đời để
+        // chấm dứt, và không có gì báo lỗi.
+        ...buildDocSearch({ title: draft.title, contentMd: draft.contentMd }),
       },
     })
     await prisma.contentDraft.update({

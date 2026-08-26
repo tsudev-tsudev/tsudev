@@ -83,11 +83,13 @@ song](#chạy-song-song) bên dưới.
 | `qa-test`       | `services/*/test/`, `e2e/`, `packages/ui/test/`                                                           | unit + E2E, cổng tương phản, chẩn đoán CI    |
 | `docs-curator`  | `docs/` (trừ file viết HOA), mọi `README.md`, `CHANGELOG.md`                                              | giữ tài liệu đúng và gọn                     |
 
-> **Ba nhóm file KHÔNG agent nào sở hữu vì không agent nào được sửa**: `AGENTS.md`
-> phần A, `.standards/docs/DESIGN_SYSTEM.md`, `.standards/docs/PROJECT_STRUCTURE.md`, `tokens/tokens.css`
-> và `tokens/design-tokens.json` khối `color`. Chúng đến từ bộ quy ước dùng chung;
-> muốn đổi thì đổi ở repo token trung tâm rồi đồng bộ xuống. `design-system` được
-> ghi vào `tokens/design-tokens.json` **chỉ ở khối `extensions.tsudev-web`**.
+> **Hai nhóm file KHÔNG agent nào sở hữu vì không agent nào được sửa**: `AGENTS.md`
+> phần A, và **toàn bộ cây `.standards/`** (gồm `docs/DESIGN_SYSTEM.md`,
+> `docs/PROJECT_STRUCTURE.md`, `tokens/design-tokens.json`, `tokens/tokens.css`).
+> Chúng đến từ bộ quy ước dùng chung; muốn đổi thì đổi ở repo trung tâm rồi đồng bộ
+> xuống. `design-system` ghi token riêng của repo vào
+> `tokens/extensions.tsudev-web.json` - từ 26/08/2026 (QU-STD-1) đó là file token
+> DUY NHẤT mà repo này sở hữu, không còn bản sao cục bộ nào của bảng dùng chung.
 >
 > `logs/STATE.md` và `logs/LOCKS.md` thì ngược lại: **mọi** agent đều ghi, và đó là
 > điểm duy nhất trong repo mà việc ghi đồng thời là bình thường - thêm/xoá đúng

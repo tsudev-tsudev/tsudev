@@ -1,0 +1,82 @@
+{
+  "$note": "Phần MỞ RỘNG riêng của tsudev-web. Bảng dùng chung nằm ở .standards/tokens/design-tokens.json và KHÔNG được sao chép về đây - `npm run tokens:sync` đọc thẳng file đó rồi ghép khối này lên trên để sinh packages/ui/src/tokens.css. Chính bản sao cục bộ (v1.0.0, đã xoá 26/08/2026) là thứ trôi lệch âm thầm khỏi bản chuẩn v2.0.0 mà không cổng nào bắt được.",
+  "meta": {
+    "name": "tsudev-web-token-extensions",
+    "updated": "26/08/2026",
+    "base": ".standards/tokens/design-tokens.json"
+  },
+  "$color_note": "accent = sắc phụ (teal) của con dấu tín nhiệm. icon-* = mã màu theo NHÓM HÀNH ĐỘNG: mắt nhận ra nhóm trước khi đọc nhãn, điều một hàng icon cùng màu xám không làm được. Sáu sắc, không nhiều hơn - quá bảy màu thì chúng thôi là mã và trở thành nhiễu. status-ink/status-tint = cặp cho badge: bảng `color` chỉ định nghĩa màu trạng thái ĐẶC (dùng với on-status), còn badge nền nhạt cần một sắc chữ ĐẬM HƠN mới đạt 4.5:1 - ở chế độ Light màu trạng thái gốc chỉ đạt 4.0-4.3:1 trên chính tint 12% của nó. text-muted và border-control KHÔNG còn ở đây: cả hai đã được nhận vào bảng chuẩn (.standards/ v2.8.0) với ĐÚNG giá trị mà khối này từng ghi đè - xem $accessibility_gap.",
+  "light": {
+    "accent": "#0A6A5B",
+    "glow": "rgba(37,99,235,0.14)",
+    "grid-line": "rgba(28,43,58,0.06)",
+    "icon-nav": "#1D4ED8",
+    "icon-create": "#146C37",
+    "icon-edit": "#7A4D00",
+    "icon-danger": "#B3243C",
+    "icon-info": "#4A4A8F",
+    "icon-trust": "#0A6A5B",
+    "success-ink": "#146C37",
+    "warning-ink": "#7A4D00",
+    "danger-ink": "#B3243C",
+    "info-ink": "#0369A1",
+    "success-tint": "#E3F0E8",
+    "warning-tint": "#F6EAE1",
+    "danger-tint": "#FBE5E5",
+    "info-tint": "#E1EDF4"
+  },
+  "warm": {
+    "accent": "#0A5F52",
+    "glow": "rgba(30,95,194,0.12)",
+    "grid-line": "rgba(46,42,33,0.07)",
+    "icon-nav": "#1A56B8",
+    "icon-create": "#1B6E38",
+    "icon-edit": "#9A4A07",
+    "icon-danger": "#BE2020",
+    "icon-info": "#464678",
+    "icon-trust": "#0A5F52",
+    "success-ink": "#1B6E38",
+    "warning-ink": "#9A4A07",
+    "danger-ink": "#BE2020",
+    "info-ink": "#0B5E86",
+    "success-tint": "#E1E7D9",
+    "warning-tint": "#F0E3D3",
+    "danger-tint": "#F5DED6",
+    "info-tint": "#DFE6E2"
+  },
+  "dark": {
+    "accent": "#3FDDC4",
+    "glow": "rgba(102,163,242,0.22)",
+    "grid-line": "rgba(230,237,245,0.06)",
+    "icon-nav": "#7FB2F7",
+    "icon-create": "#4ADE80",
+    "icon-edit": "#FBBF24",
+    "icon-danger": "#F87171",
+    "icon-info": "#B7B7F0",
+    "icon-trust": "#3FDDC4",
+    "success-ink": "#4ADE80",
+    "warning-ink": "#FBBF24",
+    "danger-ink": "#F87171",
+    "info-ink": "#38BDF8",
+    "success-tint": "#1C3C44",
+    "warning-tint": "#313839",
+    "danger-tint": "#312F42",
+    "info-tint": "#1A3853"
+  },
+  "typography": {
+    "$note": "Thang chữ của DESIGN_SYSTEM.md §4 dừng ở 30px (H1) - đủ cho giao diện công cụ, nhưng khối hero của một website cần bậc lớn hơn. Ba bậc dưới đây nối tiếp 30px theo lưới 4px và CHỈ dùng cho tiêu đề hero/marketing, không dùng trong luồng thao tác.",
+    "size": {
+      "display-sm": "36px",
+      "display-md": "48px",
+      "display-lg": "60px"
+    }
+  },
+  "$usage": {
+    "$note": "Chú thích cách dùng đi kèm bốn nhóm token dùng chung. Bảng chuẩn v1.0.0 mang chúng trong chính file JSON; v2.0.0 bỏ đi. Giữ lại ở đây vì chúng là thứ người sửa giao diện đọc trong packages/ui/src/tokens.css - mất đi thì không có gì báo lỗi, chỉ là lần sau có người chọn nhầm bậc bo góc.",
+    "radius": "none=khung layout/sidebar/header (thẳng tắp) | sm=badge,checkbox,tag | md=button,input,dropdown,modal nhỏ | lg=modal lớn,table container,card",
+    "spacing": "bội số 4px. Padding button: 8px 16px. Padding modal: 24px. Gap giữa field trong form: 16px. Gap giữa section: 32px.",
+    "shadow": "sm=button/input | md=dropdown/toast/card nổi | lg=modal. Dark mode giữ nguyên giá trị.",
+    "motion": "hover/focus dùng fast; mở dropdown dùng base; mở modal dùng slow. Tôn trọng prefers-reduced-motion."
+  },
+  "$accessibility_gap": "ĐÃ ĐÓNG 25/08/2026 - giữ làm số đo tham chiếu. Bảng `color` chuẩn v1.0.0 không đạt chính quy tắc bắt buộc của .standards/docs/DESIGN_SYSTEM.md mục 1 ở hai token, đo bằng packages/ui/test/contrast.test.ts: (1) `text-muted` chỉ đạt 3.69-4.58:1 trên bốn tầng nền, dưới ngưỡng AA 4.5:1 - token bị dùng nhiều nhất trong app (~200 chỗ); (2) `border-strong` chỉ đạt 1.65-2.49:1, dưới ngưỡng 3:1 của WCAG 1.4.11 cho ranh giới thành phần giao diện. tsudev-web từng vá bằng cách ghi đè `text-muted` và thêm vai trò `border-control`. Đề xuất đẩy ngược (docs/token-upstream-proposal.md) ĐÃ ĐƯỢC NHẬN vào bộ quy ước v2.8.0: bảng chuẩn nay mang đúng hai giá trị đó, nên khối ghi đè đã bị gỡ và giao diện KHÔNG đổi một pixel nào. `border-strong` giữ giá trị chuẩn và chỉ dùng cho ranh giới trang trí; ranh giới VÙNG TƯƠNG TÁC (viền nút phụ, viền ô nhập) dùng `border-control`."
+}

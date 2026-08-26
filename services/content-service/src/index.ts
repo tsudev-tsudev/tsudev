@@ -19,7 +19,7 @@ import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
 import { createRateLimit, largePageRateLimit } from '@tsudev/ratelimit'
 import type { Post, Prisma, Project, User } from '@prisma/client'
 import { hasAtLeastRole, emailUsable, pageMeta, parsePaging, MAX_PAGE_SIZE } from '@tsudev/types'
-import { buildPostSearch, viNormalizeText } from '@tsudev/search'
+import { buildPostSearch, buildSnippet, viNormalizeText } from '@tsudev/search'
 
 type Notifier = { alert: (payload: Record<string, unknown>) => Promise<void> }
 
@@ -221,8 +221,79 @@ app.get(
   })
 )
 
+// Loại nội dung nằm trong phạm vi tìm kiếm (§10.4 "thêm loại nội dung mới").
+// Thêm một loại = thêm một mục ở đây + một nhánh nạp ứng viên; hình dạng phản hồi
+// KHÔNG phải đổi, vì mỗi hàng tự khai `kind`.
+const SEARCH_TYPES = ['post', 'doc'] as const
+type SearchType = (typeof SEARCH_TYPES)[number]
+const isSearchType = (s: string): s is SearchType => (SEARCH_TYPES as readonly string[]).includes(s)
+
+/**
+ * Đọc `type=post,doc`. Tham số lọc KHÔNG hợp lệ thì bỏ qua chứ không báo lỗi
+ * (§7) - và nếu sau khi lọc không còn giá trị nào thì coi như không lọc, thay vì
+ * trả 0 kết quả một cách khó hiểu cho một chữ gõ sai.
+ */
+const parseSearchTypes = (raw?: string): SearchType[] => {
+  const picked = [
+    ...new Set(
+      (raw ?? '')
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(isSearchType)
+    ),
+  ]
+  return picked.length ? picked : [...SEARCH_TYPES]
+}
+
+// Hàng Doc dùng cho xếp hạng: CỐ Ý không kéo `contentMd`/`searchBodyNorm` về.
+// Tập ứng viên lên tới RANK_CAP hàng, mà hai cột đó lớn ngang cả bài - kéo về chỉ
+// để chấm điểm là nhân băng thông với 500 cho mỗi lượt gõ phím.
+type DocRank = {
+  id: string
+  slug: string
+  title: string
+  category: string
+  updatedAt: Date
+  searchTitleNorm: string | null
+}
+const DOC_RANK_SELECT = {
+  id: true,
+  slug: true,
+  title: true,
+  category: true,
+  updatedAt: true,
+  searchTitleNorm: true,
+} as const
+
+// Xếp hạng Doc, đối xứng với `scorePost`: chuyên mục đóng vai trò của thẻ.
+const scoreDoc = (d: DocRank, qn: string): number => {
+  if (!qn) return 0
+  const t = d.searchTitleNorm ?? ''
+  let s = 0
+  if (t === qn) s += 100
+  else if (t.startsWith(qn)) s += 70
+  else if (t.includes(qn)) s += 50
+  if (viNormalizeText(d.category).includes(qn)) s += 30
+  // Tiêu đề không chứa từ khoá ⇒ hàng này lọt qua WHERE nhờ khớp THÂN BÀI. Suy ra
+  // thay vì kéo `searchBodyNorm` về (xem chú thích ở DOC_RANK_SELECT).
+  if (!t.includes(qn)) s += 10
+  return s
+}
+
+// Trần của NHÁNH XẾP HẠNG theo độ liên quan - phải chấm điểm cả tập nên phải có
+// trần. Nhánh sắp theo NGÀY không dùng trần này: nó chỉ lấy đúng `page*page_size`
+// hàng đầu của mỗi loại rồi trộn, nên phân trang theo ngày là CHÍNH XÁC ở mọi
+// trang, kể cả khi tập khớp vượt trần.
+const RANK_CAP = 500
+
 // Tìm kiếm/lọc theo SEARCH_AND_FILTER §7. ĐỨNG TRƯỚC '/api/posts/:slug' để không
-// bị nuốt thành slug "search". Trần page_size cứng 100 (chống cạn tài nguyên).
+// bị nuốt thành slug "search".
+//
+// ⚠️ Đường dẫn nói "posts" nhưng phạm vi là TOÀN SITE (bài viết + tài liệu, từ
+// DOCS-SEARCH 26/08/2026). Giữ nguyên đường dẫn có chủ đích: đổi nó phải sửa đồng
+// thời proxy `apps/frontend-main/pages/api/search.ts` và BẢNG TIỀN TỐ của
+// `services/backend-bundle` - mà tiền tố mới không nằm trong bảng thì route 404 ở
+// production trong khi chạy service riêng vẫn sống, KHÔNG có gì báo lỗi.
 app.get(
   '/api/posts/search',
   // Trần nay là 200 (mốc chuẩn cao nhất) thay vì 100, và giới hạn tần suất mốc
@@ -238,21 +309,32 @@ app.get(
     const rawQ = (qStr(req.query.q) ?? '').trim()
     const qn = viNormalizeText(rawQ)
     const tag = qStr(req.query.tag)?.trim()
+    const category = qStr(req.query.category)?.trim()
+    const types = parseSearchTypes(qStr(req.query.type))
     const sort = qStr(req.query.sort) ?? 'relevance'
     const paging = parsePaging(req.query)
     const { page, pageSize } = paging
 
-    // Truy vấn từ 2 ký tự (§2.1). Không q, không tag ⇒ không tìm gì.
+    // Truy vấn từ 2 ký tự (§2.1). Không q, không bộ lọc ⇒ không tìm gì.
     const hasQuery = qn.length >= 2
-    if (!hasQuery && !tag) {
+    if (!hasQuery && !tag && !category) {
       return res.json({
         data: [],
         meta: { ...pageMeta(0, paging), query_normalized: qn },
-        facets: { tag: [] },
+        facets: { tag: [], category: [], type: [] },
       })
     }
 
-    const where: Prisma.PostWhereInput = {
+    // Thẻ là trục của BÀI VIẾT, chuyên mục là trục của TÀI LIỆU. Lọc AND giữa các
+    // nhóm (§6.1) ⇒ chọn một trục loại trừ luôn loại không mang trục đó. Đặt hai
+    // cờ này TÁCH khỏi bộ lọc `type` để facet đếm vẫn nói được "chuyển sang loại
+    // kia thì có bao nhiêu kết quả".
+    const postApplicable = !category
+    const docApplicable = !tag
+    const wantPost = postApplicable && types.includes('post')
+    const wantDoc = docApplicable && types.includes('doc')
+
+    const postWhere: Prisma.PostWhereInput = {
       published: true,
       deletedAt: null,
       AND: [
@@ -268,52 +350,127 @@ app.get(
       ],
     }
 
-    const total = await prisma.post.count({ where })
-
-    // Sắp theo ngày ⇒ phân trang ở DB (rẻ). Sắp theo độ liên quan ⇒ lấy tập ứng
-    // viên có trần rồi xếp hạng trong bộ nhớ (quy mô nhỏ, §8). Trần 500 giữ chi
-    // phí hữu hạn kể cả khi từ khoá quá phổ biến.
-    //
-    // ⚠️ Trần 500 này là trần của NHÁNH XẾP HẠNG, không phải của phép đếm:
-    // `total` (và do đó `total_pages`) đếm đủ trong DB, nên ở mốc 200 người dùng
-    // vẫn thấy trang 4 tồn tại mà nội dung rỗng nếu tập khớp vượt 500. Trước đây
-    // mốc cao nhất là 100 nên chỗ này bắt đầu từ trang 6 và gần như không ai
-    // chạm tới. Sửa dứt điểm cần xếp hạng ở tầng DB - việc riêng, không thuộc
-    // QU-STD-TABLE.
-    let rows: PostWithAuthor[]
-    if (sort === 'newest' || sort === 'oldest' || !hasQuery) {
-      rows = await prisma.post.findMany({
-        where,
-        orderBy: [
-          { publishedAt: sort === 'oldest' ? 'asc' : 'desc' },
-          { createdAt: sort === 'oldest' ? 'asc' : 'desc' },
-        ],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: { author: true },
-      })
-    } else {
-      const candidates = await prisma.post.findMany({
-        where,
-        take: 500,
-        include: { author: true },
-      })
-      candidates.sort((a, b) => {
-        const d = scorePost(b, qn) - scorePost(a, qn)
-        if (d !== 0) return d
-        const ta = (a.publishedAt ?? a.createdAt).getTime()
-        const tb = (b.publishedAt ?? b.createdAt).getTime()
-        return tb - ta
-      })
-      rows = candidates.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize)
+    const docWhere: Prisma.DocWhereInput = {
+      deletedAt: null,
+      AND: [
+        ...(hasQuery
+          ? [
+              {
+                OR: [{ searchTitleNorm: { contains: qn } }, { searchBodyNorm: { contains: qn } }],
+              } as Prisma.DocWhereInput,
+            ]
+          : []),
+        ...(category ? [{ category } as Prisma.DocWhereInput] : []),
+      ],
     }
 
-    // Facet thẻ: đếm trong tập khớp (trần 500) - "khi khả thi" (§6.3).
-    const facetSource = await prisma.post.findMany({
-      where,
-      take: 500,
-      select: { tags: true },
+    // Hai phép đếm này chạy trong CSDL nên CHÍNH XÁC, không dính trần xếp hạng.
+    // Chúng vừa là facet loại, vừa là nguồn của `total`.
+    const [postCount, docCount] = await Promise.all([
+      postApplicable ? prisma.post.count({ where: postWhere }) : Promise.resolve(0),
+      docApplicable ? prisma.doc.count({ where: docWhere }) : Promise.resolve(0),
+    ])
+    const total = (wantPost ? postCount : 0) + (wantDoc ? docCount : 0)
+
+    const byDate = sort === 'newest' || sort === 'oldest' || !hasQuery
+    const asc = sort === 'oldest'
+    // Trộn hai nguồn đã sắp: để lấy đúng trang P mốc S, mỗi nguồn chỉ cần P*S hàng
+    // đầu - hàng thứ P*S+1 của một nguồn không thể lọt vào P*S hàng đầu của tập
+    // trộn. Nhờ vậy nhánh ngày không cần trần và không mất bản ghi nào.
+    const dateTake = page * pageSize
+    const take = byDate ? dateTake : RANK_CAP
+
+    const [postRows, docRows] = await Promise.all([
+      wantPost
+        ? prisma.post.findMany({
+            where: postWhere,
+            ...(byDate
+              ? {
+                  orderBy: [
+                    { publishedAt: asc ? ('asc' as const) : ('desc' as const) },
+                    { createdAt: asc ? ('asc' as const) : ('desc' as const) },
+                  ],
+                }
+              : {}),
+            take,
+            include: { author: true },
+          })
+        : Promise.resolve([] as PostWithAuthor[]),
+      wantDoc
+        ? prisma.doc.findMany({
+            where: docWhere,
+            ...(byDate
+              ? { orderBy: { updatedAt: asc ? ('asc' as const) : ('desc' as const) } }
+              : {}),
+            take,
+            select: DOC_RANK_SELECT,
+          })
+        : Promise.resolve([] as DocRank[]),
+    ])
+
+    // Trộn: mỗi ứng viên mang sẵn khoá sắp xếp để hai loại so được với nhau.
+    // `sortAt` của bài là NGÀY HIỂN THỊ; của tài liệu là lần cập nhật gần nhất.
+    type Candidate =
+      | { kind: 'post'; sortAt: number; score: number; post: PostWithAuthor }
+      | { kind: 'doc'; sortAt: number; score: number; doc: DocRank }
+    const candidates: Candidate[] = [
+      ...postRows.map((p) => ({
+        kind: 'post' as const,
+        sortAt: (p.publishedAt ?? p.createdAt).getTime(),
+        score: scorePost(p, qn),
+        post: p,
+      })),
+      ...docRows.map((d) => ({
+        kind: 'doc' as const,
+        sortAt: d.updatedAt.getTime(),
+        score: scoreDoc(d, qn),
+        doc: d,
+      })),
+    ]
+    candidates.sort((a, b) => {
+      if (!byDate) {
+        const d = b.score - a.score
+        if (d !== 0) return d
+      }
+      // Tie-break của nhánh xếp hạng, và khoá chính của nhánh ngày (§5).
+      return asc ? a.sortAt - b.sortAt : b.sortAt - a.sortAt
     })
+    const slice = candidates.slice((page - 1) * pageSize, page * pageSize)
+
+    // Đoạn trích của tài liệu cần `contentMd`, nên chỉ nạp cho ĐÚNG các hàng lên
+    // trang - không phải cả tập ứng viên.
+    const pageDocIds = slice
+      .filter((c) => c.kind === 'doc')
+      .map((c) => (c as { doc: DocRank }).doc.id)
+    const docBodies = new Map<string, string>()
+    if (pageDocIds.length > 0) {
+      const bodies = await prisma.doc.findMany({
+        where: { id: { in: pageDocIds } },
+        select: { id: true, contentMd: true },
+      })
+      for (const b of bodies) docBodies.set(b.id, b.contentMd)
+    }
+
+    const data = slice.map((c) =>
+      c.kind === 'post'
+        ? { kind: 'post' as const, ...publicPostCard(c.post) }
+        : {
+            kind: 'doc' as const,
+            id: c.doc.id,
+            slug: c.doc.slug,
+            title: c.doc.title,
+            // Doc không có cột tóm tắt; dựng đoạn trích quanh chỗ khớp để thẻ kết
+            // quả có phần mô tả và tô sáng được như thẻ bài viết.
+            excerpt: buildSnippet(docBodies.get(c.doc.id) ?? '', rawQ),
+            category: c.doc.category,
+            updatedAt: c.doc.updatedAt,
+          }
+    )
+
+    // Facet thẻ: đếm trong tập bài khớp (trần 500) - "khi khả thi" (§6.3).
+    const facetSource = postApplicable
+      ? await prisma.post.findMany({ where: postWhere, take: RANK_CAP, select: { tags: true } })
+      : []
     const tagCount = new Map<string, number>()
     for (const r of facetSource)
       for (const tg of r.tags) tagCount.set(tg, (tagCount.get(tg) ?? 0) + 1)
@@ -322,10 +479,34 @@ app.get(
       .sort((a, b) => b.count - a.count)
       .slice(0, 20)
 
+    // Facet chuyên mục: đếm bằng `groupBy` trong CSDL, nên CHÍNH XÁC (khác facet
+    // thẻ - `tags` là mảng nên không group được).
+    const categoryFacet = docApplicable
+      ? (
+          await prisma.doc.groupBy({
+            by: ['category'],
+            where: docWhere,
+            _count: { _all: true },
+          })
+        )
+          .map((g) => ({ slug: g.category, count: g._count._all }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 20)
+      : []
+
     res.json({
-      data: rows.map(publicPostCard),
+      data,
       meta: { ...pageMeta(total, paging), query_normalized: qn },
-      facets: { tag: tagFacet },
+      facets: {
+        tag: tagFacet,
+        category: categoryFacet,
+        // Đếm theo loại BỎ QUA bộ lọc `type` có chủ đích (§6.3 "biết trước lọc có
+        // ra kết quả hay không") - đang xem tài liệu vẫn phải thấy có bao nhiêu bài.
+        type: [
+          { slug: 'post', count: postCount },
+          { slug: 'doc', count: docCount },
+        ],
+      },
     })
   })
 )

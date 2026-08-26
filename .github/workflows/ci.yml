@@ -39,10 +39,11 @@ jobs:
       - name: Hợp đồng mạng (cổng/tên miền)
         run: npm run topology:check
       # Cổng token giao diện. `packages/ui/src/tokens.css` là bản SINH RA từ
-      # `tokens/design-tokens.json`; sửa tay nó thì thay đổi sống ở local mà biến
-      # mất ở lần chạy `tokens:sync` kế tiếp - im lặng, không ai báo lỗi. Bước này
-      # cũng bắt luôn trường hợp `tokens/tokens.css` (bản chuẩn dùng chung của cả
-      # hệ sinh thái) trôi lệch khỏi file JSON.
+      # `.standards/tokens/design-tokens.json` ghép `tokens/extensions.tsudev-web.json`;
+      # sửa tay nó thì thay đổi sống ở local mà biến mất ở lần chạy `tokens:sync`
+      # kế tiếp - im lặng, không ai báo lỗi. Bước này cũng bắt luôn trường hợp hai
+      # artifact của gói đồng bộ (`.standards/tokens/tokens.css` và file JSON cùng
+      # thư mục) trôi lệch khỏi nhau.
       - name: Token giao diện khớp nguồn chân lý
         run: npm run tokens:check
       - run: npm run format:check
