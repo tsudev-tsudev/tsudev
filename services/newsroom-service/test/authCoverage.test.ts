@@ -1,3 +1,6 @@
+// Giữ tệp là MODULE - xem chú thích ở test/reviveDead.test.ts.
+export {}
+
 // Mọi route của toà soạn phải nằm RÕ RÀNG ở một bên ranh giới.
 //
 // Khuôn lấy từ services/trust-service/test/authCoverage.test.ts, và lý do y hệt:

@@ -1,3 +1,12 @@
+// ⚠️ `export {}` giữ tệp này là MODULE. Không có nó, TypeScript coi tệp test là
+// script TOÀN CỤC và mọi `const` ở cấp cao dùng chung một phạm vi với các tệp
+// test khác - `prisma`, `stamp`, `clean`, `app` va nhau ngay. Bẫy này chỉ nổ khi
+// tệp test THỨ HAI dùng cùng một tên, nên nó ngủ yên cho tới lúc có người thêm
+// tệp mới, và nó **xanh ở local** nếu cache của ts-jest còn giữ chương trình cũ
+// (đã trả giá: 3 lần chạy local liên tiếp đều xanh, CI đỏ ngay lần đầu; tái lập
+// bằng `npx jest --clearCache`).
+export {}
+
 // Đường "Duyệt đăng" ở /admin/newsroom.
 //
 // Triệu chứng: bấm "Duyệt đăng" xong thẻ vẫn nằm nguyên trong cột "CHỜ BẠN

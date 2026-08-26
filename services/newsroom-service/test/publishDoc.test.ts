@@ -1,3 +1,6 @@
+// Giữ tệp là MODULE - xem chú thích ở test/reviveDead.test.ts.
+export {}
+
 // Đường đăng TÀI LIỆU của Toà soạn Agent AI - NEWSROOM-DOCS B0/B4.
 //
 // Vì sao tệp này tồn tại: `/docs` trên production có đúng 2 tài liệu, cả hai từ
