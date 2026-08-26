@@ -284,6 +284,81 @@ export function parseJsonLoose<T>(raw: string): T | null {
   return null
 }
 
+/// Dấu tách giữa phần siêu dữ liệu (JSON) và thân bài (Markdown thô).
+///
+/// Phải khớp NGUYÊN VĂN với chuỗi trong prompt của Writer ở `agents.ts`. Đổi một
+/// chỗ mà quên chỗ kia thì mọi bài rơi xuống nhánh dự phòng và lỗi cũ mọc lại -
+/// im lặng, vì nhánh dự phòng vẫn chạy được.
+export const WRITER_BODY_SEPARATOR = '===BODY==='
+
+export interface WriterOutput {
+  title?: string
+  excerpt?: string
+  contentMd: string
+  /// Đã phải dùng nhánh dự phòng JSON hay không. Chẩn đoán cần biết: nếu con số
+  /// này cao thì mô hình đang không tuân định dạng, và bản vá chỉ đang che.
+  usedJsonFallback: boolean
+}
+
+/**
+ * Tách đầu ra của Writer thành siêu dữ liệu + thân bài.
+ *
+ * ⚠️ Vì sao KHÔNG đòi cả bài nằm trong một chuỗi JSON nữa - đo được 26/08/2026:
+ * vai `write` hỏng **16/20 lượt (80%)** trên production với đúng một thông điệp,
+ * trong khi `seo` hỏng 0/2. Vai `write` là vai duy nhất bắt cả bài Markdown 800
+ * đến 1500 từ nằm gọn trong một giá trị chuỗi JSON.
+ *
+ * Một bài kỹ thuật tiếng Việt chứa dấu nháy kép ở khắp nơi - lời dẫn, tên riêng,
+ * mẫu mã nguồn - và mỗi dấu nháy KHÔNG được thoát sẽ đóng chuỗi sớm, làm hỏng
+ * toàn bộ khối JSON. `escapeRawControlChars` vá được xuống dòng thô và tab; nó
+ * KHÔNG vá được dấu nháy lạc, và cũng không vá được đầu ra bị cắt cụt ở trần
+ * token. Cả hai đều làm mất TRỌN VẸN bài viết chứ không chỉ làm hỏng một trường.
+ *
+ * Nên thân bài nay đi RA NGOÀI JSON, sau một dấu tách. Đổi này bỏ hẳn cả lớp
+ * lỗi thoát chuỗi, và khi đầu ra bị cắt cụt thì phần mất chỉ là đuôi bài chứ
+ * không phải cả bài.
+ *
+ * Nhánh dự phòng giữ lại có chủ đích: mô hình không phải lúc nào cũng tuân định
+ * dạng, và một bài đọc được bằng đường cũ vẫn hơn không có bài nào. Nhưng nó
+ * ĐƯỢC ĐẾM (`usedJsonFallback`) để không âm thầm trở thành đường chính.
+ */
+export function splitWriterOutput(raw: string): WriterOutput | null {
+  if (!raw) return null
+  const text = raw.trim()
+
+  const at = text.indexOf(WRITER_BODY_SEPARATOR)
+  if (at !== -1) {
+    const head = text.slice(0, at)
+    const body = text.slice(at + WRITER_BODY_SEPARATOR.length)
+    // Siêu dữ liệu hỏng KHÔNG được làm mất bài: tiêu đề có đường lùi (đề tài
+    // gốc), thân bài thì không.
+    const meta = parseJsonLoose<{ title?: string; excerpt?: string }>(head) ?? {}
+    return {
+      title: meta.title,
+      excerpt: meta.excerpt,
+      contentMd: stripCodeFence(body).trim(),
+      usedJsonFallback: false,
+    }
+  }
+
+  const p = parseJsonLoose<{ title?: string; excerpt?: string; contentMd?: string }>(text)
+  if (!p?.contentMd) return null
+  return {
+    title: p.title,
+    excerpt: p.excerpt,
+    contentMd: p.contentMd.trim(),
+    usedJsonFallback: true,
+  }
+}
+
+/// Bỏ rào ```markdown ... ``` nếu mô hình bọc thân bài lại. Chỉ bỏ khi rào ôm
+/// TRỌN phần thân - rào của một khối mã BÊN TRONG bài phải giữ nguyên.
+function stripCodeFence(s: string): string {
+  const t = s.trim()
+  const m = t.match(/^```(?:markdown|md)?\s*\n([\s\S]*)\n```$/i)
+  return m?.[1] ?? t
+}
+
 /**
  * Escape xuống dòng / tab THÔ nằm bên trong chuỗi JSON.
  *

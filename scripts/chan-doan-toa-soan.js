@@ -131,6 +131,43 @@ const utcDayStart = () => {
     })}`
   );
 
+  // --- Tỉ lệ hỏng của từng vai agent ----------------------------------------
+  //
+  // Phân biệt "thỉnh thoảng lỗi" với "hỏng hệ thống". Toà soạn có thể chạy đều,
+  // tiêu Neuron đều, mà KHÔNG bài nào ra đời - nếu đúng một vai luôn ném. Đếm
+  // theo `action` vì đó là thứ chỉ ra vai nào, và ghép kèm thông điệp lỗi hay
+  // gặp nhất để khỏi phải mở lại nhật ký.
+  const runs = await prisma.agentRun.findMany({
+    where: { startedAt: { gte: day } },
+    select: { action: true, ok: true, errorMsg: true },
+  });
+  if (runs.length) {
+    const byAction = {};
+    for (const r of runs) {
+      const a = (byAction[r.action] ??= { ok: 0, fail: 0, errs: {} });
+      if (r.ok) a.ok++;
+      else {
+        a.fail++;
+        const e = (r.errorMsg || '(không có thông điệp)').slice(0, 60);
+        a.errs[e] = (a.errs[e] || 0) + 1;
+      }
+    }
+    console.log('\n-- Lượt chạy agent HÔM NAY, theo vai --');
+    for (const [action, a] of Object.entries(byAction)) {
+      const total = a.ok + a.fail;
+      const pct = total ? Math.round((a.fail / total) * 100) : 0;
+      console.log(
+        `   ${action.padEnd(10)} ok=${String(a.ok).padStart(3)}  hỏng=${String(a.fail).padStart(
+          3
+        )}  (${pct}%)`
+      );
+      for (const [e, n] of Object.entries(a.errs)
+        .sort((x, y) => y[1] - x[1])
+        .slice(0, 2))
+        console.log(`     └ ${n}× ${e}`);
+    }
+  }
+
   // --- Nhật ký gần nhất ------------------------------------------------------
   console.log('\nSự kiện gần nhất:');
   for (const e of await prisma.newsroomEvent.findMany({

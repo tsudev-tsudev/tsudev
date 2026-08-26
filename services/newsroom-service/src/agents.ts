@@ -2,7 +2,7 @@
 //
 // Không hàm nào ở đây tự ghi DB - dispatcher làm việc đó, để một chỗ duy nhất
 // chịu trách nhiệm về giao dịch và nhật ký. Agent chỉ suy nghĩ.
-import { complete, parseJsonLoose } from './llm'
+import { complete, parseJsonLoose, splitWriterOutput, WRITER_BODY_SEPARATOR } from './llm'
 import { RawItem } from './sources'
 
 // Agent KHÔNG trả chi phí về cho người gọi: `complete()` tự ghi vào sổ chi phí
@@ -79,29 +79,69 @@ export async function runWriter(opts: {
       `giữ nguyên phần đã đạt:\n${opts.feedback}\n\nBản trước:\n${opts.previousDraft ?? ''}`
     : ''
 
+  // Trần token của riêng Writer, chỉnh được mà không phải phát hành lại. Đây là
+  // vai DUY NHẤT sinh ra một tài liệu dài, nên nó là vai duy nhất chạm trần.
+  const maxTokens = parseInt(process.env.NEWSROOM_WRITER_MAX_TOKENS || '4000', 10)
+
   const r = await complete({
     system: `${opts.systemPrompt}\n\n## Giọng văn chuyên mục\n${opts.styleGuide}`,
     model: opts.model,
-    maxTokens: 4000,
-    json: true,
+    maxTokens,
+    // `json: false` CÓ CHỦ ĐÍCH: bật lên thì nhà cung cấp chèn thêm câu "chỉ trả
+    // về một khối JSON", mà định dạng dưới đây cố ý có phần NẰM NGOÀI JSON.
+    json: false,
     user:
       `Chủ đề: ${opts.title}\nLý do đáng viết: ${opts.rationale}\n` +
       `Nguồn tham khảo (BẮT BUỘC dẫn ở cuối bài, viết mới hoàn toàn, không sao chép):\n` +
       opts.sourceUrls.map((u) => `- ${u}`).join('\n') +
       revise +
-      `\n\nLược đồ trả về:\n` +
-      `{"title":"tiêu đề cuối cùng","excerpt":"tóm tắt 1-2 câu",` +
-      `"contentMd":"toàn bộ bài viết bằng Markdown"}`,
+      `\n\nTrả về ĐÚNG hai phần, theo đúng thứ tự này, không viết gì thêm:\n\n` +
+      `{"title":"tiêu đề cuối cùng","excerpt":"tóm tắt 1-2 câu"}\n` +
+      `${WRITER_BODY_SEPARATOR}\n` +
+      `<toàn bộ bài viết bằng Markdown, viết thẳng, KHÔNG bọc trong JSON>`,
   })
 
-  const p = parseJsonLoose<{ title?: string; excerpt?: string; contentMd?: string }>(r.text)
-  if (!p?.contentMd || p.contentMd.trim().length < 200) {
-    throw new Error('Writer trả về bài rỗng hoặc quá ngắn')
+  const out = splitWriterOutput(r.text)
+
+  // ⚠️ Ba cách hỏng khác nhau, và bản trước gộp cả ba vào một câu "bài rỗng hoặc
+  // quá ngắn". Gộp như thế thì nhật ký production không phân biệt được "mô hình
+  // trả về rác" với "mô hình viết tốt nhưng bị cắt cụt" - hai nguyên nhân cần hai
+  // cách chữa ngược nhau. Đây chính là cái đã làm mất một giờ chẩn đoán ngày
+  // 26/08: 16 dòng lỗi giống hệt nhau, không dòng nào nói được vì sao.
+  const truncated = r.outputTokens > 0 && r.outputTokens >= maxTokens - 8
+  const seen = `${r.text.length} ký tự, ${r.outputTokens}/${maxTokens} token`
+
+  if (!out) {
+    throw new Error(
+      `Writer: không đọc được đầu ra (${seen}` +
+        `${truncated ? ', BỊ CẮT CỤT ở trần token' : ', không thấy dấu tách và JSON cũng hỏng'})`
+    )
   }
+
+  const body = out.contentMd.trim()
+  if (body.length < 200) {
+    throw new Error(
+      `Writer: bài quá ngắn - ${body.length} ký tự, cần ít nhất 200 (${seen}` +
+        `${truncated ? ', BỊ CẮT CỤT' : ''}${
+          out.usedJsonFallback ? ', qua nhánh dự phòng JSON' : ''
+        })`
+    )
+  }
+
+  // Cắt cụt KHÔNG còn làm mất cả bài - thân bài nằm ngoài JSON nên phần đọc được
+  // vẫn nguyên vẹn - nhưng bài cụt đuôi thì không đăng được. Ném để nó vào vòng
+  // thử lại, và nói rõ cần nâng trần chứ đừng đi sửa prompt.
+  if (truncated) {
+    throw new Error(
+      `Writer: đầu ra BỊ CẮT CỤT ở trần token (${seen}). ` +
+        `Nâng NEWSROOM_WRITER_MAX_TOKENS, hoặc siết độ dài trong giọng văn chuyên mục.`
+    )
+  }
+
   return {
-    title: (p.title || opts.title).trim(),
-    excerpt: (p.excerpt || '').trim(),
-    contentMd: p.contentMd.trim(),
+    title: (out.title || opts.title).trim(),
+    excerpt: (out.excerpt || '').trim(),
+    contentMd: body,
   }
 }
 

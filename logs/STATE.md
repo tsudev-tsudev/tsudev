@@ -2,6 +2,20 @@
 
 > **Phiên 29 bắt đầu ở đây** (cập nhật cuối phiên 28).
 >
+> 🔴 **Toà soạn chạy nhưng KHÔNG đẻ ra bài: vai `write` hỏng 80%** (16/20 lượt,
+> đo 26/08). Hạ tầng đã đúng hết - công tắc bật, hàng đợi chạy, Neuron tiêu đều -
+> nhưng `write` là vai duy nhất bắt cả bài Markdown nằm trong một chuỗi JSON, và
+> mỗi dấu nháy kép trong bài làm hỏng TOÀN BỘ khối đó. Bản vá đưa thân bài ra
+> ngoài JSON: nhánh `fix/newsroom-writer-chan-doan`, phiếu
+> [`20260826-06`](handover/20260826-06_writer-hong-80-phan-tram.md).
+> **Nghiệm thu phải đo lại tỉ lệ hỏng SAU khi backend lên**, không suy ra từ việc
+> commit đã vào `main` - xem §2 của phiếu.
+>
+> ⚠️ `newsroom:check` KHÔNG bắt được lớp lỗi này: nó đếm `AgentRun` tăng lên, mà
+> lượt chạy HỎNG cũng làm số đó tăng. Suốt buổi nó vẫn in "✔ Toà soạn ĐANG CHẠY
+> THẬT" trong khi 80% lượt ném lỗi. Dùng `newsroom:chan-doan` (nay có bảng đếm
+> theo vai).
+>
 > **PR #81 (DOCS-SEARCH) và PR #82 (QU-STD-1) ĐÃ MERGE.** Migration của #81 đã áp
 > dụng trên prod - đo bằng `prisma migrate status`: 22 migration, "Database schema
 > is up to date". Backend Render và tsudev.com đều trả 200. **PR #83 (toà soạn) là
@@ -716,6 +730,20 @@ source`. Đã sửa trước khi commit; nó tái diễn ngay trong phiếu bàn
   theo TỪNG NHÁNH nên nhánh `alias` mới phải khai riêng - quên là OWNER cũng
   nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
   có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
+- 26/08/2026 - **Writer hỏng 80%: tài liệu dài không nằm được trong chuỗi JSON**
+  (phiên 28, nhánh `fix/newsroom-writer-chan-doan`). Chi tiết ở phiếu `20260826-06`.
+  (a) **Thứ chỉ ra thủ phạm là phép đếm theo VAI, không phải nhật ký.** Trong nhật
+  ký sự kiện, "thỉnh thoảng lỗi" và "hỏng hệ thống" hiện ra giống hệt nhau. Đếm
+  `AgentRun` theo `action` thì tương quan lộ ngay: `write` 80%, `seo` 0%, và `write`
+  là vai duy nhất trả về một tài liệu dài.
+  (b) **Dấu nháy kép mới là thủ phạm, không phải cắt cụt.** Bài kỹ thuật tiếng Việt
+  đầy dấu nháy - lời dẫn, tên riêng, mẫu mã nguồn - và mỗi cái không thoát đóng
+  chuỗi sớm, làm mất TRỌN VẸN bài chứ không hỏng một trường. Bản vá
+  `escapeRawControlChars` của đợt trước đúng cho triệu chứng nó gặp; cùng thiết kế
+  đó còn sinh ra hai lớp lỗi nữa.
+  (c) **Một thông điệp lỗi gộp nhiều nguyên nhân tệ hơn không có thông điệp**, vì
+  nó tạo cảm giác đã biết. 16 dòng `event.failed` giống hệt nhau nói được đúng một
+  điều là "có hỏng".
 - 26/08/2026 - **Toà soạn im lặng: ba lỗi cùng một họ** (phiên 28, nhánh
   `fix/newsroom-duyet-dang`). Chi tiết + số đo ở phiếu `20260826-05`. Điều đáng
   nhớ nhất không phải ba bản vá mà là **họ** của chúng: cả ba đều là một nhánh

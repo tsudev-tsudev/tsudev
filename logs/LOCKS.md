@@ -4,11 +4,7 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG - không agent nào đang giữ khóa.
+(TRỐNG - đã nhả toàn bộ khóa của WRITER-FIX.
 
-**PR #81 (DOCS-SEARCH) và PR #82 (QU-STD-1) đã merge**; migration của #81 đã áp
-dụng trên prod.
-
-**`fix/newsroom-duyet-dang` = PR #83** là nhánh cuối còn mở. Không có migration.
-Đọc `logs/handover/20260826-05_toa-soan-im-lang.md` - §2 còn việc chỉ chủ dự án
-làm được (seed nguồn kênh DOC trên prod), và nó phải xong thì `/docs` mới có bài.)
+Nhánh `fix/newsroom-writer-chan-doan` tách từ `main` = `e0c3c90`. Không migration.
+Đọc `logs/handover/20260826-06_writer-hong-80-phan-tram.md`.)
