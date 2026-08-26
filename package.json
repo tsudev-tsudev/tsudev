@@ -42,7 +42,8 @@
     "build:ts": "tsc -b",
     "build:services": "tsc -b tsconfig.services.json",
     "db:seed:dev": "node scripts/with-env.js node services/auth-service/scripts/seed-dev-users.js",
-    "newsroom:check": "bash scripts/kiem-toa-soan.sh"
+    "newsroom:check": "bash scripts/kiem-toa-soan.sh",
+    "newsroom:chan-doan": "node scripts/chan-doan-toa-soan.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

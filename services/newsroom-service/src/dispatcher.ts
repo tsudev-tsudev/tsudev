@@ -58,43 +58,82 @@ async function emitOncePerDay(type: string, data: Json = {}): Promise<void> {
 }
 
 /**
- * Hồi sinh những sự kiện đã bị giết BỞI VIỆC CẠN HẠN MỨC, không phải bởi lỗi thật.
+ * Hồi sinh những sự kiện chết vì lý do TẠM THỜI, không phải vì lỗi thật.
  *
  * Vì sao cần một đường dọn dẹp riêng thay vì chỉ sửa nguyên nhân: các bản nháp
  * đã chết trước bản vá này vẫn nằm đó, `attempts >= 3`, `status = DEAD`, và
  * không nhịp nào nhặt chúng lên nữa. Sửa nguồn gây bệnh không tự chữa cho người
  * đã ốm.
  *
- * Nhận diện theo DẤU VẾT ở nhật ký chứ không theo phỏng đoán: chỉ hồi sinh sự
- * kiện `event.dead`/`event.failed` mang thông điệp lỗi có mùi hạn mức. Lỗi thật
- * vẫn phải nằm yên ở DEAD để còn có người nhìn thấy mà sửa.
+ * Nhận diện theo DẤU VẾT ở nhật ký chứ không theo phỏng đoán. HAI loại nạn nhân,
+ * và cả hai đều không phải lỗi của bài viết:
+ *
+ *   1. **Cạn hạn mức LLM** - `event.dead`/`event.failed` mang thông điệp khớp
+ *      `QUOTA_FINGERPRINT`.
+ *   2. **Bị bỏ rơi ở CLAIMED** - tiến trình chết giữa chừng (Render restart),
+ *      sự kiện chưa từng chạy tới chỗ nào để mà hỏng. Xem `reclaimStale`.
+ *
+ * Lỗi THẬT vẫn phải nằm yên ở DEAD để còn có người nhìn thấy mà sửa - đó là
+ * toàn bộ lý do hàm này lọc thay vì hồi sinh tất.
+ *
+ * ⚠️ Nhánh `hasNoNote` là đường cứu cho HÀNG TỒN, và nó tự hết tác dụng:
+ * `reclaimStale` nay luôn để lại `event.dead`, nên từ bản này trở đi mọi sự
+ * kiện DEAD đều có ghi chú. "Không có ghi chú nào" vì thế chỉ còn đúng với
+ * những cái chết TRƯỚC bản vá - tức đúng nhóm cần cứu, không rộng hơn một hàng.
  */
 const QUOTA_FINGERPRINT = /neuron|quota|rate.?limit|exceed|allocation|RESOURCE_EXHAUSTED|429/i
+const STRANDED_FINGERPRINT = /bị bỏ rơi ở CLAIMED/i
 
-export async function reviveQuotaCasualties(): Promise<{ revived: number }> {
+export async function reviveQuotaCasualties(): Promise<{
+  revived: number
+  dead: number
+  keptDead: number
+}> {
   const dead = await prisma.newsroomEvent.findMany({
     where: { status: 'DEAD' },
     select: { id: true, draftId: true, type: true },
     take: 200,
   })
-  if (!dead.length) return { revived: 0 }
+  if (!dead.length) return { revived: 0, dead: 0, keptDead: 0 }
 
   // Thông điệp lỗi không nằm trên chính sự kiện DEAD mà nằm ở sự kiện nhật ký
   // `event.dead` sinh kèm nó - nên đối chiếu qua draftId + type.
+  //
+  // Tra theo ĐÚNG tập draftId đang xét, không phải "500 ghi chú mới nhất": với
+  // một hàng đợi bận, cửa sổ 500 đó trượt qua mất ghi chú của chính những sự
+  // kiện cần cứu, và triệu chứng là hồi sinh được vài cái rồi thôi - trông y
+  // như hồi sinh "chạy một nửa".
+  const draftIds = [...new Set(dead.map((d) => d.draftId).filter((x): x is string => !!x))]
   const notes = await prisma.newsroomEvent.findMany({
-    where: { type: { in: ['event.dead', 'event.failed'] } },
+    where: {
+      type: { in: ['event.dead', 'event.failed'] },
+      OR: [
+        { draftId: { in: draftIds } },
+        // Sự kiện không gắn bản nháp nào (ví dụ vòng săn tin) vẫn cần đối chiếu.
+        { draftId: null },
+      ],
+    },
     select: { draftId: true, payload: true },
-    orderBy: { createdAt: 'desc' },
-    take: 500,
   })
-  const quotaKilled = new Set(
-    notes
-      .filter((n) => QUOTA_FINGERPRINT.test(String((n.payload as Json)?.error ?? '')))
-      .map((n) => `${n.draftId ?? ''}|${String((n.payload as Json)?.type ?? '')}`)
-  )
 
-  const ids = dead.filter((d) => quotaKilled.has(`${d.draftId ?? ''}|${d.type}`)).map((d) => d.id)
-  if (!ids.length) return { revived: 0 }
+  const keyOf = (draftId: string | null, type: string) => `${draftId ?? ''}|${type}`
+  const noted = new Set<string>()
+  const temporary = new Set<string>()
+  for (const n of notes) {
+    const k = keyOf(n.draftId, String((n.payload as Json)?.type ?? ''))
+    noted.add(k)
+    const err = String((n.payload as Json)?.error ?? '')
+    if (QUOTA_FINGERPRINT.test(err) || STRANDED_FINGERPRINT.test(err)) temporary.add(k)
+  }
+
+  const ids = dead
+    .filter((d) => {
+      const k = keyOf(d.draftId, d.type)
+      // Không có ghi chú nào = chết bởi `reclaimStale` bản cũ, tức bị bỏ rơi.
+      return temporary.has(k) || !noted.has(k)
+    })
+    .map((d) => d.id)
+  if (!ids.length) return { revived: 0, dead: dead.length, keptDead: dead.length }
 
   const { count } = await prisma.newsroomEvent.updateMany({
     where: { id: { in: ids } },
@@ -102,10 +141,13 @@ export async function reviveQuotaCasualties(): Promise<{ revived: number }> {
   })
   await emit(
     'event.revived',
-    { count, reason: 'chết vì cạn hạn mức LLM, không phải lỗi thật' },
+    {
+      count,
+      reason: 'chết vì lý do tạm thời (cạn hạn mức LLM hoặc bị bỏ rơi), không phải lỗi thật',
+    },
     { terminal: true, actorKind: 'human' }
   )
-  return { revived: count }
+  return { revived: count, dead: dead.length, keptDead: dead.length - count }
 }
 
 async function agentBySlug(slug: string) {
@@ -662,21 +704,54 @@ const HANDLERS: Record<string, (payload: Json, draftId: string | null) => Promis
   'publish.requested': (_p, d) => onPublishRequested(d as string),
 }
 
+/// Dấu vết ghi cho sự kiện bị giết vì BỎ RƠI, không vì một lỗi thật nào.
+///
+/// Chuỗi này được `reviveQuotaCasualties` nhận ra, nên đổi nó thì phải đổi cả
+/// `STRANDED_FINGERPRINT`. Nó CỐ Ý không khớp `QUOTA_FINGERPRINT`: hai nguyên
+/// nhân khác nhau, và trộn chúng lại là mất khả năng phân biệt "cạn Neuron" với
+/// "Render khởi động lại giữa chừng".
+const STRANDED_ERROR = 'bị bỏ rơi ở CLAIMED quá hạn thuê (tiến trình chết giữa chừng)'
+
 /// Trả sự kiện của những lượt chạy đã chết về hàng đợi.
 ///
 /// Cần vì tick trả 202 ngay rồi chạy nền: Render restart giữa chừng là event
 /// mắc kẹt ở CLAIMED vĩnh viễn, và triệu chứng là toà soạn "im lặng" chứ không
 /// phải một lỗi nào.
-async function reclaimStale(): Promise<number> {
+///
+/// ⚠️ Nhánh giết (`attempts >= 3`) BẮT BUỘC phải để lại `event.dead`. Bản trước
+/// không để lại gì, và hậu quả là một lớp sự kiện KHÔNG BAO GIỜ hồi sinh được:
+/// `reviveQuotaCasualties` nhận diện nạn nhân qua thông điệp lỗi ở sự kiện nhật
+/// ký kèm theo, mà những cái này thì không có sự kiện nào kèm theo cả. Chúng
+/// nằm lại DEAD vĩnh viễn, đếm trên dashboard không bao giờ giảm dù bấm "Hồi
+/// sinh việc đã dừng" bao nhiêu lần - và bấm nút mà không có gì đổi thì trông y
+/// hệt nút hỏng. Đây KHÔNG phải lỗi thật: sự kiện chưa từng chạy tới nơi để mà
+/// hỏng, nó chỉ bị ngắt giữa chừng.
+export async function reclaimStale(): Promise<number> {
   const cutoff = new Date(Date.now() - LEASE_MS)
   const { count } = await prisma.newsroomEvent.updateMany({
     where: { status: 'CLAIMED', claimedAt: { lt: cutoff }, attempts: { lt: 3 } },
     data: { status: 'PENDING' },
   })
-  await prisma.newsroomEvent.updateMany({
+
+  // Lấy danh sách TRƯỚC khi đổi trạng thái: sau updateMany thì không còn lọc
+  // được đúng những hàng vừa bị giết.
+  const stranded = await prisma.newsroomEvent.findMany({
     where: { status: 'CLAIMED', claimedAt: { lt: cutoff }, attempts: { gte: 3 } },
-    data: { status: 'DEAD' },
+    select: { id: true, type: true, draftId: true },
   })
+  if (stranded.length) {
+    await prisma.newsroomEvent.updateMany({
+      where: { id: { in: stranded.map((e) => e.id) } },
+      data: { status: 'DEAD' },
+    })
+    for (const ev of stranded) {
+      await emit(
+        'event.dead',
+        { type: ev.type, error: STRANDED_ERROR },
+        { draftId: ev.draftId ?? undefined, terminal: true, actorKind: 'system' }
+      )
+    }
+  }
   return count
 }
 

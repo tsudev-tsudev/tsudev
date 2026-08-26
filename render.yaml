@@ -83,12 +83,23 @@ services:
       - key: TRUST_ISSUER
         value: https://tsudev.com
       # --- nhánh newsroom (Toà soạn Agent AI) ---
-      # CÔNG TẮC TỔNG, và là van chi phí quan trọng nhất của repo. Để `false`
-      # thì dispatcher trả về ngay ở dòng đầu và KHÔNG gọi LLM lần nào - đó là
-      # lý do giá trị literal nằm ở đây thay vì `sync: false`: mặc định phải là
-      # "không tiêu gì", kể cả khi ai đó dựng lại service từ blueprint này.
+      # CÔNG TẮC TỔNG, và là van chi phí quan trọng nhất của repo. Không đặt,
+      # hay đặt bất cứ giá trị nào khác 'true', thì dispatcher trả về ngay ở
+      # dòng đầu và KHÔNG gọi LLM lần nào.
+      #
+      # ⚠️ TRƯỚC 26/08/2026 chỗ này là `value: 'false'`, và đó là một cái bẫy đã
+      # nổ: giá trị literal trong blueprint GHI ĐÈ giá trị đang chạy ở mỗi lần
+      # đồng bộ. Toà soạn đang chạy tốt thì tự tắt sau một lần deploy, và triệu
+      # chứng là "hôm nay không có bài nào" - im lặng tuyệt đối, vì `tick()`
+      # thoát ở dòng đầu TRƯỚC mọi lệnh ghi nhật ký, nên không có sự kiện nào để
+      # ai nhìn thấy. Đo được ngày 26/08: hôm trước 125 sự kiện/13 loại, hôm sau
+      # đúng 2 sự kiện và cả hai đều do người bấm tay.
+      #
+      # `sync: false` giữ NGUYÊN mục tiêu an toàn - service dựng mới từ blueprint
+      # không có giá trị này nên vẫn tắt - mà bỏ được vế ghi đè. Bật/tắt từ nay
+      # là việc của bảng điều khiển Render, và blueprint không giành lại nữa.
       - key: NEWSROOM_ENABLED
-        value: 'false'
+        sync: false
       # Gác /api/newsroom/tick. PHẢI trùng secret cùng tên của Worker cron
       # (infrastructure/newsroom-cron). Lệch nhau ⇒ mọi lượt tick trả 401 và
       # toà soạn đứng yên trong im lặng.

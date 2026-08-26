@@ -2,9 +2,10 @@
 
 > **Phiên 29 bắt đầu ở đây** (cập nhật cuối phiên 28).
 >
-> **`main` = `4bb3ae3`. PR #81 (DOCS-SEARCH) ĐÃ MERGE**, và migration đã áp dụng
-> trên prod - đo bằng `prisma migrate status`: 22 migration, "Database schema is
-> up to date". Backend Render và tsudev.com đều trả 200.
+> **PR #81 (DOCS-SEARCH) và PR #82 (QU-STD-1) ĐÃ MERGE.** Migration của #81 đã áp
+> dụng trên prod - đo bằng `prisma migrate status`: 22 migration, "Database schema
+> is up to date". Backend Render và tsudev.com đều trả 200. **PR #83 (toà soạn) là
+> PR cuối còn mở.**
 >
 > 🟠 **Đợt DOCS-SEARCH còn HAI bước chưa xong, bỏ qua thì trông y hệt chưa làm:**
 >
@@ -715,6 +716,22 @@ source`. Đã sửa trước khi commit; nó tái diễn ngay trong phiếu bàn
   theo TỪNG NHÁNH nên nhánh `alias` mới phải khai riêng - quên là OWNER cũng
   nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
   có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
+- 26/08/2026 - **Toà soạn im lặng: ba lỗi cùng một họ** (phiên 28, nhánh
+  `fix/newsroom-duyet-dang`). Chi tiết + số đo ở phiếu `20260826-05`. Điều đáng
+  nhớ nhất không phải ba bản vá mà là **họ** của chúng: cả ba đều là một nhánh
+  trả về sớm mà không ghi lại gì.
+  (a) `tick()` thoát ở dòng đầu khi `NEWSROOM_ENABLED` chưa bật - TRƯỚC mọi lệnh
+  ghi nhật ký ⇒ toà soạn tắt mà không sự kiện nào chứng kiến. Chính sự vắng mặt
+  tuyệt đối đó lại là bằng chứng khép kín, vì mọi đường thoát KHÁC đều để lại dấu.
+  (b) `reclaimStale` giết sự kiện kẹt CLAIMED mà không emit `event.dead` ⇒
+  `reviveQuotaCasualties` không bao giờ khớp được chúng ⇒ nút "Hồi sinh" trả 0
+  vĩnh viễn. Kẹt CLAIMED chính là thứ Render restart gây ra, tức lớp phổ biến nhất.
+  (c) `act()` ở dashboard vứt phản hồi đi ⇒ 401, 404, 500 và `{revived:0}` trông
+  y hệt thành công. Cùng họ §0.7 "mã 200 không chứng minh trang có nội dung",
+  nặng hơn một bậc.
+  **Im lặng không phải trạng thái trung tính - nó là trạng thái sai khó phát hiện
+  nhất.** Kèm theo: `render.yaml` khai `value:` literal cho một công tắc vận hành
+  là tự cài bẫy ghi đè; `sync: false` giữ nguyên mặc định an toàn mà bỏ được vế đó.
 - 26/08/2026 - **QU-STD-1 + QU-STD-3: gỡ bản sao token cục bộ** (phiên 28, nhánh
   `chore/qu-std-1-tokens`, **PR #82 - CI 7/7 xanh, chưa merge**, chờ mắt người).
   Chi tiết + số đo ở hai mục

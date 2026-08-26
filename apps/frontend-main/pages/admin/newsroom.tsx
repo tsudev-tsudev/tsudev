@@ -103,6 +103,9 @@ interface State {
   agents: Agent[];
   metrics: Record<string, Metrics>;
   drafts: Draft[];
+  /// Id các bản nháp ĐÃ DUYỆT và đang chờ nhịp đăng. Cần vì `Draft.status` chỉ
+  /// đổi lúc dispatcher đăng thật, tức tới một giờ sau khi bấm "Duyệt đăng".
+  queuedPublish: string[];
   channels: Channel[];
   sources: Source[];
   events: NewsroomEvent[];
@@ -195,6 +198,10 @@ export default function NewsroomPage() {
   const [state, setState] = useState<State | null>(null);
   const [log, setLog] = useState<NewsroomEvent[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  /// Kết quả của lần bấm nút gần nhất. Tách khỏi `err` vì phần lớn các lần bấm
+  /// KHÔNG lỗi mà vẫn không đổi gì nhìn thấy được - và đó chính là thứ cần nói
+  /// ra thành lời.
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const cursor = useRef<string | null>(null);
 
@@ -229,15 +236,45 @@ export default function NewsroomPage() {
     return () => clearInterval(id);
   }, [session, load]);
 
-  const act = async (key: string, url: string, body: unknown) => {
+  /// Bấm một nút vận hành.
+  ///
+  /// ⚠️ Bản trước gọi `fetch` rồi VỨT phản hồi đi - không đọc `res.ok`, không
+  /// đọc thân. Hậu quả: 401, 404, 500 và `{revived: 0}` trông y hệt thành công,
+  /// vì cả bốn đều dẫn tới đúng một việc là `load()` rồi vẽ lại đúng thứ cũ.
+  /// Đây là bài học §0.7 "mã 200 không chứng minh trang có nội dung" ở dạng còn
+  /// nặng hơn: mã trạng thái thậm chí không được nhìn tới.
+  ///
+  /// `describe` biến thân phản hồi thành một câu tiếng Việt. Hành động nào
+  /// không có gì để nói thì bỏ trống - im lặng lúc đó là đúng, vì kết quả đã
+  /// nhìn thấy được trên bảng.
+  const act = async (
+    key: string,
+    url: string,
+    body: unknown,
+    describe?: (data: Record<string, unknown>) => string | null
+  ) => {
     setBusy(key);
+    setNotice(null);
     try {
-      await fetch(url, {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      if (!res.ok) {
+        setErr(
+          typeof data.error === 'string'
+            ? `Không thực hiện được: ${data.error}`
+            : `Không thực hiện được (HTTP ${res.status}).`
+        );
+        return;
+      }
+      setErr(null);
+      if (describe) setNotice(describe(data));
       await load();
+    } catch {
+      setErr('Không gửi được yêu cầu tới toà soạn.');
     } finally {
       setBusy(null);
     }
@@ -269,6 +306,12 @@ export default function NewsroomPage() {
 
   const agents = state?.agents ?? [];
   const drafts = state?.drafts ?? [];
+  const queuedPublish = state?.queuedPublish ?? [];
+  /// Nối vào mọi câu phản hồi khi công tắc tổng đang tắt. Không có nó thì câu
+  /// "sẽ chạy ở nhịp kế tiếp" là một lời hứa sai - nhịp kế tiếp cũng sẽ không
+  /// làm gì cả.
+  const offSuffix =
+    state && !state.enabled ? ' ⚠️ Nhưng toà soạn đang TẮT, nên nhịp sẽ không xử lý gì.' : '';
   const nameOf = (id: string | null) => agents.find((a) => a.id === id)?.displayName ?? 'Hệ thống';
 
   const exhausted = (state?.providers ?? []).filter((p) => p.configured && p.exhaustedToday);
@@ -291,9 +334,38 @@ export default function NewsroomPage() {
           }
         />
 
+        {/* Công tắc tổng tắt = MỌI thứ bên dưới đứng yên, kể cả những nút vẫn bấm
+            được. Bản trước để câu này bằng chữ xám ở tận dưới ba thẻ khác, nên
+            nó đọc như một ghi chú chứ không như điều kiện chặn - và người dùng
+            bấm "Duyệt đăng" rồi chờ mãi không thấy gì. Đưa lên đầu, và nói ra
+            HỆ QUẢ chứ không chỉ nói trạng thái. */}
+        {state && !state.enabled && (
+          <Card className="p-4 mt-6 border-l-2 border-warning">
+            <p className="text-sm text-fg">
+              <strong>Toà soạn đang TẮT.</strong> Nhịp vẫn tới backend và vẫn trả 202, nhưng
+              dispatcher thoát ngay ở dòng đầu - không quét nguồn, không viết bài, và{' '}
+              <strong>không xử lý việc bạn duyệt</strong>. Việc đã duyệt nằm chờ trong hàng đợi cho
+              tới khi bật lại, không mất đi.
+            </p>
+            <p className="text-sm text-fg-muted mt-2">
+              Bật bằng cách đặt <code className="font-mono text-link">NEWSROOM_ENABLED=true</code> ở
+              biến môi trường của backend trên Render.
+            </p>
+          </Card>
+        )}
+
         {err && (
           <Card className="p-4 mt-6 border-l-2 border-warning">
             <p className="text-sm text-warning">{err}</p>
+          </Card>
+        )}
+
+        {/* Kết quả của lần bấm nút gần nhất. Phần lớn hành động vận hành ở đây
+            KHÔNG đổi gì nhìn thấy được ngay - việc thật xảy ra ở nhịp kế tiếp -
+            nên không nói ra thì nút nào cũng trông như nút hỏng. */}
+        {notice && (
+          <Card className="p-4 mt-6 border-l-2 border-info">
+            <p className="text-sm text-fg">{notice}</p>
           </Card>
         )}
 
@@ -328,26 +400,30 @@ export default function NewsroomPage() {
               <Button
                 variant="secondary"
                 disabled={busy === 'revive'}
-                onClick={() => act('revive', '/api/newsroom/admin/events/revive', {})}
+                onClick={() =>
+                  act('revive', '/api/newsroom/admin/events/revive', {}, (d) => {
+                    const revived = Number(d.revived ?? 0);
+                    const keptDead = Number(d.keptDead ?? 0);
+                    if (revived === 0)
+                      return keptDead > 0
+                        ? `Không hồi sinh cái nào. Cả ${keptDead} việc đều chết vì lỗi THẬT, nên chúng cố ý nằm lại để còn sửa - xem nhật ký bên dưới.`
+                        : 'Không còn việc nào đã dừng.';
+                    return `Đã hồi sinh ${revived} việc. Chúng chạy lại ở nhịp kế tiếp (mỗi giờ, phút :07 UTC)${
+                      keptDead > 0 ? `; còn ${keptDead} việc chết vì lỗi thật vẫn nằm nguyên.` : '.'
+                    }${offSuffix}`;
+                  })
+                }
               >
                 {busy === 'revive'
                   ? 'Đang hồi sinh…'
                   : `Hồi sinh việc đã dừng (${state?.deadEvents})`}
               </Button>
               <p className="text-sm text-fg-muted mt-2">
-                Chỉ hồi sinh việc chết vì cạn hạn mức. Lỗi thật vẫn nằm nguyên để còn sửa.
+                Chỉ hồi sinh việc chết vì lý do TẠM THỜI - cạn hạn mức, hoặc bị bỏ rơi khi tiến
+                trình chết giữa chừng. Lỗi thật vẫn nằm nguyên để còn sửa, và số đó được nói rõ sau
+                khi bấm.
               </p>
             </div>
-          </Card>
-        )}
-
-        {!state?.enabled && !err && (
-          <Card className="p-4 mt-6">
-            <p className="text-sm text-fg-muted">
-              Toà soạn đang tắt. Đặt{' '}
-              <code className="font-mono text-link">NEWSROOM_ENABLED=true</code> ở biến môi trường
-              của backend để agent bắt đầu quét nguồn và viết bài.
-            </p>
           </Card>
         )}
 
@@ -477,16 +553,31 @@ export default function NewsroomPage() {
                           </p>
                         </details>
                       )}
-                      {d.status === 'PENDING_HUMAN' && (
-                        <Button
-                          size="sm"
-                          className="mt-2 w-full"
-                          disabled={busy === d.id}
-                          onClick={() => act(d.id, `/api/newsroom/admin/draft/${d.id}/approve`, {})}
-                        >
-                          Duyệt đăng
-                        </Button>
-                      )}
+                      {d.status === 'PENDING_HUMAN' &&
+                        (queuedPublish.includes(d.id) ? (
+                          // Đã duyệt nhưng CHƯA đăng. Thẻ phải nói ra điều đó,
+                          // nếu không nó trông hệt thẻ chưa bấm và người dùng
+                          // bấm lại - `Draft.status` chỉ đổi lúc dispatcher đăng
+                          // thật, tức tới một giờ sau.
+                          <p className="mt-2 text-xs text-fg-muted">
+                            Đã duyệt - chờ nhịp đăng (mỗi giờ, phút :07 UTC).
+                          </p>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="mt-2 w-full"
+                            disabled={busy === d.id}
+                            onClick={() =>
+                              act(d.id, `/api/newsroom/admin/draft/${d.id}/approve`, {}, (r) =>
+                                r.alreadyQueued
+                                  ? `Bản nháp này đã được duyệt từ trước và đang chờ nhịp đăng.${offSuffix}`
+                                  : `Đã xếp hàng đăng. Bài lên ở nhịp kế tiếp (mỗi giờ, phút :07 UTC) - thẻ vẫn nằm ở cột này cho tới lúc đó.${offSuffix}`
+                              )
+                            }
+                          >
+                            Duyệt đăng
+                          </Button>
+                        ))}
                     </div>
                   ))}
                   {!items.length && <p className="text-xs text-fg-muted">-</p>}
