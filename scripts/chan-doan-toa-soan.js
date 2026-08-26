@@ -145,16 +145,45 @@ const utcDayStart = () => {
       )}`
     );
 
+  // --- Có dấu hiệu MÁY chạy hôm nay không -----------------------------------
+  //
+  // Đây là phép đo phân định `NEWSROOM_ENABLED`, và nó phải loại trừ sự kiện do
+  // NGƯỜI tạo: bấm "Duyệt đăng" sinh `publish.requested` với actorKind="human"
+  // ngay cả khi toà soạn tắt ngóm, nên đếm tất tần tật sẽ kết luận ngược.
+  const machineToday = await prisma.newsroomEvent.count({
+    where: { createdAt: { gte: day }, actorKind: { not: 'human' } },
+  });
+
   // --- Kết luận --------------------------------------------------------------
   console.log('\n--- Kết luận ---');
-  if (exhausted.length)
+  console.log(`   (sự kiện do MÁY tạo hôm nay: ${machineToday})`);
+  if (!machineToday) {
+    // `tick()` thoát ở dòng đầu khi công tắc tắt - TRƯỚC mọi lệnh ghi nhật ký.
+    // Mọi đường thoát KHÁC đều để lại dấu, nên số 0 tuyệt đối chỉ có một nghĩa.
+    console.log('✘ KHÔNG có sự kiện máy nào hôm nay ⇒ tick thoát ở dòng đầu.');
+    console.log(
+      "  ⇒ NEWSROOM_ENABLED chưa phải 'true' ở Render. Đây là kết luận, không phải phỏng đoán:"
+    );
+    console.log(
+      '     mọi đường thoát khác của tick() đều để lại dấu (budget.exhausted, scan.skipped, scan.failed).'
+    );
+  } else if (exhausted.length) {
     console.log('✘ Nhà cung cấp đã bị đánh dấu CẠN HÔM NAY - tick thoát sớm. Đặt lại 00:00 UTC.');
-  else if ((agg._sum.neuronsUsed ?? 0) >= budget)
+  } else if ((agg._sum.neuronsUsed ?? 0) >= budget) {
     console.log('✘ Van ngân sách Neuron của ta đã đóng.');
-  else if (!pending)
-    console.log('✘ Hàng đợi KHÔNG có sự kiện PENDING nào - không có việc để nhặt.');
-  else console.log('· Các van đều mở. Nếu tick vẫn không chạy thì nghi NEWSROOM_ENABLED ở Render.');
-  if (dead) console.log(`· ${dead} sự kiện đang DEAD.`);
+  } else if (!pending) {
+    console.log('· Hàng đợi KHÔNG có việc PENDING nào. Hệ khoẻ, chỉ là đang rảnh.');
+  } else {
+    console.log('✔ Toà soạn ĐANG CHẠY. Các van đều mở và hàng đợi có việc.');
+  }
+  if (pending > 20)
+    console.log(
+      `· Tồn ${pending} việc PENDING. Mỗi nhịp nhặt 5 và nhịp là mỗi giờ ⇒ cần ~${Math.ceil(
+        pending / 5
+      )} giờ để rút hết. Gõ thêm nhịp bằng "npm run newsroom:check" nếu muốn nhanh hơn.`
+    );
+  if (dead)
+    console.log(`· ${dead} sự kiện đang DEAD - bấm "Hồi sinh việc đã dừng" ở /admin/newsroom.`);
   if (!perTarget.DOC)
     console.log('· Kênh DOC không có nguồn nào ⇒ /docs sẽ không bao giờ có bài của agent.');
 
