@@ -28,7 +28,15 @@ import {
   burnTiming,
   isPasswordBreached,
 } from './password'
-import { issueToken, consumeToken, consumeEmailChange, constantTimeEqual } from './tokens'
+import {
+  issueToken,
+  consumeToken,
+  consumeEmailChange,
+  constantTimeEqual,
+  issueVerifyCode,
+  checkVerifyCode,
+  MAX_CODE_ATTEMPTS,
+} from './tokens'
 import * as cfMail from './cloudflareEmail'
 import { loginOptions, loginVerify, registerOptions, registerVerify } from './passkey'
 import {
@@ -43,6 +51,7 @@ import { deviceLabel, shouldAlertNewDevice } from './device'
 import {
   sendMail,
   verifyEmailHtml,
+  verifyCodeHtml,
   resetPasswordHtml,
   changeEmailHtml,
   emailChangedNoticeHtml,
@@ -403,8 +412,20 @@ app.post(
       return res.json(oauthPublicUser(emailOwner))
     }
 
-    // 4. Tạo user + bản ghi liên kết trong một thao tác. Email của Google/GitHub
-    //    đã được bên đó xác minh nên đặt emailVerifiedAt luôn nếu emailVerified.
+    // 4. Tạo user + bản ghi liên kết trong một thao tác.
+    //
+    //    ⚠️ `emailVerifiedAt` CỐ Ý để NULL, kể cả khi bên thứ ba khai
+    //    `emailVerified: true` (26/08/2026). Trước đó ta tin thẳng cờ đó và
+    //    đánh dấu đã xác minh ngay lúc đăng nhập lần đầu.
+    //
+    //    Vì sao bỏ: cờ đó nói rằng NHÀ CUNG CẤP tin địa chỉ đó, không nói rằng
+    //    người vừa đăng nhập đọc được hộp thư đó NGAY BÂY GIỜ - và "đọc được
+    //    hộp thư ngay bây giờ" mới là thứ mọi đường khôi phục tài khoản dựa
+    //    vào. Nay ai cũng đi qua cùng một cửa: bấm "Xác minh tài khoản" ở
+    //    /settings/profile, nhận mã, gõ lại mã.
+    //
+    //    Không phải hàng rào chặn: `emailUsable()` cho ân hạn 7 ngày kể từ lúc
+    //    tạo tài khoản, nên người mới đăng nhập vẫn dùng được site ngay.
     const username = await generateUsername(email.split('@')[0] || name || provider)
     try {
       const user = await prisma.user.create({
@@ -413,7 +434,7 @@ app.post(
           email,
           displayName: name || username,
           role: 'MEMBER',
-          emailVerifiedAt: emailVerified ? new Date() : null,
+          emailVerifiedAt: null,
           oauthAccounts: { create: { provider, providerAccountId } },
         },
       })
@@ -688,6 +709,122 @@ app.post(
       ),
       'verify_email_resend'
     )
+    return res.json({ ok: true })
+  })
+)
+
+// ---------------------------------------------------------------------------
+// Xác minh tài khoản bằng MÃ SỐ (26/08/2026)
+//
+// Ba lớp chặn, và chúng chặn ba thứ KHÁC NHAU - bỏ lớp nào cũng hở một hướng:
+//
+//   1. `COOLDOWN_MS`  - chặn dội thư liên tục vào một hộp thư.
+//   2. `DAILY_CAP`    - chặn rải đều cả ngày để lách lớp 1.
+//   3. `MAX_CODE_ATTEMPTS` (ở tokens.ts) - chặn DÒ mã. Đây là lớp duy nhất
+//      chặn được kiểu tấn công không cần gửi thêm mã nào: kẻ tấn công chỉ gõ
+//      liên tục vào một mã đang có hiệu lực. Hai lớp trên hoàn toàn vô dụng
+//      với hướng đó.
+//
+// Trần đếm bằng `SecurityEvent` chứ không phải một bảng đếm riêng: sổ đó vốn đã
+// là nhật ký bảo mật mà chính chủ tài khoản đọc được ở /settings/security, nên
+// mỗi lần gửi mã đều để lại dấu vết người dùng nhìn thấy - đúng thứ cần khi ai
+// đó lạm dụng tài khoản của họ.
+// ---------------------------------------------------------------------------
+
+const VERIFY_CODE_COOLDOWN_MS = parseInt(process.env.VERIFY_CODE_COOLDOWN_MS || '60000', 10)
+const VERIFY_CODE_DAILY_CAP = parseInt(process.env.VERIFY_CODE_DAILY_CAP || '5', 10)
+const VERIFY_CODE_TTL_MIN = 10
+
+async function verifyCodesSentToday(userId: string): Promise<number> {
+  return prisma.securityEvent.count({
+    where: {
+      userId,
+      type: 'verify_code_sent',
+      createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    },
+  })
+}
+
+/** Gửi mã xác minh 6 số tới email của chính mình. */
+app.post(
+  '/api/identity/verify/code/send',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    if (user.emailVerifiedAt) return res.json({ ok: true, alreadyVerified: true })
+
+    // Lớp 1 - khoảng cách giữa hai lần gửi.
+    const recent = await prisma.authToken.findFirst({
+      where: {
+        userId: user.id,
+        purpose: 'EMAIL_VERIFY_CODE',
+        createdAt: { gt: new Date(Date.now() - VERIFY_CODE_COOLDOWN_MS) },
+      },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (recent) {
+      const waitMs = VERIFY_CODE_COOLDOWN_MS - (Date.now() - recent.createdAt.getTime())
+      return res
+        .status(429)
+        .json({ error: 'too_soon', retryAfterSec: Math.max(1, Math.ceil(waitMs / 1000)) })
+    }
+
+    // Lớp 2 - trần mỗi ngày. Kiểm TRƯỚC khi phát mã: phát rồi mới từ chối gửi
+    // thì mã cũ đã bị huỷ, và người dùng mất luôn cái đang gõ dở.
+    const sentToday = await verifyCodesSentToday(user.id)
+    if (sentToday >= VERIFY_CODE_DAILY_CAP) {
+      logSecurity(user.id, 'verify_code_blocked', req, { note: 'daily_cap' })
+      return res.status(429).json({ error: 'daily_cap', cap: VERIFY_CODE_DAILY_CAP })
+    }
+
+    const code = await issueVerifyCode(user.id)
+    await sendMail(
+      user.email,
+      'Mã xác minh tài khoản tsudev',
+      verifyCodeHtml(user.displayName || user.username, code.raw, VERIFY_CODE_TTL_MIN),
+      'verify_code'
+    )
+    logSecurity(user.id, 'verify_code_sent', req)
+    return res.json({
+      ok: true,
+      expiresAt: code.expiresAt,
+      ttlMinutes: VERIFY_CODE_TTL_MIN,
+      remainingToday: Math.max(0, VERIFY_CODE_DAILY_CAP - sentToday - 1),
+    })
+  })
+)
+
+/** Gõ lại mã để xác minh. */
+app.post(
+  '/api/identity/verify/code/confirm',
+  asyncHandler(async (req, res) => {
+    const user = await lookupUser(req)
+    if (!user) return res.status(401).json({ error: 'unauthenticated' })
+    if (user.emailVerifiedAt) return res.json({ ok: true, alreadyVerified: true })
+
+    // Bỏ khoảng trắng và gạch: người ta hay dán "123 456" từ thư ra.
+    const code = str(req.body?.code, 20).replace(/[\s-]/g, '')
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ error: 'bad_code' })
+
+    const check = await checkVerifyCode(user.id, code)
+    if (!check.ok) {
+      if (check.reason === 'wrong') {
+        logSecurity(user.id, 'verify_code_wrong', req)
+        return res.status(400).json({ error: 'wrong_code', attemptsLeft: check.left ?? 0 })
+      }
+      if (check.reason === 'too_many_attempts') {
+        logSecurity(user.id, 'verify_code_blocked', req, { note: 'attempts' })
+        return res.status(429).json({ error: 'too_many_attempts', max: MAX_CODE_ATTEMPTS })
+      }
+      return res.status(400).json({ error: check.reason })
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date() },
+    })
+    logSecurity(user.id, 'email_verified', req, { note: 'code' })
     return res.json({ ok: true })
   })
 )

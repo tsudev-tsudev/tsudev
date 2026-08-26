@@ -852,6 +852,27 @@ source`. Đã sửa trước khi commit; nó tái diễn ngay trong phiếu bàn
   theo TỪNG NHÁNH nên nhánh `alias` mới phải khai riêng - quên là OWNER cũng
   nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
   có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
+- 26/08/2026 - **VERIFY-CODE: xác minh tài khoản bằng mã số** (phiên 28, nhánh
+  `feat/xac-minh-bang-ma`, **CÓ MIGRATION**). Đăng nhập Google/GitHub không còn
+  được đánh dấu đã xác minh ngay; ai cũng đi qua cùng một cửa: bấm "Xác minh tài
+  khoản" ở /settings/profile, nhận mã 6 số, gõ lại mã.
+  (a) **Cờ `emailVerified` của bên thứ ba nói sai câu hỏi.** Nó nói NHÀ CUNG CẤP
+  tin địa chỉ đó; nó không nói người vừa đăng nhập đọc được hộp thư đó NGAY BÂY
+  GIỜ - mà "đọc được ngay bây giờ" mới là thứ mọi đường khôi phục tài khoản dựa
+  vào. Không phải hàng rào chặn: `emailUsable()` vẫn cho ân hạn 7 ngày.
+  (b) **BA lớp chặn, chặn ba thứ khác nhau.** Cooldown 60s chặn dội thư; trần
+  5 lần/ngày chặn kiểu rải đều để lách cooldown; trần 5 lần GÕ SAI chặn DÒ mã -
+  và đó là lớp duy nhất chặn được hướng không cần gửi thêm mã nào, kẻ tấn công
+  chỉ gõ liên tục vào một mã đang sống. Mã 6 số chỉ có 10^6 khả năng.
+  (c) 🔴 **Bắt được một lỗi tồn từ #81**: `Post` khai hai index GIN trgm trong
+  `schema.prisma`, `Doc` thì KHÔNG. Prisma sinh migration bằng cách so schema với
+  DB, nên index có trong DB mà không có trong schema bị coi là trôi lệch - và
+  migration đầu tiên sinh ra sau đó **tự động kèm `DROP INDEX`** đúng hai index
+  của DOCS-SEARCH. Nếu lọt: tìm kiếm tài liệu VẪN CHẠY, chỉ là quét toàn bảng,
+  chậm dần theo dữ liệu, không gì báo lỗi. Đã khai bổ sung vào `Doc`.
+  (d) Đếm trần ngày bằng `SecurityEvent` chứ không bảng riêng: sổ đó vốn đã là
+  nhật ký bảo mật chính chủ đọc được ở /settings/security, nên mỗi lần gửi mã để
+  lại dấu vết người dùng nhìn thấy - đúng thứ cần khi ai đó lạm dụng tài khoản họ.
 - 26/08/2026 - **SEARCH-HEADER: một bộ tìm kiếm, một chỗ dùng** (phiên 28, nhánh
   `feat/search-o-header`). Ô "Tìm kiếm…" ở header trước đợt này là một `<input>`
   KHÔNG state, KHÔNG form, KHÔNG onSubmit - gõ rồi Enter thì không có gì xảy ra.

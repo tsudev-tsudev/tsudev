@@ -23,6 +23,12 @@ const ALLOWED = new Set([
   // đi qua proxy CÔNG KHAI (confirm-email-change) vì lúc bấm liên kết có thể chưa
   // đăng nhập.
   'verify/resend',
+  // Xác minh bằng MÃ SỐ. Hai nhánh riêng vì chúng làm hai việc khác nhau và
+  // chịu hai chính sách chặn khác nhau - gộp thành một endpoint thì chặn tần
+  // suất gửi sẽ vô tình chặn luôn việc gõ mã, và người gõ sai một lần phải chờ
+  // cả phút mới gõ lại được.
+  'verify/code/send',
+  'verify/code/confirm',
   'email/change',
   // Nhật ký bảo mật: của chính mình, và console OWNER xuyên tài khoản
   // (useradmin/security tự kiểm OWNER ở auth-service).
@@ -53,9 +59,9 @@ const ALLOWED = new Set([
   'useradmin/role',
   'useradmin/revoke',
   'useradmin/delete',
-  // Bí danh thư nội bộ. Tên HAI đoạn là bắt buộc: handler bên dưới từ chối mọi
-  // đường dẫn quá hai đoạn, nên `useradmin/alias/create` sẽ 404 dù route ở
-  // auth-service vẫn sống - và cái 404 đó trông y hệt "chưa làm xong".
+  // Bí danh thư nội bộ. Giữ tên HAI đoạn cho nhất quán với phần còn lại của
+  // nhóm này; `useradmin/alias/create` từng 404 vì trần độ dài, và cái 404 đó
+  // trông y hệt "chưa làm xong".
   'alias/list',
   'alias/create',
   'alias/delete',
@@ -70,7 +76,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const parts = catchAllSegments(req.query.path);
   const action = parts.join('/');
-  if (parts.length > 2 || !ALLOWED.has(action)) {
+  // Trần độ dài là lớp chặn THỨ HAI, sau danh sách trắng. Nó không thừa: nó
+  // chặn mọi đường dẫn lạ TRƯỚC khi chuỗi được ghép, nên một lỗi ghép chuỗi ở
+  // trên không biến thành đường đi tới nhánh sâu hơn của auth-service.
+  // Nới từ 2 lên 3 cho `verify/code/{send,confirm}` (26/08/2026) - nới đúng một
+  // nấc, không bỏ hẳn.
+  if (parts.length > 3 || !ALLOWED.has(action)) {
     return res.status(404).json({ error: 'Không tìm thấy' });
   }
 

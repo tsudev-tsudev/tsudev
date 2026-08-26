@@ -119,7 +119,13 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changing, setChanging] = useState(false);
 
-  const [resending, setResending] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [confirmingCode, setConfirmingCode] = useState(false);
+  /// Đã gửi mã trong PHIÊN xem trang này chưa. Cố ý là trạng thái phía client
+  /// chứ không hỏi máy chủ: nó chỉ quyết định có hiện ô nhập hay không, và máy
+  /// chủ vẫn là nơi duy nhất quyết định mã có hợp lệ không.
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [emailPassword, setEmailPassword] = useState('');
   const [changingEmail, setChangingEmail] = useState(false);
@@ -215,24 +221,79 @@ export default function ProfilePage() {
     load();
   };
 
-  const resendVerification = async () => {
-    setResending(true);
-    const { ok, status: httpStatus } = await post('verify/resend');
-    setResending(false);
+  /**
+   * Bước 1 - xin mã.
+   *
+   * Ba lớp chặn ở máy chủ có ba thông điệp KHÁC NHAU, và phải giữ chúng khác
+   * nhau: "đợi một phút" và "hết lượt hôm nay" dẫn tới hai hành động ngược
+   * nhau. Gộp cả hai thành "thử lại sau" là để người dùng ngồi bấm lại vô ích
+   * suốt phần còn lại của ngày.
+   */
+  const sendVerifyCode = async () => {
+    setSendingCode(true);
+    const { ok, status: httpStatus, data } = await post('verify/code/send');
+    setSendingCode(false);
+
     if (!ok) {
+      const err = String(data.error || '');
       setMsg({
         kind: 'error',
         text:
-          httpStatus === 429
-            ? 'Vừa gửi một thư xác minh rồi. Đợi khoảng một phút rồi thử lại.'
+          err === 'too_soon'
+            ? `Vừa gửi một mã rồi. Đợi ${data.retryAfterSec ?? 60} giây rồi thử lại.`
+            : err === 'daily_cap'
+            ? `Đã hết lượt gửi mã hôm nay (tối đa ${data.cap} lần). Thử lại vào ngày mai, hoặc dùng mã đã gửi nếu còn hiệu lực.`
             : saveError(httpStatus),
       });
       return;
     }
+    if (data.alreadyVerified) {
+      setMsg({ kind: 'ok', text: 'Tài khoản này đã xác minh rồi.' });
+      load();
+      return;
+    }
+
+    setCodeSent(true);
     setMsg({
       kind: 'ok',
-      text: 'Đã gửi lại email xác minh. Kiểm tra hộp thư (kể cả mục spam).',
+      text: `Đã gửi mã 6 số tới ${
+        profile?.email ?? 'email của bạn'
+      }. Kiểm tra hộp thư (kể cả mục spam). Mã có hiệu lực ${data.ttlMinutes ?? 10} phút; còn ${
+        data.remainingToday ?? 0
+      } lượt gửi hôm nay.`,
     });
+  };
+
+  /** Bước 2 - gõ lại mã. */
+  const confirmVerifyCode = async () => {
+    setConfirmingCode(true);
+    const { ok, status: httpStatus, data } = await post('verify/code/confirm', { code });
+    setConfirmingCode(false);
+
+    if (!ok) {
+      const err = String(data.error || '');
+      setMsg({
+        kind: 'error',
+        text:
+          err === 'wrong_code'
+            ? `Mã không đúng. Còn ${data.attemptsLeft ?? 0} lần thử.`
+            : err === 'too_many_attempts'
+            ? 'Đã nhập sai quá số lần cho phép. Mã này không dùng được nữa - xin một mã mới.'
+            : err === 'expired'
+            ? 'Mã đã hết hạn. Xin một mã mới.'
+            : err === 'no_code'
+            ? 'Không có mã nào đang chờ. Bấm "Gửi mã xác minh" trước.'
+            : err === 'bad_code'
+            ? 'Mã gồm đúng 6 chữ số.'
+            : saveError(httpStatus),
+      });
+      return;
+    }
+
+    setCode('');
+    setCodeSent(false);
+    setMsg({ kind: 'ok', text: 'Đã xác minh tài khoản.' });
+    load();
   };
 
   const changeEmail = async () => {
@@ -319,14 +380,35 @@ export default function ProfilePage() {
                       ? `Xác minh email trong ${graceDays} ngày tới. Hết ân hạn, một số thao tác (đăng bài, nâng vai trò) sẽ bị tạm khoá tới khi bạn xác minh.`
                       : 'Quá thời gian ân hạn: một số thao tác (đăng bài, nâng vai trò) đang bị tạm khoá tới khi bạn xác minh email.'}
                   </p>
-                  <Button
-                    onClick={resendVerification}
-                    disabled={resending}
-                    variant="secondary"
-                    className="mt-3"
-                  >
-                    {resending ? 'Đang gửi…' : 'Gửi lại email xác minh'}
-                  </Button>
+                  <div className="mt-3 flex flex-wrap items-end gap-3">
+                    <Button onClick={sendVerifyCode} disabled={sendingCode} variant="secondary">
+                      {sendingCode ? 'Đang gửi…' : codeSent ? 'Gửi lại mã' : 'Xác minh tài khoản'}
+                    </Button>
+
+                    {/* Ô nhập chỉ hiện SAU khi đã gửi mã. Hiện sẵn từ đầu thì nó
+                        mời người dùng gõ vào một ô chưa có gì để gõ - và thứ họ
+                        nhận lại sẽ là "không có mã nào đang chờ". */}
+                    {codeSent && (
+                      <div className="flex items-end gap-2">
+                        <Input
+                          label="Mã 6 số"
+                          value={code}
+                          onChange={(e) => setCode(e.target.value)}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={7}
+                          placeholder="123456"
+                          className="w-32 font-mono tracking-widest"
+                        />
+                        <Button
+                          onClick={confirmVerifyCode}
+                          disabled={confirmingCode || code.replace(/\s/g, '').length < 6}
+                        >
+                          {confirmingCode ? 'Đang kiểm…' : 'Xác minh'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

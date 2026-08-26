@@ -171,6 +171,24 @@ export function verifyEmailHtml(displayName: string, link: string): string {
 <p>Liên kết có hiệu lực trong 24 giờ. Nếu bạn không tạo tài khoản nào, hãy bỏ qua thư này.</p>`
 }
 
+/**
+ * Thư mang MÃ SỐ để người dùng gõ lại ở /settings/profile.
+ *
+ * Cố ý KHÔNG kèm liên kết bấm-một-phát. Người nhận thư này vừa tự bấm nút trên
+ * trang hồ sơ của họ, nên họ đang mở sẵn trang cần gõ mã; thêm một liên kết là
+ * thêm một đường vào tài khoản nằm trong hộp thư, và đường nào cũng có thể bị
+ * đọc lén. Mã gõ tay thì vô dụng với người không đang mở đúng trang đó.
+ */
+export function verifyCodeHtml(displayName: string, code: string, minutes: number): string {
+  return `<p>Chào ${esc(displayName)},</p>
+<p>Mã xác minh tài khoản tsudev của bạn:</p>
+<p style="font-size:28px;font-weight:700;letter-spacing:0.18em;font-family:monospace">${esc(
+    code
+  )}</p>
+<p>Nhập mã này ở trang Hồ sơ trong vòng ${minutes} phút. Mã chỉ dùng được một lần.</p>
+<p>Nếu bạn không yêu cầu xác minh, hãy bỏ qua thư này - tài khoản không thay đổi gì. Không ai được hỏi bạn mã này; đừng chuyển nó cho bất kỳ ai.</p>`
+}
+
 export function resetPasswordHtml(displayName: string, link: string): string {
   return `<p>Chào ${esc(displayName)},</p>
 <p>Có yêu cầu đặt lại mật khẩu cho tài khoản tsudev của bạn:</p>
