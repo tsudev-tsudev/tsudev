@@ -1,6 +1,6 @@
 /**
  * Tailwind KHÔNG giữ giá trị nào. Mọi khoá dưới đây trỏ về một biến CSS trong
- * packages/ui/src/tokens.css, và file đó được SINH RA từ tokens/design-tokens.json
+ * packages/ui/src/tokens.css, và file đó được SINH RA từ .standards/tokens/design-tokens.json
  * (`npm run tokens:sync`). Nhờ vậy mọi class màu/khoảng cách/bo góc trong app đều
  * truy ngược được về nguồn chân lý duy nhất, đúng yêu cầu của
  * .standards/docs/PROJECT_STRUCTURE.md - và ba chế độ Sáng/Ấm/Tối đổi theo `data-theme` mà
@@ -33,8 +33,8 @@ module.exports = {
         // Viền - --border*. Luôn phẳng 1px solid (DESIGN_SYSTEM.md §2).
         // `control` là ranh giới của VÙNG TƯƠNG TÁC (nút phụ, ô nhập) và phải đạt
         // 3:1 theo WCAG 1.4.11; `strong` là nhấn mạnh trang trí và không đạt
-        // ngưỡng đó ở bảng màu v1.0.0 - xem $accessibility_gap trong
-        // tokens/design-tokens.json.
+        // ngưỡng đó - xem $accessibility_gap trong
+        // tokens/extensions.tsudev-web.json.
         line: {
           DEFAULT: 'var(--border)',
           strong: 'var(--border-strong)',

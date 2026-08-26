@@ -8,7 +8,7 @@ import React from 'react';
  * `--success` gốc đặt lên chính tint 12% của nó chỉ đạt 4.27:1, dưới ngưỡng AA
  * mà §1 đòi. Nên bảng token có sẵn CẶP `--<trạng thái>-tint` (nền, tính sẵn) và
  * `--<trạng thái>-ink` (chữ, đậm hơn ở chế độ Sáng, trùng màu gốc ở Ấm và Tối).
- * Cả hai đều nằm trong tokens/design-tokens.json và bị contrast.test.ts canh.
+ * Cả hai đều nằm trong tokens/extensions.tsudev-web.json và bị contrast.test.ts canh.
  *
  * rounded-sm chứ không phải rounded-full: viên thuốc bo tròn hoàn toàn là hình
  * ngôn ngữ của mạng xã hội. Nhãn trạng thái trong giao diện sản phẩm là hình chữ

@@ -1,7 +1,7 @@
 import { Html, Head, Main, NextScript } from 'next/document';
 
 // Màu nền của BA chế độ, phải khớp `--bg-base` trong packages/ui/src/tokens.css
-// (bản sinh ra từ tokens/design-tokens.json). Dùng cho <meta name="theme-color">
+// (bản sinh ra từ .standards/tokens/design-tokens.json). Dùng cho <meta name="theme-color">
 // (thanh địa chỉ trên di động) và cho nền vẽ trước khi CSS tải xong.
 // test/themeTokens.test.ts canh cho ba giá trị này không trôi lệch khỏi nguồn.
 const LIGHT_BASE = '#eef4fb';

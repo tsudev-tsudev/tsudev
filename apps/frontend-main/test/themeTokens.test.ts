@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 /**
@@ -17,8 +17,9 @@ import { join } from 'path';
  * kia - sai lệch nhỏ đến mức không ai báo lỗi, nhưng trông rẻ tiền. Test này bắt
  * chúng phải bằng nhau.
  *
- * Nguồn gốc của cả ba giá trị là `tokens/design-tokens.json`; `tokens.css` là
- * bản sinh ra từ đó (`npm run tokens:sync`, và `tokens:check` canh trong CI).
+ * Nguồn gốc của cả ba giá trị là `.standards/tokens/design-tokens.json`;
+ * `tokens.css` là bản sinh ra từ đó (`npm run tokens:sync`, và `tokens:check`
+ * canh trong CI).
  */
 
 const ROOT = join(__dirname, '..', '..', '..');
@@ -114,22 +115,35 @@ describe('màu nền chép ra ngoài tokens.css phải khớp nguồn', () => {
 
 describe('tokens.css là bản sinh ra, không phải bản viết tay', () => {
   test('có cảnh báo không sửa tay và trỏ về nguồn', () => {
-    expect(css).toContain('tokens/design-tokens.json');
+    expect(css).toContain('.standards/tokens/design-tokens.json');
     expect(css).toMatch(/ĐƯỢC SINH RA/);
   });
 
   // Nguồn chân lý phải khai đủ ba chế độ. Xoá nhầm một chế độ khỏi JSON sẽ làm
   // tokens.css thiếu khối tương ứng, và triệu chứng là "chọn Ấm thì không có gì
   // đổi" - một lỗi im lặng.
-  test('design-tokens.json khai đủ ba chế độ', () => {
-    const json = JSON.parse(readFileSync(join(ROOT, 'tokens', 'design-tokens.json'), 'utf8'));
-    expect(Object.keys(json.color).sort()).toEqual(['dark', 'light', 'warm']);
-    // `typography` là nhóm token không phụ thuộc chế độ (ba bậc display cho
-    // hero), không phải một chế độ - lọc ra trước khi so.
+  test('cả hai nguồn token khai đủ ba chế độ', () => {
+    const std = JSON.parse(
+      readFileSync(join(ROOT, '.standards', 'tokens', 'design-tokens.json'), 'utf8')
+    );
+    expect(Object.keys(std.color).sort()).toEqual(['dark', 'light', 'warm']);
+    const ext = JSON.parse(
+      readFileSync(join(ROOT, 'tokens', 'extensions.tsudev-web.json'), 'utf8')
+    );
+    // `meta` và `typography` là nhóm token không phụ thuộc chế độ (ba bậc display
+    // cho hero), không phải một chế độ - lọc ra trước khi so.
     expect(
-      Object.keys(json.extensions['tsudev-web'])
-        .filter((k) => !k.startsWith('$') && k !== 'typography')
+      Object.keys(ext)
+        .filter((k) => !k.startsWith('$') && k !== 'typography' && k !== 'meta')
         .sort()
     ).toEqual(['dark', 'light', 'warm']);
+  });
+
+  // Bản sao cục bộ của bảng dùng chung đã bị xoá 26/08/2026 (QU-STD-1) và không
+  // được dựng lại: nó trôi lệch khỏi `.standards/` mà không cổng nào bắt được, vì
+  // mỗi cổng chỉ đối chiếu bản sao với chính nó.
+  test('không có bản sao cục bộ của bảng token dùng chung', () => {
+    expect(existsSync(join(ROOT, 'tokens', 'design-tokens.json'))).toBe(false);
+    expect(existsSync(join(ROOT, 'tokens', 'tokens.css'))).toBe(false);
   });
 });

@@ -27,16 +27,12 @@ documents-tsudev.md
 # - giữ nguyên văn. AGENTS.md KHÔNG nằm ở đây: nó là văn xuôi bình thường.
 CLAUDE.md
 
-# Bộ quy ước v1.0.0 - "BẤT KHẢ XÂM PHẠM" theo AGENTS.md §0, và dùng chung với
-# các repo khác trong hệ sinh thái (C#/Python/Qt cũng parse `tokens/`). Prettier
-# hạ mã hex xuống chữ thường, tách danh sách selector xuống dòng và đánh số lại
-# danh sách trong markdown - tức là làm bản ở đây LỆCH khỏi bản gốc, và một bộ
-# token dùng chung mà mỗi repo một dạng thì hết là dùng chung.
+# `tokens/` nay CHỈ còn phần mở rộng riêng của web (QU-STD-1, 26/08/2026); bảng
+# dùng chung sống ở `.standards/tokens/` bên dưới. Prettier được phép định dạng
+# phần mở rộng đó - nó không đi ra ngoài repo này nên không có bản gốc nào để lệch.
 #
-# `packages/ui/src/tokens.css` KHÔNG nằm ở đây: nó là bản SINH RA cho riêng web,
-# và `npm run tokens:check` mới là thứ canh nó.
-tokens/tokens.css
-tokens/design-tokens.json
+# `packages/ui/src/tokens.css` cũng KHÔNG nằm ở đây: nó là bản SINH RA cho riêng
+# web, và `npm run tokens:check` mới là thứ canh nó.
 
 # Bản sao chỉ-đọc của bộ quy ước trung tâm. TUYỆT ĐỐI không định dạng lại:
 # mọi thay đổi ở đây làm lệch MANIFEST.sha256 và khiến

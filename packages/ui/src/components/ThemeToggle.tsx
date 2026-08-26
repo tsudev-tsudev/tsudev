@@ -33,7 +33,7 @@ export type ThemeMode = 'light' | 'warm' | 'dark';
 export type ThemeChoice = ThemeMode | 'system';
 
 // Phải khớp `--bg-base` của ba chế độ trong tokens.css (sinh từ
-// tokens/design-tokens.json); có test canh. Dùng cho <meta name="theme-color">,
+// .standards/tokens/design-tokens.json); có test canh. Dùng cho <meta name="theme-color">,
 // thứ chạy trước khi trình duyệt tính lại style nên không đọc được biến CSS.
 const BASE: Record<ThemeMode, string> = {
   light: '#eef4fb',
