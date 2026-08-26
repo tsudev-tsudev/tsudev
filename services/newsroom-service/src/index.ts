@@ -135,6 +135,22 @@ app.get(
         prisma.newsroomEvent.count({ where: { status: 'DEAD' } }),
       ])
 
+    // Bản nháp nào đã được duyệt và đang CHỜ NHỊP. Không có mảng này thì thẻ
+    // sau khi bấm "Duyệt đăng" trông y hệt thẻ chưa bấm - `ContentDraft.status`
+    // chỉ đổi lúc dispatcher đăng thật, tức tới một giờ sau.
+    const queuedPublish = (
+      await prisma.newsroomEvent.findMany({
+        where: {
+          type: 'publish.requested',
+          status: { in: ['PENDING', 'CLAIMED'] },
+          draftId: { in: drafts.map((d) => d.id) },
+        },
+        select: { draftId: true },
+      })
+    )
+      .map((e) => e.draftId)
+      .filter((x): x is string => !!x)
+
     // Nhật ký: lấy các sự kiện MỚI HƠN con trỏ. Con trỏ là id của sự kiện cuối
     // cùng client đã thấy; dùng createdAt của nó làm mốc thay vì so id, vì cuid
     // không sắp xếp được theo thời gian.
@@ -188,6 +204,7 @@ app.get(
       agents,
       metrics,
       drafts,
+      queuedPublish,
       channels,
       sources,
       events,
@@ -266,6 +283,15 @@ app.patch(
 
 /// Người duyệt tay một bản nháp đang chờ (chuyên mục đặt HUMAN_APPROVAL, hoặc
 /// đã cạn số vòng sửa). Ghi nhật ký với actorKind="human" để phân biệt rõ.
+///
+/// ⚠️ Đường này KHÔNG đăng bài. Nó xếp một sự kiện `publish.requested`, và việc
+/// đăng thật nằm ở `onPublishRequested` của dispatcher - chạy ở NHỊP KẾ TIẾP,
+/// mà nhịp là mỗi giờ một lần (`7 0-17,23 * * *`, xem
+/// infrastructure/newsroom-cron). Vì thế `ContentDraft.status` vẫn là
+/// PENDING_HUMAN ngay sau khi duyệt, và thẻ vẫn nằm trong cột "CHỜ BẠN DUYỆT"
+/// tới 60 phút. Trước đây phản hồi không nói gì về điều đó nên người dùng thấy
+/// nút bấm xong mà không có gì đổi - không phân biệt được với nút hỏng.
+/// `queuedAt` + `alreadyQueued` là để giao diện nói được sự thật đó.
 app.post(
   '/api/newsroom/admin/draft/:id/approve',
   asyncHandler(async (req, res) => {
@@ -273,15 +299,43 @@ app.post(
     if (!draft || draft.deletedAt) return res.status(404).json({ error: 'Không tìm thấy bản nháp' })
     if (draft.status === 'PUBLISHED') return res.status(409).json({ error: 'Bản nháp đã đăng' })
 
-    await prisma.newsroomEvent.create({
+    // Bấm hai lần không được xếp hai lượt. `onPublishRequested` có tự bỏ qua
+    // bản nháp đã đăng nên không sinh bài trùng, nhưng hàng đợi phình ra vì một
+    // nút trông như không ăn thì đúng là thứ người dùng sẽ bấm lại nhiều lần.
+    const pending = await prisma.newsroomEvent.findFirst({
+      where: {
+        type: 'publish.requested',
+        draftId: draft.id,
+        status: { in: ['PENDING', 'CLAIMED'] },
+      },
+      select: { id: true, createdAt: true },
+    })
+    if (pending) {
+      return res.json({
+        ok: true,
+        queued: true,
+        alreadyQueued: true,
+        queuedAt: pending.createdAt,
+        status: draft.status,
+      })
+    }
+
+    const ev = await prisma.newsroomEvent.create({
       data: {
         type: 'publish.requested',
         actorKind: 'human',
         draftId: draft.id,
         payload: { by: 'admin' },
       },
+      select: { createdAt: true },
     })
-    res.json({ ok: true, queued: true })
+    res.json({
+      ok: true,
+      queued: true,
+      alreadyQueued: false,
+      queuedAt: ev.createdAt,
+      status: draft.status,
+    })
   })
 )
 

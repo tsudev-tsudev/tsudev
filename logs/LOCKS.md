@@ -4,7 +4,14 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - phiên 25 đã nhả TOÀN BỘ khóa. Mọi thay đổi đã vào `main` (`3ec27ee`)
-và đã phát hành cả hai tầng; không còn nhánh dở, không còn PR mở.
+services/newsroom-service/src/dispatcher.ts | backend-api/NEWSROOM-DUYET (reclaimStale + revive) | 19:20 26/08/2026
+services/newsroom-service/src/index.ts | backend-api/NEWSROOM-DUYET (approve + state) | 19:20 26/08/2026
+services/newsroom-service/test/ | qa-test/NEWSROOM-DUYET | 19:20 26/08/2026
+apps/frontend-main/pages/admin/newsroom.tsx | frontend-web/NEWSROOM-DUYET (act() nuốt lỗi) | 19:20 26/08/2026
+logs/STATE.md | NEWSROOM-DUYET (sổ sách) | 19:20 26/08/2026
 
-Phiên sau đọc `logs/handover/20260826-01_ket-phien-25.md` trước khi khoá gì.)
+⚠️ BA nhánh đang mở, không chạm file nào của nhau:
+
+- `feat/docs-search` = PR #81 (có MIGRATION, ràng buộc thứ tự phát hành)
+- `chore/qu-std-1-tokens` = PR #82, CI 7/7 xanh, chờ mắt người
+- `fix/newsroom-duyet-dang` = nhánh này, tách từ `main` = `b6b64cc`
