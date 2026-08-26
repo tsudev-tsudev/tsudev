@@ -1,5 +1,15 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> ⚠️ **NHÁNH `chore/qu-std-1-tokens` (phiên 28) - đọc trước khi merge.**
+> Tách từ `main`, nên khối sổ sách bên dưới là bản TRƯỚC phiên 27; phiên 27
+> (DOCS-SEARCH / PR #81) ghi sổ trên nhánh của nó. Hai nhánh **không chạm file mã
+> nguồn nào chung** và nhánh này **không có migration**, nên merge theo thứ tự nào
+> cũng được. Chi tiết + chỗ đụng nhau khi merge: phiếu
+> [`handover/20260826-04`](handover/20260826-04_ket-phien-28.md).
+>
+> Việc phiên 28: **QU-STD-1** (gỡ bản sao token cục bộ) + **QU-STD-3** (rà xong,
+> không phải sửa gì). Cần MẮT NGƯỜI trước khi mở PR - xem phiếu §2.1.
+>
 > **Phiên 27 bắt đầu ở đây** (cập nhật cuối phiên 26): đọc
 > [`handover/20260826-02`](handover/20260826-02_ket-phien-26.md) - phiếu kết phiên 26.
 > Phiếu cũ hơn giữ làm tham chiếu:
@@ -336,8 +346,23 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       phiên 16). Công cụ: `npm --workspace packages/ui run storybook`, nút **Giao
       diện** đổi ba chế độ trên thanh công cụ.
 
-- [ ] **QU-STD-1** Di trú `tokens/` sang `.standards/tokens/` (nguồn chân lý duy
-      nhất). Hiện có **17 file mã nguồn** đọc token cục bộ. ⚠️ **ĐÁNH GIÁ LẠI
+- [x] **QU-STD-1** ✅ XONG 26/08/2026 (phiên 28, nhánh `chore/qu-std-1-tokens`).
+      Đã XOÁ `tokens/design-tokens.json` + `tokens/tokens.css` (bản sao cục bộ
+      v1.0.0); `tokens/` nay chỉ còn `extensions.tsudev-web.json` - phần riêng của
+      web. `scripts/sync-tokens.js` đọc bảng dùng chung THẲNG từ
+      `.standards/tokens/design-tokens.json` rồi ghép khối riêng lên trên.
+      **Đo trước/sau trên 180 biến CSS hiệu lực: 178 giống hệt** - khối ghi đè
+      `text-muted`/`border-control` bị gỡ vì bảng chuẩn v2.8.0 đã mang đúng giá trị
+      đó, nên không đổi một pixel nào. **Hai biến còn lại là một LỖI THẬT mà bản sao
+      cục bộ đã che**: bản chuẩn v2.0.0 đổi tên `line-height.long-text` thành
+      `long`, app viết `var(--lh-long)`, biến đó **không tồn tại** trong artifact
+      sinh ra từ bản sao ⇒ mọi khối `.prose-tsu` (thân bài blog và tài liệu) và mọi
+      `text-lg` rơi về `--lh-body` 1.55 thay vì 1.6. Không cổng nào đỏ, vì mỗi cổng
+      chỉ đối chiếu bản sao với chính nó. Đó là lý do việc này đáng làm, không phải
+      "repoint đường dẫn cho gọn". Cổng: tokens · topology · format · lint ·
+      typecheck · check-standards · `sync-standards --check` XANH; packages/ui
+      **199/199**, frontend-main **41/41** (thêm 1 test chặn dựng lại bản sao).
+      _(mô tả cũ, giữ làm bối cảnh)_ Hiện có **17 file mã nguồn** đọc token cục bộ. ⚠️ **ĐÁNH GIÁ LẠI
       25/08 (phiên 24) - KHÔNG còn phá vỡ về MÀU**: `.standards/` v2.8.0 đã nhận
       đề xuất token, nên khối `color` chuẩn nay mang đúng giá trị mà
       `extensions.tsudev-web` đang ghi đè (`text-muted` `#52627A`/`#5E5646`/`#9BB0C9` + `border-control` `#74899F`/`#8E8064`/`#6E88AE`, `border-strong` giữ nguyên).
@@ -354,7 +379,18 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       docs/{design-system,architecture}.md); `.prettierignore` bỏ 3 dòng chết. GIỮ hồ
       sơ đóng băng (logs/handover, HANDOFF/STATE lịch sử) + `structure-upstream-proposal.md`
       (nêu tên v1.0.0 làm chủ đề đề xuất). Cổng: tokens·topology·format XANH.
-- [ ] **QU-STD-3** Rà chỗ dùng `border-strong` cho viền nút phụ hoặc ô nhập, đổi sang `border-control` (`.standards/docs/DESIGN_SYSTEM.md` mục 1).
+- [x] **QU-STD-3** ✅ XONG 26/08/2026 (phiên 28) - **rà xong, KHÔNG phải sửa gì.**
+      Đây là việc ĐO, và số đo là: mọi vùng tương tác đã dùng `border-line-control`
+      sẵn (`Button` secondary · `Input` · `Badge outline` · `RecordFooter` select và
+      nút trang · `AccountFilters` · ô tìm kiếm và chip lọc ở `/search` ·
+      `/author`). Tám chỗ còn dùng `border-line-strong` đều là ranh giới TRANG TRÍ,
+      đúng vai trò mà chuẩn giữ lại cho nó: `SiteFooter` · `LegalDoc` ·
+      `/trust/verify/[serial]` (kẻ ngang trên chân trang), `Avatar` (ring), `Card`
+      (viền đậm lên khi hover), `TableOfContents` (gạch dọc khi hover), hai khối
+      panel ở `/admin/trust` và `/admin/newsroom`. Việc này bị xếp phụ thuộc
+      QU-STD-1 vì `border-control` "chưa tồn tại" - thực ra nó đã tồn tại qua khối
+      `extensions` từ đợt vá tiếp cận phiên 13, và đợt đó đã đổi hết ngay lúc ấy.
+      Nhãn phụ thuộc trong hàng đợi đã lỗi thời, không phải việc còn dở.
 - [ ] **QU-STD-AUTH** Rà luồng đăng nhập theo `.standards/docs/AUTH_AND_ACCOUNT.md` mục 17. Repo này là **hạng A**. Trọng tâm: `tsudev.com` phải là IdP OIDC duy nhất (hiện NextAuth nối thẳng Google/GitHub vào frontend - đó chính là kiểu nối tài liệu mục 2 cấm), ba lối vào đúng thứ tự, và cơ chế Xác minh tài khoản ân hạn 7 ngày ở mục 8. Mọi hạn chế `MUST` thi hành ở tầng máy chủ.
 - [x] **QU-STD-TABLE** ✅ XONG 25/08/2026 (đợt 1 phiên 24, đợt 2 phiên 25). Bộ
       chọn số bản ghi `10/20/50/100/200` cho MỌI bảng và mọi modal có bản ghi.
@@ -633,6 +669,23 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
   theo TỪNG NHÁNH nên nhánh `alias` mới phải khai riêng - quên là OWNER cũng
   nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
   có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
+- 26/08/2026 - **QU-STD-1 + QU-STD-3: gỡ bản sao token cục bộ** (phiên 28, nhánh
+  `chore/qu-std-1-tokens`, CHƯA mở PR - chờ mắt người). Chi tiết + số đo ở hai mục
+  tương ứng trong hàng đợi. Ba điều đáng nhớ:
+  (a) **Một bản sao "chỉ để tiện" trôi lệch được cả một phiên bản major mà không
+  cổng nào bắt.** `tokens:check` đối chiếu bản sao với chính nó; `check-standards`
+  chỉ soi `.standards/`. Cả hai xanh trong khi bản sao ở v1.0.0 còn bản chuẩn đã ở
+  v2.0.0. Cùng họ với bài học "công cụ ĐO có thể sai" ở `HANDOFF.md` §0.7, khác ở
+  chỗ công cụ đo ở đây hoàn toàn đúng - nó chỉ được chĩa vào nhầm thứ.
+  (b) **Triệu chứng của lỗi đó là chữ, không phải mã màu.** `var(--lh-long)` trỏ
+  vào một biến không tồn tại nên khai báo bị bỏ và `line-height` rơi về giá trị kế
+  thừa - không lệch đủ nhiều để ai nhìn ra, không có gì đỏ lên. Phiên này đã quét
+  NGUỒN một lần (mọi `var(--x)` không có giá trị dự phòng phải được khai ở
+  `packages/ui/src/tokens.css` hoặc `globals.css`) và kết quả sạch sau khi vá; nên
+  cân nhắc đưa hẳn phép quét đó vào CI ở đợt sau - nó rẻ và bắt đúng lớp lỗi này.
+  (c) `.standards/tokens/design-tokens.json` tự khai "khối `extensions.*` riêng của
+  từng repo con KHÔNG nằm ở đây", tức đường đi này là thứ bộ quy ước đã tính trước,
+  không phải cách lách.
 - 26/08/2026 - **NEWSROOM-DOCS** (phiên 25). Nguyên nhân: `seed-newsroom.js`
   không có nguồn nào `target: 'DOC'`, nên nhánh đăng DOC (vốn đã đầy đủ trong
   `dispatcher.ts`) **chưa từng chạy lần nào**. Đã thêm nguồn `kind: 'repo_docs'`
