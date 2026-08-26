@@ -50,7 +50,7 @@ export const api = {
         total_pages: 1,
         query_normalized: '',
       },
-      facets: { tag: [] },
+      facets: { tag: [], category: [], type: [] },
     }),
   // `/api/docs` trả `{data, meta}` từ 26/08/2026 (mục lục có trần). Gỡ vỏ ở
   // ĐÂY chứ không ở từng trang: ba trang dùng nó (mục lục, trang chủ, sitemap)

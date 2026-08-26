@@ -4,7 +4,12 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(trống - phiên 25 đã nhả TOÀN BỘ khóa. Mọi thay đổi đã vào `main` (`3ec27ee`)
-và đã phát hành cả hai tầng; không còn nhánh dở, không còn PR mở.
+(TRỐNG - phiên 27 đã nhả TOÀN BỘ khóa của DOCS-SEARCH. Cây làm việc sạch, mọi thay
+đổi đã commit và đẩy.
 
-Phiên sau đọc `logs/handover/20260826-01_ket-phien-25.md` trước khi khoá gì.)
+⚠️ Khác các lần trước: **có một PR đang mở**. `feat/docs-search` = PR #81, CI 7/7
+xanh, CHƯA merge vì đợt này có MIGRATION - thứ tự phát hành bị ràng buộc.
+`main` vẫn = `2bbeaf0`.
+
+Phiên sau đọc `logs/handover/20260826-03_ket-phien-27.md` §2.1 TRƯỚC khi merge hay
+khoá gì.)

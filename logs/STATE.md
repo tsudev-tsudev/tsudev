@@ -1,7 +1,26 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 27 bắt đầu ở đây** (cập nhật cuối phiên 26): đọc
-> [`handover/20260826-02`](handover/20260826-02_ket-phien-26.md) - phiếu kết phiên 26.
+> **Phiên 28 bắt đầu ở đây** (cập nhật cuối phiên 27): đọc
+> [`handover/20260826-03`](handover/20260826-03_ket-phien-27.md) - phiếu kết phiên 27.
+>
+> **`main` vẫn = `2bbeaf0`.** Phiên 27 KHÔNG đẩy gì vào `main`.
+>
+> 🔴 **VIỆC ĐẦU TIÊN: chạy migration của DOCS-SEARCH trên prod. Chỉ chủ dự án làm
+> được - agent KHÔNG có credential Neon prod** (đã kiểm: `.env` chỉ trỏ
+> `localhost:5433`, không biến môi trường nào mang chuỗi kết nối prod).
+>
+> **PR #81** (`feat/docs-search`, hai commit `74dfaa9` + `bec9d0b`) đã mở, **CI 7/7
+> XANH**, chờ đúng một việc đó. Từ `4a739c3` (cổng chặn lệch migration), merge một
+> PR có migration mà chưa chạy `prisma migrate deploy` trên prod ⇒ Render autoDeploy
+> làm **SẬP CẢ SITE**. Thứ tự bắt buộc, sáu bước có lệnh cụ thể ở phiếu
+> `20260826-03` §2.1: **migration prod → merge #81 → deploy frontend Cloudflare →
+> `search:reindex` trên prod → nghiệm thu curl → mắt người**. Bước `search:reindex` > **bắt buộc**: bỏ nó thì tài liệu cũ vẫn có `search*Norm` NULL, vẫn không tìm thấy,
+> và cả đợt việc trông y hệt như chưa làm.
+>
+> ⚠️ Lần thử ở phiên 27 hỏng vì chuỗi `<URL-NEON-PROD>` bị dán nguyên văn thay vì
+> thay bằng URL thật (`P1012`). **Không có gì trên prod bị thay đổi.**
+>
+> Phiếu cũ hơn: [`handover/20260826-02`](handover/20260826-02_ket-phien-26.md) - kết phiên 26.
 > Phiếu cũ hơn giữ làm tham chiếu:
 > [`handover/20260826-01`](handover/20260826-01_ket-phien-25.md) - phiếu kết
 > phiên ĐẦY ĐỦ, gồm cả phần phát hành. Phiếu `20260825-03` là bản giữa phiên,
@@ -34,7 +53,7 @@
 > việc con BLOG-500-AUTH đóng luôn. **Không còn phần nào của BLOG-500 mở.**
 >
 > Hàng đợi còn: **QU-STD-AUTH** (nặng nhất, cần quyết định OIDC của chủ dự án) →
-> DOCS-SEARCH → QU-STD-1/3 → B1/C1.
+> QU-STD-1/3 → B1/C1. **DOCS-SEARCH đã xong ở phiên 27** (chờ phát hành, xem trên).
 >
 > ⚠️ Bốn điều đáng nhớ của phiên 25: (a) `router.query` **rỗng ở lần dựng đầu**
 > trên trang tối ưu tĩnh, nên bản viết tay của đợt 1 đã **tự ghi đè `?page=3`
@@ -595,14 +614,17 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
       thật và vào được `/admin`** - phép đo, không phải suy luận. Agent không có
       credentials nên việc này bắt buộc phải là mắt người.
 
-- [ ] **DOCS-SEARCH** Đưa `Doc` vào chỉ mục tìm kiếm. Phát hiện khi làm
-      NEWSROOM-DOCS, **cố ý tách ra** thay vì làm dở: `buildPostSearch` chỉ chạy
-      cho `Post`, và `Doc` không có cột `searchTitleNorm`/`searchBodyNorm` nào.
-      Làm đủ cần 2 cột + 2 index GIN trgm (migration) + đường ghi lúc đăng +
-      script reindex + đổi hợp đồng `/api/posts/search` + thẻ kết quả ở `/search`
-      (hiện `PostSearchResult.data` là `Post[]`). Quy mô ngang một pha của
-      ACCOUNTS-ADMIN. Hệ quả khi chưa làm: tài liệu do agent viết đọc được ở
-      `/docs` nhưng KHÔNG tìm thấy qua ô tìm kiếm.
+- [x] **DOCS-SEARCH** ✅ CODE XONG 26/08/2026 (phiên 27, nhánh `feat/docs-search`,
+      **PR #81 mở, CI 7/7 xanh, chưa merge - chờ chạy migration trên prod trước**).
+      Hai commit: `74dfaa9` (mã) + `bec9d0b` (sổ sách). Đủ sáu phần đã nêu:
+      2 cột + 2 index GIN trgm (migration `20260825230122_doc_search_index`),
+      `buildDocSearch` ở `@tsudev/search` gắn vào đường ghi Doc DUY NHẤT của
+      production (`newsroom-service/dispatcher.ts`), `search:reindex` nay phủ cả
+      Post lẫn Doc, hợp đồng `/api/posts/search` đổi sang **hàng có `kind`** kèm
+      hai trục lọc mới `type`/`category`, và `/search` dựng thẻ riêng cho tài liệu.
+      Đo thật trên endpoint đã dựng: gõ **`tai lieu api`** (không dấu) ra
+      `doc/api-reference` "Tài liệu API" - đúng triệu chứng việc này ra đời để
+      chấm dứt. Ba điều đáng nhớ ghi ở mục "Đã hoàn thành" bên dưới.
 
 - [ ] **QU-STD-4** Chuyển `NEXT_PUBLIC_MAIN_URL` ra khỏi `apps/frontend-main/.env.production` (dùng ở 18 chỗ gồm `scripts/deploy-frontend.js`, `render.yaml`, `config/topology.json`), rồi xóa dòng miễn trừ trong `.standards-allow`. Miễn trừ **hết hạn 31/12/2026**.
 
@@ -613,6 +635,34 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
 | _(trống)_ |       |         |
 
 ## Đã hoàn thành (mới nhất trên cùng)
+
+- 26/08/2026 - **DOCS-SEARCH: tài liệu vào chỉ mục tìm kiếm** (phiên 27, nhánh
+  `feat/docs-search`, **PR #81 - CI 7/7 xanh, chưa merge**). Chi tiết ở mục
+  DOCS-SEARCH trong hàng đợi. Năm điều đáng nhớ:
+  (a) **Bản đầu tính chỉ mục ngay trong `packages/db/prisma/seed.js` và đó là
+  bẫy**: `@tsudev/search` chỉ có `dist/` sau `build:services`, mà `dev:full` chạy
+  `db:seed` TRƯỚC bước đó ⇒ lần dựng máy đầu tiên sẽ chết. Đã hoàn nguyên; seed
+  cũng không lập chỉ mục Post từ trước, nên đường chuẩn cho dữ liệu seed là
+  `search:reindex`, không phải seed.
+  (b) **Xếp hạng Doc CỐ Ý không đọc `searchBodyNorm`.** Cột đó lớn ngang cả bài mà
+  tập ứng viên tới 500 hàng. Vì `WHERE` đã lọc "khớp tiêu đề HOẶC khớp thân bài",
+  không khớp tiêu đề tức là khớp thân bài - suy ra được, không phải kéo về. Cùng
+  lý do, `contentMd` chỉ nạp cho đúng các hàng LÊN TRANG để dựng đoạn trích.
+  (c) **Phân trang theo NGÀY nay CHÍNH XÁC ở mọi trang, kể cả khi trộn hai nguồn**:
+  để lấy trang P mốc S chỉ cần P\*S hàng đầu của MỖI nguồn, nên nhánh này không cần
+  trần. Trần 500 chỉ còn ở nhánh xếp hạng theo độ liên quan (phải chấm điểm cả tập)
+
+  - đúng như trước, không phải hồi quy mới.
+    (d) **Thẻ là trục của bài viết, chuyên mục là trục của tài liệu.** Lọc AND giữa
+    các nhóm ⇒ chọn `tag` thì tài liệu rơi khỏi phạm vi và ngược lại. Máy chủ thi
+    hành; giao diện ẩn luôn ô chip không áp dụng được, để người dùng không tự đưa
+    mình vào tổ hợp cho ra 0 kết quả.
+    (e) **Byte NUL THẬT trong nguồn làm `git diff` báo file là NHỊ PHÂN** -
+    `search.tsx` đã dính một lần, ở dấu tách của `resetKey` vốn phải là DÃY THOÁT.
+    Cả trang thành không rà soát được, trong khi prettier, eslint và typecheck đều
+    XANH. Dấu hiệu nhận ra: `file <đường dẫn>` in `data` thay vì `JavaScript
+source`. Đã sửa trước khi commit; nó tái diễn ngay trong phiếu bàn giao nên
+    đáng ghi lại.
 
 - 26/08/2026 - **ACCOUNTS-ADMIN Pha 0-2** (phiên 25). **Pha 0**: `oauth/upsert`
   nay ghi `login` + `lastLoginAt` ở CẢ BỐN nhánh (trước đó nhánh "đã liên kết"
@@ -1251,6 +1301,7 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 | Mã                                                                  | Chủ đề                                                                      | Trạng thái |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
+| [20260826-03](handover/20260826-03_ket-phien-27.md)                 | Kết phiên 27 - DOCS-SEARCH (chờ migration prod + merge)                     | **MỞ**     |
 | [20260826-02](handover/20260826-02_ket-phien-26.md)                 | Kết phiên 26 - đóng BLOG-500, cổng chặn migration, dọn trang chủ, siết mail | **MỞ**     |
 | [20260822-05](handover/20260822-05_ket-phien-18.md)                 | Kết phiên 18 - Phase 0 + đo B1 + phát hành Phase A                          | **MỞ**     |
 | [20260822-04](handover/20260822-04_ket-phien-17.md)                 | Kết phiên 17 - Phase A (SSRF + rate limit) code-complete                    | HOÀN THÀNH |
