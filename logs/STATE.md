@@ -730,6 +730,26 @@ source`. Đã sửa trước khi commit; nó tái diễn ngay trong phiếu bàn
   theo TỪNG NHÁNH nên nhánh `alias` mới phải khai riêng - quên là OWNER cũng
   nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
   có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
+- 26/08/2026 - **SEARCH-HEADER: một bộ tìm kiếm, một chỗ dùng** (phiên 28, nhánh
+  `feat/search-o-header`). Ô "Tìm kiếm…" ở header trước đợt này là một `<input>`
+  KHÔNG state, KHÔNG form, KHÔNG onSubmit - gõ rồi Enter thì không có gì xảy ra.
+  Một ô trang trí đặt ở chỗ dễ thấy nhất của site, và **không cổng nào bắt được**
+  vì một `<input>` không hành động thì cũng không lỗi. Đây là lớp hỏng chỉ MẮT
+  NGƯỜI thấy, nên nay có test quét NGUỒN canh - cùng cách `themeTokens.test.ts`
+  canh ba bản sao màu nền.
+  (a) Ô header thành `<form method="get" action="/search">` THẬT. Không dựng lại
+  logic tìm kiếm thứ hai: `/search` đã đọc `q`/`type`/`tag`/`category`/`sort` từ
+  URL, nên gửi biểu mẫu là đủ. `packages/ui` cũng không phải phụ thuộc next/router,
+  và biểu mẫu GET còn chạy khi JavaScript chưa kịp tải.
+  (b) Thanh lọc theo thẻ rời `/blog` sang `/search`, nơi nó đứng cùng chuyên mục
+  và loại nội dung trong một bộ facet. `/blog` giữ thẻ của TỪNG BÀI để nhận diện
+  chủ đề - chúng không còn là bộ lọc.
+  (c) `/blog?tag=x` **chuyển hướng** sang `/search?tag=x` chứ không bị bỏ. Liên
+  kết cũ còn trong bookmark và trong lịch sử; bỏ nhánh này thì chúng lặng lẽ trả
+  về trang KHÔNG lọc gì - sai kết quả mà không báo lỗi, tệ hơn 404.
+  (d) Thêm mục "Tìm kiếm" vào menu di động: ô ở thanh trên chỉ hiện từ `xl`, mà
+  đợt này vừa gỡ thanh thẻ khỏi `/blog` - không có mục đó thì máy điện thoại mất
+  hẳn cả hai đường.
 - 26/08/2026 - **Writer hỏng 80%: tài liệu dài không nằm được trong chuỗi JSON**
   (phiên 28, nhánh `fix/newsroom-writer-chan-doan`). Chi tiết ở phiếu `20260826-06`.
   (a) **Thứ chỉ ra thủ phạm là phép đếm theo VAI, không phải nhật ký.** Trong nhật

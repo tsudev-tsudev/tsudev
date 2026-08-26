@@ -4,7 +4,7 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG - đã nhả toàn bộ khóa của WRITER-FIX.
+(TRỐNG - đã nhả toàn bộ khóa của SEARCH-HEADER.
 
-Nhánh `fix/newsroom-writer-chan-doan` tách từ `main` = `e0c3c90`. Không migration.
-Đọc `logs/handover/20260826-06_writer-hong-80-phan-tram.md`.)
+Nhánh `feat/search-o-header` tách từ `main` = `7b345b1`. Không migration.
+PR #81-#84 đã merge hết.)
