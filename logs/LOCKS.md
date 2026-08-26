@@ -4,9 +4,9 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG - phiên 28 đã nhả TOÀN BỘ khóa của QU-STD-1. Cây làm việc sạch: hai commit
-`84ef283` (mã) + `c358aea` (sổ sách) đã ĐẨY lên `origin/chore/qu-std-1-tokens`.
-**Chưa mở PR** - còn chờ bước mắt người.
+(TRỐNG - phiên 28 đã nhả TOÀN BỘ khóa của QU-STD-1. Cây làm việc sạch, ba commit
+đã đẩy lên `origin/chore/qu-std-1-tokens` và **PR #82 đã mở, CI 7/7 XANH**
+(đo trên commit `65e8983`). CHƯA merge - còn chờ bước mắt người.
 
 ⚠️ **HAI nhánh đang mở, độc lập với nhau:**
 

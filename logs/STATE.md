@@ -8,8 +8,11 @@
 > [`handover/20260826-04`](handover/20260826-04_ket-phien-28.md).
 >
 > Việc phiên 28: **QU-STD-1** (gỡ bản sao token cục bộ) + **QU-STD-3** (rà xong,
-> không phải sửa gì). Hai commit `84ef283` + `c358aea` **đã đẩy**, **chưa mở PR** -
-> còn chờ MẮT NGƯỜI, xem phiếu §2.1.
+> không phải sửa gì). **PR #82 mở, CI 7/7 XANH** (đo trên commit `65e8983`),
+> **chưa merge** - còn chờ MẮT NGƯỜI, xem phiếu §2.1.
+>
+> ⚠️ E2E smoke xanh **không** thay được bước đó: nó chứng minh trang dựng được và
+> không vỡ, không chứng minh khối văn bản dài đọc tốt hơn. Hai câu hỏi khác nhau.
 >
 > Dự đoán xung đột merge ở phiếu §2.2 **đã kiểm bằng merge khô** (rồi `--abort`):
 > chỉ `logs/LOCKS.md` và `logs/STATE.md` đụng nhau, đều kiểu "cả hai cùng thêm";
@@ -675,7 +678,8 @@ version` > 1.20.2. Prod hiện KHÔNG có CVE reachable nên KHÔNG chặn. Đo 
   nhận 401; (d) bản đầu của bộ lọc quên `where` ở `findMany` trong khi `count`
   có - đúng cái bẫy mà chính chú thích trong hàm đó cảnh báo.
 - 26/08/2026 - **QU-STD-1 + QU-STD-3: gỡ bản sao token cục bộ** (phiên 28, nhánh
-  `chore/qu-std-1-tokens`, đã đẩy, CHƯA mở PR - chờ mắt người). Chi tiết + số đo ở hai mục
+  `chore/qu-std-1-tokens`, **PR #82 - CI 7/7 xanh, chưa merge**, chờ mắt người).
+  Chi tiết + số đo ở hai mục
   tương ứng trong hàng đợi. Ba điều đáng nhớ:
   (a) **Một bản sao "chỉ để tiện" trôi lệch được cả một phiên bản major mà không
   cổng nào bắt.** `tokens:check` đối chiếu bản sao với chính nó; `check-standards`
