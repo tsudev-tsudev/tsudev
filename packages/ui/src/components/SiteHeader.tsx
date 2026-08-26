@@ -75,7 +75,28 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <label className="hidden xl:flex items-center gap-2 h-9 px-3 rounded-md border border-line bg-base text-fg-muted focus-within:border-primary">
+          {/*
+            Ô tìm kiếm của toàn site. Là một <form method="get"> THẬT trỏ vào
+            /search, không phải một ô có onSubmit gọi router.
+
+            Vì sao: /search đã đọc `q`, `type`, `tag`, `category`, `sort`, `page`
+            từ URL trong getServerSideProps của nó, nên gửi biểu mẫu là đủ để rơi
+            đúng vào bộ tìm kiếm đã tối ưu - không cần lặp lại một mẩu logic tìm
+            kiếm thứ hai ở đây. Lặp lại chính là thứ đợt này đi xoá: trước
+            26/08/2026 ô này KHÔNG có state, KHÔNG có form, KHÔNG có onSubmit -
+            gõ vào rồi bấm Enter thì không có gì xảy ra. Nó là một ô trang trí
+            nằm ở chỗ dễ thấy nhất của site.
+
+            Thêm nữa `packages/ui` không phụ thuộc next/router, và một biểu mẫu
+            GET còn chạy được khi JavaScript chưa kịp tải - cùng lý do với nút
+            "Đăng nhập" ngay bên dưới.
+          */}
+          <form
+            action="/search"
+            method="get"
+            role="search"
+            className="hidden xl:flex items-center gap-2 h-9 px-3 rounded-md border border-line bg-base text-fg-muted focus-within:border-primary"
+          >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.7" />
               <path
@@ -86,11 +107,18 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
               />
             </svg>
             <input
-              aria-label="Tìm kiếm"
+              type="search"
+              name="q"
+              aria-label="Tìm kiếm bài viết và tài liệu"
               placeholder="Tìm kiếm…"
               className="bg-transparent outline-none text-sm text-fg w-40 placeholder:text-fg-muted"
             />
-          </label>
+            {/* Enter trong ô đã gửi biểu mẫu; nút này để bàn phím và trình đọc
+                màn hình có một đích submit gọi được tên. */}
+            <button type="submit" className="sr-only">
+              Tìm
+            </button>
+          </form>
           <ThemeToggle />
           {session ? (
             <div className="flex items-center gap-2">
@@ -154,6 +182,18 @@ export const SiteHeader = ({ active = '/' }: SiteHeaderProps) => {
               {n.label}
             </a>
           ))}
+          {/*
+            Ô tìm kiếm ở thanh trên chỉ hiện từ breakpoint `xl` vì thanh đó đã
+            chật. Không có mục này thì máy điện thoại KHÔNG có lối nào tới
+            /search - và đợt 26/08/2026 vừa gỡ thanh thẻ khỏi /blog, tức là gỡ
+            luôn đường duyệt theo thẻ mà người dùng hẹp màn hình đang dùng.
+          */}
+          <a
+            href="/search"
+            className="block px-2 py-2.5 rounded-md text-sm text-fg-secondary hover:bg-subtle"
+          >
+            Tìm kiếm
+          </a>
           {/*
             Trên màn hình hẹp, tên người dùng ở thanh trên bị ẩn (lg:inline), nên
             hai mục này là lối vào DUY NHẤT tới trang tài khoản. Thiếu chúng thì

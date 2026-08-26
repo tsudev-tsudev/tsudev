@@ -78,6 +78,11 @@ type SearchProps = {
   initialSort: SortKey;
   initialPage: number;
   initial: PostSearchResult;
+  /// Toàn bộ thẻ đang có, để DUYỆT khi chưa gõ gì. Khác `facets.tag` của kết quả:
+  /// facet chỉ tồn tại KHI đã có truy vấn, nên nếu chỉ dựa vào nó thì trang này
+  /// mở ra trống trơn và không gợi ý được gì. Thanh duyệt này là thứ dời sang từ
+  /// /blog ngày 26/08/2026.
+  allTags: string[];
 };
 
 export default function SearchPage({
@@ -88,6 +93,7 @@ export default function SearchPage({
   initialSort,
   initialPage,
   initial,
+  allTags,
 }: SearchProps) {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
@@ -272,6 +278,30 @@ export default function SearchPage({
             className="w-full rounded-md border border-line-control bg-base px-4 py-3 text-fg outline-none focus:border-primary"
           />
         </div>
+
+        {/* Duyệt theo thẻ khi CHƯA có truy vấn nào.
+            Thanh này thay chỗ thanh thẻ đã gỡ khỏi /blog: ở đó nó lọc bài viết,
+            ở đây nó nằm cùng chỗ với chuyên mục và loại nội dung, tức cùng một
+            bộ lọc cho cả bài viết lẫn tài liệu. Ẩn đi khi đã có truy vấn, vì lúc
+            đó `facets.tag` bên dưới nói được nhiều hơn - nó kèm số lượng và chỉ
+            liệt kê thẻ THỰC SỰ có trong kết quả. */}
+        {!hasQuery && allTags.length > 0 && (
+          <div className="mt-4">
+            <span className="text-xs text-fg-muted">Hoặc duyệt theo thẻ:</span>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {allTags.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTag(t)}
+                  aria-label={`Lọc theo thẻ ${t}`}
+                >
+                  <Badge tone="neutral">{t}</Badge>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Loại nội dung */}
         <div className="flex flex-wrap items-center gap-2 mt-3" aria-label="Lọc theo loại nội dung">
@@ -517,6 +547,13 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
       ? await api.searchPosts(params.toString())
       : EMPTY_RESULT;
 
+  // Nguồn thẻ để DUYỆT. Lấy từ danh sách bài mới nhất, đúng cách /blog từng dựng
+  // thanh thẻ của nó - giữ nguyên tập thẻ mà người dùng đã quen thấy.
+  const recent = await api.posts(50);
+  const allTags = [...new Set(recent.flatMap((p) => p.tags || []))].sort((a, b) =>
+    a.localeCompare(b, 'vi')
+  );
+
   return {
     props: {
       initialQ,
@@ -526,6 +563,7 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
       initialSort,
       initialPage,
       initial,
+      allTags,
     },
   };
 }
