@@ -2,42 +2,45 @@
 
 > **Phiên 30 bắt đầu ở đây** (cập nhật cuối phiên 29).
 >
-> 🔴 **`/docs` không có bài nào của Agent AI vì van áp lực ngược BỎ ĐÓI kênh DOC**
-> (không phải vì thiếu nguồn - nguồn đã seed từ 26/08). Van đếm MỘT con số cho cả
-> toà soạn, mà trên hàng đợi nhiều kênh thì con số chung luôn bị kênh đông nguồn
-> nhất chiếm hết: BLOG (8 nguồn) giữ hàng đợi đầy liên tục (`scan.skipped` > **119 lần / 7 ngày**) nên nguồn DOC **chưa từng được quét lần nào**. Cộng thêm
-> truy vấn chọn nguồn **không có `orderBy`** nên nguồn thêm sau nằm cuối hàng.
-> Số đo dứt điểm: `TopicIdea` có 220 BLOG, 9 PROJECT, **0 DOC**.
-> Đã sửa ở nhánh `fix/toa-soan-bo-doi-kenh-doc`, phiếu
-> [`20260827-02`](handover/20260827-02_bo-doi-kenh-doc.md).
+> ✅ **`/docs` ĐÃ THÔNG - chuỗi sinh tài liệu sống lần đầu tiên (27/08/2026).** > `TopicIdea` kênh DOC: **0 → 3**. Con số đó đứng ở 0 suốt toàn bộ lịch sử dự án.
 >
-> 🟠 **`/projects` thì KHÁC HẲN, và một nửa là cố ý**: agent bị cấm tạo dự án mới
-> (Project mang phiên bản/giấy phép/bản quyền - dữ liệu pháp lý), nó chỉ sửa được
-> mô tả dự án ĐÃ CÓ, tìm bằng slug. Nhưng nguồn của kênh PROJECT lại là
-> **GitHub Blog - Engineering**, nên slug sinh từ tiêu đề bài báo GitHub không đời
-> nào trùng slug dự án tsudev ⇒ `publish.needs_human {"reason":"project_not_found"}` > **28 lần / 7 ngày**, **0 bản nháp PUBLISHED**. Đã chuyển nguồn đó về đúng kênh
-> BLOG; kênh PROJECT nay CỐ Ý không có nguồn, có test canh không bật lén lại được.
+> Phải gỡ **BA tầng chồng nhau**, và mỗi tầng chỉ nhìn thấy được sau khi gỡ tầng trước:
 >
-> ✅ **PR #89 ĐÃ MERGE và seed prod đã chạy (27/08).** Nghiệm thu: nguồn DOC
-> `quét=09:28 27/08/2026` - **lần quét đầu tiên kể từ khi tạo**, và lượt đó chỉ
-> quét ĐÚNG 1 nguồn (BLOG bão hoà bị lọc, DOC vẫn lọt) ⇒ cả `nulls: 'first'` lẫn
-> trần-theo-kênh đều chạy đúng. `GitHub Blog` nay là BLOG, kênh PROJECT hết nguồn.
+> | tầng |                                                                                                                                                     |
+> | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | 1    | Thiếu nguồn DOC - sửa 26/08 (phiên 25). **Chưa đủ.**                                                                                                |
+> | 2    | Van áp lực ngược TOÀN CỤC + truy vấn chọn nguồn không `orderBy` ⇒ nguồn DOC chưa từng được quét (`scan.skipped` 119 lần/7 ngày). PR #89.            |
+> | 3    | Quét được rồi thì ăn `403` - trần GitHub 60 lượt/giờ tính theo IP, mà Render đi ra bằng **IP dùng chung**. PR #90 + secret `NEWSROOM_GITHUB_TOKEN`. |
 >
-> 🔴 **Nhưng nghiệm thu phơi ra TẦNG THỨ BA: `GitHub HTTP 403 (/contents/docs)`.**
-> Cùng endpoint đó gọi từ máy dev trả **200**, `user-agent` đã đặt đúng, và trần
-> GitHub không-xác-thực là **60 lượt/giờ tính theo ĐỊA CHỈ IP**. Render free đi ra
-> bằng **IP dùng chung** nên 60 lượt đó bị khách khác đốt hết. Chú thích cũ trong
-> `fetchRepoDocs` viết "dùng 2 lượt nên biên rất rộng" - phép tính đúng, giả định
-> ngầm "60 lượt đó là của mình" mới sai.
-> Vá ở nhánh `fix/newsroom-github-han-muc`: `NEWSROOM_GITHUB_TOKEN` nâng trần lên
-> **5.000/giờ tính theo KHOÁ**, kèm thông báo lỗi phân biệt cạn-hạn-mức với
-> không-có-quyền (cả hai đều là 403).
-> ⚠️ **Cần đặt secret `NEWSROOM_GITHUB_TOKEN` ở Render** thì mới thật sự vá; repo
-> Public nên khoá KHÔNG cần scope nào.
+> **Nghiệm thu đo được, không suy luận:** nguồn DOC `quét=10:38 27/08`, `lastError` > **rỗng**, và lượt quét lúc 09:28 chỉ lấy **đúng 1 nguồn** (BLOG bão hoà bị lọc,
+> DOC vẫn lọt) - chứng minh cả `nulls: 'first'` lẫn trần-theo-kênh đều chạy. Ba ý
+> tưởng DOC rút ra từ chính commit `feat(...)` của phiên 29.
 >
-> 👉 Bài học: lỗi này **không thể thấy trước** khi nguồn còn chưa từng được quét -
-> nó nằm sau đúng cái cửa mà bản vá bỏ-đói vừa mở. Một bản vá làm lộ ra tầng kế
-> tiếp là dấu hiệu nó CHẠY, không phải dấu hiệu nó sai.
+> 🟠 **Bài chưa lên `/docs` ngay, và đó KHÔNG phải lỗi**: 60 việc PENDING trong
+> hàng đợi, ý tưởng DOC đứng thứ 19/21, mỗi nhịp nhặt 5 và nhịp mỗi giờ ⇒ khoảng
+> 12 giờ để tới lượt. Trần kênh DOC là 1 bài/ngày. Muốn nhanh thì gõ thêm
+> `npm run newsroom:check`, hoặc bấm "Hồi sinh việc đã dừng" (**35** sự kiện DEAD).
+>
+> 🟠 **`/projects` sẽ KHÔNG BAO GIỜ có bài của agent - đó là thiết kế.** Agent bị
+> cấm tạo dự án mới (Project mang phiên bản/giấy phép/bản quyền - dữ liệu pháp lý);
+> nó chỉ sửa mô tả dự án đã có. Nguồn gán sai kênh đã chuyển về BLOG, kênh PROJECT
+> nay cố ý không có nguồn, có test canh.
+>
+> 👉 **Bài học chung của cả ba tầng**: mỗi bản vá chỉ làm lộ ra tầng kế tiếp, và
+> đó là dấu hiệu nó CHẠY chứ không phải nó sai. Tầng 3 không thể thấy trước khi
+> nguồn còn chưa từng được quét - chưa quét thì chưa gọi API, chưa gọi API thì
+> chưa có 403.
+>
+> 🔴 **SỰ CỐ SUÝT XẢY RA 27/08 - luật thứ tự migration vừa bị vi phạm một lần.**
+> PR #88 (VERIFY-CODE) được merge **TRƯỚC** khi `prisma migrate deploy` chạy trên
+> prod - đúng thứ tự mà phiếu, `LOCKS.md` và chính file migration đều cảnh báo là
+> làm SẬP CẢ SITE. Đo lúc phát hiện: `migrate status` báo
+> `20260826152436_email_verify_code` **chưa áp dụng** trong khi `main` đã có mã cần
+> nó. Site còn 200 vì hai điều MAY, không phải vì an toàn: (a) migration này thuần
+> bổ sung (`ADD VALUE` + `ADD COLUMN ... DEFAULT`) nên không phá mã cũ, và (b)
+> Render chưa dựng xong bản mới tại thời điểm đó. Đã áp ngay khi phát hiện;
+> `migrate status` nay "up to date", bốn trang prod đều 200.
+> **Lần sau đảo thứ tự với một migration có DROP/RENAME thì không có cái may nào.**
 >
 > ✅ **B1 XONG VÀ ĐÃ GỘP - next@16.3.3, `npm audit --omit=dev` về 0.** PR #86 merged
 > 27/08, **`main` = `381d98b`**. CI trên `main` **7/7 xanh** - đây là lượt CI HOÀN
