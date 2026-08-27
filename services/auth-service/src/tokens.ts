@@ -19,6 +19,11 @@ import type { AuthTokenPurpose } from '@prisma/client'
 const TTL_MS: Record<AuthTokenPurpose, number> = {
   // Xác minh email rộng tay: người ta hay mở mail vào hôm sau.
   EMAIL_VERIFY: 24 * 60 * 60 * 1000,
+  // Mã 6 số thì NGƯỢC LẠI - hẹp hết mức chịu được. Cửa sổ sống của mã cũng
+  // chính là cửa sổ dò: mỗi phút nó còn hiệu lực là thêm một phút kẻ tấn công
+  // được gõ thử. 10 phút đủ để người dùng mở hộp thư và gõ lại, không đủ để
+  // biến 10^6 khả năng thành việc dò được.
+  EMAIL_VERIFY_CODE: 10 * 60 * 1000,
   // Đặt lại mật khẩu hẹp: cửa sổ này là cửa sổ chiếm tài khoản nếu hộp thư bị
   // đọc lén.
   PASSWORD_RESET: 60 * 60 * 1000,
@@ -30,6 +35,93 @@ const TTL_MS: Record<AuthTokenPurpose, number> = {
 const hashToken = (raw: string): string => createHash('sha256').update(raw).digest('hex')
 
 export type IssuedToken = { raw: string; expiresAt: Date }
+
+/// Số lần gõ SAI tối đa cho một mã, trước khi mã đó chết hẳn.
+///
+/// 5 lần trên 10^6 khả năng, cộng với vòng đời 10 phút và trần gửi mỗi ngày, đưa
+/// xác suất đoán trúng xuống mức không đáng kể. Con số này là MỘT trong ba lớp
+/// chặn, và là lớp duy nhất chặn được kiểu tấn công không cần gửi thêm mã nào.
+export const MAX_CODE_ATTEMPTS = 5
+
+/// Sinh mã 6 chữ số bằng CSPRNG, KHÔNG phải `Math.random()`.
+///
+/// `Math.random()` không phải nguồn ngẫu nhiên mật mã: trạng thái của nó suy ra
+/// được từ vài giá trị đã phát, nên một mã đoán được là mọi mã đoán được. Lấy
+/// theo bội số của 10^6 để không lệch phân phối - phép `% 1000000` trên một số
+/// nguyên bất kỳ làm các giá trị đầu dải xuất hiện nhiều hơn.
+export function generateNumericCode(digits = 6): string {
+  const max = 10 ** digits
+  const limit = Math.floor(0xffffffff / max) * max
+  let n: number
+  do {
+    n = randomBytes(4).readUInt32BE(0)
+  } while (n >= limit)
+  return String(n % max).padStart(digits, '0')
+}
+
+/**
+ * Cấp một mã số dùng một lần cho `EMAIL_VERIFY_CODE`.
+ *
+ * Trả về mã THÔ để gửi mail; DB chỉ giữ băm của nó, giống hệt token liên kết.
+ * Cấp mã mới huỷ mã cũ - bấm "gửi lại" ba lần không được để ba mã cùng sống,
+ * vì mỗi mã còn sống là thêm một mục tiêu để dò.
+ */
+export async function issueVerifyCode(userId: string): Promise<IssuedToken> {
+  const raw = generateNumericCode()
+  const expiresAt = new Date(Date.now() + TTL_MS.EMAIL_VERIFY_CODE)
+  await prisma.$transaction([
+    prisma.authToken.deleteMany({
+      where: { userId, purpose: 'EMAIL_VERIFY_CODE', usedAt: null },
+    }),
+    prisma.authToken.create({
+      data: { userId, purpose: 'EMAIL_VERIFY_CODE', tokenHash: hashToken(raw), expiresAt },
+    }),
+  ])
+  return { raw, expiresAt }
+}
+
+export type CodeCheck =
+  | { ok: true; userId: string }
+  | { ok: false; reason: 'no_code' | 'expired' | 'too_many_attempts' | 'wrong'; left?: number }
+
+/**
+ * Đối chiếu mã người dùng gõ với mã đang chờ của chính họ.
+ *
+ * ⚠️ Khác `consumeToken`: ở đó token là 32 byte ngẫu nhiên nên tra thẳng theo
+ * băm là đủ. Ở đây mã chỉ có 10^6 khả năng, nên phải tra theo NGƯỜI trước rồi
+ * mới so mã - tra theo băm sẽ biến endpoint thành một cỗ máy dò mã của toàn hệ
+ * thống: gõ một mã bất kỳ và nó khớp với BẤT KỲ tài khoản nào đang chờ.
+ *
+ * Mỗi lần sai cộng một vào `attempts`, và cộng TRƯỚC khi trả lời - nửa chừng bị
+ * ngắt thì phải nghiêng về phía khoá chặt hơn, không phải phía cho thử thêm.
+ */
+export async function checkVerifyCode(userId: string, code: string): Promise<CodeCheck> {
+  const row = await prisma.authToken.findFirst({
+    where: { userId, purpose: 'EMAIL_VERIFY_CODE', usedAt: null },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!row) return { ok: false, reason: 'no_code' }
+  if (row.expiresAt.getTime() <= Date.now()) return { ok: false, reason: 'expired' }
+  if (row.attempts >= MAX_CODE_ATTEMPTS) return { ok: false, reason: 'too_many_attempts' }
+
+  if (!constantTimeEqual(hashToken(code), row.tokenHash)) {
+    const updated = await prisma.authToken.update({
+      where: { id: row.id },
+      data: { attempts: { increment: 1 } },
+      select: { attempts: true },
+    })
+    return { ok: false, reason: 'wrong', left: Math.max(0, MAX_CODE_ATTEMPTS - updated.attempts) }
+  }
+
+  // `updateMany` kèm `usedAt: null` là thứ làm cho mã dùng MỘT lần thật sự: hai
+  // request đến cùng lúc thì chỉ một cái đếm được 1 dòng đã đổi.
+  const { count } = await prisma.authToken.updateMany({
+    where: { id: row.id, usedAt: null },
+    data: { usedAt: new Date() },
+  })
+  if (count !== 1) return { ok: false, reason: 'no_code' }
+  return { ok: true, userId }
+}
 
 /**
  * Cấp token mới và HUỶ mọi token cùng loại còn hiệu lực của người đó.

@@ -4,13 +4,15 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG - đã nhả toàn bộ khóa của đợt bỏ-đói-kênh-DOC.
+(TRỐNG - đã nhả toàn bộ khóa của VERIFY-CODE.
 
-⚠️ Nhánh `feat/xac-minh-bang-ma` (PR #88) đang chờ: **CÓ MIGRATION**, phải
-`prisma migrate deploy` trên prod TRƯỚC khi merge.
+⚠️ Nhánh `feat/xac-minh-bang-ma` (PR #88) đang chờ: **CÓ MIGRATION**
+(`20260826152436_email_verify_code`). Thứ tự phát hành BỊ RÀNG BUỘC:
+`prisma migrate deploy` trên prod TRƯỚC khi merge. Đảo thứ tự ⇒ cổng chặn lệch
+migration làm SẬP CẢ SITE.
 
-⚠️ Nhánh `fix/toa-soan-bo-doi-kenh-doc` KHÔNG migration, nhưng cần chạy lại
-`db:seed:newsroom` trên prod SAU khi merge thì phần nguồn kênh PROJECT mới có tác
-dụng - xem phiếu `20260827-02` §5.1.
+Nhánh đã rebase lên `main` = `d8282e5` (27/08, sau khi gộp B1 next@16 ở PR #86,
+sổ sách ở #87, và đợt bỏ-đói-kênh-DOC ở #89). Lần rebase nào cũng chỉ đụng
+`logs/LOCKS.md` - mã của nhánh không giao với ba đợt kia.
 
-Hai nhánh không đụng file của nhau.)
+✅ PR #89 (bỏ đói kênh DOC) đã merge và `db:seed:newsroom` đã chạy trên prod.)

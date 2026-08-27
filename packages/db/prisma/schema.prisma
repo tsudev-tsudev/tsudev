@@ -170,6 +170,16 @@ model BackupCode {
 
 enum AuthTokenPurpose {
   EMAIL_VERIFY
+  /// Mã SỐ 6 chữ số người dùng tự gõ lại ở /settings/profile, khác
+  /// `EMAIL_VERIFY` vốn là liên kết bấm một phát.
+  ///
+  /// ⚠️ Vì sao tách purpose thay vì dùng chung: hai thứ này có mức rủi ro khác
+  /// nhau một trời một vực. Token liên kết dài 32 byte ngẫu nhiên - đoán được
+  /// là chuyện không xảy ra. Mã 6 số chỉ có 10^6 khả năng, tức là ĐOÁN ĐƯỢC nếu
+  /// không chặn số lần thử. Dùng chung một purpose thì hai vòng đời (24 giờ cho
+  /// liên kết, 10 phút cho mã) và hai chính sách chặn phải nhét vào cùng một
+  /// nhánh mã, và nhánh nào lỏng hơn sẽ quyết định mức an toàn của cả hai.
+  EMAIL_VERIFY_CODE
   PASSWORD_RESET
   /// Đổi email: token gửi tới địa chỉ MỚI, tiêu token thì mới thay `User.email`.
   /// Địa chỉ đích nằm ở `AuthToken.newEmail` - xác minh trước, thay sau.
@@ -190,6 +200,12 @@ model AuthToken {
   /// tại không bị đổi trước khi chủ tài khoản chứng minh quyền kiểm soát địa chỉ
   /// mới - "xác minh trước, thay sau".
   newEmail  String?
+  /// Số lần gõ SAI đã ghi nhận. Chỉ có nghĩa với `EMAIL_VERIFY_CODE`.
+  ///
+  /// ⚠️ Đây là thứ duy nhất đứng giữa một mã 6 số và việc dò cạn 10^6 khả năng.
+  /// Chặn tần suất GỬI không thay được nó: kẻ tấn công không cần gửi thêm mã
+  /// nào, chỉ cần gõ liên tục vào một mã đang có hiệu lực.
+  attempts  Int              @default(0)
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime         @default(now())
@@ -397,6 +413,15 @@ model Doc {
 
   @@index([category, position])
   @@index([deletedAt])
+  /// ⚠️ Hai index này PHẢI được khai ở đây, không chỉ ở migration của DOCS-SEARCH.
+  /// Prisma sinh migration bằng cách so schema với database: index có trong DB mà
+  /// KHÔNG có trong schema thì nó coi là trôi lệch và sinh `DROP INDEX`. Phát hiện
+  /// 26/08/2026 - migration kế tiếp (`email_verify_code`) tự động kèm hai lệnh xoá
+  /// đúng hai index này. Hậu quả nếu lọt: tìm kiếm tài liệu VẪN CHẠY, chỉ là quét
+  /// toàn bảng - chậm dần theo lượng dữ liệu, không có gì báo lỗi. `Post` đã khai
+  /// đúng từ đầu; `Doc` bị bỏ sót.
+  @@index([searchTitleNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "Doc_searchTitleNorm_trgm_idx")
+  @@index([searchBodyNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "Doc_searchBodyNorm_trgm_idx")
 }
 
 // ---------------------------------------------------------------------------

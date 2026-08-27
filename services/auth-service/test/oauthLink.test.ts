@@ -86,7 +86,7 @@ test('email đã thuộc user + ĐÃ xác minh ⇒ TỰ LIÊN KẾT vào user đ
   expect(link.userId).toBe(owner.id)
 })
 
-test('tài khoản mới ⇒ tạo MEMBER, email verified, username sinh ra', async () => {
+test('tài khoản mới ⇒ tạo MEMBER, CHƯA xác minh, username sinh ra', async () => {
   const res = await upsert({
     provider: 'github',
     providerAccountId: GH_ID,
@@ -102,7 +102,15 @@ test('tài khoản mới ⇒ tạo MEMBER, email verified, username sinh ra', as
   createdUsernames.push(res.body.username)
 
   const row = await prisma.user.findUnique({ where: { id: res.body.id } })
-  expect(row.emailVerifiedAt).not.toBeNull()
+  // ⚠️ ĐỔI 26/08/2026, và đây là điểm chính của cả đợt: KHÔNG còn tin cờ
+  // `emailVerified` của bên thứ ba. Cờ đó nói nhà cung cấp tin địa chỉ đó, nó
+  // KHÔNG nói người vừa đăng nhập đọc được hộp thư đó ngay bây giờ - mà "đọc
+  // được ngay bây giờ" mới là thứ mọi đường khôi phục tài khoản dựa vào.
+  // Người dùng tự bấm "Xác minh tài khoản" ở /settings/profile và gõ mã.
+  //
+  // Không phải hàng rào chặn: `emailUsable()` cho ân hạn 7 ngày kể từ lúc tạo
+  // tài khoản, nên người mới đăng nhập vẫn dùng được site ngay.
+  expect(row.emailVerifiedAt).toBeNull()
   const link = await prisma.oAuthAccount.findUnique({
     where: { provider_providerAccountId: { provider: 'github', providerAccountId: GH_ID } },
   })
