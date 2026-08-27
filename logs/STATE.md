@@ -2,8 +2,21 @@
 
 > **Phiên 30 bắt đầu ở đây** (cập nhật cuối phiên 29).
 >
-> ✅ **B1 XONG - next@16.3.3, `npm audit --omit=dev` về 0.** PR #86, CI 7/7 xanh,
-> **chưa merge**. Chặn cứng của phiên 19 mở ra vì `@opennextjs/cloudflare@1.20.3`
+> ✅ **B1 XONG VÀ ĐÃ GỘP - next@16.3.3, `npm audit --omit=dev` về 0.** PR #86 merged
+> 27/08, **`main` = `381d98b`**. CI trên `main` **7/7 xanh** - đây là lượt CI HOÀN
+> TẤT đầu tiên trên `main` kể từ 14:28 ngày 26/08 (xem sự cố Actions bên dưới).
+> Production đã kiểm sau khi Render tự dựng lại: `/`, `/blog`, `/docs`, `/search`
+> đều 200 **kèm nội dung thật** (`/blog` liệt kê 50 bài), `providers` sạch
+> (credentials · passkey · github · google), header `content-security-policy` còn
+> ở edge.
+>
+> 🟠 **CÒN ĐÚNG MỘT BƯỚC: deploy frontend Cloudflare.** Bản Worker đang chạy vẫn là
+> bản dựng next@15 cũ - `main` đã là next@16 nhưng Worker thì chưa. **Không có skew
+> nguy hiểm** (đợt này không đổi hợp đồng API nào, backend mới + Worker cũ chạy
+> chung được), nhưng B1 chưa LIVE cho tới khi chạy:
+> `npm --workspace apps/frontend-main run deploy` - **đừng gọi thẳng
+> `opennextjs-cloudflare deploy`**, `scripts/deploy-frontend.js` là thứ dời
+> `.env.local` ra khỏi bản dựng. Nghiệm thu ở §7.1 của phiếu. Chặn cứng của phiên 19 mở ra vì `@opennextjs/cloudflare@1.20.3`
 > khai peer `next: '>=15.5.24 <16 || >=16.3.3'` - khoảng trống `<16` CHÍNH LÀ vùng
 > phiên 19 đã thử. Nhánh KHÔNG migration; sau merge phải **deploy frontend
 > Cloudflare** thì bản Worker mới đổi. Phiếu
@@ -301,7 +314,8 @@
       300, storage 120/phút. trust **87** · content **46** · storage **15**; cổng
       chung sạch. CHƯA phát hành (Render tự dựng khi merge - xem phiếu 03 §3).
 - [x] **🟡 B1. Đợt nâng cấp dependency major** - ✅ **XONG 27/08/2026 (phiên 29,
-      nhánh `feat/next16-b1`, PR #86 - CI 7/7 XANH, CHƯA merge).** Chặn cứng của phiên 19 đã mở:
+      nhánh `feat/next16-b1`, **PR #86 ĐÃ MERGE 27/08, `main` = `381d98b`**, CI 7/7
+      xanh cả ở PR lẫn ở `main`; còn bước deploy frontend Cloudflare).** Chặn cứng của phiên 19 đã mở:
       `@opennextjs/cloudflare@1.20.3` (26/08) khai peer `next: '>=15.5.24 <16 || >=16.3.3'` -
       **khoảng trống `<16` chính là vùng phiên 19 đã thử** (16.2.12, 16.3.2), và
       `next@16.3.3` nay đã có. Kết quả: `opennextjs-cloudflare build` **xanh**,
@@ -738,7 +752,7 @@
 ## Đã hoàn thành (mới nhất trên cùng)
 
 - 27/08/2026 - **B1: next@16.3.3, bề mặt production hết CVE** (phiên 29, nhánh
-  `feat/next16-b1`, **PR #86 - CI 7/7 xanh, chưa merge**, KHÔNG migration). Chi tiết ở mục B1 trong hàng đợi và phiếu
+  `feat/next16-b1`, **PR #86 ĐÃ MERGE - `main` = `381d98b`**, KHÔNG migration). Chi tiết ở mục B1 trong hàng đợi và phiếu
   [`20260827-01`](handover/20260827-01_b1-next16.md). Ba điều đáng nhớ:
   (a) **Một lockfile thừa đủ để làm hỏng bản dựng deploy, và im lặng nhiều tháng.**
   `apps/frontend-main/package-lock.json` vào repo từ commit đầu tiên, ghim `next@^13`,
@@ -1486,7 +1500,7 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 | Mã                                                                  | Chủ đề                                                                      | Trạng thái |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
-| [20260827-01](handover/20260827-01_b1-next16.md)                    | B1 - next@16.3.3, prod hết CVE, e2e 20/20 (chờ merge + deploy)              | **MỞ**     |
+| [20260827-01](handover/20260827-01_b1-next16.md)                    | B1 - next@16.3.3, prod hết CVE, e2e 20/20 (đã merge; chờ deploy frontend)   | **MỞ**     |
 | [20260826-03](handover/20260826-03_ket-phien-27.md)                 | Kết phiên 27 - DOCS-SEARCH (chờ migration prod + merge)                     | **MỞ**     |
 | [20260826-02](handover/20260826-02_ket-phien-26.md)                 | Kết phiên 26 - đóng BLOG-500, cổng chặn migration, dọn trang chủ, siết mail | **MỞ**     |
 | [20260822-05](handover/20260822-05_ket-phien-18.md)                 | Kết phiên 18 - Phase 0 + đo B1 + phát hành Phase A                          | **MỞ**     |

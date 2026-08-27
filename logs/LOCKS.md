@@ -4,15 +4,13 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG - đã nhả toàn bộ khóa của B1.
+(TRỐNG.
 
-⚠️ HAI nhánh đang chờ merge, thứ tự phát hành KHÁC nhau:
+⚠️ `feat/xac-minh-bang-ma` (VERIFY-CODE, phiên 28) VẪN CHƯA merge và **CÓ MIGRATION**
+(`20260826152436_email_verify_code`). Thứ tự phát hành BỊ RÀNG BUỘC: `prisma migrate
+deploy` trên prod TRƯỚC khi merge. Đảo thứ tự ⇒ cổng chặn lệch migration làm SẬP CẢ
+SITE. Nhánh này tách từ `main` cũ (`33cc680`); `main` nay là `381d98b` nên rebase
+hoặc merge `main` vào nó trước khi mở PR.
 
-1. `feat/xac-minh-bang-ma` (VERIFY-CODE, phiên 28) **CÓ MIGRATION**
-   (`20260826152436_email_verify_code`). BỊ RÀNG BUỘC: `prisma migrate deploy` trên
-   prod TRƯỚC khi merge. Đảo thứ tự ⇒ cổng chặn lệch migration làm SẬP CẢ SITE.
-2. `feat/next16-b1` (B1 next@16, phiên 29, tách từ `main` = `33cc680`) **KHÔNG
-   migration** - merge lúc nào cũng được, nhưng phải deploy frontend Cloudflare qua
-   `npm --workspace apps/frontend-main run deploy` thì bản Worker mới đổi theo.
-
-Hai nhánh KHÔNG đụng file của nhau.)
+✅ B1 (`feat/next16-b1`) đã merge 27/08, nhánh đã xoá. Còn lại: deploy frontend
+Cloudflare - xem phiếu `20260827-01` §7.1.)
