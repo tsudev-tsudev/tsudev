@@ -3,7 +3,7 @@
 - **Mã phiếu**: 20260827-02
 - **Từ**: phiên 29 (`backend-api` + `data-schema` + `qa-test`) - **Đến**: chủ dự án / phiên 30
 - **Thời điểm**: 14:55 27/08/2026
-- **Trạng thái**: ĐÃ MERGE (PR #89) + seed prod đã chạy. **Nghiệm thu 27/08 phơi ra một tầng thứ ba - xem §7.**
+- **Trạng thái**: HOÀN THÀNH - PR #89 + #90 đã merge, secret đã đặt, **`/docs` đã thông** (xem §7-§8)
 - **Nhánh git**: `fix/toa-soan-bo-doi-kenh-doc` (tách từ `main` = `23af25d`, **KHÔNG migration**)
 
 ## 1. Hai trang, hai nguyên nhân khác hẳn nhau
@@ -255,3 +255,68 @@ Xem nhánh `fix/newsroom-github-han-muc`:
 
 ⚠️ Mã chạy được **cả khi chưa có khoá** (repo Public), chỉ là vẫn dính 60/giờ theo
 IP dùng chung - tức vẫn hỏng trên Render. **Phải đặt secret thì mới thật sự vá.**
+
+---
+
+## 8. Kết: `/docs` đã thông, đo lúc 10:38 27/08/2026
+
+Sau khi chủ dự án đặt secret `NEWSROOM_GITHUB_TOKEN` ở Render và merge #90:
+
+| phép đo                           | trước                              | sau                |
+| --------------------------------- | ---------------------------------- | ------------------ |
+| `NewsroomSource` DOC `lastError`  | `GitHub HTTP 403 (/contents/docs)` | **rỗng**           |
+| `NewsroomSource` DOC `lastScanAt` | `-` (chưa từng)                    | `10:38 27/08/2026` |
+| `TopicIdea` kênh DOC              | **0** (suốt lịch sử dự án)         | **3**              |
+
+Ba ý tưởng sinh ra rút từ chính commit `feat(...)` của phiên 29 - xác minh tài
+khoản, nâng next@16.3.3, bộ tìm kiếm. Tức nguồn `repo_docs` đọc đúng thứ nó được
+thiết kế để đọc.
+
+**Bài chưa lên `/docs` ngay, và đó không phải lỗi**: 60 việc PENDING trong hàng
+đợi, ý tưởng DOC đứng thứ 19/21, mỗi nhịp nhặt 5 và nhịp mỗi giờ ⇒ khoảng 12 giờ.
+Trần kênh DOC là 1 bài/ngày. Gõ thêm `npm run newsroom:check` nếu muốn nhanh, và
+bấm "Hồi sinh việc đã dừng" cho **35** sự kiện DEAD.
+
+### 8.1. Ba tầng, và vì sao không thể thấy trước
+
+| tầng | phát hiện        |                                                            |
+| ---- | ---------------- | ---------------------------------------------------------- |
+| 1    | phiên 25 (26/08) | thiếu nguồn DOC - **chưa đủ**                              |
+| 2    | phiên 29 (27/08) | van toàn cục + không `orderBy` ⇒ nguồn chưa từng được quét |
+| 3    | phiên 29 (27/08) | quét được rồi thì ăn 403 vì IP dùng chung của Render       |
+
+Mỗi tầng chỉ lộ ra sau khi gỡ tầng trước. Tầng 3 **không thể biết trước**: chưa
+quét thì chưa gọi API, chưa gọi API thì chưa có 403. Một bản vá làm lộ ra tầng kế
+tiếp là dấu hiệu nó CHẠY.
+
+Đáng ghi thêm: cả ba tầng đều **không làm gì đỏ lên**. `newsroom:check` in "✔ Toà
+soạn ĐANG CHẠY THẬT" suốt thời gian đó, vì nó đếm `AgentRun` tăng - mà toà soạn
+vẫn chạy đầy đủ cho BLOG. Chỉ có một trang của site trống, và không có cổng nào
+canh "một kênh đã bao lâu không ra bài".
+
+## 9. 🔴 Sự cố suýt xảy ra: merge #88 trước khi chạy migration
+
+Không thuộc đợt này, nhưng phát hiện trong lúc nghiệm thu nên ghi lại ở đây.
+
+PR #88 (VERIFY-CODE) được merge **TRƯỚC** khi `prisma migrate deploy` chạy trên
+prod. Đó đúng là thứ tự mà phiếu `20260827-01`, `LOCKS.md`, mô tả PR #88 và chính
+đầu file migration đều cảnh báo là làm **SẬP CẢ SITE**.
+
+Đo lúc phát hiện: `prisma migrate status` báo `20260826152436_email_verify_code`
+**chưa áp dụng**, trong khi `main` đã chứa mã cần nó.
+
+**Site vẫn 200 vì hai điều MAY, không phải vì an toàn:**
+
+1. Migration này **thuần bổ sung** - `ALTER TYPE ... ADD VALUE` và
+   `ADD COLUMN ... NOT NULL DEFAULT 0`. Không có `DROP`, không có `RENAME`, nên
+   backend cũ đang chạy không hề bị nó phá.
+2. **Render chưa dựng xong** bản mới tại thời điểm đó, nên mã cần cột mới chưa
+   thực sự chạy.
+
+Đã áp migration ngay khi phát hiện. Sau đó: `migrate status` → "Database schema is
+up to date!", và `/`, `/blog`, `/docs`, `/settings/profile` đều 200.
+
+> **Điều cần rút ra**: cái cứu site lần này là TÍNH CHẤT của migration, không phải
+> quy trình. Một migration có `DROP COLUMN` hay `RENAME` trong cùng thứ tự đó sẽ
+> hạ site ngay khi Render dựng xong, và triệu chứng sẽ là 500 trên mọi trang - đúng
+> `BLOG-500` đã xảy ra 26/08. Quy trình tồn tại cho những lần không may.
