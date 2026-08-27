@@ -1,6 +1,28 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
-> **Phiên 29 bắt đầu ở đây** (cập nhật cuối phiên 28).
+> **Phiên 30 bắt đầu ở đây** (cập nhật cuối phiên 29).
+>
+> ✅ **B1 XONG - next@16.3.3, `npm audit --omit=dev` về 0.** PR #86, CI 7/7 xanh,
+> **chưa merge**. Chặn cứng của phiên 19 mở ra vì `@opennextjs/cloudflare@1.20.3`
+> khai peer `next: '>=15.5.24 <16 || >=16.3.3'` - khoảng trống `<16` CHÍNH LÀ vùng
+> phiên 19 đã thử. Nhánh KHÔNG migration; sau merge phải **deploy frontend
+> Cloudflare** thì bản Worker mới đổi. Phiếu
+> [`20260827-01`](handover/20260827-01_b1-next16.md).
+>
+> ⚠️ **Hai điều của B1 đáng nhớ hơn cả bản nâng cấp:**
+>
+> 1. **`npm run build` xanh KHÔNG chứng minh deploy được.** Cả hai lỗi chặn của đợt
+>    này đều qua `next build` sạch và chỉ chết ở `opennextjs-cloudflare build` - bước
+>    CI **không** chạy. Đã vá: CI nay chạy bước gói (đã xác nhận trên runner thật).
+> 2. **Một lockfile thừa im lặng nhiều tháng rồi thành chí mạng.** > `apps/frontend-main/package-lock.json` vào repo từ commit đầu tiên, ghim
+>    `next@^13`; next@16 khiến Turbopack VÀ opennextjs cùng dùng "lockfile gần nhất"
+>    để tìm gốc workspace. **55 lỗi esbuild của phiên 19 cũng do đây** - nghi upstream
+>    trước, nghi repo sau, lần này nghi sai chiều.
+>
+> 🟠 **e2e đang ĐỎ SẴN trên `main` do PR #85, không do B1.** Ô tìm kiếm ở header nay
+> là `<form>` thật nên mang nút gửi `sr-only` đứng TRƯỚC nút của trang ⇒
+> `button[type="submit"]` trần khớp 2 phần tử ⇒ 7/20 treo 60s. PR #86 đã neo selector
+> lại. **Đáng hỏi: PR #85 merge khi job E2E đỏ, hay job đó không chạy?**
 >
 > 🔴 **Toà soạn chạy nhưng KHÔNG đẻ ra bài: vai `write` hỏng 80%** (16/20 lượt,
 > đo 26/08). Hạ tầng đã đúng hết - công tắc bật, hàng đợi chạy, Neuron tiêu đều -
@@ -262,7 +284,7 @@
       300, storage 120/phút. trust **87** · content **46** · storage **15**; cổng
       chung sạch. CHƯA phát hành (Render tự dựng khi merge - xem phiếu 03 §3).
 - [x] **🟡 B1. Đợt nâng cấp dependency major** - ✅ **XONG 27/08/2026 (phiên 29,
-      nhánh `feat/next16-b1`, CHƯA merge).** Chặn cứng của phiên 19 đã mở:
+      nhánh `feat/next16-b1`, PR #86 - CI 7/7 XANH, CHƯA merge).** Chặn cứng của phiên 19 đã mở:
       `@opennextjs/cloudflare@1.20.3` (26/08) khai peer `next: '>=15.5.24 <16 || >=16.3.3'` -
       **khoảng trống `<16` chính là vùng phiên 19 đã thử** (16.2.12, 16.3.2), và
       `next@16.3.3` nay đã có. Kết quả: `opennextjs-cloudflare build` **xanh**,
@@ -292,7 +314,10 @@
       deploy được không dựng nổi). Nay chạy
       `npm --workspace apps/frontend-main exec -- opennextjs-cloudflare build`, lệnh
       này tự gọi `next build` rồi mới gói nên phủ cả hai mà không tốn thêm một lần
-      dựng. Đã nghiệm thu đúng dạng lệnh đó từ gốc repo trên cây sạch.
+      dựng. Đã nghiệm thu đúng dạng lệnh đó từ gốc repo trên cây sạch, VÀ trên runner
+      GitHub thật ở PR #86: job "Build frontends" 2m31s, log có "Generating bundle" +
+      "Worker saved in `.open-next/worker.js`" ⇒ bước gói chạy thật chứ không lặng lẽ
+      bỏ qua. Chi phí thêm khoảng 1 phút, vì lệnh này thay chỗ `next build` cũ.
 - [ ] **⚪ C1. (tuỳ chọn) Siết CSP** (`frontend-web`) - bỏ style-src unsafe-inline +
       thu hẹp connect-src. **Đánh giá phiên 18: cả hai phần chỉ nghiệm thu được
       trên prod HTTPS** (bài học #2), style-src unsafe-inline "khó bỏ" (Next/Tailwind
@@ -696,7 +721,7 @@
 ## Đã hoàn thành (mới nhất trên cùng)
 
 - 27/08/2026 - **B1: next@16.3.3, bề mặt production hết CVE** (phiên 29, nhánh
-  `feat/next16-b1`, KHÔNG migration). Chi tiết ở mục B1 trong hàng đợi và phiếu
+  `feat/next16-b1`, **PR #86 - CI 7/7 xanh, chưa merge**, KHÔNG migration). Chi tiết ở mục B1 trong hàng đợi và phiếu
   [`20260827-01`](handover/20260827-01_b1-next16.md). Ba điều đáng nhớ:
   (a) **Một lockfile thừa đủ để làm hỏng bản dựng deploy, và im lặng nhiều tháng.**
   `apps/frontend-main/package-lock.json` vào repo từ commit đầu tiên, ghim `next@^13`,
