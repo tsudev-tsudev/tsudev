@@ -22,7 +22,24 @@
 > 🟠 **e2e đang ĐỎ SẴN trên `main` do PR #85, không do B1.** Ô tìm kiếm ở header nay
 > là `<form>` thật nên mang nút gửi `sr-only` đứng TRƯỚC nút của trang ⇒
 > `button[type="submit"]` trần khớp 2 phần tử ⇒ 7/20 treo 60s. PR #86 đã neo selector
-> lại. **Đáng hỏi: PR #85 merge khi job E2E đỏ, hay job đó không chạy?**
+> lại.
+>
+> 🔴 **Vì sao lọt - đã truy ra 27/08: PR #85 KHÔNG chạy job E2E, và không chạy bất cứ
+> thứ gì.** Mọi PR khác sinh CẶP run `CI` + `Cổng kiểm quy ước`; PR #85 chỉ có nửa
+> sau và nửa đó chưa từng khởi động (job `queued`, không log). GitHub Actions ngừng
+> điều phối cho repo từ ~15:07 ngày 26/08: PR mở 15:07:44 → merge 15:10:53 → run quy
+> ước bị đánh `failure` ở mức run lúc 15:10:57, tức 4 giây SAU khi merge; hai push
+> lên `main` lúc 15:11 và 15:13 sinh run **kẹt `queued` tới tận hôm nay**. Không phải
+> "merge khi CI đỏ", cũng không phải "job bị tắt" - là merge vào đúng khoảng trống
+> hạ tầng, và `main` không có branch protection nên GitHub cho merge khi check còn treo.
+>
+> ⚠️ **`main` = `33cc680` CHƯA TỪNG được một lượt CI hoàn tất nào xác minh.** `ci.yml`
+> chỉ nghe `push: [main]` + `pull_request`, **không có `workflow_dispatch`** nên không
+> kích tay lại được; đường sạch nhất là merge PR #86.
+>
+> 👉 **Bài học vận hành**: ở repo không có branch protection, "CI xanh" và "CI không
+> tồn tại" hiện ra giống hệt nhau trên giao diện PR - đều là _không có dấu đỏ_. Trước
+> khi merge phải ĐẾM xem có đủ cặp run, đừng đọc "không thấy đỏ" thành "đã kiểm".
 >
 > 🔴 **Toà soạn chạy nhưng KHÔNG đẻ ra bài: vai `write` hỏng 80%** (16/20 lượt,
 > đo 26/08). Hạ tầng đã đúng hết - công tắc bật, hàng đợi chạy, Neuron tiêu đều -
