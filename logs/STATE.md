@@ -18,10 +18,26 @@
 > nào trùng slug dự án tsudev ⇒ `publish.needs_human {"reason":"project_not_found"}` > **28 lần / 7 ngày**, **0 bản nháp PUBLISHED**. Đã chuyển nguồn đó về đúng kênh
 > BLOG; kênh PROJECT nay CỐ Ý không có nguồn, có test canh không bật lén lại được.
 >
-> ⚠️ **Cần chạy lại `db:seed:newsroom` trên prod** thì phần PROJECT mới có tác
-> dụng (đổi `target` chỉ vào DB khi seed chạy lại). Phần van + thứ tự quét thì
-> theo bản dựng backend. Nghiệm thu phải ĐO nguồn DOC có `quét=` mốc thật, đừng
-> suy ra từ việc đã merge - `newsroom:check` KHÔNG bắt được lớp lỗi này.
+> ✅ **PR #89 ĐÃ MERGE và seed prod đã chạy (27/08).** Nghiệm thu: nguồn DOC
+> `quét=09:28 27/08/2026` - **lần quét đầu tiên kể từ khi tạo**, và lượt đó chỉ
+> quét ĐÚNG 1 nguồn (BLOG bão hoà bị lọc, DOC vẫn lọt) ⇒ cả `nulls: 'first'` lẫn
+> trần-theo-kênh đều chạy đúng. `GitHub Blog` nay là BLOG, kênh PROJECT hết nguồn.
+>
+> 🔴 **Nhưng nghiệm thu phơi ra TẦNG THỨ BA: `GitHub HTTP 403 (/contents/docs)`.**
+> Cùng endpoint đó gọi từ máy dev trả **200**, `user-agent` đã đặt đúng, và trần
+> GitHub không-xác-thực là **60 lượt/giờ tính theo ĐỊA CHỈ IP**. Render free đi ra
+> bằng **IP dùng chung** nên 60 lượt đó bị khách khác đốt hết. Chú thích cũ trong
+> `fetchRepoDocs` viết "dùng 2 lượt nên biên rất rộng" - phép tính đúng, giả định
+> ngầm "60 lượt đó là của mình" mới sai.
+> Vá ở nhánh `fix/newsroom-github-han-muc`: `NEWSROOM_GITHUB_TOKEN` nâng trần lên
+> **5.000/giờ tính theo KHOÁ**, kèm thông báo lỗi phân biệt cạn-hạn-mức với
+> không-có-quyền (cả hai đều là 403).
+> ⚠️ **Cần đặt secret `NEWSROOM_GITHUB_TOKEN` ở Render** thì mới thật sự vá; repo
+> Public nên khoá KHÔNG cần scope nào.
+>
+> 👉 Bài học: lỗi này **không thể thấy trước** khi nguồn còn chưa từng được quét -
+> nó nằm sau đúng cái cửa mà bản vá bỏ-đói vừa mở. Một bản vá làm lộ ra tầng kế
+> tiếp là dấu hiệu nó CHẠY, không phải dấu hiệu nó sai.
 >
 > ✅ **B1 XONG VÀ ĐÃ GỘP - next@16.3.3, `npm audit --omit=dev` về 0.** PR #86 merged
 > 27/08, **`main` = `381d98b`**. CI trên `main` **7/7 xanh** - đây là lượt CI HOÀN
