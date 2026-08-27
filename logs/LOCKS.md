@@ -4,13 +4,13 @@
 
 # Sửa xong file → XÓA dòng khóa của mình.
 
-(TRỐNG.
+(TRỐNG - đã nhả toàn bộ khóa của đợt bỏ-đói-kênh-DOC.
 
-⚠️ `feat/xac-minh-bang-ma` (VERIFY-CODE, phiên 28) VẪN CHƯA merge và **CÓ MIGRATION**
-(`20260826152436_email_verify_code`). Thứ tự phát hành BỊ RÀNG BUỘC: `prisma migrate
-deploy` trên prod TRƯỚC khi merge. Đảo thứ tự ⇒ cổng chặn lệch migration làm SẬP CẢ
-SITE. Nhánh này tách từ `main` cũ (`33cc680`); `main` nay là `381d98b` nên rebase
-hoặc merge `main` vào nó trước khi mở PR.
+⚠️ Nhánh `feat/xac-minh-bang-ma` (PR #88) đang chờ: **CÓ MIGRATION**, phải
+`prisma migrate deploy` trên prod TRƯỚC khi merge.
 
-✅ B1 (`feat/next16-b1`) đã merge 27/08, nhánh đã xoá. Còn lại: deploy frontend
-Cloudflare - xem phiếu `20260827-01` §7.1.)
+⚠️ Nhánh `fix/toa-soan-bo-doi-kenh-doc` KHÔNG migration, nhưng cần chạy lại
+`db:seed:newsroom` trên prod SAU khi merge thì phần nguồn kênh PROJECT mới có tác
+dụng - xem phiếu `20260827-02` §5.1.
+
+Hai nhánh không đụng file của nhau.)

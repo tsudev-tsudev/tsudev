@@ -10,6 +10,12 @@ export {}
 // BLOG, 2 nguồn PROJECT và 0 nguồn DOC - không có nguồn thì không có đề tài,
 // không có đề tài thì không có bản nháp.
 //
+// ⚠️ Cập nhật 27/08/2026: thêm nguồn DOC (26/08) hoá ra CHƯA ĐỦ. Nguồn tồn tại
+// trên prod mà `lastScanAt` vẫn NULL - van áp lực ngược toàn cục để BLOG chiếm
+// hết hàng đợi, và truy vấn chọn nguồn không có `orderBy` nên nguồn thêm sau nằm
+// cuối hàng. Nhánh này VẪN chưa chạy thật lần nào tính tới hôm đó. Xem
+// `backPressure.test.ts` và phiếu `20260827-02`.
+//
 // Mã không chạy bao giờ là mã chưa biết có đúng không. Trước khi thêm nguồn đề
 // tài để nó bắt đầu chạy thật, khoá lại ở đây rằng nó chạy đúng.
 process.env.NODE_ENV = 'test'

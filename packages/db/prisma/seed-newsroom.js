@@ -192,12 +192,30 @@ const SOURCES = [
     url: 'https://dev.to/feed/tag/programming',
     target: 'BLOG',
   },
+  // ⚠️ Nguồn này TỪNG mang `target: 'PROJECT'` và đó là một gán SAI KÊNH, không
+  // phải một nguồn tồi. Kênh PROJECT không được tạo dự án mới (Project mang
+  // phiên bản, giấy phép, số đăng ký bản quyền - dữ liệu pháp lý); nó chỉ được
+  // cập nhật MÔ TẢ của một dự án đã tồn tại, và tìm dự án đó bằng SLUG suy ra từ
+  // tiêu đề bản nháp. Slug sinh từ tiêu đề một bài báo GitHub thì không đời nào
+  // trùng slug dự án của tsudev, nên mọi lượt đều rơi vào `publish.needs_human`.
+  //
+  // Đo prod 27/08/2026: `publish.needs_human {"reason":"project_not_found"}`
+  // **28 lần / 7 ngày**, `ContentDraft` kênh PROJECT có 6 PENDING_HUMAN và
+  // **0 PUBLISHED**. Mỗi lượt tốn Neuron để viết một bản nháp chắc chắn bị vứt.
+  //
+  // Nội dung của nó vốn là tin kỹ thuật, đúng chất BLOG - cùng loại với Dev.to,
+  // Lobsters, Hacker News. Chuyển về BLOG là giữ lại giá trị và bỏ phần lãng phí.
   {
     label: 'GitHub Blog - Engineering',
     kind: 'atom',
     url: 'https://github.blog/engineering/feed/',
-    target: 'PROJECT',
+    target: 'BLOG',
   },
+  // ⚠️ Kênh PROJECT CỐ Ý không có nguồn nào. Muốn bật lại thì phải có nguồn phát
+  // ra ĐÚNG SLUG DỰ ÁN CÓ THẬT (`topology-check`, `tsudev-platform`,
+  // `tsudev-trust-seal`, `tsudev-ui`, ...) chứ không phải tiêu đề tin tức - ví dụ
+  // một `kind` mới đọc chính bảng `Project`. Gán đại một nguồn tin vào đây là tái
+  // tạo đúng lỗi vừa gỡ.
   // --- Xu hướng Việt Nam ---
   {
     label: 'Google Trends Việt Nam',
