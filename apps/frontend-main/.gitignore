@@ -5,3 +5,11 @@
 .wrangler
 .dev.vars*
 !.dev.vars.example
+
+# next@16 tự SINH RA hai file này ở mỗi lần `next dev`
+# (`node_modules/next/dist/server/lib/generate-agent-files.js`, không có cờ tắt).
+# Chúng là bản sao hướng dẫn của Next, không phải tài liệu của repo - và một
+# `CLAUDE.md`/`AGENTS.md` thứ hai nằm trong thư mục app sẽ chồng lên hai file
+# quy ước THẬT ở gốc repo. Nội dung sẽ đổi theo từng bản next, nên không commit.
+AGENTS.md
+CLAUDE.md

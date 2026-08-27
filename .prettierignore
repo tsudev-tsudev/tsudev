@@ -38,3 +38,10 @@ CLAUDE.md
 # mọi thay đổi ở đây làm lệch MANIFEST.sha256 và khiến
 # ./scripts/sync-standards.sh --check báo lệch vĩnh viễn.
 .standards/
+
+# `next-env.d.ts` do Next SINH LẠI ở mỗi lần build và tự khai "should not be
+# edited". Từ next@16 nó viết `import "./.next/types/..."` bằng nháy KÉP, trong khi
+# cấu hình prettier của repo dùng nháy đơn - định dạng lại thì lần build kế tiếp
+# ghi đè ngược, nên `format:check` sẽ đỏ tuỳ theo người chạy có build hay chưa.
+# Đó là cổng đỏ theo HOÀN CẢNH chứ không theo mã, kiểu tệ nhất để chẩn đoán.
+apps/frontend-main/next-env.d.ts

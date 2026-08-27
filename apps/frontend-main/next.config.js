@@ -1,13 +1,27 @@
 /** @type {import('next').NextConfig} */
-const path = require('path');
 
 // CSP KHÔNG đặt ở đây. Nó cần NONCE mỗi request (để Cloudflare Bot Fight Mode gắn
 // vào script JSD nó chèn ở edge), mà `headers()` của next.config là TĨNH. CSP ép
-// thật nằm ở `middleware.ts` (băm THEME_SCRIPT + nonce mỗi request). Xem chú thích
-// ở đầu middleware.ts. Ở đây chỉ giữ các header bảo mật TĨNH (không phụ thuộc request).
+// thật nằm ở `proxy.ts` (băm THEME_SCRIPT + nonce mỗi request). Xem chú thích
+// ở đầu proxy.ts. Ở đây chỉ giữ các header bảo mật TĨNH (không phụ thuộc request).
 
 const nextConfig = {
   reactStrictMode: true,
+
+  // `jose` và `@panva/hkdf` (đường ký/giải mã JWT của next-auth) khai `exports` có
+  // ĐIỀU KIỆN: `workerd`/`worker`/`browser` trỏ `dist/browser` (jose) và `dist/web`
+  // (hkdf), còn `require`/`import` trỏ `dist/node`. Bộ dò phụ thuộc của Next chạy
+  // dưới điều kiện NODE nên chỉ chép `dist/node`; nhưng `opennextjs-cloudflare` gói
+  // lại bằng esbuild dưới điều kiện WORKERD, và ở đó chỉ có `dist/browser` là hợp lệ.
+  // Thiếu nhánh đó, esbuild báo "Could not resolve jose" - gói NẰM ĐÚNG CHỖ, chỉ là
+  // nhánh điều kiện được yêu cầu chưa được chép sang.
+  //
+  // ⚠️ Đây là lớp hỏng chỉ lộ ở bước gói cho Cloudflare, KHÔNG lộ ở `next build`:
+  // `npm run build` xanh trơn tru trong khi bản deploy được thì không dựng nổi.
+  outputFileTracingIncludes: {
+    '**': ['../../node_modules/jose/dist/browser/**', '../../node_modules/@panva/hkdf/dist/web/**'],
+  },
+
   // JWKS phải nằm đúng đường chuẩn /.well-known/ để bên thứ ba tìm thấy theo
   // quy ước; nội dung do trust-service sinh từ khoá ký nên không thể là file tĩnh.
   async rewrites() {
@@ -44,32 +58,27 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload',
           },
-          // CSP (Content-Security-Policy) đặt ở `middleware.ts` chứ không ở đây -
-          // nó cần nonce mỗi request. Xem chú thích đầu middleware.ts.
+          // CSP (Content-Security-Policy) đặt ở `proxy.ts` chứ không ở đây -
+          // nó cần nonce mỗi request. Xem chú thích đầu proxy.ts.
         ],
       },
     ];
   },
   // next-auth hoisted ở root node_modules - nếu để Next externalize nó, require()
-  // runtime có thể lấy nhầm một bản React khác thay vì react 19 local của app
-  // này (2 bản React cùng lúc -> useState trả null). Ép transpile để nó đi qua
-  // webpack alias bên dưới. Alias vẫn cần dù root đã sạch: `packages/ui` có
-  // react 18 trong devDependencies của nó.
+  // runtime có thể lấy nhầm một bản React khác thay vì react 19 (2 bản React cùng
+  // lúc -> useState trả null). Ép transpile để nó đi qua đúng một bản.
   //
-  // Món nợ "ghim react 18 ở root" đã ĐÓNG (20/08/2026): bản 18 nay nằm ở
-  // devDependencies của packages/ui, đúng nơi duy nhất cần nó là Storybook.
-  // Kiểm khi đụng lại: `npm --workspace packages/ui run build-storybook` phải
-  // ra đủ 12 story, và bản dev phải VẼ ra được chúng - xem docs/design-system.md
-  // §Storybook.
+  // ⚠️ KHÔNG dựng lại `webpack(config)` alias react/react-dom bằng đường TUYỆT ĐỐI
+  // ở đây. Nó có từ thời `packages/ui` giữ react 18 trong devDependencies, và dưới
+  // next@16 nó KHÔNG bắt hết - chính nó là nguồn của React error #31 lúc prerender
+  // `/admin` ({$$typeof, type, key, ref, props} = chữ ký hai bản React song song).
+  // Cách đúng đã áp: dedup về MỘT bản react 19 cho toàn workspace (packages/ui nâng
+  // devDeps react 18.3.1 -> 19.2.8 kèm Storybook 7.6 -> 8.6.18, vì SB7 peer react^18
+  // chặn react 19), và `next-auth` nằm ở devDependencies GỐC chứ không ở packages/ui -
+  // hai bản next-auth là hai SessionContext, `useSession()` trả undefined lúc prerender.
+  // Kiểm khi đụng lại: `find . -path '*/node_modules/react/package.json'` phải ra
+  // ĐÚNG một dòng ngoài `.open-next/`.
   transpilePackages: ['@tsudev/ui', 'next-auth'],
-  webpack(config) {
-    config.resolve = config.resolve || {};
-    config.resolve.alias = Object.assign({}, config.resolve.alias, {
-      react: path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
-    });
-    return config;
-  },
 };
 
 module.exports = nextConfig;
