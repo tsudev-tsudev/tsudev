@@ -2,6 +2,27 @@
 
 > **Phiên 30 bắt đầu ở đây** (cập nhật cuối phiên 29).
 >
+> 🔴 **`/docs` không có bài nào của Agent AI vì van áp lực ngược BỎ ĐÓI kênh DOC**
+> (không phải vì thiếu nguồn - nguồn đã seed từ 26/08). Van đếm MỘT con số cho cả
+> toà soạn, mà trên hàng đợi nhiều kênh thì con số chung luôn bị kênh đông nguồn
+> nhất chiếm hết: BLOG (8 nguồn) giữ hàng đợi đầy liên tục (`scan.skipped` > **119 lần / 7 ngày**) nên nguồn DOC **chưa từng được quét lần nào**. Cộng thêm
+> truy vấn chọn nguồn **không có `orderBy`** nên nguồn thêm sau nằm cuối hàng.
+> Số đo dứt điểm: `TopicIdea` có 220 BLOG, 9 PROJECT, **0 DOC**.
+> Đã sửa ở nhánh `fix/toa-soan-bo-doi-kenh-doc`, phiếu
+> [`20260827-02`](handover/20260827-02_bo-doi-kenh-doc.md).
+>
+> 🟠 **`/projects` thì KHÁC HẲN, và một nửa là cố ý**: agent bị cấm tạo dự án mới
+> (Project mang phiên bản/giấy phép/bản quyền - dữ liệu pháp lý), nó chỉ sửa được
+> mô tả dự án ĐÃ CÓ, tìm bằng slug. Nhưng nguồn của kênh PROJECT lại là
+> **GitHub Blog - Engineering**, nên slug sinh từ tiêu đề bài báo GitHub không đời
+> nào trùng slug dự án tsudev ⇒ `publish.needs_human {"reason":"project_not_found"}` > **28 lần / 7 ngày**, **0 bản nháp PUBLISHED**. Đã chuyển nguồn đó về đúng kênh
+> BLOG; kênh PROJECT nay CỐ Ý không có nguồn, có test canh không bật lén lại được.
+>
+> ⚠️ **Cần chạy lại `db:seed:newsroom` trên prod** thì phần PROJECT mới có tác
+> dụng (đổi `target` chỉ vào DB khi seed chạy lại). Phần van + thứ tự quét thì
+> theo bản dựng backend. Nghiệm thu phải ĐO nguồn DOC có `quét=` mốc thật, đừng
+> suy ra từ việc đã merge - `newsroom:check` KHÔNG bắt được lớp lỗi này.
+>
 > ✅ **B1 XONG VÀ ĐÃ GỘP - next@16.3.3, `npm audit --omit=dev` về 0.** PR #86 merged
 > 27/08, **`main` = `381d98b`**. CI trên `main` **7/7 xanh** - đây là lượt CI HOÀN
 > TẤT đầu tiên trên `main` kể từ 14:28 ngày 26/08 (xem sự cố Actions bên dưới).
@@ -635,7 +656,7 @@
   `draft.target === 'DOC'` gọi `prisma.doc.create(...)` đầy đủ, và `Doc` đã có sẵn
   `sourceDraftId` + `authoredByAgentId`. Chuỗi thật là `NewsroomSource.target` →
   `TopicIdea.target` (`dispatcher.ts:248,260`) → `ContentDraft.target` → đăng. Mà
-  `seed-newsroom.js` khai **8 nguồn BLOG, 2 nguồn PROJECT, 0 nguồn DOC** ⇒ không
+  `seed-newsroom.js` khai **8 nguồn BLOG, 2 nguồn PROJECT, 0 nguồn DOC** ⇒ không (⚠️ đã sửa 26/08, nhưng xem 27/08: thêm nguồn CHƯA đủ - nó chưa từng được quét)
   bao giờ sinh ra đề tài DOC ⇒ **nhánh đăng DOC chưa từng chạy một lần nào**. Kênh
   DOC có tồn tại và `enabled` mặc định true (seed dòng 132) - nó chỉ không có gì
   để làm.
@@ -751,6 +772,23 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 27/08/2026 - **Toà soạn bỏ đói kênh DOC; nguồn kênh PROJECT gán sai** (phiên 29,
+  nhánh `fix/toa-soan-bo-doi-kenh-doc`, KHÔNG migration). Chi tiết ở phiếu
+  [`20260827-02`](handover/20260827-02_bo-doi-kenh-doc.md). Ba điều đáng nhớ:
+  (a) **Van toàn cục trên hàng đợi NHIỀU KÊNH luôn bỏ đói kênh chậm.** Van tự nó
+  đúng và sinh ra từ một số đo thật; sai lầm là đếm một con số chung. Nay đếm theo
+  từng kênh (`IDEA_QUEUE_CAP_PER_TARGET`).
+  (b) **`nulls: 'first'` không phải trang trí.** Postgres xếp NULL ở CUỐI khi sắp
+  tăng dần, nên nguồn CHƯA TỪNG quét lại xuống cuối hàng - đúng cơ chế đã giết
+  kênh DOC. Đối chứng: Tuổi Trẻ và Genk (cùng là BLOG) cũng kẹt 8 ngày, nên đây
+  không phải chuyện riêng của DOC.
+  (c) **Thêm nguồn CHƯA đủ.** Phiên 25 thêm nguồn DOC và coi việc đã xong; nguồn
+  tồn tại trên prod suốt từ 26/08 với `lastScanAt` NULL. "Đã cấu hình" không đồng
+  nghĩa "đã chạy" - phải đo `lastScanAt`, giống họ "mã 200 không chứng minh trang
+  có nội dung".
+  Bản vá được chứng minh bằng **ba phép đột biến**: gỡ `nulls:'first'`, làm phép
+  lọc thành no-op, hoặc lặp lại trên danh sách thô - mỗi cái đều làm đỏ đúng một
+  test. newsroom 73 → 81 test.
 - 27/08/2026 - **B1: next@16.3.3, bề mặt production hết CVE** (phiên 29, nhánh
   `feat/next16-b1`, **PR #86 ĐÃ MERGE - `main` = `381d98b`**, KHÔNG migration). Chi tiết ở mục B1 trong hàng đợi và phiếu
   [`20260827-01`](handover/20260827-01_b1-next16.md). Ba điều đáng nhớ:
@@ -1500,6 +1538,7 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 | Mã                                                                  | Chủ đề                                                                      | Trạng thái |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
+| [20260827-02](handover/20260827-02_bo-doi-kenh-doc.md)              | Vì sao /docs và /projects không có bài của Agent AI (chờ seed prod)         | **MỞ**     |
 | [20260827-01](handover/20260827-01_b1-next16.md)                    | B1 - next@16.3.3, prod hết CVE, e2e 20/20 (đã merge; chờ deploy frontend)   | **MỞ**     |
 | [20260826-03](handover/20260826-03_ket-phien-27.md)                 | Kết phiên 27 - DOCS-SEARCH (chờ migration prod + merge)                     | **MỞ**     |
 | [20260826-02](handover/20260826-02_ket-phien-26.md)                 | Kết phiên 26 - đóng BLOG-500, cổng chặn migration, dọn trang chủ, siết mail | **MỞ**     |

@@ -225,51 +225,110 @@ async function withRun<T>(
 // --------------------------------------------------------------------------
 
 /**
- * Trần hàng đợi ý tưởng. Chạm trần thì NGỪNG QUÉT, không sinh thêm.
+ * Trần hàng đợi ý tưởng, tính RIÊNG CHO TỪNG KÊNH. Kênh nào đầy thì ngừng quét
+ * nguồn CỦA KÊNH ĐÓ, các kênh khác vẫn chạy.
  *
  * ⚠️ Không có van này thì hàng đợi lớn vô hạn, và đó không phải giả thuyết - đo
  * trên production 19/08/2026: 25 `idea.created` còn PENDING và tăng đều.
  *
- * Số học: mỗi nhịp quét tối đa 3 nguồn, mỗi nguồn tới 20 tiêu đề, scout chọn ra
- * vài ý tưởng - trong khi `tick()` chỉ xử lý `batch` sự kiện. Sinh nhanh hơn
- * tiêu thì phần dư không bao giờ được tiêu.
+ * Số học: mỗi nhịp quét tối đa `SOURCES_PER_SCAN` nguồn, mỗi nguồn tới 20 tiêu
+ * đề, scout chọn ra vài ý tưởng - trong khi `tick()` chỉ xử lý `batch` sự kiện.
+ * Sinh nhanh hơn tiêu thì phần dư không bao giờ được tiêu.
  *
- * Vì sao chọn áp lực ngược thay vì tăng `batch` cho vừa: tăng số chỉ dời điểm
- * vỡ, vì tốc độ sinh phụ thuộc nguồn tin bên ngoài chứ không phải hằng số ở đây.
- * Áp lực ngược thì đúng ở mọi tốc độ - hết việc tồn thì quét lại, còn tồn thì
- * thôi. Nó cũng tiết kiệm Neuron: lượt quét nào cũng gọi scout.
+ * Vì sao áp lực ngược thay vì tăng `batch` cho vừa: tăng số chỉ dời điểm vỡ, vì
+ * tốc độ sinh phụ thuộc nguồn tin bên ngoài chứ không phải hằng số ở đây. Áp lực
+ * ngược thì đúng ở mọi tốc độ. Nó cũng tiết kiệm Neuron: lượt quét nào cũng gọi scout.
+ *
+ * ⚠️ **Vì sao THEO KÊNH chứ không TOÀN CỤC - đây là một lỗi đã trả giá.** Bản
+ * trước đếm một con số duy nhất cho cả toà soạn và thoát sớm khi chạm trần. Trên
+ * một hàng đợi NHIỀU KÊNH thì van toàn cục luôn bỏ đói kênh chậm: đo prod
+ * 27/08/2026 cho thấy BLOG (8 nguồn) giữ hàng đợi đầy liên tục - `scan.skipped`
+ * **119 lần / 7 ngày** - nên nguồn DOC (1 nguồn, thêm sau) **chưa từng được quét
+ * lần nào** kể từ khi tạo. Hệ quả đo được: `TopicIdea` có 220 BLOG, 9 PROJECT và
+ * ĐÚNG 0 DOC, nên `/docs` không có bài nào của agent trong khi nhánh đăng DOC
+ * vẫn nằm trong mã và trông hoàn chỉnh. Không có gì báo lỗi - toà soạn vẫn "đang
+ * chạy", chỉ là một kênh không bao giờ tới lượt.
  */
-const IDEA_QUEUE_CAP = 12
+const IDEA_QUEUE_CAP_PER_TARGET = 6
+
+/** Số nguồn quét mỗi nhịp. Trước đây là số 3 rơi giữa lời gọi `findMany`. */
+const SOURCES_PER_SCAN = 3
+
+/**
+ * Đếm ý tưởng ĐANG CHỜ XỬ LÝ theo từng kênh.
+ *
+ * Đếm theo SỰ KIỆN chứ không theo `TopicIdea.consumedAt`, và khác biệt đó lớn:
+ * đo prod 27/08/2026 có **91** `TopicIdea` chưa tiêu nhưng chỉ **14** sự kiện
+ * `idea.created` còn PENDING. Ý tưởng tồn lại vĩnh viễn là chuyện BÌNH THƯỜNG -
+ * mỗi kênh có trần đăng/ngày nên phần dư nằm đó chờ hôm sau. Lấy `consumedAt`
+ * làm thước đo áp lực thì van sẽ đóng vĩnh viễn.
+ */
+async function pendingIdeasByTarget(): Promise<Record<string, number>> {
+  const events = await prisma.newsroomEvent.findMany({
+    where: { type: 'idea.created', status: 'PENDING' },
+    select: { payload: true },
+  })
+  const ids = events
+    .map((e) => (e.payload as { ideaId?: string } | null)?.ideaId)
+    .filter((x): x is string => typeof x === 'string')
+  if (!ids.length) return {}
+  const rows = await prisma.topicIdea.groupBy({
+    by: ['target'],
+    where: { id: { in: ids } },
+    _count: true,
+  })
+  const out: Record<string, number> = {}
+  for (const r of rows) out[String(r.target)] = r._count as unknown as number
+  return out
+}
 
 async function scanSources(): Promise<void> {
   // Đếm TRƯỚC khi gọi bất cứ mô hình nào - đây là chỗ rẻ nhất để dừng.
-  const pending = await prisma.newsroomEvent.count({
-    where: { type: 'idea.created', status: 'PENDING' },
-  })
-  if (pending >= IDEA_QUEUE_CAP) {
-    await emit(
-      'scan.skipped',
-      { pending, cap: IDEA_QUEUE_CAP, reason: 'hàng đợi ý tưởng đã đầy' },
-      { terminal: true, actorKind: 'system' }
-    )
-    return
-  }
+  const pending = await pendingIdeasByTarget()
 
+  // Nguồn LÂU CHƯA QUÉT NHẤT đi trước, và nguồn CHƯA QUÉT LẦN NÀO đi trước hết.
+  //
+  // ⚠️ `nulls: 'first'` là phần bắt buộc, không phải trang trí: Postgres mặc
+  // định xếp NULL ở CUỐI khi sắp tăng dần, nên bỏ nó đi thì nguồn mới thêm -
+  // đúng những nguồn chưa từng chạy - lại xuống cuối hàng.
+  //
+  // Bản trước KHÔNG có `orderBy` nào cả, chỉ `take: 3`, nên thứ tự do Postgres
+  // quyết. Đo prod 27/08/2026: nguồn DOC (tạo 26/08, muộn hơn 8 ngày so với các
+  // nguồn khác) `lastScanAt` vẫn NULL, còn Tuổi Trẻ và Genk kẹt ở 19/08 - cùng
+  // một cơ chế bỏ đói theo tuổi hàng, chứ không phải chuyện riêng của DOC.
   const due = await prisma.newsroomSource.findMany({
     where: {
       enabled: true,
       kind: { not: 'manual' },
       OR: [{ lastScanAt: null }, { lastScanAt: { lt: new Date(Date.now() - SCAN_EVERY_MS) } }],
     },
-    take: 3,
+    orderBy: [{ lastScanAt: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
   })
   if (!due.length) return
 
+  // Bỏ qua nguồn của kênh đang đầy, GIỮ NGUYÊN nguồn của kênh còn chỗ.
+  const eligible = due
+    .filter((s) => (pending[String(s.target)] ?? 0) < IDEA_QUEUE_CAP_PER_TARGET)
+    .slice(0, SOURCES_PER_SCAN)
+
+  if (!eligible.length) {
+    await emit(
+      'scan.skipped',
+      {
+        pending,
+        cap: IDEA_QUEUE_CAP_PER_TARGET,
+        reason: 'mọi kênh có nguồn tới hạn đều đã đầy hàng đợi',
+      },
+      { terminal: true, actorKind: 'system' }
+    )
+    return
+  }
+
   const scout = await agentBySlug('scout-01')
-  await setStatus(scout.id, 'SCANNING', `đang quét ${due.length} nguồn`)
+  await setStatus(scout.id, 'SCANNING', `đang quét ${eligible.length} nguồn`)
 
   try {
-    for (const src of due) {
+    for (const src of eligible) {
       // Một nguồn hỏng KHÔNG được làm hỏng cả lượt quét. Đây là hợp đồng, và
       // nó là lý do try/catch nằm TRONG vòng lặp chứ không bọc cả vòng.
       try {

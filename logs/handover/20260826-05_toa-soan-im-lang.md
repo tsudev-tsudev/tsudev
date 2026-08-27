@@ -155,7 +155,21 @@ Cổng an toàn của Claude Code chặn agent ghi vào production. Đúng chỗ
       **4 `publish.requested`** từ những lần bấm "Duyệt đăng" - tức mấy bài đã
       duyệt sẽ tự lên. Không mất gì cả.
 
-- [ ] **Bước 2 - seed nguồn cho kênh DOC.**
+- [x] **Bước 2 - seed nguồn cho kênh DOC.** ✅ **ĐÃ CHẠY** - đo 27/08/2026: nguồn
+      `Kho mã tsudev (tài liệu và thay đổi)` tồn tại trên prod, `target=DOC`,
+      `enabled=true`, `createdAt = 13:16 26/08/2026`.
+
+      ⚠️ **Nhưng `/docs` VẪN không có bài của agent, và nguyên nhân KHÔNG phải ở
+      đây.** Nguồn có mà `lastScanAt` vẫn NULL - chưa từng được quét lần nào. Thủ
+      phạm là van áp lực ngược TOÀN CỤC cộng với truy vấn chọn nguồn không có
+      `orderBy`: BLOG (8 nguồn) giữ hàng đợi đầy liên tục nên `scanSources()`
+      thoát sớm (`scan.skipped` **119 lần / 7 ngày**), và khi hiếm hoi chạy thì
+      `take: 3` không thứ tự bốc trúng các nguồn cũ. Xem phiếu
+      [`20260827-02`](20260827-02_bo-doi-kenh-doc.md).
+
+      Giữ lại lệnh bên dưới vì **vẫn cần chạy lại một lần nữa**: đợt 27/08 đổi
+      `target` của nguồn `GitHub Blog - Engineering` từ PROJECT sang BLOG, và
+      thay đổi đó chỉ vào prod khi seed chạy lại.
 
       ```
       cd packages/db
