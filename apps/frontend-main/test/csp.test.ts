@@ -7,12 +7,12 @@ import { NextRequest } from 'next/server';
 // middleware đọc NODE_ENV lúc GỌI, nên require một lần rồi đổi env trước mỗi lần
 // gọi là đủ (không cần require lại/xoá cache).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { middleware } = require('../middleware') as {
-  middleware: (r: NextRequest) => Response;
+const { proxy: middleware } = require('../proxy') as {
+  proxy: (r: NextRequest) => Response;
 };
 
 /**
- * CSP ép thật (không Report-Only) đặt ở `middleware.ts`, kết hợp BĂM + NONCE:
+ * CSP ép thật (không Report-Only) đặt ở `proxy.ts` (trước 27/08/2026 là `middleware.ts`), kết hợp BĂM + NONCE:
  *
  *  - THEME_SCRIPT (inline, cố định) → phủ bằng BĂM SHA-256. Băm đúng trên cả
  *    trang prerender TĨNH (nonce thì không - HTML tĩnh không mang được nonce lượt
@@ -106,8 +106,8 @@ describe('middleware ép CSP (băm + nonce) ở production', () => {
     expect(dir).not.toContain("'unsafe-inline'");
   });
 
-  test('băm hard-code trong middleware.ts khớp THEME_SCRIPT (drift-guard)', () => {
-    expect(read('middleware.ts')).toContain(independentThemeHash());
+  test('băm hard-code trong proxy.ts khớp THEME_SCRIPT (drift-guard)', () => {
+    expect(read('proxy.ts')).toContain(independentThemeHash());
   });
 
   test('nonce đổi mỗi request', () => {

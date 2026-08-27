@@ -30,7 +30,7 @@ lần cập nhật Node. Số cổng ở dev là cái giá đã cân nhắc, kh�
 ## 2. Bí danh gộp về một chỗ, không phục vụ song song
 
 `www.tsudev.com` **chuyển hướng 308** về `tsudev.com`
-(`apps/frontend-main/middleware.ts`, hàm `canonicalHost`).
+(`apps/frontend-main/proxy.ts`, hàm `canonicalHost`).
 
 Thẻ `<link rel="canonical">` là chưa đủ: nó là gợi ý cho công cụ tìm kiếm, không
 phải quy tắc cho trình duyệt. Khi hai host cùng trả 200 thì người dùng ở lại
@@ -45,7 +45,7 @@ Bản xem trước `*.workers.dev` **không** bị chuyển hướng - phải m�
 nghiệm thu được - nhưng nhận header `X-Robots-Tag: noindex, nofollow` để một bản
 nháp không đi tranh chỗ trong chỉ mục với bản thật.
 
-Ở dev, cùng file middleware chuyển hướng 307 mọi host nằm ngoài domain cookie về
+Ở dev, cùng file proxy chuyển hướng 307 mọi host nằm ngoài domain cookie về
 `NEXTAUTH_URL`. Đó là việc khác: nó cứu phiên đăng nhập chứ không phải cứu SEO
 (cookie mang `Domain=.tsudev.localhost` nên trình duyệt vứt nó ở host khác, và
 triệu chứng là _thành công giả_ - đăng nhập trả 200 mà phiên không tồn tại).

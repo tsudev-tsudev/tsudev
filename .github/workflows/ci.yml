@@ -250,8 +250,20 @@ jobs:
         run: npm run db:generate
       - name: Build TypeScript workspaces
         run: npm run build:ts
-      - name: Build Next.js apps
+      # ⚠️ Cổng này CỐ Ý chạy bước gói cho Cloudflare, không chỉ `next build`.
+      #
+      # Production chạy Workers qua `@opennextjs/cloudflare`, và bước GÓI mới là
+      # nơi hỏng: 27/08/2026 (B1, next@16) có HAI lỗi chặn deploy mà `next build`
+      # xanh trơn tru - một lockfile hoá thạch làm lệch gốc workspace, và
+      # `jose`/`@panva/hkdf` chỉ được chép nhánh `node` trong khi esbuild gói dưới
+      # điều kiện `workerd`. CI cũ không chạy bước này nên cả hai vô hình: cây
+      # xanh 7/7 trong khi bản deploy được KHÔNG dựng nổi.
+      #
+      # `opennextjs-cloudflare build` tự gọi `npm run build` (tức `next build`)
+      # rồi mới gói, nên một bước này phủ CẢ HAI - không cần chạy next build riêng.
+      # `build` KHÔNG cần credential Cloudflare; chỉ `deploy`/`preview` mới cần.
+      - name: Dựng frontend + GÓI cho Cloudflare Workers
         run: |
-          npm --workspace apps/frontend-main run build
+          npm --workspace apps/frontend-main exec -- opennextjs-cloudflare build
         env:
           NEXTAUTH_SECRET: build-time-placeholder

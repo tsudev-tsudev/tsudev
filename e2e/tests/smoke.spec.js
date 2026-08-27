@@ -26,7 +26,11 @@ const signIn = async (page, user = 'tsudev') => {
   await page.fill('input[name="password"]', DEV_PASSWORD);
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'networkidle' }).catch(() => {}),
-    page.click('button[type="submit"]'),
+    // Phải NEO vào chính biểu mẫu đăng nhập. Từ 26/08/2026 (SEARCH-HEADER) ô tìm
+    // kiếm ở header là <form> THẬT và mang một nút gửi `sr-only` - nút đó nằm
+    // TRƯỚC nút của trang trong DOM, nên `button[type="submit"]` trần khớp 2 phần
+    // tử và Playwright bấm nhầm cái ở header (bị icon kính lúp che ⇒ treo 60s).
+    page.click('form:has(input[name="identifier"]) button[type="submit"]'),
   ]);
 };
 

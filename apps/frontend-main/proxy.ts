@@ -21,6 +21,13 @@ import type { NextRequest } from 'next/server';
  */
 
 // ---------------------------------------------------------------------------
+// ĐỔI TÊN 27/08/2026 (next@16): file `middleware` là quy ước ĐÃ PHẾ, next@16 in
+// cảnh báo và next@17 sẽ bỏ hẳn; tên chính tắc nay là `proxy` với hàm xuất `proxy`.
+// Nội dung KHÔNG đổi - chỉ đổi tên file và tên hàm.
+// ⚠️ Cách kiểm nó CÒN ĐƯỢC MẮC VÀO: bảng route cuối `next build` phải có dòng
+// `ƒ Proxy`. Đặt sai tên/sai chỗ thì Next lặng lẽ bỏ qua file này - CSP biến mất
+// mà mọi cổng vẫn xanh, đúng lớp hỏng im lặng tệ nhất của repo này.
+//
 // CSP ép thật (không Report-Only), chỉ ở PRODUCTION. Kết hợp BĂM + NONCE.
 //
 // Vì sao cả hai:
@@ -120,7 +127,7 @@ function canonicalHost(req: NextRequest): NextResponse {
   return res;
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   if (process.env.NODE_ENV === 'production') return canonicalHost(req);
 
   // Dev: KHÔNG ép CSP (HMR cần eval + script nội tuyến). Chỉ lo chuyện cookie
