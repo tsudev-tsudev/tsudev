@@ -3,7 +3,7 @@
 - **Mã phiếu**: 20260827-02
 - **Từ**: phiên 29 (`backend-api` + `data-schema` + `qa-test`) - **Đến**: chủ dự án / phiên 30
 - **Thời điểm**: 14:55 27/08/2026
-- **Trạng thái**: MỞ - code xong, mọi cổng xanh, **cần một bước seed trên prod**
+- **Trạng thái**: ĐÃ MERGE (PR #89) + seed prod đã chạy. **Nghiệm thu 27/08 phơi ra một tầng thứ ba - xem §7.**
 - **Nhánh git**: `fix/toa-soan-bo-doi-kenh-doc` (tách từ `main` = `23af25d`, **KHÔNG migration**)
 
 ## 1. Hai trang, hai nguyên nhân khác hẳn nhau
@@ -199,3 +199,59 @@ services/newsroom-service/test/publishDoc.test.ts    chú thích: thêm nguồn 
 logs/handover/20260826-05_toa-soan-im-lang.md        Bước 2 đã chạy - sửa ghi chú lỗi thời
 logs/STATE.md                                        như trên
 ```
+
+---
+
+## 7. Nghiệm thu trên prod (27/08/2026) - bản vá ĐÚNG, và nó mở ra tầng tiếp theo
+
+PR #89 đã merge, `db:seed:newsroom` đã chạy trên prod. Đo lại:
+
+**Cả hai cơ chế đều chứng minh được bằng số, không phải suy luận:**
+
+|                             |                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Nguồn DOC                   | `quét=09:28 27/08/2026` - **lần đầu tiên kể từ khi tạo** (26/08), và đi TRƯỚC mọi nguồn khác ⇒ `nulls: 'first'` ăn |
+| Số nguồn quét lượt đó       | **1**, không phải 3 - BLOG bão hoà nên bị lọc, DOC vẫn lọt ⇒ trần theo kênh ăn                                     |
+| `GitHub Blog - Engineering` | nay mang **BLOG**                                                                                                  |
+| Kênh PROJECT                | **không còn nguồn nào**                                                                                            |
+
+Nếu van toàn cục còn đó, lượt 09:28 đã bị bỏ qua sạch như 119 lần trước.
+
+### 7.1. 🔴 Tầng thứ ba: `GitHub HTTP 403 (/contents/docs)`
+
+Ngay khi được quét lần đầu, nguồn DOC ném lỗi và ghi vào `lastError`.
+
+Ba phép đo tách nguyên nhân:
+
+1. Cùng endpoint, cùng `user-agent`, gọi **từ máy dev → 200**.
+2. `user-agent` trong `fetchRepoDocs` **đã đặt đúng** ⇒ không phải lỗi kinh điển
+   "GitHub 403 vì thiếu User-Agent".
+3. Trần GitHub API **không xác thực: 60 lượt/giờ, tính theo ĐỊA CHỈ IP**.
+
+⇒ 403 là **cạn hạn mức**, và khác biệt duy nhất giữa hai phép gọi là IP. Render
+free đi ra bằng **IP dùng chung** giữa nhiều khách: ta góp 2 lượt/giờ, hàng xóm
+đốt hết phần còn lại.
+
+> **Chú thích trong mã đã nói sai, và cái sai nằm ở hai chữ "của ai".** > `fetchRepoDocs` viết: _"trần là 60 lượt/giờ theo IP - lượt quét chạy mỗi giờ và
+> dùng 2 lượt, nên biên vẫn rất rộng"_. Phép tính đúng; giả định ngầm "60 lượt đó
+> là của mình" mới sai. Trên hạ tầng dùng chung, biên không rộng - nó bằng 0 vào
+> bất cứ lúc nào.
+
+**Vì sao không thể thấy trước hôm nay:** nguồn chưa từng được quét thì chưa từng
+gọi API. Lỗi này nằm sau đúng cái cửa mà §2 vừa mở. Bản vá bỏ-đói không sai - nó
+làm lộ ra tầng kế tiếp, và đó là dấu hiệu nó chạy.
+
+### 7.2. Đã vá - PR riêng
+
+Xem nhánh `fix/newsroom-github-han-muc`:
+
+- `NEWSROOM_GITHUB_TOKEN` (tuỳ chọn) → trần **60 → 5.000 lượt/giờ**, tính theo
+  **khoá** thay vì theo IP dùng chung. Repo Public nên khoá **không cần scope nào**.
+  Cố ý KHÔNG đặt tên `GITHUB_TOKEN`: cái tên đó có nghĩa khác trong GitHub Actions.
+- Thông báo lỗi phân biệt **cạn hạn mức** với **không có quyền** bằng
+  `x-ratelimit-remaining`. Cả hai đều là 403; bản trước in chung một dòng, và
+  người đọc dòng đó ở `/admin/newsroom` sẽ đi kiểm quyền repo trong khi repo
+  Public và quyền hoàn toàn lành.
+
+⚠️ Mã chạy được **cả khi chưa có khoá** (repo Public), chỉ là vẫn dính 60/giờ theo
+IP dùng chung - tức vẫn hỏng trên Render. **Phải đặt secret thì mới thật sự vá.**

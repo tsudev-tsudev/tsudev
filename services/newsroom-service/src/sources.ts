@@ -100,23 +100,71 @@ export function fingerprint(title: string): string {
  * thật của sản phẩm: những gì `docs/` đang mô tả, và những gì CHANGELOG nói là
  * vừa đổi.
  *
- * Đọc qua API công khai của GitHub, không cần khoá: repo đã Public từ
- * 21/08/2026. Không có khoá thì trần là 60 lượt/giờ theo IP - lượt quét chạy
- * mỗi giờ và dùng 2 lượt, nên biên vẫn rất rộng.
+ * Đọc qua API công khai của GitHub: repo đã Public từ 21/08/2026, nên KHÔNG cần
+ * khoá để đọc được.
+ *
+ * ⚠️ **Nhưng thiếu khoá thì nguồn này hỏng trên Render, và lập luận "biên rất
+ * rộng" ở bản trước là SAI.** Bản trước viết: trần 60 lượt/giờ theo IP, lượt quét
+ * mỗi giờ dùng 2 lượt, nên còn thừa nhiều. Chỗ sai là chữ **của ai**: 60 lượt đó
+ * tính cho ĐỊA CHỈ IP, và Render free đi ra bằng IP DÙNG CHUNG giữa nhiều khách.
+ * Ta chỉ góp 2 lượt, nhưng hàng xóm trên cùng IP đốt hết phần còn lại - nên biên
+ * không rộng, nó bằng 0 vào bất cứ lúc nào.
+ *
+ * Đo 27/08/2026, ngay lượt quét ĐẦU TIÊN của nguồn này: `GitHub HTTP 403
+ * (/contents/docs)` trên prod, trong khi cùng endpoint đó gọi từ máy dev trả
+ * **200**. Khác biệt duy nhất là IP.
+ *
+ * Đặt `NEWSROOM_GITHUB_TOKEN` thì hạn mức thành **5.000 lượt/giờ tính theo KHOÁ**,
+ * không còn dính lưu lượng của người lạ. Repo là Public nên khoá KHÔNG cần scope
+ * nào - một token rỗng quyền vẫn nâng đủ trần.
  *
  * `url` của nguồn là địa chỉ repo dạng `owner/name`, KHÔNG phải một URL tải về:
  * ở đây `kind` quyết định cách lấy, còn `url` chỉ là tham số.
  */
+/**
+ * Tên biến môi trường giữ khoá GitHub API. Cố ý KHÔNG dùng `GITHUB_TOKEN`: cái
+ * tên đó có sẵn ý nghĩa khác trong GitHub Actions, nên đặt trùng thì một lần
+ * chạy CI có thể lặng lẽ dùng khoá của runner thay vì khoá của toà soạn.
+ */
+const GITHUB_TOKEN_ENV = 'NEWSROOM_GITHUB_TOKEN'
+
+/**
+ * Dịch một phản hồi lỗi của GitHub thành câu nói ĐÚNG NGUYÊN NHÂN.
+ *
+ * Vì sao đáng viết hẳn một hàm: 403 của GitHub có hai nghĩa hoàn toàn khác nhau -
+ * "cạn hạn mức" và "không có quyền" - và bản trước in cả hai thành cùng một dòng
+ * `GitHub HTTP 403`. Người đọc dòng đó ở `/admin/newsroom` sẽ đi kiểm quyền truy
+ * cập repo, trong khi repo Public và quyền hoàn toàn lành. `x-ratelimit-remaining`
+ * phân biệt được hai ca đó, nên đừng vứt nó đi.
+ *
+ * Đọc header phòng thủ: bộ test giả lập phản hồi bằng object trần không có
+ * `headers`, và một thông báo lỗi làm sập chính đường báo lỗi thì tệ hơn là thô sơ.
+ */
+function describeGithubError(res: { status: number; headers?: Headers }, path: string): string {
+  const remaining = res.headers?.get?.('x-ratelimit-remaining')
+  if (res.status !== 403 || remaining !== '0') return `GitHub HTTP ${res.status} (${path})`
+
+  const reset = res.headers?.get?.('x-ratelimit-reset')
+  const when = reset ? `${new Date(Number(reset) * 1000).toISOString().slice(11, 16)}Z` : 'không rõ'
+  return process.env[GITHUB_TOKEN_ENV]
+    ? `GitHub cạn hạn mức (403 ${path}), mở lại ${when}. ${GITHUB_TOKEN_ENV} đang dùng mà vẫn hết 5.000 lượt/giờ - nghi có vòng lặp gọi API.`
+    : `GitHub cạn hạn mức (403 ${path}), mở lại ${when}. Chưa đặt ${GITHUB_TOKEN_ENV} nên đang dùng trần 60 lượt/giờ tính theo IP, mà IP egress của Render dùng chung - nó cạn vì lưu lượng của khách khác.`
+}
+
 export async function fetchRepoDocs(repo: string, limit = 20): Promise<RawItem[]> {
   const gh = async (path: string): Promise<unknown> => {
+    const token = process.env[GITHUB_TOKEN_ENV]
     const res = await fetch(`https://api.github.com/repos/${repo}${path}`, {
       signal: AbortSignal.timeout(15_000),
       headers: {
         'user-agent': 'tsudev-newsroom/1.0 (+https://tsudev.com)',
         accept: 'application/vnd.github+json',
+        // Không có khoá vẫn đọc được (repo Public) - chỉ là dùng chung trần theo
+        // IP với mọi khách khác của Render. Xem chú thích đầu hàm.
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
     })
-    if (!res.ok) throw new Error(`GitHub HTTP ${res.status} (${path})`)
+    if (!res.ok) throw new Error(describeGithubError(res, path))
     return res.json()
   }
 

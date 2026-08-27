@@ -114,6 +114,15 @@ services:
       # Trần số vòng Writer<->Editor cho một bài. Không trần = đốt hạn mức im lặng.
       - key: NEWSROOM_MAX_REVISIONS
         value: '2'
+      # Khoá GitHub API cho nguồn `repo_docs` của toà soạn. KHÔNG bắt buộc để
+      # đọc (repo Public), nhưng thiếu nó thì trần là 60 lượt/giờ tính theo IP -
+      # và IP egress của Render DÙNG CHUNG giữa nhiều khách, nên nó cạn vì lưu
+      # lượng không phải của ta. Đo 27/08/2026: lượt quét đầu tiên của nguồn này
+      # ăn 403 trên prod trong khi cùng endpoint trả 200 từ máy dev.
+      # Có khoá: 5.000 lượt/giờ tính theo KHOÁ. Repo Public nên khoá không cần
+      # scope nào.
+      - key: NEWSROOM_GITHUB_TOKEN
+        sync: false
       # Workers AI qua REST (service này chạy trên Render, không phải trên
       # Workers, nên không dùng binding được). Token cần đúng phạm vi
       # "Workers AI" và không gì khác.
