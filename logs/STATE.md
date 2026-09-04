@@ -2,6 +2,26 @@
 
 > **Phiên 30 bắt đầu ở đây** (cập nhật cuối phiên 29).
 >
+> 🆕 **Có cổng canh kênh toà soạn im lặng: `npm run newsroom:canh-kenh`.**
+> Ba cổng cũ đều hỏi "toà soạn có chạy không" - và câu trả lời luôn là CÓ, kể cả
+> lúc `/docs` chết nhiều ngày. Cổng mới hỏi **"KÊNH NÀY đã bao lâu không ra bài"**,
+> và nó có **MÃ THOÁT** (0/1/2) nên cắm được vào cron; `chan-doan` thì luôn thoát 0
+> vì nó là báo cáo, không phải cổng.
+> Nguyên tắc chia mức: **trượt vì KẾT QUẢ, trục trặc nguồn chỉ giải thích TẠI SAO** -
+> kênh còn ra bài thì nguồn hỏng là VÀNG (không chặn), kênh ngừng ra bài thì đúng
+> trục trặc đó thành ĐỎ và được nêu tên như nguyên nhân. Bản đầu bắt mọi trục trặc
+> thành ĐỎ và sẽ đỏ vĩnh viễn vì Genk ngủ 8 ngày trong khi BLOG vẫn đăng đều - một
+> cổng kêu oan là một cổng chết mà vẫn còn chạy.
+> Nhánh `feat/cong-canh-kenh-toa-soan`, phiếu
+> [`20260827-03`](handover/20260827-03_cong-canh-kenh.md).
+>
+> 🟠 **Cần quyết định: chạy cổng đó tự động bằng gì.** GitHub Actions theo lịch thì
+> phải đặt DATABASE_URL prod thành secret GitHub - quyết định BẢO MẬT, không phải
+> kỹ thuật, nên agent không tự chọn. Đường rẻ nhất mà không tốn gì: gõ
+> `npm run newsroom:canh-kenh` mỗi đầu phiên, cạnh việc đọc `logs/STATE.md`.
+> (Nhét vào `infrastructure/newsroom-cron/` KHÔNG được: đó là Cloudflare Worker,
+> không có kết nối Postgres.)
+>
 > ✅ **`/docs` ĐÃ THÔNG - chuỗi sinh tài liệu sống lần đầu tiên (27/08/2026).** > `TopicIdea` kênh DOC: **0 → 3**. Con số đó đứng ở 0 suốt toàn bộ lịch sử dự án.
 >
 > Phải gỡ **BA tầng chồng nhau**, và mỗi tầng chỉ nhìn thấy được sau khi gỡ tầng trước:
@@ -791,6 +811,20 @@
 
 ## Đã hoàn thành (mới nhất trên cùng)
 
+- 27/08/2026 - **Cổng canh kênh toà soạn im lặng** (phiên 29, nhánh
+  `feat/cong-canh-kenh-toa-soan`, KHÔNG migration). Chi tiết ở phiếu
+  [`20260827-03`](handover/20260827-03_cong-canh-kenh.md). Ba điều đáng nhớ:
+  (a) **Một cổng kêu oan là một cổng chết mà vẫn còn chạy.** Bản đầu bắt mọi trục
+  trặc nguồn thành ĐỎ; chạy thử trên prod thì nó đỏ vì Genk ngủ 8 ngày TRONG KHI
+  BLOG vẫn đăng 2 bài/ngày. Sửa thành: trượt vì KẾT QUẢ, trục trặc nguồn chỉ giải
+  thích TẠI SAO.
+  (b) **Ân hạn 6 GIỜ chứ không phải ngày.** Sự cố thật lộ ra khi nguồn mới được
+  20 giờ; ân hạn theo ngày thì cổng im suốt tuần đầu và sự cố sống y như cũ.
+  (c) **Hai ca "không có nguồn" ngược nghĩa nhau**: chưa từng ra bài = cố ý để
+  trống (kênh PROJECT); TỪNG ra bài rồi mất nguồn = hồi quy. Gộp làm một là bỏ lọt
+  đúng thứ cổng sinh ra để bắt.
+  Logic tách thành hàm THUẦN nên 18 test dựng thẳng ca biên không cần database;
+  bốn ca dựng lại đúng số đo production. newsroom 86 → 107 test.
 - 27/08/2026 - **Toà soạn bỏ đói kênh DOC; nguồn kênh PROJECT gán sai** (phiên 29,
   nhánh `fix/toa-soan-bo-doi-kenh-doc`, KHÔNG migration). Chi tiết ở phiếu
   [`20260827-02`](handover/20260827-02_bo-doi-kenh-doc.md). Ba điều đáng nhớ:
@@ -1578,6 +1612,7 @@ put`; đừng sờ vào config Worker qua dashboard.
 
 | Mã                                                                  | Chủ đề                                                                      | Trạng thái |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------- |
+| [20260827-03](handover/20260827-03_cong-canh-kenh.md)               | Cổng canh kênh toà soạn im lặng (chờ quyết định chạy tự động)               | **MỞ**     |
 | [20260827-02](handover/20260827-02_bo-doi-kenh-doc.md)              | Vì sao /docs và /projects không có bài của Agent AI (chờ seed prod)         | **MỞ**     |
 | [20260827-01](handover/20260827-01_b1-next16.md)                    | B1 - next@16.3.3, prod hết CVE, e2e 20/20 (đã merge; chờ deploy frontend)   | **MỞ**     |
 | [20260826-03](handover/20260826-03_ket-phien-27.md)                 | Kết phiên 27 - DOCS-SEARCH (chờ migration prod + merge)                     | **MỞ**     |
