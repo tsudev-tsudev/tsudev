@@ -2,6 +2,42 @@
 
 > **Phiên 31 bắt đầu ở đây** (cập nhật cuối phiên 30).
 >
+> 🆕 **MỤC TIÊU PROJECT ĐỔI (29/10/2026): website cá nhân ĐĂNG VÀ PHÁT HÀNH FILE
+> CÀI ĐẶT của các app/phần mềm tự phát triển.**
+>
+> Hệ quả: **Con dấu tín nhiệm RA KHỎI PHẠM VI, gỡ hoàn toàn.** Khoảng 6.300 dòng
+> mã ứng dụng, 10 model, 6 enum. Kế hoạch bốn bước ở
+> `docs/refactor-tsudev-2026-q4.md` §7; phiếu bàn giao
+> [`20261029-01`](handover/20261029-01_bo-con-dau-va-24-24.md).
+>
+> ⚠️ **ĐỪNG xoá `packages/trust-crypto`** - nó đổi vai sang **ký file cài đặt**.
+> `ProjectRelease` đã có sẵn ba cột `sha256`/`signature`/`signingKid` chờ nó.
+> `totp.ts` và `DownloadModal.tsx` chỉ NHẮC TÊN nó trong chú thích, không import -
+> đã kiểm, đừng kết luận ngược.
+>
+> 🔴 **Migration của §7 là migration DROP ĐẦU TIÊN của repo.** Mọi migration tới
+> nay đều thuần bổ sung. Xuất backup TRƯỚC, làm bước CUỐI, và nhớ Postgres không
+> cho `DROP VALUE` khỏi enum (vai trò `VIP`).
+>
+> 🆕 **Đã trả lời câu "làm sao site chạy 24/24": `docs/refactor-tsudev-2026-q4.md` §6.**
+>
+> Nguyên nhân gốc KHÔNG phải nhà cung cấp. Đo được: **29 trang động / 19 tĩnh ·
+> 20 trang dùng `getServerSideProps` · 0 trang dùng `getStaticProps` ·
+> incremental cache của OpenNext CHƯA bật · không có binding KV/R2/D1 nào.** Tức
+> MỖI lượt xem trang đều đi Worker → Render → Neon, nên một hạn mức database
+> thành sự cố toàn site, và lượt xem trang TIÊU hạn mức compute.
+>
+> Đòn chính: bật `r2IncrementalCache` (dòng mẫu đã có sẵn trong
+> `open-next.config.ts`, đang bị chú thích) + chuyển 7 trang đọc sang
+> `getStaticProps` + `revalidate`. Khi đó Neon chết thì site vẫn serve bản cache
+> gần nhất với nội dung ĐẦY ĐỦ.
+>
+> Đòn rẻ nhất, **làm trước**: cắm `prod:dem-noi-dung` vào `newsroom-cron` (đã là
+> Worker có lịch, miễn phí, KHÔNG cần Postgres nên vẫn sống đúng lúc DB chết).
+> Nếu việc này có từ tháng 8 thì sự cố hai tháng được biết trong một giờ.
+>
+> ---
+>
 > ✅ **FRONTEND ĐÃ DEPLOY LÊN CLOUDFLARE (29/10/2026).** Việc này treo từ phiên 30
 > (Worker vẫn là bản dựng next@15) - nay đã thông, kèm cả đợt tái cấu trúc.
 > `Current Version ID: 004a682e-126f-4ec3-90b3-5fcfce022241`.

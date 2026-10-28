@@ -479,6 +479,309 @@ dung sẽ tự xuất hiện" - nó phải nói đúng rằng dự án do ngư�
 
 ---
 
+## §6 - Chạy 24/24: bỏ database ra khỏi ĐƯỜNG ĐỌC
+
+> Trả lời câu hỏi: **"có nền tảng/kiến trúc nào giúp tsudev.com không sập nữa
+> không?"**
+
+### 6.1 Trước hết, nói thẳng một điều
+
+**"Không bao giờ sập" là mục tiêu không đạt được**, và đuổi theo nó bằng cách
+nâng gói là tiêu tiền vào chỗ sai. Thứ đạt được, và đáng đặt làm mục tiêu:
+
+1. **Một hạn mức vỡ KHÔNG làm cả site trống.** Đây là khuyết kiến trúc thật.
+2. **Sự cố được biết trong vài phút, không phải hai tháng.**
+3. **Bán kính thiệt hại nhỏ**: database chết thì chỉ _đăng bài_ chết, không phải
+   _đọc bài_ chết.
+
+### 6.2 Số đo chỉ ra nguyên nhân gốc, và nó không phải nhà cung cấp
+
+Đo trên repo ngày 29/10/2026:
+
+| đo                                      | kết quả                                         |
+| --------------------------------------- | ----------------------------------------------- |
+| trang động (SSR) / tĩnh                 | **29 / 19**                                     |
+| trang dùng `getServerSideProps`         | **20**                                          |
+| trang dùng `getStaticProps`             | **0**                                           |
+| `open-next.config.ts` incremental cache | **CHƯA bật** - còn nguyên dòng mẫu bị chú thích |
+| binding KV / R2 / D1 trên Worker        | **không có cái nào**                            |
+
+Nghĩa là: **mỗi lượt xem trang của mỗi khách vãng lai đều đi Worker → Render →
+Neon.** Một website cá nhân mà nội dung đổi vài lần một ngày đang phục vụ từng
+lượt xem bằng một truy vấn database sống.
+
+Hai hệ quả, và cả hai đều đã xảy ra:
+
+- **hạn mức database trở thành sự cố toàn site.** Neon treo compute ⇒ không một
+  trang nào có nội dung. Không phải vì Neon tệ, mà vì nó nằm trên đường đọc.
+- **lượt xem trang TIÊU hạn mức compute.** Mỗi khách giữ Neon thức thêm, nên
+  càng nhiều người đọc càng nhanh vỡ - đúng chiều ngược với mong muốn.
+
+Đổi sang Supabase/Railway/PlanetScale **không sửa gì cả**: hạn mức mới rồi cũng
+tới, và kiến trúc vẫn để một hạn mức hạ cả site.
+
+### 6.3 Đòn chính: incremental cache ở tầng biên
+
+Nội dung của site này (blog, tài liệu, dự án, bản phát hành) đổi vài lần một
+ngày. Nó **không cần** một truy vấn database cho mỗi lượt xem.
+
+`@opennextjs/cloudflare` đã hỗ trợ sẵn và repo đã có dòng mẫu bị chú thích:
+
+```ts
+// apps/frontend-main/open-next.config.ts - HIỆN TẠI
+// import r2IncrementalCache from "@opennextjs/cloudflare/overrides/incremental-cache/r2-incremental-cache";
+export default defineCloudflareConfig({
+  // incrementalCache: r2IncrementalCache
+});
+```
+
+Bật nó lên, cộng với chuyển 7 trang đọc công khai từ `getServerSideProps` sang
+`getStaticProps` + `revalidate`, thì:
+
+|                              | trước                   | sau                                       |
+| ---------------------------- | ----------------------- | ----------------------------------------- |
+| lượt xem trang chạm Neon     | **mỗi lượt**            | chỉ lúc dựng lại cache                    |
+| lượt xem trang chạm Render   | **mỗi lượt**            | chỉ lúc dựng lại cache                    |
+| Neon chết                    | **mọi trang trống/503** | serve bản cache gần nhất, nội dung ĐẦY ĐỦ |
+| Render ngủ (cold start ~50s) | người đọc đầu tiên chờ  | không ai chờ                              |
+| CU-giờ tiêu theo lưu lượng   | **có**                  | gần như không                             |
+
+**Đây là thứ đổi bản chất vấn đề, không phải tối ưu.** Nó biến "database chết =
+site chết" thành "database chết = không đăng được bài mới".
+
+Bảy trang cần chuyển (và CHỈ bảy trang này): `/`, `/blog`, `/blog/[slug]`,
+`/docs`, `/docs/[slug]`, `/projects`, `/projects/[slug]`. Cộng `sitemap.xml` và
+`feed.xml`.
+
+⚠️ **KHÔNG chuyển** trang quản trị, `/settings/*`, `/login`, `/search`: chúng phụ
+thuộc người dùng hoặc tham số, và cache một trang per-user là lỗ rò dữ liệu.
+`/search` giữ động nhưng nay đã trả 503 trung thực khi không gọi được.
+
+⚠️ Van dựng lại: toà soạn đăng theo nhịp giờ, nên `revalidate: 600` là đủ. Nếu
+muốn bài mới hiện ngay thì gọi on-demand revalidation từ chính đường đăng của
+dispatcher - nhưng đó là tầng thứ hai, đừng làm trước khi tầng một chạy.
+
+### 6.4 Đòn thứ hai, và nó khớp đúng mục tiêu MỚI của project: R2
+
+Mục tiêu mới là **đăng file cài đặt của các app tự phát triển**. R2 là chỗ đúng
+cho việc đó, vì một lý do rất cụ thể:
+
+|                            | R2                         | nơi khác          |
+| -------------------------- | -------------------------- | ----------------- |
+| phí băng thông ra (egress) | **0 đồng, không giới hạn** | tính tiền theo GB |
+| lưu trữ miễn phí           | 10 GB                      | -                 |
+
+File cài đặt là thứ **tải nhiều, băng thông lớn**. Một bản APK 30 MB tải 1.000
+lượt là 30 GB egress - ở gần như mọi nhà cung cấp khác đó là hoá đơn, ở R2 là 0.
+
+Hạ tầng đã có một nửa: `storage-service` đã presign S3/R2, `ProjectRelease` đã
+lưu `storageKey`. Còn thiếu: giao diện tải tệp lên cho trang quản trị, và **tính
+sha256 + ký Ed25519 ngay lúc tải lên** thay vì khai bằng tay.
+
+### 6.5 Đòn thứ ba, rẻ nhất, làm TRƯỚC cả hai đòn trên
+
+`npm run prod:dem-noi-dung` đã tồn tại và đã được chứng minh bắt đúng sự cố.
+**Nhưng không có gì chạy nó.** Một cổng không chạy tự động thì không phải cổng -
+nó chỉ là một lệnh ai đó có thể gõ.
+
+`infrastructure/newsroom-cron` đã là một Cloudflare Worker có lịch, **miễn phí**,
+và **không cần kết nối Postgres** - tức nó vẫn sống đúng lúc database chết. Thêm
+một nhịp gọi cổng đếm nội dung và báo động khi đỏ.
+
+Nếu việc này đã có từ tháng 8, sự cố hai tháng sẽ được biết trong **một giờ**.
+
+Chi phí: 0 đồng, vài chục dòng. **Làm trước.**
+
+### 6.6 Việc của §6
+
+| #   | việc                                                                         | đòn | ghi chú                                         |
+| --- | ---------------------------------------------------------------------------- | --- | ----------------------------------------------- |
+| 6.1 | Cắm `prod:dem-noi-dung --json` vào `newsroom-cron`, báo động khi đỏ          | 3   | rẻ nhất, giá trị cao nhất, không cần DB         |
+| 6.2 | Bật `r2IncrementalCache` + thêm binding R2 cho Worker                        | 1   | một dòng config + một binding                   |
+| 6.3 | Chuyển 7 trang đọc sang `getStaticProps` + `revalidate`                      | 1   | **đo lại tỷ lệ ƒ/○ sau khi xong**               |
+| 6.4 | Test canh: trang đọc công khai KHÔNG được dùng `getServerSideProps`          | 1   | ngăn mọc lại; quét nguồn                        |
+| 6.5 | Nghiệm thu bằng cách CHẶN đường tới backend rồi đo - trang phải còn nội dung | 1   | đây là phép đo duy nhất chứng minh được đòn này |
+| 6.6 | Tải tệp phát hành lên R2 từ trang quản trị + tự tính sha256                  | 2   | thay việc khai `storageKey` bằng tay            |
+| 6.7 | Cổng theo dõi hạn mức: Neon CU-giờ · Render giờ instance · Workers AI Neuron | 3   | cảnh báo TRƯỚC khi vỡ, không phải sau           |
+
+### 6.7 Đã cân nhắc và KHÔNG chọn (lúc này)
+
+| phương án                       | vì sao không                                                                                                                                                                                                                        |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cloudflare D1** thay Neon     | Bỏ hẳn mô hình CU-giờ, chạy ở biên - đúng hướng. Nhưng là SQLite: `String[]` (dùng ở `ContentDraft.tags`), enum Prisma, và chỉ mục tìm không dấu đều phải làm lại. Để sau khi §7 đã làm database nhỏ hẳn lại.                       |
+| **Hyperdrive** trước Neon       | Gộp kết nối và cache truy vấn, nhưng KHÔNG sửa hạn mức CU-giờ - compute vẫn phải thức. Giải sai bài.                                                                                                                                |
+| Nâng gói Neon / Render          | Mua thêm thời gian, không sửa kiến trúc. Và lượt xem trang vẫn tiêu hạn mức.                                                                                                                                                        |
+| Chuyển backend sang Workers hết | Hấp dẫn (bỏ luôn trần 750 giờ của Render), nhưng `auth-service` cần Argon2id - CLAUDE.md ghi rõ nó không chạy được ở biên. Có đường WASM (repo đã có chuỗi Rust→WASM), nhưng đó là một đợt riêng, không phải một mục trong đợt này. |
+
+---
+
+## §7 - Gỡ hoàn toàn Con dấu tín nhiệm
+
+> Mục tiêu mới của project: website cá nhân **đăng và phát hành file cài đặt**
+> của các app/phần mềm tự phát triển. Con dấu tín nhiệm - cấp chứng chỉ cho
+> website của người khác - không còn nằm trong mục tiêu đó.
+
+### 7.1 Khối lượng, đo được
+
+| phần                                       | dòng      | ghi chú                           |
+| ------------------------------------------ | --------- | --------------------------------- |
+| `services/trust-service/src`               | **2.406** | 6 tệp                             |
+| `services/trust-service/test`              | **1.136** | 8 tệp, 93 test                    |
+| `apps/frontend-main/pages/trust/*`         | **2.004** | 9 trang                           |
+| `apps/frontend-main/pages/admin/trust.tsx` | **762**   |                                   |
+| `packages/trust-crypto`                    | 423       | Rust + TS - **xem 7.3, ĐỪNG xoá** |
+
+Database: **10 model** (`TrustOrganization` `TrustDomain` `SealProgram`
+`SealApplication` `SealEvidence` `TrustCertificate` `TrustCheck` `TrustAuditLog`
+`TrustInvite` `TrustInviteRedemption`) + **6 enum**.
+
+Tổng: khoảng **6.300 dòng** mã ứng dụng, chưa tính tài liệu và biến môi trường.
+
+### 7.2 🔴 Migration này có DROP - không còn "điều may" nào
+
+Mọi migration của repo tới nay đều thuần bổ sung. Cái này **xoá bảng và xoá
+enum**, nên nó là loại migration mà `logs/STATE.md` đã cảnh báo bằng chữ:
+
+> _"Lần sau đảo thứ tự với một migration có DROP/RENAME thì không có cái may
+> nào."_
+
+Và hai chuyện nữa làm nó khó hơn một `DROP TABLE` thường:
+
+- **Postgres KHÔNG cho `DROP VALUE` khỏi một enum.** Bỏ `VIP` khỏi `Role` phải
+  đi đường: tạo enum mới, `ALTER COLUMN ... USING`, xoá enum cũ. Mỗi bước phải
+  đúng thứ tự hoặc cột `User.role` mất dữ liệu.
+- **Trigger chặn xoá cứng** đang gác một số bảng. Migration phải tính tới nó.
+
+**Bắt buộc TRƯỚC khi viết một dòng nào:** xuất dữ liệu trust đang có trên
+production ra `backup/`. Đã có chứng chỉ nào cấp cho ai chưa là câu hỏi **chưa
+trả lời được** vì Neon đang treo - phải đo lại khi nó sống.
+
+### 7.3 ĐỪNG xoá `packages/trust-crypto` - nó đổi vai, không chết
+
+`trust-crypto` ký Ed25519 bằng Rust→WASM. Nó có đúng **một** người dùng thật
+(`trust-service/src/signing.ts`); `auth-service/src/totp.ts` và
+`components/DownloadModal.tsx` chỉ **nhắc tên nó trong chú thích**, không import.
+
+Nhưng mục tiêu mới **cần đúng năng lực đó**: ký file cài đặt. Phát hành app ngoài
+store gặp hai rào cản thật - Windows SmartScreen và Android "nguồn không xác
+định" - và dự án cá nhân không mua được chứng chỉ ký mã. Checksum công khai cộng
+chữ ký kiểm được là thứ duy nhất cho được, và `ProjectRelease` đã có sẵn ba cột
+`sha256` / `signature` / `signingKid` chờ nó.
+
+Nên: **giữ `trust-crypto`, giữ vòng khoá, giữ endpoint JWKS công khai** - đổi
+nghĩa từ _"khoá của con dấu tín nhiệm"_ thành _"khoá ký bản phát hành"_.
+
+| biến môi trường                                   | số phận                                       |
+| ------------------------------------------------- | --------------------------------------------- |
+| `TRUST_SIGNING_KEY` · `_KEY_ID` · `_KEYS_RETIRED` | **GIỮ**, đổi tên thành `RELEASE_SIGNING_*`    |
+| `TRUST_ISSUER`                                    | **GIỮ**, đổi tên                              |
+| `TRUST_RECHECK_*` (5 biến)                        | **XOÁ** - giám sát tên miền chết theo con dấu |
+| `TRUST_SERVICE_URL`                               | **XOÁ** sau khi gỡ service                    |
+
+⚠️ Đổi tên biến ký là việc **nguy hiểm**: khoá riêng đang ký những chữ ký đã phát
+ra. Đổi tên biến mà không chuyển giá trị sang tên mới ⇒ service từ chối khởi động
+(cố ý, theo CLAUDE.md). Phải đặt biến mới **trước**, gỡ biến cũ **sau**, hai đợt.
+
+### 7.4 Thang vai trò: `VIP` tồn tại CHỈ VÌ con dấu
+
+`packages/types`: `GUEST < MEMBER < VIP < AUTHOR < MODERATOR < ADMIN < OWNER`.
+CLAUDE.md ghi rõ `AUTHOR` được đặt **trên** `VIP` có chủ đích _"để khách VIP của
+Con dấu KHÔNG đăng bài được"_. Bỏ con dấu thì `VIP` mất lý do tồn tại.
+
+Nhưng nó bám vào 7 chỗ: `admin/accounts.tsx` · `components/AccountFilters.tsx` ·
+`lib/trustGate.ts` · `packages/ui/src/lib/useTrustNav.ts` · `packages/types` ·
+enum `Role` của Prisma · và `services/auth-service/src/invite.ts`.
+
+Hai đường, cần chủ dự án chọn:
+
+|           | giữ `VIP` trong enum, thôi dùng                | xoá khỏi enum                          |
+| --------- | ---------------------------------------------- | -------------------------------------- |
+| migration | không cần                                      | cần, và là loại khó (xem 7.2)          |
+| rủi ro    | gần như 0                                      | mất dữ liệu `User.role` nếu sai thứ tự |
+| giá       | một giá trị enum chết nằm lại, có thể gây nhầm | sạch                                   |
+
+**Khuyến nghị: giữ trong enum, gỡ khỏi mọi đường mã, ghi một dòng trong schema
+nói rõ nó là di sản.** Một giá trị enum không dùng không làm hỏng gì; một
+migration enum sai thứ tự làm mất cột vai trò của mọi người dùng.
+
+### 7.5 Mã mời: xoá, vì nó chỉ để vào con dấu
+
+`services/auth-service/src/invite.ts` đọc `TrustInvite` và nâng vai trò lên trần
+cứng `VIP`. Không có con dấu thì mã mời không mời vào đâu cả. Xoá cả route, cả
+bảng, cả trang `/trust/redeem`.
+
+⚠️ Đây là MỘT trong HAI đường nâng vai trò bằng dữ liệu mà CLAUDE.md liệt kê. Gỡ
+nó thì phải cập nhật chính khối đó trong CLAUDE.md, nếu không tài liệu nói về một
+cơ chế không còn tồn tại.
+
+### 7.6 Bề mặt đối ngoại: có thể đang có người nhúng huy hiệu
+
+Con dấu phát ra **huy hiệu SVG nhúng được vào site bên thứ ba**, và
+`/trust/verify/[serial]` là đích của mọi huy hiệu đó. Xoá thẳng thì huy hiệu trên
+site người khác thành ảnh hỏng và link chết.
+
+Cần chủ dự án chọn, và câu trả lời phụ thuộc vào **đã cấp cho ai chưa** (chưa đo
+được):
+
+|                 | làm gì                                                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| chưa cấp cho ai | xoá thẳng, không cần gì                                                                                                                   |
+| đã cấp          | giữ `/trust/verify/[serial]` làm **trang bia**: nói chương trình đã dừng, chứng chỉ không còn hiệu lực. Hoặc 410 Gone cho mọi đường trust |
+
+### 7.7 Thứ tự gỡ - BỐN BƯỚC, không gộp
+
+Gỡ ngược thứ tự phụ thuộc. Gộp lại là tự tạo một cửa sổ site hỏng.
+
+```
+B1  Gỡ ĐƯỜNG VÀO (không chạm dữ liệu)
+    9 trang /trust/* · admin/trust · proxy api/trust · mục nav · icon role trust
+    ⇒ site không còn đường nào tới con dấu, dữ liệu còn nguyên, QUAY LUI ĐƯỢC
+
+B2  Gỡ SERVICE
+    services/trust-service · bảng tiền tố backend-bundle · TRUST_RECHECK_*
+    ⇒ đổi `trust-crypto` sang phục vụ ký bản phát hành
+
+B3  Gỡ MÃ MỜI
+    invite.ts · route · gỡ VIP khỏi mọi đường mã (GIỮ trong enum)
+
+B4  Gỡ DỮ LIỆU  ← migration có DROP, làm CUỐI
+    xuất backup TRƯỚC · 10 model + 6 enum · Project.trustProgramSlug
+```
+
+Sau mỗi bước: `typecheck` · toàn bộ test · `topology:check` · `prod:dem-noi-dung`.
+
+⚠️ **Bề mặt bốn-chỗ-một-commit.** CLAUDE.md ghi: đổi bề mặt trust phải sửa
+**bốn** chỗ cùng lúc - hằng ở `trust-service`, `ALLOWED_PREFIXES` của proxy,
+`authCoverage.test.ts`, và `services/backend-bundle/test/routing.test.ts`. Chỗ
+thứ tư nằm ở workspace KHÁC nên đã lọt lưới một lần: xanh cả bốn cổng ở local mà
+đỏ CI. Gỡ cũng là đổi bề mặt.
+
+### 7.8 Việc của §7
+
+| #   | việc                                                                                                | bước | vùng agent                                |
+| --- | --------------------------------------------------------------------------------------------------- | ---- | ----------------------------------------- |
+| 7.1 | **Đo trước**: xuất dữ liệu trust prod ra `backup/`, đếm chứng chỉ đã cấp                            | B0   | cần Neon sống                             |
+| 7.2 | Quyết định bề mặt đối ngoại: xoá thẳng · trang bia · 410                                            | B0   | **chủ dự án**                             |
+| 7.3 | Quyết định `VIP`: giữ trong enum hay xoá                                                            | B0   | **chủ dự án**                             |
+| 7.4 | Gỡ 9 trang + admin + proxy + nav + icon role                                                        | B1   | `frontend-web`                            |
+| 7.5 | Gỡ `trust-service`, sửa bảng tiền tố + 4 chỗ cùng commit                                            | B2   | `infra-deploy` + `qa-test`                |
+| 7.6 | Đổi `trust-crypto` sang ký bản phát hành, đổi tên biến HAI ĐỢT                                      | B2   | `trust-seal` (vùng này còn chủ cuối cùng) |
+| 7.7 | Gỡ mã mời + VIP khỏi đường mã                                                                       | B3   | `backend-api`                             |
+| 7.8 | Migration DROP + xuất backup + `Project.trustProgramSlug`                                           | B4   | `data-schema`                             |
+| 7.9 | Dọn tài liệu: `docs/trust-seal.md` · `refactor-trust-invite-access.md` · khối trust trong CLAUDE.md | B4   | `docs-curator`                            |
+
+### 7.9 Phần được GIỮ LẠI từ con dấu, và nó không nhỏ
+
+Gỡ con dấu không có nghĩa là vứt mọi thứ nó dạy. Ba thứ ở lại và phục vụ mục tiêu
+mới:
+
+1. **Chuỗi ký Ed25519 + JWKS công khai** → ký file cài đặt (7.3).
+2. **Khuôn `requireRole()` fail-closed + mặc định-đóng** → đường ghi bản phát hành
+   đã dùng đúng khuôn đó.
+3. **Bài học bề mặt bốn-chỗ-một-commit** → nay áp vào `ProjectRelease`.
+
+---
+
 ## Thứ tự và phụ thuộc
 
 ```
