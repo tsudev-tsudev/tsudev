@@ -17,6 +17,7 @@ token trả tiền mà không dùng đến.
 | _(hồ sơ đã đóng)_ cây thư mục monorepo            | [structure-upstream-proposal.md](structure-upstream-proposal.md)                   |
 | Đưa lên production, biến môi trường, CI           | [deployment.md](deployment.md)                                                     |
 | Hạn mức gói miễn phí, van chi phí                 | [free-tier.md](free-tier.md)                                                       |
+| Nhận báo động khi site hỏng (Telegram)            | [alerting.md](alerting.md)                                                         |
 | _(SẮP GỠ)_ Con dấu tín nhiệm (trust-service)      | [trust-seal.md](trust-seal.md)                                                     |
 | Vì sao repo mất Diễn đàn/Chợ/Tin nhắn             | [refactor-personal-site.md](refactor-personal-site.md)                             |
 | Vì sao chỉ còn một cổng vào ở dev                 | [refactor-network-topology.md](refactor-network-topology.md)                       |

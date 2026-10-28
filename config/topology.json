@@ -88,6 +88,17 @@
   ],
   "overrides": {
     "$doc": "Cổng lệch có chủ ý ở môi trường khác. Mỗi mục PHẢI có lý do, nếu không thì đó là drift chứ không phải override.",
+    "$doc_cong_cu": "Khối `congcu` KHÁC các khối môi trường: đây là cổng của CÔNG CỤ bên ngoài, không phải của một thành phần tsudev. Chúng không sinh ra .env nào và không thay bằng biến được - số do chính công cụ đó quy định. Khai ở đây để `topology:check` thôi báo đỏ ở tài liệu, mà vẫn giữ nguyên tắc: mọi số cổng trong repo phải truy ngược được về MỘT chỗ kèm lý do.",
+    "congcu": {
+      "wrangler-oauth": {
+        "port": 8976,
+        "why": "cổng callback OAuth của `wrangler login`, do wrangler quy định - đổi được thì cũng không nên, vì nó là lý do phải mở URL đăng nhập trên CHÍNH máy đang chạy lệnh (docs/alerting.md bước 4a)"
+      },
+      "wrangler-dev-cron": {
+        "port": 8788,
+        "why": "cổng ví dụ cho `wrangler dev --test-scheduled` của Worker cron trong docs/alerting.md bước 5. Cố ý KHÁC cổng dev mặc định của wrangler để không đụng một phiên dev khác đang chạy"
+      }
+    },
     "ci": {
       "db": {
         "port": 5432,

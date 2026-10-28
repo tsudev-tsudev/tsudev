@@ -51,3 +51,9 @@ scripts/test-presign.js               # script gỡ rối thủ công
 # Tài liệu quy ước URL: nói VỀ địa chỉ chính tắc, nên buộc phải in nó ra. Đây là
 # nơi con số được giải thích, không phải nơi nó bị hardcode lén.
 docs/url-convention.md
+
+# Hướng dẫn bật báo động. Hai cổng ở đây là của CÔNG CỤ (wrangler), không phải
+# của thành phần tsudev nào - khai trong topology.overrides.congcu kèm lý do.
+# Bỏ số cổng khỏi tài liệu thì mất đúng chi tiết người đọc cần: cổng 8976 là lý
+# do phải mở URL đăng nhập trên chính máy đang chạy lệnh.
+docs/alerting.md

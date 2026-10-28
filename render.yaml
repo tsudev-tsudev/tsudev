@@ -105,6 +105,26 @@ services:
       # toà soạn đứng yên trong im lặng.
       - key: NEWSROOM_TICK_TOKEN
         sync: false
+      # Kênh báo động của `packages/observability/notify.js`. KHAI Ở ĐÂY nhưng
+      # `sync: false` - blueprint nói rằng hai biến này TỒN TẠI, không giữ giá trị.
+      #
+      # 🔴 Vì sao việc khai chúng là một bản sửa lỗi, không phải thêm tính năng:
+      # `notify.js` hỗ trợ Telegram từ lâu, nhưng không biến nào từng được khai ở
+      # repo này - nên `migrationGate.assertSchemaUpToDate()` gọi `notify.alert()`
+      # rồi tin đó đi vào hư không. Một cổng chặn mà đường báo cũng im lặng thì
+      # nó chỉ ồn ào trong log của chính nó, và log Render thì không ai ngồi đọc.
+      #
+      # `sync: false` giữ hai mục tiêu cùng lúc: giá trị bí mật không nằm trong
+      # git, và một service dựng mới từ blueprint thì an toàn mặc định (không báo
+      # động) thay vì gửi tin tới chat của người khác.
+      #
+      # Hướng dẫn lấy giá trị và nghiệm thu: docs/alerting.md
+      # ⚠️ Worker cron CẦN RIÊNG hai biến này (`npm run cron:secret-telegram`) -
+      # đặt một chỗ thì chỗ kia vẫn im lặng.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
       # Trần Neuron/ngày. Hạn mức miễn phí của Workers AI là 10.000 (reset
       # 00:00 UTC); 8000 chừa biên 20%. Vượt hạn mức trên gói Free thì
       # Cloudflare TỪ CHỐI request chứ không tính tiền - van này để toà soạn
