@@ -1,5 +1,98 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> **Phiên 31 bắt đầu ở đây** (cập nhật cuối phiên 30).
+>
+> 🔴 **VIỆC CHẶN TOÀN DỰ ÁN: tsudev.com đang là một website TRỐNG, và đã trống ~2 tháng.**
+>
+> Đo trực tiếp 28/10/2026: `/`, `/blog`, `/docs`, `/projects` đều **HTTP 200**
+> nhưng không có nội dung; `/sitemap.xml` còn đúng **7 URL tĩnh**, `/feed.xml` > **0 item**, `/api/search` `total: 0`. Backend `/health` vẫn 200 (nó trả JSON
+> tĩnh, không chạm Prisma). `logs/STATE.md` phiên trước ghi `/blog` liệt kê **50
+> bài** ngày 27/08.
+>
+> Nguyên nhân, lấy bằng `npm run newsroom:canh-kenh`:
+> `ERROR: Your account or project has exceeded the quota.` - **Neon đã treo compute.**
+>
+> 🟠 **CẦN CHỦ DỰ ÁN, 1 phút, không ai làm thay được:** mở Neon console → project
+> → **Usage**, đọc xem dòng nào đỏ - **Storage** (0,5 GB) hay **Compute time**
+> (100 CU-giờ). Hai hạn mức này cần hai cách chữa TRÁI NGƯỢC:
+>
+> | nhánh   | chữa bằng               | công cụ đã có                                    |
+> | ------- | ----------------------- | ------------------------------------------------ |
+> | Storage | xoá dữ liệu tích luỹ    | `npm run db:don-toa-soan` (mặc định `--dry-run`) |
+> | Compute | chặn thứ đánh thức Neon | **ĐÃ VÁ** - xem dưới                             |
+>
+> Suy luận nghiêng về **Compute**: mọi truy vấn ĐỌC đều thất bại. Vượt storage thì
+> Neon chuyển read-only (ghi chết, đọc sống). Đọc cũng chết nghĩa là compute bị
+> treo - và nó **tự mở lại đầu tháng 11**.
+>
+> ✅ **ĐÃ TÌM VÀ VÁ nguồn đánh thức Neon mà `docs/free-tier.md` không canh.** > `pages/admin/newsroom.tsx` poll `GET /api/newsroom/state` (CHẠM DB) mỗi **3
+> giây**, vô thời hạn. Một tab bỏ quên = 28.800 truy vấn/ngày 24/7 ⇒ Neon không
+> bao giờ tự ngủ ⇒ 186 CU-giờ/tháng trên hạn mức 100 ⇒ vỡ sau ~17 ngày. Tài liệu
+> đó dựng cả kiến trúc hai nhịp cron để tránh đúng bẫy này, rồi bị vượt qua từ
+> hướng **TRÌNH DUYỆT**. Nay có ba van: ẩn tab ⇒ dừng hẳn · 10 phút không tương
+> tác ⇒ dừng hẳn + nút bật lại · lỗi ⇒ giãn 15 giây. Đã ghi vào `free-tier.md`.
+> (Đã loại `trust-service/src/recheck.ts` - chu kỳ 360 phút, không phải nguyên nhân.)
+>
+> ✅ **NĂM CỔNG MỚI, tất cả đã chứng minh ĐỎ với lỗi thật rồi XANH sau khi sửa:**
+>
+> | cổng                        | bắt gì                                                            |
+> | --------------------------- | ----------------------------------------------------------------- |
+> | `npm run prod:dem-noi-dung` | site 200 mà KHÔNG có nội dung - **đỏ hôm nay, đúng như phải vậy** |
+> | `npm run fonts:check`       | artifact font lệch nguồn, thiếu woff2                             |
+> | `npm run icons:check`       | `IconName` không có thật · `role` sai · đường vẽ ra ngoài khung   |
+> | `test/fontSource.test.ts`   | quay lại nạp font từ host ngoài                                   |
+> | `test/scrollReveal.test.ts` | nội dung ẩn vĩnh viễn khi JavaScript không chạy                   |
+>
+> ✅ **Font tiếng Việt: một lỗi ĐANG CHẠY đã được sửa.** `globals.css` nạp Inter
+> bằng `@import` từ `fonts.googleapis.com`, nhưng CSP prod là
+> `style-src 'self' 'unsafe-inline'` + `font-src 'self' data:` - `'unsafe-inline'`
+> KHÔNG cho stylesheet host ngoài. **Inter chưa bao giờ nạp được trên production**;
+> mỗi thiết bị hiện một font hệ thống khác nhau. Nay **Be Vietnam Pro** (thiết kế
+> gốc cho tiếng Việt) + JetBrains Mono, tự host 24 woff2 có subset `vietnamese`,
+> sinh bằng `npm run fonts:sync`. Nghiệm thu trên CSS đã build: `googleapis` = 0,
+> 25 `@font-face`, `--font-family` mở đầu `"Be Vietnam Pro"`.
+>
+> ✅ **Tính năng mới: tải app về (`ProjectRelease`).** Migration
+> `20261028140000_project_release` (THUẦN BỔ SUNG, **chưa áp lên Neon**), 5 route,
+> modal có checksum SHA-256 + chữ ký Ed25519, khối "Tải về" ở trang chủ, trang
+> quản trị gập mở. 23/23 test. Nghiệm thu đầu-cuối ở local: 302 → đúng CDN dev,
+> `downloadCount` 0→1.
+>
+> 🟠 **§4 CHƯA PHÁT HÀNH. Thứ tự BẤT BIẾN:** `prisma migrate deploy` lên Neon
+> **TRƯỚC**, merge `main` **SAU**. PR #88 ngày 27/08 đã đảo thứ tự này và chỉ sống
+> nhờ hai điều may.
+>
+> 🔴 **BA KHUYẾT ĐO ĐƯỢC, phát hiện trong lúc làm:**
+>
+> 1. Trang chi tiết trả **200 kèm "Không tìm thấy bài viết"** khi lượt gọi THẤT
+>    BẠI - với Google đó là soft 404, nó gỡ URL khỏi chỉ mục và không đọc lại. Nay
+>    ba mã: **503** gọi lỗi · **404** thật sự không có · **200** có.
+> 2. `@@unique([projectId, version, platform, arch])` **KHÔNG chặn trùng khi `arch`
+>    bỏ trống** - SQL coi `NULL != NULL`, và bỏ trống là trường hợp phổ biến nhất.
+>    Đã kiểm trên Postgres: hai `INSERT` giống nhau đều lọt. Ràng buộc vẫn hiện
+>    trong `\d`, test trùng-lặp vẫn xanh vì nó truyền `arch: 'arm64'`. Đã sửa
+>    thành `NOT NULL DEFAULT ''` + hai test canh đúng nhánh bỏ trống.
+> 3. `lib/api.ts` nuốt MỌI lỗi thành giá trị rỗng - đây là thứ để sự cố 2 tháng
+>    sống im lặng. Nay trả `{ data, failed }`; `sitemap.xml`/`feed.xml` **NÉM LỖI**
+>    thay vì phát ra file rỗng.
+>
+> 🟠 **HAI VIỆC CẦN QUYẾT ĐỊNH CỦA CHỦ DỰ ÁN (không phải việc kỹ thuật):**
+>
+> 1. **Logo SVG master.** Thương hiệu có con cú mạch điện ở
+>    `packages/brand/source/logo.jpeg` - **raster, không có bản vector nào**. Vẽ
+>    lại bằng hình học tay agent sẽ cho ra MỘT BIỂU TƯỢNG KHÁC, tức đổi bản sắc.
+>    Ba đường đi ở `docs/refactor-tsudev-2026-q4.md` §2.3.
+> 2. **Tông màu riêng.** Bảng hiện tại đã đạt mọi phép đo khách quan (205 khẳng
+>    định WCAG AA xanh ở ba chế độ). Đổi tông là quyết định THẨM MỸ - cần một mã
+>    màu, một ảnh tham chiếu, hoặc một site làm ví dụ. Cơ chế đã sẵn: ghi đè ở
+>    `tokens/extensions.tsudev-web.json`.
+>
+> Hồ sơ đầy đủ: **`docs/refactor-tsudev-2026-q4.md`**.
+> Cổng đã chạy cuối phiên: format · lint · typecheck · tokens · fonts · icons ·
+> topology · **789 test ở 8 workspace, tất cả xanh** · `next build` sạch.
+>
+> ---
+
 > **Phiên 30 bắt đầu ở đây** (cập nhật cuối phiên 29).
 >
 > 🆕 **Có cổng canh kênh toà soạn im lặng: `npm run newsroom:canh-kenh`.**
