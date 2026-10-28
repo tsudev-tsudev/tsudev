@@ -109,6 +109,55 @@ Neon ngủ lại được.
 là hình dạng ban đầu của Worker này, và nó sẽ làm site chết vào khoảng giữa
 tháng thứ hai - đủ xa lần sửa để không ai nối được nhân quả.
 
+### 🔴 Cron KHÔNG phải nguồn đánh thức duy nhất - TRÌNH DUYỆT cũng đánh thức
+
+Bảng hai nhịp ở trên là một kiến trúc đúng, và nó bị vượt qua từ một hướng mà
+chính tài liệu này không canh.
+
+`apps/frontend-main/pages/admin/newsroom.tsx` poll `GET /api/newsroom/state` -
+một endpoint **CHẠM DATABASE** - và bản đầu của nó là `setInterval(load, 3000)`
+trần, không điều kiện dừng nào. Một tab trang đó bị bỏ quên là:
+
+|          |                                                                                                    |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| nhịp     | 3 giây                                                                                             |
+| mỗi giờ  | 1.200 truy vấn                                                                                     |
+| mỗi ngày | 28.800 truy vấn, **24/7**                                                                          |
+| hệ quả   | Neon **không bao giờ** tự ngủ ⇒ `0,25 × 744 = 186` CU-giờ/tháng trên hạn mức 100 ⇒ vỡ sau ~17 ngày |
+
+Và lúc vỡ thì hỏng im lặng: backend `/health` vẫn 200 (nó trả JSON tĩnh),
+`lib/api.ts` nuốt lỗi database thành giá trị rỗng, nên **mọi trang công khai trả
+200 với nội dung trống**. Đo ngày 28/10/2026: `/sitemap.xml` còn 7 URL tĩnh,
+`/feed.xml` 0 item, `/blog` hiện "Chưa có bài viết." trong khi `logs/STATE.md`
+ghi 50 bài ngày 27/08.
+
+Vòng poll nay có **ba van**, và cả ba đều cần:
+
+1. **Tab bị ẩn ⇒ dừng HẲN chuỗi.** Không phải "hẹn lại cho có" - trình duyệt tiết
+   chế timer ở tab nền nhưng KHÔNG dừng `fetch`, nên hẹn-lại-cho-có vẫn đánh thức.
+2. **Không có tương tác trong 10 phút ⇒ dừng hẳn**, hiện nút "Theo dõi lại". Đây
+   là van duy nhất chặn được đúng tình huống đã xảy ra: tab MỞ, HIỆN, và không ai
+   ngồi trước nó.
+3. **Gọi lỗi ⇒ giãn ra 15 giây.** Backend chết thì đừng dồn thêm.
+
+**Bài học chung**: khi kiểm "cái gì đang đánh thức Neon", đừng chỉ đọc
+`wrangler.jsonc`. Ba nguồn đánh thức, chỉ một nằm trong cron:
+
+| nguồn                                  | ở đâu                                         | canh bằng gì                                                                                      |
+| -------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| cron theo lịch                         | `infrastructure/newsroom-cron/wrangler.jsonc` | `cronContract.test.ts`                                                                            |
+| **vòng poll của trình duyệt**          | `pages/admin/*.tsx` - tìm `setInterval`       | **đọc mã, chưa có cổng tự động**                                                                  |
+| `setInterval` trong tiến trình backend | `services/*/src/*.ts`                         | đọc mã; `trust-service/src/recheck.ts` có một cái, chu kỳ 360 phút - đã kiểm, KHÔNG phải nguồn vỡ |
+
+Và cổng đo được hậu quả, không đo nguyên nhân: **`npm run prod:dem-noi-dung`**.
+Nó gọi production từ bên ngoài, không cần `DATABASE_URL` - nên nó vẫn trả lời
+được đúng lúc database chết, tức đúng lúc cần nhất. Có mã thoát 0/1/2.
+
+Dữ liệu tích luỹ thì dọn bằng **`npm run db:don-toa-soan`** (mặc định `--dry-run`,
+chỉ đếm). Nó cũng in ra cảnh báo quan trọng: **dọn dữ liệu KHÔNG chữa được hạn
+mức compute** - hai hạn mức khác nhau cần hai cách chữa trái ngược, nên phải đọc
+Neon console → Usage để biết dòng nào đỏ trước khi xoá bất cứ thứ gì.
+
 Chuỗi cron của nhịp đập nằm ở **hai chỗ phải trùng nguyên văn**: hằng `TICK_CRON`
 trong `infrastructure/newsroom-cron/src/index.ts` và mảng `triggers.crons` trong
 `wrangler.jsonc` cạnh đó. Lệch một ký tự thì lượt đó rơi xuống nhánh giữ ấm và

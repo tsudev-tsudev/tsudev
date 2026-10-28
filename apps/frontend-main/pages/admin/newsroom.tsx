@@ -15,8 +15,42 @@ import Seo from '../../components/Seo';
 // trên Cloudflare Workers, và SSE qua Pages Router ở đó chưa được kiểm chứng
 // trong repo này. Poll 3 giây là đủ cho một người xem và không có rủi ro tầng
 // biên nào. Hợp đồng dữ liệu đã tách sẵn nên đổi sang SSE sau không đụng UI.
+//
+// 🔴 VÒNG POLL NÀY ĐÃ TỪNG LÀM SẬP CẢ SITE. Đọc trước khi sửa.
+//
+// `GET /api/newsroom/state` CHẠM DATABASE. Bản đầu là `setInterval(load, 3000)`
+// trần, không điều kiện dừng - nên một tab trang này bị bỏ quên bắn 1.200 truy
+// vấn/giờ, 28.800/ngày, 24/7. Neon free tự ngủ sau ~5 phút không truy vấn; nhịp
+// 3 giây nghĩa là nó KHÔNG BAO GIỜ ngủ, và compute 0,25 CU thức 24/7 tiêu
+// 0,25 × 744 = 186 CU-giờ/tháng trên hạn mức 100 ⇒ Neon treo compute tới đầu
+// tháng sau ⇒ `lib/api` nuốt lỗi thành `[]` ⇒ MỌI trang công khai trả 200 với
+// nội dung rỗng. Đã xảy ra thật: đo ngày 28/10/2026 thì `/blog` liệt kê 0 bài
+// trong khi `logs/STATE.md` ghi 50 bài ngày 27/08.
+//
+// `docs/free-tier.md` đã dựng cả kiến trúc hai nhịp cron để tránh đúng cái bẫy
+// này, rồi bị vượt qua từ hướng nó không canh: TRÌNH DUYỆT, không phải cron.
+//
+// Vì thế vòng poll có BA van, và cả ba đều cần thiết:
+//   1. Tab bị ẩn  ⇒ dừng HẲN chuỗi (không phải chỉ hẹn lại cho có). Trình duyệt
+//      tiết chế timer ở tab nền nhưng KHÔNG dừng fetch, nên hẹn-lại-cho-có vẫn
+//      đánh thức Neon.
+//   2. Không có tương tác trong IDLE_STOP_MS ⇒ dừng hẳn, hiện nút bật lại. Đây
+//      là van duy nhất chặn được đúng tình huống đã xảy ra: tab MỞ, HIỆN, và
+//      không ai ngồi trước nó.
+//   3. Gọi lỗi ⇒ giãn ra ERROR_BACKOFF_MS. Backend chết thì đừng dồn thêm.
+//
+// Dùng setTimeout đệ quy chứ KHÔNG dùng setInterval: interval không chờ lượt
+// trước xong, nên backend chậm là request xếp hàng chồng lên nhau.
 
 const POLL_MS = 3000;
+/// Trần thời gian của một phiên theo dõi, tính từ lần tương tác cuối (chuột,
+/// bàn phím, cuộn, cảm ứng). Mười phút: đủ dài để đọc hết bảng điều khiển mà
+/// không bị cắt giữa việc, đủ ngắn để một tab bỏ quên qua đêm không tiêu CU-giờ.
+const IDLE_STOP_MS = 10 * 60 * 1000;
+/// Giãn nhịp khi gọi thất bại. 15 giây chứ không phải backoff luỹ tiến: lỗi ở
+/// đây gần như luôn là backend ngủ hoặc DB treo - cả hai mất hàng chục giây tới
+/// hàng ngày, nên luỹ tiến chỉ làm mã rối mà không đổi kết quả.
+const ERROR_BACKOFF_MS = 15000;
 
 type AgentStatus = 'IDLE' | 'PLANNING' | 'SCANNING' | 'WRITING' | 'REVIEWING' | 'SUSPENDED';
 
@@ -204,14 +238,25 @@ export default function NewsroomPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const cursor = useRef<string | null>(null);
+  /// Vì sao vòng poll đang NGHỈ, hoặc `null` nếu nó đang chạy. Hai lý do phải
+  /// phân biệt được: `hidden` tự hồi khi quay lại tab, `idle` thì KHÔNG - nó
+  /// chờ người bấm, và đó là điểm quan trọng nhất của van số 2.
+  const [paused, setPaused] = useState<null | 'hidden' | 'idle'>(null);
+  /// Bấm "Theo dõi lại" tăng số này lên, làm effect poll chạy lại từ đầu. Đếm
+  /// thay vì boolean để bấm lần thứ hai cũng khởi động lại được.
+  const [watchGen, setWatchGen] = useState(0);
+  const lastActive = useRef(0);
 
-  const load = useCallback(async () => {
+  /// Trả `true` nếu lượt gọi thành công. Giá trị trả về KHÔNG phải trang trí -
+  /// vòng poll dùng nó để chọn nhịp kế tiếp, và một lượt 403 không được quyền
+  /// trông giống một lượt 200.
+  const load = useCallback(async (): Promise<boolean> => {
     try {
       const qs = cursor.current ? `?since=${encodeURIComponent(cursor.current)}` : '';
       const res = await fetch(`/api/newsroom/state${qs}`);
       if (res.status === 401 || res.status === 403) {
         setErr('Tài khoản này không có quyền quản trị toà soạn.');
-        return;
+        return false;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: State = await res.json();
@@ -224,17 +269,78 @@ export default function NewsroomPage() {
         cursor.current = data.cursor;
       }
       setErr(null);
+      return true;
     } catch (e) {
       setErr('Không kết nối được toà soạn. Đang thử lại…');
+      return false;
     }
   }, []);
 
   useEffect(() => {
     if (!session) return;
-    void load();
-    const id = setInterval(load, POLL_MS);
-    return () => clearInterval(id);
-  }, [session, load]);
+
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    /// Số thế hệ của chuỗi poll. `stop()` tăng nó lên, nên một lượt `load()`
+    /// đang bay dở khi tab bị ẩn sẽ thấy `mine !== gen` lúc quay về và tự tắt
+    /// thay vì hẹn tiếp. Không có con đếm này thì van số 1 rò: ẩn tab giữa lúc
+    /// đang gọi sẽ để lại một chuỗi mồ côi chạy tiếp trong tab nền.
+    let gen = 0;
+    lastActive.current = Date.now();
+
+    const stop = () => {
+      gen += 1;
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const start = () => {
+      stop();
+      const mine = gen;
+      setPaused(null);
+      const tick = async () => {
+        if (!alive || mine !== gen || document.hidden) return;
+        if (Date.now() - lastActive.current > IDLE_STOP_MS) {
+          setPaused('idle');
+          return;
+        }
+        const ok = await load();
+        if (!alive || mine !== gen || document.hidden) return;
+        timer = setTimeout(tick, ok ? POLL_MS : ERROR_BACKOFF_MS);
+      };
+      void tick();
+    };
+
+    const bump = () => {
+      lastActive.current = Date.now();
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+        setPaused('hidden');
+      } else {
+        lastActive.current = Date.now();
+        start();
+      }
+    };
+
+    const acts = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const;
+    acts.forEach((e) => window.addEventListener(e, bump, { passive: true }));
+    document.addEventListener('visibilitychange', onVisibility);
+
+    if (document.hidden) setPaused('hidden');
+    else start();
+
+    return () => {
+      alive = false;
+      stop();
+      acts.forEach((e) => window.removeEventListener(e, bump));
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [session, watchGen, load]);
 
   /// Bấm một nút vận hành.
   ///
@@ -350,6 +456,31 @@ export default function NewsroomPage() {
             <p className="text-sm text-fg-muted mt-2">
               Bật bằng cách đặt <code className="font-mono text-link">NEWSROOM_ENABLED=true</code> ở
               biến môi trường của backend trên Render.
+            </p>
+          </Card>
+        )}
+
+        {/* Trạng thái vòng poll. Phải NÓI RA, không được im: một bảng điều khiển
+            đã ngừng tự cập nhật mà trông y hệt lúc đang cập nhật là cái bẫy tệ
+            nhất ở đây - người xem sẽ đọc một ảnh chụp cũ và tin đó là hiện tại.
+            `hidden` không cần nút vì nó tự hồi khi quay lại tab. */}
+        {paused === 'idle' && (
+          <Card className="p-4 mt-6 border-l-2 border-info flex flex-wrap items-center gap-3">
+            <p className="text-sm text-fg flex-1 min-w-[16rem]">
+              Đã tạm dừng tự cập nhật sau 10 phút không có tương tác. Số liệu bên dưới là ảnh chụp
+              lúc dừng, <strong>không phải hiện tại</strong>. Mỗi lượt cập nhật là một truy vấn
+              database, và một tab bỏ quên từng làm cạn hạn mức compute của cả dự án.
+            </p>
+            <Button size="sm" onClick={() => setWatchGen((n) => n + 1)}>
+              Theo dõi lại
+            </Button>
+          </Card>
+        )}
+
+        {paused === 'hidden' && (
+          <Card className="p-4 mt-6 border-l-2 border-line">
+            <p className="text-sm text-fg-muted">
+              Tab đang ở chế độ nền nên đã ngừng cập nhật. Quay lại tab là tiếp tục.
             </p>
           </Card>
         )}
