@@ -29,63 +29,48 @@
  * ~50 giây. Nhịp toà soạn phải nghỉ CÙNG khung - nó cũng là một request tới
  * Render, để nó chạy suốt đêm là khung nghỉ chỉ còn hình thức.
  *
- * ⚠️ HAI NHỊP, KHÔNG PHẢI MỘT - và lý do là hạn mức của NEON, không phải của
- * Cloudflare:
+ * ⚠️ MỘT NHỊP DUY NHẤT, và nó KHÔNG chạm database.
  *
- *   - Nhịp 5 phút gọi `GET /health`. Route đó trả JSON tĩnh, KHÔNG chạm
- *     database. Việc duy nhất của nó là không cho Render ngủ.
- *     (Không viết chuỗi cron 5 phút vào chú thích khối: nó chứa dấu đóng
- *     comment và sẽ cắt cụt khối này - đã trả giá một lần.)
- *   - `TICK_CRON` (mỗi giờ) mới gọi `POST /api/newsroom/tick`, và lượt đó
- *     truy vấn database.
+ * Nhịp 5 phút gọi `GET /health`. Route đó trả JSON tĩnh, không đụng Prisma. Việc
+ * duy nhất của nó là không cho Render ngủ.
+ * (Không viết chuỗi cron 5 phút vào chú thích khối: nó chứa dấu đóng comment và
+ * sẽ cắt cụt khối này - đã trả giá một lần.)
  *
- * Gộp cả hai vào nhịp 5 phút thì mỗi lượt đều đánh thức Neon, mà Neon free chỉ
- * cho 100 CU-giờ/tháng và tự ngủ sau ~5 phút không có truy vấn. Truy vấn đúng
- * mỗi 5 phút = compute KHÔNG BAO GIỜ ngủ = ~186 CU-giờ/tháng ở 0,25 CU ⇒ vượt
- * hạn mức ⇒ Neon treo compute tới đầu tháng sau ⇒ CẢ SITE chết, không chỉ toà
- * soạn. Nhịp giờ để Neon ngủ lại giữa hai lượt.
+ * 🔴 NHỊP THỨ HAI ĐÃ BỊ GỠ 29/10/2026. Đừng dựng lại.
  *
- * Toà soạn viết vài bài một ngày, nên nhịp giờ là thừa sức. Đổi TICK_CRON thì
- * phải đổi ĐỒNG THỜI chuỗi trong `wrangler.jsonc` - so khớp bằng chuỗi nguyên
- * văn, lệch một ký tự là lượt đó rơi xuống nhánh giữ ấm và toà soạn đứng yên.
+ * Nó là `'7 0-17,23 * * *'` - nhịp đập của Toà soạn Agent AI, gọi
+ * `POST /api/newsroom/tick` và CÓ truy vấn database. Chủ dự án chốt bỏ hoàn toàn
+ * cơ chế Toà soạn và việc tự động đăng bài (docs/refactor-tsudev-2026-q4.md §8).
+ *
+ * Hệ quả kỹ thuật lớn hơn việc bớt một nhịp: nó là **nguồn đánh thức Neon theo
+ * LỊCH duy nhất** của hệ thống. Gỡ nó, cộng bản vá vòng poll 3 giây của
+ * `/admin/newsroom` (phát hành 29/10), thì database chỉ còn thức khi có người
+ * thật dùng trang quản trị. Neon free cho 100 CU-giờ/tháng và tự ngủ sau ~5 phút
+ * không truy vấn; chính việc giữ nó thức là thứ đã treo compute và làm cả site
+ * trống suốt hai tháng.
+ *
+ * ⚠️ ĐỪNG đổi nhịp giữ ấm sang một endpoint CHẠM DATABASE "cho chắc là backend
+ * còn sống". Làm vậy là dựng lại đúng cái bẫy vừa gỡ, ở dạng dày hơn 12 lần:
+ * truy vấn mỗi 5 phút = compute KHÔNG BAO GIỜ ngủ = ~186 CU-giờ/tháng ở 0,25 CU
+ * ⇒ vượt hạn mức ⇒ Neon treo compute ⇒ CẢ SITE trống.
+ *
+ * 🟢 Việc sắp tới của Worker này: cắm `prod:dem-noi-dung` vào đây (kế hoạch
+ * §6.1). Nó là chỗ ĐÚNG vì Worker này miễn phí, có lịch, và KHÔNG có kết nối
+ * Postgres - tức vẫn trả lời được đúng lúc database chết, tức đúng lúc cần nhất.
  */
-
-/** Phải TRÙNG NGUYÊN VĂN một phần tử trong `triggers.crons` của wrangler.jsonc. */
-const TICK_CRON = '7 0-17,23 * * *';
 
 export interface Env {
   /** URL gốc của backend trên Render, ví dụ https://tsudev-backend.onrender.com */
   BACKEND_URL: string;
-  /** Bí mật khớp với NEWSROOM_TICK_TOKEN ở Render. Đặt bằng `wrangler secret put`. */
-  NEWSROOM_TICK_TOKEN: string;
 }
 
-async function tick(env: Env): Promise<void> {
-  if (!env.BACKEND_URL || !env.NEWSROOM_TICK_TOKEN) {
-    console.error('[cron] thiếu BACKEND_URL hoặc NEWSROOM_TICK_TOKEN - bỏ qua lượt này');
-    return;
-  }
-
-  // Timeout cứng 30 giây: endpoint tick trả 202 NGAY rồi chạy việc ở nền, nên
-  // một lượt gọi lành mạnh phải xong trong vài trăm mili giây. Chờ lâu hơn thế
-  // nghĩa là Render đang khởi động lại từ trạng thái ngủ - lượt sau sẽ tới.
-  try {
-    const res = await fetch(`${env.BACKEND_URL}/api/newsroom/tick`, {
-      method: 'POST',
-      headers: {
-        'x-newsroom-token': env.NEWSROOM_TICK_TOKEN,
-        'content-type': 'application/json',
-      },
-      body: '{}',
-      signal: AbortSignal.timeout(30_000),
-    });
-    // Không ném khi lỗi: cron không có ai để báo, và một lượt hỏng không đáng
-    // làm gì hơn là một dòng log. Lượt sau cách đây một giờ.
-    console.log(`[cron] tick → ${res.status}`);
-  } catch (err) {
-    console.error('[cron] tick thất bại:', err instanceof Error ? err.message : String(err));
-  }
-}
+// `NEWSROOM_TICK_TOKEN` đã bị gỡ khỏi đây 29/10/2026. Nó gác đường `/tick`, và
+// đường đó không còn làm gì - nên giữ lại là giữ một phụ thuộc vào secret chỉ để
+// bảo vệ một endpoint đã chết.
+//
+// Secret trên Cloudflare thì CHƯA xoá, có chủ đích: xoá secret là việc không
+// quay lui được, và nó thuộc bước dọn biến môi trường của kế hoạch §8 (bước C2).
+// Mã không đọc nó nữa là đủ để nó vô hại.
 
 /**
  * Chỉ giữ cho Render khỏi ngủ. `GET /health` trả JSON tĩnh - không Prisma,
@@ -108,24 +93,35 @@ async function keepWarm(env: Env): Promise<void> {
 
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(event.cron === TICK_CRON ? tick(env) : keepWarm(env));
+    // KHÔNG còn phân nhánh theo `event.cron`: chỉ còn một nhịp, và nó là giữ ấm.
+    // `event` giữ trong chữ ký vì runtime truyền vào, nhưng không đọc nữa.
+    void event;
+    ctx.waitUntil(keepWarm(env));
   },
 
   /**
-   * Đường gõ tay để nghiệm thu mà không phải chờ 5 phút.
+   * Đường `/tick` gõ tay trước đây ép một lượt toà soạn chạy ngay để nghiệm thu.
+   * Nay nó trả 410 vô điều kiện.
    *
-   * Gác bằng CHÍNH token đó: Worker này có URL công khai, và để mở thì bất kỳ
-   * ai cũng ép toà soạn quay vòng liên tục cho tới khi cạn hạn mức Neuron.
+   * 410 Gone chứ không 404: 404 nói "đường này chưa bao giờ có", còn 410 nói
+   * đúng sự thật - nó từng có và đã bị bỏ có chủ đích. Ai gõ lại nó sau này đọc
+   * được ngay lý do thay vì tưởng mình gõ sai URL.
+   *
+   * KHÔNG còn gác bằng token. Cổng đó tồn tại vì để mở thì ai cũng ép toà soạn
+   * quay vòng cho tới khi cạn hạn mức Neuron - nhưng không còn toà soạn để ép,
+   * nên gác một endpoint chết chỉ để lại một phụ thuộc vào secret.
    */
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    void env;
+    void ctx;
     const url = new URL(request.url);
     if (url.pathname !== '/tick') return new Response('not found', { status: 404 });
-    if (request.headers.get('x-newsroom-token') !== env.NEWSROOM_TICK_TOKEN) {
-      return new Response('unauthorized', { status: 401 });
-    }
-    ctx.waitUntil(tick(env));
-    return new Response(JSON.stringify({ accepted: true }), {
-      headers: { 'content-type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Toà soạn Agent AI đã bị gỡ 29/10/2026',
+        why: 'docs/refactor-tsudev-2026-q4.md §8',
+      }),
+      { status: 410, headers: { 'content-type': 'application/json' } }
+    );
   },
 };

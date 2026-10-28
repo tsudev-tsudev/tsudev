@@ -5,18 +5,29 @@
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // HAI nhịp, hai việc khác nhau - src/index.ts phân nhánh theo `event.cron`:
+  // MỘT nhịp duy nhất: giữ ấm Render. KHÔNG chạm database.
   //
-  //   "*/5 0-17,23 * * *"  giữ ấm Render (GET /health, KHÔNG chạm database).
-  //                        Render free ngủ sau ~15 phút không có request; thưa
-  //                        hơn 15 phút là mất việc này.
-  //   "7 0-17,23 * * *"    nhịp đập của toà soạn (POST /api/newsroom/tick, CÓ
-  //                        truy vấn database). Mỗi giờ, không dày hơn: truy vấn
-  //                        mỗi 5 phút thì Neon free không bao giờ tự ngủ và tiêu
-  //                        ~186 CU-giờ/tháng trên hạn mức 100 ⇒ treo compute cả
-  //                        site. Chuỗi này phải TRÙNG NGUYÊN VĂN `TICK_CRON`
-  //                        trong mã. Phút 7 chứ không phải 0 để không trùng lượt
-  //                        giữ ấm - hai lượt cùng lúc không sai, chỉ khó đọc log.
+  // 🔴 NHỊP THỨ HAI ĐÃ BỊ GỠ 29/10/2026, và đừng dựng lại.
+  //
+  // Nhịp đó là `"7 0-17,23 * * *"` - nhịp đập của Toà soạn Agent AI, gọi
+  // `POST /api/newsroom/tick` và CÓ truy vấn database. Chủ dự án chốt bỏ hoàn
+  // toàn cơ chế Toà soạn và việc tự động đăng bài, để tiết kiệm token/hạn mức/
+  // cửa sổ ngữ cảnh của Agent AI (kế hoạch: docs/refactor-tsudev-2026-q4.md §8).
+  //
+  // Hệ quả KỸ THUẬT, không chỉ là bớt một việc: nhịp giờ đó là **nguồn đánh thức
+  // Neon theo LỊCH duy nhất** của cả hệ thống. Gỡ nó, cộng với bản vá vòng poll
+  // 3 giây của `/admin/newsroom` (đã phát hành 29/10), thì không còn gì đánh
+  // thức database theo lịch nữa - database chỉ còn thức khi có người thật dùng
+  // trang quản trị. Đó là đòn trực tiếp vào hạn mức 100 CU-giờ/tháng của Neon,
+  // thứ đã treo compute và làm cả site trống suốt hai tháng.
+  //
+  // ⚠️ `GET /health` của backend-bundle trả JSON TĨNH, không đụng Prisma - nên
+  // nhịp 5 phút này KHÔNG đánh thức Neon. Đừng đổi nó sang một endpoint chạm
+  // database "cho chắc là backend còn sống": làm vậy là tự tay dựng lại đúng cái
+  // bẫy vừa gỡ, chỉ ở dạng dày hơn 12 lần.
+  //
+  // (Không viết chuỗi cron 5 phút vào chú thích khối: nó chứa dấu đóng comment
+  // và sẽ cắt cụt khối này - đã trả giá một lần.)
   //
   // ⚠️ `0-17,23` LÀ GIỜ UTC, và đó là khung NGHỈ 01:00-06:00 giờ Việt Nam
   // (UTC+7) viết ngược lại. Cron của Cloudflare không có múi giờ - đọc nhầm nó
@@ -29,14 +40,12 @@
   // được chủ dự án chốt: người truy cập đầu tiên sau khung nghỉ chờ cold start
   // ~50 giây.
   //
-  // ⚠️ HAI nhịp phải cùng nghỉ. Nhịp toà soạn cũng là một request tới Render,
-  // nên để nó chạy 24/7 thì mỗi giờ đêm Render lại thức ~15 phút và khung nghỉ
-  // chỉ tiết kiệm được một phần tư số giờ đã tính ở trên.
-  //
-  // Cron Triggers nằm trong gói Workers Free và KHÔNG tính phí riêng; chúng ăn
-  // chung hạn mức 100.000 request/ngày. 228 + 19 lượt/ngày là muối bỏ bể.
+  // 🟢 VIỆC SẮP TỚI của Worker này: cắm `prod:dem-noi-dung` vào đây
+  // (kế hoạch §6.1). Nó là chỗ ĐÚNG vì Worker này miễn phí, có lịch, và KHÔNG có
+  // kết nối Postgres - tức nó vẫn trả lời được đúng lúc database chết, tức đúng
+  // lúc cần nhất. Đừng xoá thư mục này khi gỡ Toà soạn.
   "triggers": {
-    "crons": ["*/5 0-17,23 * * *", "7 0-17,23 * * *"]
+    "crons": ["*/5 0-17,23 * * *"]
   },
 
   // KHÔNG có route/custom_domain: Worker này không phục vụ người dùng. Nó vẫn

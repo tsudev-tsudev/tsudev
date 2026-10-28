@@ -94,20 +94,49 @@ Cái làm compute thức 24/7 không phải người dùng thật (site cá nhâ
 thưa) mà là **cron gọi vào một endpoint có truy vấn database đúng mỗi 5 phút** -
 tức là đánh thức lại ngay trước mỗi lần Neon định ngủ.
 
-Vì thế Worker cron chạy **hai nhịp, gọi hai endpoint khác nhau**:
+### 🔴 Nhịp thứ hai ĐÃ BỊ GỠ 29/10/2026
 
-| Nhịp cron (UTC)     | Gọi gì                    | Chạm DB? | Việc                  |
-| ------------------- | ------------------------- | -------- | --------------------- |
-| `*/5 0-17,23 * * *` | `GET /health`             | Không    | giữ ấm Render         |
-| `7 0-17,23 * * *`   | `POST /api/newsroom/tick` | **Có**   | nhịp đập của toà soạn |
+Worker cron **nay chỉ còn MỘT nhịp**, và nó không chạm database:
 
-`GET /health` của `backend-bundle` trả JSON tĩnh, không đụng Prisma - nên giữ ấm
-Render **không** đánh thức Neon. Chỉ nhịp giờ mới đánh thức, và giữa hai lượt
-Neon ngủ lại được.
+| Nhịp cron (UTC)     | Gọi gì        | Chạm DB? | Việc          |
+| ------------------- | ------------- | -------- | ------------- |
+| `*/5 0-17,23 * * *` | `GET /health` | Không    | giữ ấm Render |
+
+Nhịp `"7 0-17,23 * * *"` - nhịp đập của Toà soạn Agent AI, gọi
+`POST /api/newsroom/tick` và **CÓ** truy vấn database - đã bị gỡ cùng toàn bộ cơ
+chế Toà soạn (`docs/refactor-tsudev-2026-q4.md` §8).
+
+**Hệ quả lớn hơn việc bớt một nhịp**: nó là **nguồn đánh thức Neon theo LỊCH duy
+nhất** của cả hệ thống. Gỡ nó, cộng với bản vá vòng poll 3 giây của
+`/admin/newsroom` (phát hành 29/10), thì **không còn gì đánh thức database theo
+lịch nữa** - Neon chỉ thức khi có người thật dùng trang quản trị hoặc khi dựng
+lại cache.
+
+Đó là đòn trực tiếp vào ngân sách 100 CU-giờ của mục này, và nó làm con số dưới
+đây gần như không còn ý nghĩa thực tế.
+
+⚠️ **ĐỪNG đổi nhịp giữ ấm sang một endpoint chạm database** "cho chắc là backend
+còn sống". `GET /health` của `backend-bundle` trả JSON TĨNH, không đụng Prisma -
+đó là lý do nó được chọn. Đổi sang một đường dưới `/api/` là dựng lại đúng cái
+bẫy vừa gỡ, ở dạng dày hơn 12 lần.
+
+Cổng canh: `services/newsroom-service/test/cronContract.test.ts` nay khẳng định
+**mọi lời gọi của Worker đều trỏ tới `/health`** và `TICK_CRON` không còn tồn
+tại. Đã chứng minh test đó ĐỎ khi đổi đường gọi sang `/api/newsroom/tick`.
+
+⚠️ Khi §8 gỡ hẳn `newsroom-service`, **chuyển test đó sang workspace khác** chứ
+đừng xoá cùng service - nó nay canh hạn mức Neon, không canh toà soạn.
+
+<details>
+<summary>Lập luận cũ về kiến trúc hai nhịp, giữ lại vì nó giải thích vì sao nhịp giữ ấm phải trỏ `/health`</summary>
+
+Worker cron từng chạy **hai nhịp, gọi hai endpoint khác nhau**:
 
 ⚠️ **Đừng gộp hai nhịp lại làm một** vì thấy "cùng là gõ cửa backend". Đó đúng
 là hình dạng ban đầu của Worker này, và nó sẽ làm site chết vào khoảng giữa
 tháng thứ hai - đủ xa lần sửa để không ai nối được nhân quả.
+
+</details>
 
 ### 🔴 Cron KHÔNG phải nguồn đánh thức duy nhất - TRÌNH DUYỆT cũng đánh thức
 
