@@ -130,11 +130,20 @@ describe('tokens.css là bản sinh ra, không phải bản viết tay', () => {
     const ext = JSON.parse(
       readFileSync(join(ROOT, 'tokens', 'extensions.tsudev-web.json'), 'utf8')
     );
-    // `meta` và `typography` là nhóm token không phụ thuộc chế độ (ba bậc display
-    // cho hero), không phải một chế độ - lọc ra trước khi so.
+    // Khối KHÔNG phụ thuộc chế độ phải được lọc ra trước khi so. Danh sách này
+    // là một bảng loại trừ VIẾT CỨNG, nên thêm một nhóm token mới vào file
+    // extensions sẽ làm test này đỏ cho tới khi nhóm đó được khai ở đây - và đó
+    // là hành vi ĐÚNG, không phải bất tiện: nó buộc người thêm phải khẳng định
+    // rằng nhóm mới thật sự không phụ thuộc chế độ, chứ không phải một chế độ
+    // thứ tư bị viết sai tên.
+    //
+    //   typography  ba bậc display cho hero
+    //   motion      đường cong easing theo hướng + ba bậc trễ bậc thang
+    //   meta        siêu dữ liệu của chính file
+    const KHONG_THEO_CHE_DO = new Set(['typography', 'motion', 'meta']);
     expect(
       Object.keys(ext)
-        .filter((k) => !k.startsWith('$') && k !== 'typography' && k !== 'meta')
+        .filter((k) => !k.startsWith('$') && !KHONG_THEO_CHE_DO.has(k))
         .sort()
     ).toEqual(['dark', 'light', 'warm']);
   });
