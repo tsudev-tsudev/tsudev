@@ -118,7 +118,20 @@ const PHEP_DO = [
   },
   {
     ten: '/api/search',
-    duong: '/api/search?q=a',
+    // ⚠️ TRUY VẤN PHẢI DÀI ÍT NHẤT `MIN_QUERY` KÝ TỰ (=2, khai ở pages/search.tsx).
+    //
+    // Bản đầu probe bằng `q=a`. Một ký tự nằm DƯỚI ngưỡng, nên đường tìm kiếm
+    // short-circuit và trả kết quả rỗng mà KHÔNG chạm database - tức cổng này sẽ
+    // ĐỎ VĨNH VIỄN, kể cả trên một site hoàn toàn khoẻ mạnh.
+    //
+    // Và một cổng kêu oan là một cổng bị tắt đi, rồi lần sau nó không còn ở đó
+    // nữa. Đúng bài học mà chính file này trích ở khối `PHEP_DO` phía trên, chỉ
+    // là lần này tôi tự mắc.
+    //
+    // Chọn 'the' chứ không phải một từ tiếng Việt có dấu: chuỗi truy vấn đi qua
+    // encode URL, và một từ có dấu bị encode sai sẽ làm cổng đỏ vì lý do hoàn
+    // toàn khác với lý do nó ra đời.
+    duong: '/api/search?q=the',
     dem: (t) => {
       try {
         const o = JSON.parse(t);
