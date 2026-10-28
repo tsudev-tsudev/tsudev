@@ -96,11 +96,29 @@ tức là đánh thức lại ngay trước mỗi lần Neon định ngủ.
 
 ### 🔴 Nhịp thứ hai ĐÃ BỊ GỠ 29/10/2026
 
-Worker cron **nay chỉ còn MỘT nhịp**, và nó không chạm database:
+Worker cron nay có **hai nhịp, và điểm khác nhau là CHẠM DATABASE hay không**:
 
-| Nhịp cron (UTC)     | Gọi gì        | Chạm DB? | Việc          |
-| ------------------- | ------------- | -------- | ------------- |
-| `*/5 0-17,23 * * *` | `GET /health` | Không    | giữ ấm Render |
+| Nhịp cron (UTC)     | Gọi gì            | Chạm DB?                     | Việc                  |
+| ------------------- | ----------------- | ---------------------------- | --------------------- |
+| `*/5 0-17,23 * * *` | `GET /health`     | Không (JSON tĩnh)            | giữ ấm Render         |
+| `23 1,13 * * *`     | 6 trang công khai | **Có** - nên chỉ 2 lượt/ngày | **cổng đếm nội dung** |
+
+Nhịp thứ hai thêm ngày 29/10/2026: nó đo xem người lạ mở tsudev.com lúc này thì
+THẤY được mấy bài, và báo động Telegram khi rỗng. Đó là bản chạy tự động của
+`npm run prod:dem-noi-dung` - cổng đã tồn tại nhưng **không có gì chạy nó**, và
+một cổng không chạy tự động thì không phải cổng.
+
+🔴 **HAI LƯỢT MỘT NGÀY, VÀ ĐỪNG DÀY HƠN.** Các trang nó đo là SSR: mỗi lượt fetch
+đi Worker → Render → Neon và giữ Neon thức thêm ~5 phút. Cắm nó vào nhịp 5 phút =
+288 lượt/ngày = Neon không bao giờ ngủ = ~186 CU-giờ/tháng trên hạn mức 100 ⇒
+**đúng cái bẫy đã làm site trống hai tháng, chỉ lần này do chính cổng canh gây
+ra.** Hai lượt/ngày ≈ 5 CU-giờ/tháng.
+
+Dày lên được CHỈ KHI đường đọc đã cache ở biên (`docs/refactor-tsudev-2026-q4.md`
+§6.2-6.3), lúc đó các trang này không còn chạm Neon.
+
+Giờ 1 và 13 UTC đều nằm TRONG khung thức (0-17), nên lượt đo không đánh thức
+Render khỏi khung nghỉ - nếu không thì mỗi lượt lại cộng ~15 phút giờ instance.
 
 Nhịp `"7 0-17,23 * * *"` - nhịp đập của Toà soạn Agent AI, gọi
 `POST /api/newsroom/tick` và **CÓ** truy vấn database - đã bị gỡ cùng toàn bộ cơ
@@ -120,9 +138,22 @@ còn sống". `GET /health` của `backend-bundle` trả JSON TĨNH, không đ�
 đó là lý do nó được chọn. Đổi sang một đường dưới `/api/` là dựng lại đúng cái
 bẫy vừa gỡ, ở dạng dày hơn 12 lần.
 
-Cổng canh: `services/newsroom-service/test/cronContract.test.ts` nay khẳng định
-**mọi lời gọi của Worker đều trỏ tới `/health`** và `TICK_CRON` không còn tồn
-tại. Đã chứng minh test đó ĐỎ khi đổi đường gọi sang `/api/newsroom/tick`.
+Cổng canh: `services/newsroom-service/test/cronContract.test.ts`, 9 khẳng định.
+Ba cái quan trọng nhất đều đã được chứng minh ĐỎ bằng cách tái tạo lỗi thật:
+
+| khẳng định                                   | tái tạo lỗi gì để chứng minh    |
+| -------------------------------------------- | ------------------------------- |
+| nhịp đếm chạy tối đa 4 lượt/ngày             | dày hoá nó thành `*/5`          |
+| nhịp đếm chạy TRONG khung thức Render        | đặt nó vào `19,20` (khung nghỉ) |
+| bảng ngưỡng không trôi lệch khỏi script Node | đổi một ngưỡng của Worker       |
+
+Cộng với: nhịp GIỮ ẤM chỉ gọi `/health`, và `TICK_CRON` không còn tồn tại.
+
+⚠️ **Báo động hiện CHƯA được cấu hình.** `TELEGRAM_BOT_TOKEN` và
+`TELEGRAM_CHAT_ID` chưa đặt, nên cổng chỉ `console.error` - đọc được bằng
+`npm run cron:tail`. Bật bằng `npm run cron:secret-telegram`. Đây cũng là lý do
+báo động của `migrationGate` đang đi vào hư không: `notify.js` hỗ trợ Telegram và
+email webhook, nhưng không biến nào được khai trong `render.yaml`.
 
 ⚠️ Khi §8 gỡ hẳn `newsroom-service`, **chuyển test đó sang workspace khác** chứ
 đừng xoá cùng service - nó nay canh hạn mức Neon, không canh toà soạn.

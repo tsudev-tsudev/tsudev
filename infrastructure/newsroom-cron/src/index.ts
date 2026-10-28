@@ -59,9 +59,19 @@
  * Postgres - tức vẫn trả lời được đúng lúc database chết, tức đúng lúc cần nhất.
  */
 
+import { doNoiDung, thanhDong } from './demNoiDung';
+
+/** Nhịp ĐO NỘI DUNG. Phải TRÙNG NGUYÊN VĂN một phần tử trong `triggers.crons`. */
+const CRON_DEM_NOI_DUNG = '23 1,13 * * *';
+
 export interface Env {
   /** URL gốc của backend trên Render, ví dụ https://tsudev-backend.onrender.com */
   BACKEND_URL: string;
+  /** Địa chỉ công khai của site, ví dụ https://tsudev.com */
+  SITE_URL: string;
+  /** Bot Telegram để báo động. Đặt bằng `wrangler secret put`. Thiếu = chỉ log. */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
 }
 
 // `NEWSROOM_TICK_TOKEN` đã bị gỡ khỏi đây 29/10/2026. Nó gác đường `/tick`, và
@@ -91,12 +101,89 @@ async function keepWarm(env: Env): Promise<void> {
   }
 }
 
+/**
+ * Gửi báo động, và SUY GIẢM ỒN ÀO khi chưa cấu hình.
+ *
+ * ⚠️ Kênh báo động của repo hiện CHƯA được cấu hình ở đâu cả: `notify.js` hỗ trợ
+ * Telegram và email webhook, nhưng `TELEGRAM_BOT_TOKEN` không được khai trong
+ * `render.yaml` lẫn `.env.example` - nghĩa là báo động của `migrationGate` cũng
+ * đang đi vào hư không. Đặt hai secret dưới đây bằng `npm run cron:secret-telegram`.
+ *
+ * Khi chưa có secret thì hàm này `console.error` toàn bộ nội dung, nên
+ * `npm run cron:tail` vẫn đọc được. Im lặng là thứ duy nhất không được phép:
+ * một cổng canh mà hỏng đường báo cũng im lặng thì nó chỉ là một cổng chết đang
+ * chạy - đúng điều đợt này ra đời để chấm dứt.
+ */
+async function baoDong(env: Env, tieuDe: string, than: string): Promise<void> {
+  const text = `🚨 *tsudev* — ${tieuDe}\n\n${than}`;
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+    console.error('[cron] CHƯA cấu hình Telegram - báo động chỉ nằm ở log này:\n' + text);
+    return;
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text,
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    // Log CẢ KHI thành công: không có nó thì không phân biệt được "đã gửi" với
+    // "chưa bao giờ chạy tới đây".
+    console.log(`[cron] báo động → Telegram ${res.status}`);
+    if (!res.ok) console.error('[cron] Telegram từ chối:\n' + text);
+  } catch (err) {
+    console.error(
+      '[cron] gửi báo động thất bại:',
+      err instanceof Error ? err.message : String(err),
+      '\n' + text
+    );
+  }
+}
+
+/**
+ * Đo nội dung thật mà site đang phục vụ, báo động khi rỗng.
+ *
+ * KHÔNG báo động khi ĐẠT. Một tin nhắn "site vẫn ổn" hai lần mỗi ngày là cách
+ * nhanh nhất để người ta tắt thông báo, và lúc đó tin ĐỎ cũng không ai đọc.
+ */
+async function demNoiDung(env: Env): Promise<void> {
+  if (!env.SITE_URL) {
+    console.error('[cron] thiếu SITE_URL - bỏ qua lượt đo nội dung');
+    return;
+  }
+  const bc = await doNoiDung(env.SITE_URL);
+  const dong = bc.ketQua.map(thanhDong);
+  console.log(`[cron] đếm nội dung ${bc.base} — ${bc.dat ? 'ĐẠT' : 'TRƯỢT'}\n` + dong.join('\n'));
+  if (bc.dat) return;
+
+  const soCanh = bc.ketQua.filter((r) => !r.chiGhiNhan).length;
+  await baoDong(
+    env,
+    `site đang phục vụ nội dung RỖNG (${bc.truot.length}/${soCanh} phép đo)`,
+    [
+      dong.join('\n'),
+      '',
+      'Mã trạng thái 200 KHÔNG chứng minh trang có nội dung.',
+      'Mọi phép đo rỗng trong khi backend /health còn 200 ⇒ nghi DATABASE trước.',
+      'Chẩn: npm run newsroom:canh-kenh · hồ sơ: docs/refactor-tsudev-2026-q4.md §0',
+    ].join('\n')
+  );
+}
+
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    // KHÔNG còn phân nhánh theo `event.cron`: chỉ còn một nhịp, và nó là giữ ấm.
-    // `event` giữ trong chữ ký vì runtime truyền vào, nhưng không đọc nữa.
-    void event;
-    ctx.waitUntil(keepWarm(env));
+    // HAI nhịp, và sự khác nhau giữa chúng là CHẠM DATABASE hay không:
+    //
+    //   nhịp 5 phút     → keepWarm, gọi GET /health (JSON tĩnh, không Prisma)
+    //   CRON_DEM_NOI_DUNG → đo trang công khai, các trang đó CÓ chạm database
+    //
+    // Vì thế nhịp đo nội dung phải THƯA. Xem khối chú thích ở `demNoiDung.ts`.
+    ctx.waitUntil(event.cron === CRON_DEM_NOI_DUNG ? demNoiDung(env) : keepWarm(env));
   },
 
   /**
@@ -112,9 +199,22 @@ export default {
    * nên gác một endpoint chết chỉ để lại một phụ thuộc vào secret.
    */
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    void env;
     void ctx;
     const url = new URL(request.url);
+
+    // Đường gõ tay để nghiệm thu cổng đếm mà không phải chờ tới nhịp kế tiếp.
+    // KHÔNG gác bằng secret: nó chỉ ĐỌC các trang công khai của chính site và
+    // trả về con số, không đổi gì, không gọi LLM, không tốn hạn mức nào đáng kể.
+    // Gác một endpoint chỉ-đọc công khai là thêm một secret để bảo vệ thông tin
+    // mà ai cũng tự đo được bằng curl.
+    if (url.pathname === '/dem') {
+      const bc = await doNoiDung(env.SITE_URL || '');
+      return new Response(JSON.stringify(bc, null, 2), {
+        status: bc.dat ? 200 : 503,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
     if (url.pathname !== '/tick') return new Response('not found', { status: 404 });
     return new Response(
       JSON.stringify({

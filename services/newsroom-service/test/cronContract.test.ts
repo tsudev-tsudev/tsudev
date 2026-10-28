@@ -44,46 +44,118 @@ const cronsFromWrangler = (): string[] => {
   return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1] as string)
 }
 
-/** Mã nguồn Worker, để khẳng định nó không gọi endpoint nào chạm database. */
+/** Mã nguồn Worker, để khẳng định nhịp DÀY không gọi đường nào chạm database. */
 const workerSource = (): string => read('src/index.ts')
 
-describe('Worker cron - không nhịp nào được chạm database', () => {
-  test('còn đúng MỘT nhịp', () => {
-    // Nhịp thứ hai (toà soạn, chạm DB) đã bị gỡ. Thêm nhịp mới thì phải sửa test
-    // này một cách TƯỜNG MINH - đó là điểm của con số cứng ở đây.
-    expect(cronsFromWrangler()).toHaveLength(1)
+/** Bảng ngưỡng của bản chạy trong Worker. */
+const demSource = (): string => read('src/demNoiDung.ts')
+
+// Cột phút dạng bước (dấu hoa thị, gạch chéo, số) = nhịp DÀY (giữ ấm). Mọi dạng
+// khác = nhịp THƯA.
+//
+// ⚠️ KHÔNG viết chuỗi cron đó ra trong một khối chú thích `/** */`: nó chứa dấu
+// ĐÓNG comment và sẽ cắt cụt khối, làm phần còn lại thành mã TypeScript sai cú
+// pháp. `wrangler.jsonc` đã ghi cảnh báo này và tôi vẫn mắc lại - nên nó được
+// nhắc ở cả hai chỗ.
+const laNhipDay = (c: string): boolean => /^\*\/\d+$/.test(c.split(' ')[0] ?? '')
+
+describe('Worker cron - nhịp DÀY không được chạm database', () => {
+  test('có đúng hai nhịp: một dày (giữ ấm), một thưa (đếm nội dung)', () => {
+    // Con số cứng là có chủ đích: thêm nhịp mới phải sửa test này TƯỜNG MINH,
+    // và lúc đó người sửa buộc phải trả lời câu "nhịp mới có chạm DB không".
+    const crons = cronsFromWrangler()
+    expect(crons).toHaveLength(2)
+    expect(crons.filter(laNhipDay)).toHaveLength(1)
+    expect(crons.filter((c) => !laNhipDay(c))).toHaveLength(1)
   })
 
   test('nhịp giữ ấm dày hơn 15 phút, nếu không Render vẫn ngủ', () => {
-    const keepWarm = cronsFromWrangler()[0] as string
-    // Render free ngủ sau ~15 phút không có request. Chỉ chấp nhận dạng bước
-    // phút `*/n` với n < 15; một nhịp theo giờ ở cột này là mất hẳn việc giữ ấm.
+    const keepWarm = cronsFromWrangler().find(laNhipDay) as string
     const step = (keepWarm.split(' ')[0] ?? '').match(/^\*\/(\d+)$/)
     expect(step).not.toBeNull()
     expect(Number(step![1])).toBeLessThan(15)
   })
 
-  test('khung nghỉ viết bằng giờ UTC, không phải `*`', () => {
+  test('khung nghỉ của nhịp giữ ấm viết bằng giờ UTC, không phải `*`', () => {
     // Giữ ấm 24/7 tiêu 744 trên 750 giờ instance/tháng của CẢ workspace Render.
-    // Mất khung nghỉ là mất biên an toàn, và hệ quả là Render tạm dừng MỌI service.
-    const hours = (cronsFromWrangler()[0] as string).split(' ')[1]
+    const hours = (cronsFromWrangler().find(laNhipDay) as string).split(' ')[1]
     expect(hours).not.toBe('*')
   })
 
-  test('Worker KHÔNG gọi endpoint nào chạm database', () => {
+  test('nhịp đếm nội dung chạy TỐI ĐA 4 lượt/ngày', () => {
+    // 🔴 Khẳng định đắt nhất của tệp này. Các trang mà cổng đếm đo là SSR: mỗi
+    // lượt fetch đi Worker → Render → Neon và giữ Neon thức thêm ~5 phút. Cắm nó
+    // vào nhịp 5 phút = 288 lượt/ngày = Neon không bao giờ ngủ = ~186 CU-giờ/tháng
+    // trên hạn mức 100 ⇒ ĐÚNG cái bẫy đã làm site trống hai tháng, chỉ lần này
+    // do chính cổng canh gây ra.
+    const thua = cronsFromWrangler().find((c) => !laNhipDay(c)) as string
+    const gio = (thua.split(' ')[1] ?? '').split(',')
+    expect(gio.length).toBeLessThanOrEqual(4)
+    // Và cột phút phải là một giá trị đơn, không phải `*` hay `*/n`.
+    expect(thua.split(' ')[0]).toMatch(/^\d+$/)
+  })
+
+  test('nhịp đếm nội dung chạy TRONG khung thức của Render', () => {
+    // Ngoài khung thức thì mỗi lượt đo đánh thức Render khỏi khung nghỉ và cộng
+    // thêm ~15 phút giờ instance - tức cổng canh tự ăn vào ngân sách 750 giờ.
+    const crons = cronsFromWrangler()
+    const day = (crons.find(laNhipDay) as string).split(' ')[1] ?? ''
+    const thua = (crons.find((c) => !laNhipDay(c)) as string).split(' ')[1] ?? ''
+    const khungThuc = new Set(
+      day.split(',').flatMap((phan) => {
+        const m = phan.match(/^(\d+)-(\d+)$/)
+        if (!m) return [Number(phan)]
+        const ra: number[] = []
+        for (let i = Number(m[1]); i <= Number(m[2]); i++) ra.push(i)
+        return ra
+      })
+    )
+    for (const g of thua.split(',')) expect(khungThuc.has(Number(g))).toBe(true)
+  })
+
+  test('nhịp đếm nội dung trùng nguyên văn hằng trong mã', () => {
+    // Lệch một ký tự thì lượt đếm rơi xuống nhánh giữ ấm: Worker vẫn chạy, log
+    // vẫn xanh, Render vẫn được gõ cửa - chỉ có cổng đếm là không bao giờ chạy.
+    // Đúng cách hỏng im lặng mà bản trước của tệp này đã canh cho `TICK_CRON`.
+    const m = workerSource().match(/const CRON_DEM_NOI_DUNG = '([^']+)'/)
+    expect(m?.[1]).toBeDefined()
+    expect(cronsFromWrangler()).toContain(m![1])
+  })
+
+  test('nhịp GIỮ ẤM chỉ gọi /health trên BACKEND_URL', () => {
     const src = workerSource()
-    // `/health` của backend-bundle trả JSON tĩnh. Mọi đường khác dưới `/api/`
-    // đều đi qua Prisma, nên một lượt gọi theo lịch tới đó sẽ giữ Neon thức.
-    const goiDi = [...src.matchAll(/\$\{env\.BACKEND_URL\}([^`'"]*)/g)].map((m) => m[1])
-    expect(goiDi.length).toBeGreaterThan(0)
-    for (const duong of goiDi) {
-      expect(duong).toBe('/health')
-    }
+    const goiBackend = [...src.matchAll(/\$\{env\.BACKEND_URL\}([^`'"]*)/g)].map((m) => m[1])
+    expect(goiBackend.length).toBeGreaterThan(0)
+    for (const duong of goiBackend) expect(duong).toBe('/health')
   })
 
   test('không còn khai TICK_CRON - nhịp toà soạn đã gỡ hẳn', () => {
-    // Nếu hằng đó quay lại thì nhịp chạm DB cũng sắp quay lại. Bắt ở đây, trước
-    // khi nó kịp lên production.
     expect(workerSource()).not.toContain('TICK_CRON')
+  })
+})
+
+describe('bảng ngưỡng của cổng đếm không được trôi lệch khỏi script Node', () => {
+  // Bảng bị TRÙNG LẶP có chủ đích: script Node đọc `config/topology.json` bằng
+  // `require` và dùng `process.argv`, cả hai không tồn tại trong workerd; gộp
+  // lại thành một package dùng chung thì phải dựng workspace mới cho bốn mươi
+  // dòng logic thuần.
+  //
+  // Nên trùng lặp được canh ở đây. Trùng lặp có cổng canh khác hẳn trùng lặp
+  // trôi tự do - và chính repo này đã trả giá cho loại thứ hai: bản sao cục bộ
+  // của bảng token ở lại v1.0.0 trong khi bản chuẩn đi tới v2.0.0, và không cổng
+  // nào bắt được vì mỗi cổng chỉ đối chiếu bản sao với chính nó.
+  const SCRIPT = join(__dirname, '../../../scripts/dem-noi-dung-prod.js')
+
+  /** Bóc cặp (đường, ngưỡng) từ một nguồn, giữ nguyên thứ tự khai. */
+  const capTu = (src: string): string[] =>
+    [...src.matchAll(/duong:\s*'([^']+)'[\s\S]*?toiThieu:\s*(\d+)/g)].map(
+      (m) => `${m[1]} >= ${m[2]}`
+    )
+
+  test('cùng số phép đo, cùng đường, cùng ngưỡng, cùng thứ tự', () => {
+    const cuaWorker = capTu(demSource())
+    const cuaScript = capTu(readFileSync(SCRIPT, 'utf8'))
+    expect(cuaWorker.length).toBeGreaterThan(0)
+    expect(cuaWorker).toEqual(cuaScript)
   })
 })

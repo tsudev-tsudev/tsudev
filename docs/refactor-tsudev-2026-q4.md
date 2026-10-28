@@ -594,15 +594,15 @@ Chi phí: 0 đồng, vài chục dòng. **Làm trước.**
 
 ### 6.6 Việc của §6
 
-| #   | việc                                                                         | đòn | ghi chú                                         |
-| --- | ---------------------------------------------------------------------------- | --- | ----------------------------------------------- |
-| 6.1 | Cắm `prod:dem-noi-dung --json` vào `newsroom-cron`, báo động khi đỏ          | 3   | rẻ nhất, giá trị cao nhất, không cần DB         |
-| 6.2 | Bật `r2IncrementalCache` + thêm binding R2 cho Worker                        | 1   | một dòng config + một binding                   |
-| 6.3 | Chuyển 7 trang đọc sang `getStaticProps` + `revalidate`                      | 1   | **đo lại tỷ lệ ƒ/○ sau khi xong**               |
-| 6.4 | Test canh: trang đọc công khai KHÔNG được dùng `getServerSideProps`          | 1   | ngăn mọc lại; quét nguồn                        |
-| 6.5 | Nghiệm thu bằng cách CHẶN đường tới backend rồi đo - trang phải còn nội dung | 1   | đây là phép đo duy nhất chứng minh được đòn này |
-| 6.6 | Tải tệp phát hành lên R2 từ trang quản trị + tự tính sha256                  | 2   | thay việc khai `storageKey` bằng tay            |
-| 6.7 | Cổng theo dõi hạn mức: Neon CU-giờ · Render giờ instance · Workers AI Neuron | 3   | cảnh báo TRƯỚC khi vỡ, không phải sau           |
+| #       | việc                                                                                                                                                                                                                                                         | đòn | ghi chú                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --- | ----------------------------------------------- |
+| ~~6.1~~ | ✅ **XONG 29/10/2026** - cổng đếm chạy trong Worker, nhịp `23 1,13 * * *`, báo động Telegram có đường suy giảm ồn ào. 9 khẳng định canh hợp đồng, ba trong đó đã chứng minh ĐỎ bằng lỗi thật. CÒN: đặt `TELEGRAM_BOT_TOKEN` (`npm run cron:secret-telegram`) | 3   | rẻ nhất, giá trị cao nhất, không cần DB         |
+| 6.2     | Bật `r2IncrementalCache` + thêm binding R2 cho Worker                                                                                                                                                                                                        | 1   | một dòng config + một binding                   |
+| 6.3     | Chuyển 7 trang đọc sang `getStaticProps` + `revalidate`                                                                                                                                                                                                      | 1   | **đo lại tỷ lệ ƒ/○ sau khi xong**               |
+| 6.4     | Test canh: trang đọc công khai KHÔNG được dùng `getServerSideProps`                                                                                                                                                                                          | 1   | ngăn mọc lại; quét nguồn                        |
+| 6.5     | Nghiệm thu bằng cách CHẶN đường tới backend rồi đo - trang phải còn nội dung                                                                                                                                                                                 | 1   | đây là phép đo duy nhất chứng minh được đòn này |
+| 6.6     | Tải tệp phát hành lên R2 từ trang quản trị + tự tính sha256                                                                                                                                                                                                  | 2   | thay việc khai `storageKey` bằng tay            |
+| 6.7     | Cổng theo dõi hạn mức: Neon CU-giờ · Render giờ instance · Workers AI Neuron                                                                                                                                                                                 | 3   | cảnh báo TRƯỚC khi vỡ, không phải sau           |
 
 ### 6.7 Đã cân nhắc và KHÔNG chọn (lúc này)
 

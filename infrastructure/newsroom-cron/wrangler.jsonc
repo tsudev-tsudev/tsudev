@@ -5,7 +5,7 @@
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // MỘT nhịp duy nhất: giữ ấm Render. KHÔNG chạm database.
+  // HAI nhịp, và điểm khác nhau giữa chúng là CHẠM DATABASE hay không.
   //
   // 🔴 NHỊP THỨ HAI ĐÃ BỊ GỠ 29/10/2026, và đừng dựng lại.
   //
@@ -40,22 +40,45 @@
   // được chủ dự án chốt: người truy cập đầu tiên sau khung nghỉ chờ cold start
   // ~50 giây.
   //
-  // 🟢 VIỆC SẮP TỚI của Worker này: cắm `prod:dem-noi-dung` vào đây
-  // (kế hoạch §6.1). Nó là chỗ ĐÚNG vì Worker này miễn phí, có lịch, và KHÔNG có
-  // kết nối Postgres - tức nó vẫn trả lời được đúng lúc database chết, tức đúng
-  // lúc cần nhất. Đừng xoá thư mục này khi gỡ Toà soạn.
+  // ✅ NHỊP THỨ HAI, thêm 29/10/2026: `"23 1,13 * * *"` - CỔNG ĐẾM NỘI DUNG
+  // (kế hoạch §6.1). Nó đo xem người lạ mở tsudev.com lúc này thì THẤY được mấy
+  // bài, và báo động khi rỗng.
+  //
+  // Worker này là chỗ ĐÚNG cho nó vì nó miễn phí, có lịch, và KHÔNG có kết nối
+  // Postgres - tức vẫn trả lời được đúng lúc database chết, tức đúng lúc cần
+  // nhất. `newsroom:canh-kenh` thì cần DATABASE_URL, mà database chính là thứ
+  // đang chết, nên nó im lặng đúng lúc đáng nói nhất.
+  //
+  // 🔴 HAI LƯỢT MỘT NGÀY, VÀ ĐỪNG DÀY HƠN. Các trang nó đo là SSR: mỗi lượt
+  // fetch đi Worker → Render → Neon và giữ Neon thức thêm ~5 phút. Cắm nó vào
+  // nhịp 5 phút = 288 lượt/ngày = Neon không bao giờ ngủ = đúng cái bẫy vừa gỡ,
+  // chỉ lần này do chính cổng canh gây ra. Hai lượt/ngày ≈ 5 CU-giờ/tháng.
+  //
+  // Giờ 1 và 13 UTC đều nằm TRONG khung thức (0-17), nên không đánh thức Render
+  // khỏi khung nghỉ - nếu không thì mỗi lượt đo lại cộng ~15 phút giờ instance.
+  //
+  // ⚠️ Dày lên được CHỈ KHI đường đọc đã cache ở biên (kế hoạch §6.2-6.3), lúc đó
+  // các trang này không còn chạm Neon. Đừng dày lên trước.
+  //
+  // Đừng xoá thư mục này khi gỡ Toà soạn - nó nay canh hạn mức Neon.
   "triggers": {
-    "crons": ["*/5 0-17,23 * * *"]
+    "crons": ["*/5 0-17,23 * * *", "23 1,13 * * *"]
   },
 
   // KHÔNG có route/custom_domain: Worker này không phục vụ người dùng. Nó vẫn
   // có URL workers.dev để gõ tay lúc nghiệm thu, và đường đó đã được gác token.
   "workers_dev": true,
 
-  // BACKEND_URL không bí mật nên để ở đây. NEWSROOM_TICK_TOKEN là BÍ MẬT -
-  // đặt bằng `npm run cron:secret`, ĐỪNG commit vào tệp này.
+  // Hai địa chỉ này không bí mật nên để ở đây. Secret thì đặt bằng
+  // `wrangler secret put`, ĐỪNG commit vào tệp này:
+  //   TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID  → `npm run cron:secret-telegram`
+  //
+  // ⚠️ `SITE_URL` là địa chỉ CÔNG KHAI của site, khác `BACKEND_URL`. Cổng đếm
+  // phải đo đúng thứ người lạ thấy - đo backend thì nó sẽ xanh trong khi trang
+  // công khai trống, và đó chính là hình dạng của sự cố hai tháng.
   "vars": {
-    "BACKEND_URL": "https://tsudev-backend.onrender.com"
+    "BACKEND_URL": "https://tsudev-backend.onrender.com",
+    "SITE_URL": "https://tsudev.com"
   },
 
   "observability": {

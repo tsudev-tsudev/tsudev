@@ -16,18 +16,49 @@
 > `docs/refactor-tsudev-2026-q4.md` §7 và §8; phiếu bàn giao
 > [`20261029-01`](handover/20261029-01_bo-con-dau-va-24-24.md).
 >
-> 🟢 **LÀM NGAY, 5 PHÚT, KHÔNG GỠ MỘT DÒNG MÃ NÀO - dừng tiêu token hôm nay:**
+> ✅ **TOÀ SOẠN ĐÃ DỪNG (29/10/2026) - cả hai nửa.**
 >
-> `dispatcher.ts:851` có công tắc `NEWSROOM_ENABLED`, nằm TRƯỚC mọi lời gọi LLM.
+> | nửa                                  | ai làm        | trạng thái                                          |
+> | ------------------------------------ | ------------- | --------------------------------------------------- |
+> | gỡ nhịp cron chạm DB                 | agent         | ✅ `Version f720db98`, còn đúng `*/5 0-17,23 * * *` |
+> | `NEWSROOM_ENABLED=false` trên Render | **chủ dự án** | ✅ đã đổi, backend `/health` còn 200                |
 >
-> 1. đặt `NEWSROOM_ENABLED=false` trên dashboard Render
-> 2. gỡ nhịp `"7 0-17,23 * * *"` khỏi `infrastructure/newsroom-cron/wrangler.jsonc`
->    rồi `npm run cron:deploy`
+> Nhịp `"7 0-17,23 * * *"` là **nguồn đánh thức Neon theo LỊCH duy nhất**. Gỡ nó
+> cộng bản vá vòng poll 3 giây ⇒ không còn gì đánh thức database theo lịch.
+> `tick()` và `TICK_CRON` gỡ hẳn; `/tick` trả **410** kèm lý do, không còn gác
+> bằng token (gác một endpoint đã chết chỉ để lại phụ thuộc vào secret). Secret
+> `NEWSROOM_TICK_TOKEN` trên Cloudflare **chưa xoá** có chủ đích - xoá secret
+> không quay lui được, thuộc bước C2.
 >
-> Việc (2) quan trọng hơn vẻ ngoài: nhịp giờ đó là **nguồn đánh thức Neon theo
-> lịch duy nhất**. Gỡ nó cộng bản vá vòng poll (đã LIVE) ⇒ không còn gì đánh thức
-> database theo lịch. **ĐỪNG gỡ nhịp `*/5`** - đó là giữ ấm Render, không chạm DB,
-> và là chỗ §6.1 cắm cổng đếm nội dung vào.
+> ✅ **CỔNG ĐẾM NỘI DUNG ĐÃ CHẠY TỰ ĐỘNG (29/10/2026) - việc §6.1 XONG.** > `Version 6feb76fc`. Nhịp thứ hai `23 1,13 * * *` trong chính Worker cron.
+>
+> Vì sao ở đó: Worker miễn phí, có lịch, và **KHÔNG có kết nối Postgres** - nên nó
+> vẫn trả lời được đúng lúc database chết, tức đúng lúc cần nhất.
+> `newsroom:canh-kenh` thì cần `DATABASE_URL`, mà DB chính là thứ đang chết.
+>
+> 🔴 **HAI LƯỢT/NGÀY, ĐỪNG DÀY HƠN.** Các trang nó đo là SSR: mỗi lượt fetch đi
+> Worker → Render → Neon và giữ Neon thức thêm ~5 phút. Cắm vào nhịp 5 phút = 288
+> lượt/ngày = đúng cái bẫy vừa gỡ, lần này do chính cổng canh gây ra. Dày lên
+> được CHỈ KHI đường đọc đã cache ở biên (§6.2-6.3).
+>
+> Nghiệm thu đã chạy THẬT, không suy luận: `/dem` trên Worker trả **503** với 5/5
+> phép đo rỗng · `wrangler dev --test-scheduled` chứng minh nhịp `23 1,13` đi vào
+> nhánh đếm và nhịp `*/5` đi vào nhánh giữ ấm · đường báo động chạy và **suy giảm
+> ồn ào** thành `console.error` khi chưa có Telegram.
+>
+> 🟠 **CÒN MỘT VIỆC NHỎ CỦA CHỦ DỰ ÁN: bật báo động.** > `npm run cron:secret-telegram` (đặt `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`).
+> Chưa đặt thì cổng chỉ ghi log - đọc bằng `npm run cron:tail`.
+>
+> Phát hiện kèm: **kênh báo động của repo chưa bao giờ được cấu hình.** > `packages/observability/notify.js` hỗ trợ Telegram + email webhook, nhưng không
+> biến nào được khai trong `render.yaml` lẫn `.env.example` - nghĩa là báo động
+> của `migrationGate` cũng đang đi vào hư không.
+>
+> Cổng canh hợp đồng cron nay có **9 khẳng định**, ba trong đó đã chứng minh ĐỎ
+> bằng cách tái tạo lỗi thật: dày hoá nhịp đếm thành `*/5` · đặt nó vào khung
+> nghỉ Render · đổi một ngưỡng cho lệch script Node. Khẳng định cuối đáng chú ý:
+> bảng ngưỡng bị TRÙNG LẶP giữa Worker và script Node có chủ đích (workerd không
+> có `require`/`process.argv`), và test đối chiếu hai bảng - trùng lặp có cổng
+> canh khác hẳn trùng lặp trôi tự do, thứ repo này đã trả giá với bảng token.
 >
 > ✅ **BA quyết định đã CHỐT**: huy hiệu **chưa cấp cho ai** ⇒ xoá thẳng, không
 > cần trang bia (nên §7 KHÔNG còn bị chặn bởi Neon) · **giữ `VIP`** trong enum,
