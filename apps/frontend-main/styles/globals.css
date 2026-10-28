@@ -2,9 +2,28 @@
    đây. packages/ui/src/tokens.css là ARTIFACT sinh từ .standards/tokens/design-tokens.json
    (`npm run tokens:sync`) - đừng sửa nó, sửa file JSON. */
 @import '../../../packages/ui/src/tokens.css';
-/* Weight 300 cố ý KHÔNG được nạp: DESIGN_SYSTEM.md §4 cấm dùng nó vì nét mảnh
-   làm dấu tiếng Việt khó đọc. Nạp mà cấm dùng thì chỉ tổ mời người ta dùng. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+/* Font TỰ HOST. Đừng thay bằng @import từ fonts.googleapis.com - đã thử và nó
+   IM LẶNG KHÔNG NẠP GÌ trong nhiều tháng.
+
+   CSP thật của production (đo 28/10/2026 bằng `curl -I https://tsudev.com/`):
+
+     style-src 'self' 'unsafe-inline'
+     font-src  'self' data:
+
+   `'unsafe-inline'` chỉ cho phép <style> nội tuyến và thuộc tính style= - nó
+   KHÔNG cho phép stylesheet từ host ngoài. Và `font-src` không có
+   fonts.gstatic.com. Nên bản @import cũ bị chặn hai lần, không báo lỗi, và mọi
+   người xem tsudev.com bằng font dự phòng của máy họ: Windows ra Segoe UI,
+   Android ra Roboto, macOS ra SF Pro. Mỗi thiết bị một font.
+
+   Lỗi đó không bộ test nào bắt được vì dev và E2E chạy http://localhost không có
+   CSP - bài học §0.7 thứ hai. Cổng canh nay là test/fontSource.test.ts, quét
+   NGUỒN chứ không chạy trang.
+
+   styles/fonts.css là ARTIFACT sinh bởi `npm run fonts:sync`. Weight 300 cố ý
+   KHÔNG được nạp: DESIGN_SYSTEM.md §4 cấm dùng nó vì nét mảnh làm dấu tiếng Việt
+   khó đọc. Nạp mà cấm dùng thì chỉ tổ mời người ta dùng. */
+@import './fonts.css';
 
 @tailwind base;
 @tailwind components;
@@ -78,6 +97,49 @@ body,
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ============================================================
+   SCROLL-REVEAL
+   ============================================================
+
+   🔴 TRẠNG THÁI MẶC ĐỊNH LÀ HIỆN, KHÔNG PHẢI ẨN. Đọc trước khi "tối giản" chỗ này.
+
+   Cách viết hiển nhiên là `.reveal { opacity: 0 }` rồi để JavaScript thêm class
+   để hiện ra. Cách đó có một lỗ không thể chấp nhận: nếu JavaScript KHÔNG chạy -
+   lỗi bundle, người dùng tắt JS, IntersectionObserver không được hỗ trợ, hoặc
+   một ngoại lệ ở component khác làm hỏng cả lượt hydrate - thì nội dung ở
+   `opacity: 0` VĨNH VIỄN. Trang trả 200, HTML có đủ chữ, và người ta thấy một
+   trang trắng. Đúng họ lỗi mà cả đợt này ra đời để chấm dứt.
+
+   Nên trạng thái ẩn chỉ được BẬT khi JavaScript đã chạy thật và đã bật nó:
+   `lib/useScrollReveal.ts` đặt `data-reveal="on"` lên <html>. Không có thuộc
+   tính đó thì `.reveal` không có hiệu lực nào cả và mọi thứ hiện bình thường.
+
+   Và dưới `prefers-reduced-motion`, hook đó KHÔNG đặt thuộc tính - nên không chỉ
+   là chuyển động nhanh hơn, mà là không có trạng thái ẩn nào ngay từ đầu. */
+[data-reveal='on'] .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity var(--motion-slow) var(--motion-easing-enter),
+    transform var(--motion-slow) var(--motion-easing-enter);
+}
+
+[data-reveal='on'] .reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Bậc thang trễ. Dùng token thay vì `style={{ animationDelay }}` viết tay: trang
+   chủ từng có đúng kiểu đó, và hai chỗ viết tay sẽ lệch nhau ngay lần sửa đầu. */
+[data-reveal='on'] .reveal-1 {
+  transition-delay: var(--motion-stagger-1);
+}
+[data-reveal='on'] .reveal-2 {
+  transition-delay: var(--motion-stagger-2);
+}
+[data-reveal='on'] .reveal-3 {
+  transition-delay: var(--motion-stagger-3);
 }
 
 /* Liên kết bỏ qua điều hướng - ẩn cho tới khi được focus bằng bàn phím. */

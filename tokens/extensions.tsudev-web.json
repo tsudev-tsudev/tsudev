@@ -65,11 +65,24 @@
   },
   "typography": {
     "$note": "Thang chữ của DESIGN_SYSTEM.md §4 dừng ở 30px (H1) - đủ cho giao diện công cụ, nhưng khối hero của một website cần bậc lớn hơn. Ba bậc dưới đây nối tiếp 30px theo lưới 4px và CHỈ dùng cho tiêu đề hero/marketing, không dùng trong luồng thao tác.",
+    "$font_note": "GHI ĐÈ họ font của bảng chuẩn, lý do là một LỖI ĐÃ CHẠY TRÊN PRODUCTION. Bảng chuẩn khai 'Inter' và globals.css nạp nó bằng @import từ fonts.googleapis.com - nhưng CSP thật của production là `style-src 'self' 'unsafe-inline'` + `font-src 'self' data:`, mà 'unsafe-inline' KHÔNG cho stylesheet từ host ngoài. Đo ngày 28/10/2026: Inter chưa bao giờ nạp được, mọi người xem site bằng font dự phòng của máy họ (Windows ra Segoe UI, Android ra Roboto) - mỗi thiết bị một font. Nay font được TỰ HOST ở /fonts/ (`npm run fonts:sync`) nên CSP cho qua, và họ font chính đổi sang Be Vietnam Pro: thiết kế GỐC cho tiếng Việt, tổ hợp hai dấu (ậ ộ ặ ữ) dựng đúng vị trí thay vì chồng lên chân chữ hoa. Đổi hai chuỗi này thì PHẢI sửa bảng HO_FONT trong scripts/sync-fonts.js cùng lúc - trỏ tới một font không có @font-face là lỗi im lặng tuyệt đối.",
+    "family": "'Be Vietnam Pro', 'Be Vietnam Pro Fallback', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif",
+    "mono": "'JetBrains Mono', 'Cascadia Code', 'Consolas', ui-monospace, monospace",
     "size": {
       "display-sm": "36px",
       "display-md": "48px",
       "display-lg": "60px"
     }
+  },
+
+  "$motion_note": "Bảng chuẩn khai MỘT đường cong (--motion-easing). Một đường cong dùng cho mọi hướng là sai về cảm nhận: thứ ĐI VÀO màn hình phải giảm tốc (chậm lại khi tới chỗ), thứ ĐI RA phải tăng tốc (biến mất dứt khoát), và thứ cần nhấn mạnh thì vọt lên rồi lắng. Dùng một đường cong cho cả ba làm mọi chuyển động trông như nhau - tức mất hẳn chuyển động như một tín hiệu. Ba bậc trễ dưới đây thay cho việc viết tay `animationDelay: '.1s'` rải rác: trang chủ đang có đúng kiểu đó, và hai chỗ viết tay sẽ lệch nhau ngay lần sửa đầu tiên.",
+  "motion": {
+    "easing-enter": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+    "easing-exit": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+    "easing-emphasized": "cubic-bezier(0.2, 0, 0, 1.2)",
+    "stagger-1": "60ms",
+    "stagger-2": "120ms",
+    "stagger-3": "180ms"
   },
   "$usage": {
     "$note": "Chú thích cách dùng đi kèm bốn nhóm token dùng chung. Bảng chuẩn v1.0.0 mang chúng trong chính file JSON; v2.0.0 bỏ đi. Giữ lại ở đây vì chúng là thứ người sửa giao diện đọc trong packages/ui/src/tokens.css - mất đi thì không có gì báo lỗi, chỉ là lần sau có người chọn nhầm bậc bo góc.",
