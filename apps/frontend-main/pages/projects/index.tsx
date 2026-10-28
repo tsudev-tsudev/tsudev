@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import Seo from '../../components/Seo';
-import { Layout, Card, Badge, SectionHeading } from '@tsudev/ui';
+import { Layout, Card, Badge, SectionHeading, EmptyState } from '@tsudev/ui';
 import { api } from '../../lib/api';
 import { KIND_LABEL, STATUS_LABEL, copyrightMeta } from '../../lib/projectLabels';
 import type { Project } from '../../lib/types';
+import type { GetServerSidePropsContext } from 'next';
 
 const FILTERS = [
   { key: 'all', label: 'Tất cả' },
@@ -13,9 +14,9 @@ const FILTERS = [
   { key: 'SERVICE', label: 'Dịch vụ' },
 ];
 
-type ProjectsIndexProps = { projects: Project[] };
+type ProjectsIndexProps = { projects: Project[]; failed: boolean };
 
-export default function ProjectsIndex({ projects }: ProjectsIndexProps) {
+export default function ProjectsIndex({ projects, failed }: ProjectsIndexProps) {
   const [kind, setKind] = useState('all');
   const shown = useMemo(
     () => (kind === 'all' ? projects : projects.filter((p) => p.kind === kind)),
@@ -66,10 +67,32 @@ export default function ProjectsIndex({ projects }: ProjectsIndexProps) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          {shown.length === 0 && (
-            <Card className="p-6 text-fg-muted md:col-span-2">
-              Chưa có dự án nào trong mục này.
-            </Card>
+          {/* BA trạng thái ở trang này, không phải hai: gọi thất bại · chưa có dự
+              án nào · có dự án nhưng bộ lọc đang chọn không khớp cái nào. Gộp
+              hai cái sau lại là nói sai với người vừa bấm một nhãn lọc. */}
+          {failed ? (
+            <div className="md:col-span-2">
+              <EmptyState
+                kind="failed"
+                icon="warning"
+                title="Không tải được danh sách dự án"
+                explain="Máy chủ nội dung không trả lời. Danh sách dự án vẫn còn nguyên; thử tải lại sau ít phút."
+              />
+            </div>
+          ) : (
+            shown.length === 0 && (
+              <div className="md:col-span-2">
+                <EmptyState
+                  icon="tag"
+                  title={projects.length === 0 ? 'Chưa có dự án nào' : 'Không có dự án khớp bộ lọc'}
+                  explain={
+                    projects.length === 0
+                      ? 'Dự án do chủ dự án đăng. Agent AI của toà soạn cố ý KHÔNG được tạo dự án mới - mỗi dự án mang phiên bản, giấy phép và trạng thái bản quyền, tức dữ liệu pháp lý - nên trang này sẽ không tự dày lên.'
+                      : 'Có dự án trong hệ thống, nhưng không cái nào thuộc mục đang chọn. Chọn "Tất cả" để xem toàn bộ.'
+                  }
+                />
+              </div>
+            )
           )}
           {shown.map((p) => {
             const cr = copyrightMeta(p.copyrightStatus);
@@ -104,7 +127,8 @@ export default function ProjectsIndex({ projects }: ProjectsIndexProps) {
   );
 }
 
-export async function getServerSideProps() {
-  const projects = await api.projects(100);
-  return { props: { projects } };
+export async function getServerSideProps({ res }: GetServerSidePropsContext) {
+  const r = await api.projects(100);
+  if (r.failed) res.statusCode = 503;
+  return { props: { projects: r.data, failed: r.failed } };
 }

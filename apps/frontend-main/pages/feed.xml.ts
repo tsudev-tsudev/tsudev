@@ -1,5 +1,5 @@
 import { MAIN_URL } from '@tsudev/ui';
-import { api } from '../lib/api';
+import { api, orThrow } from '../lib/api';
 import type { GetServerSidePropsContext } from 'next';
 
 // RSS 2.0 cho blog. Đọc bằng trình đọc feed, và cũng là cách các trang tổng hợp
@@ -22,7 +22,11 @@ const esc = (s: unknown): string =>
   String(s == null ? '' : s).replace(/[<>&'"]/g, (c) => `&${XML_ENTITY[c] ?? c};`);
 
 export async function getServerSideProps({ res }: GetServerSidePropsContext) {
-  const posts = await api.posts(50);
+  // NÉM LỖI khi không đọc được, không phát ra feed rỗng. Một RSS 0 item nói với
+  // mọi reader đang theo dõi rằng blog này đã ngừng đăng - và đó là điều đã xảy
+  // ra suốt hai tháng kể từ khi Neon treo compute, trong khi endpoint vẫn trả
+  // 200. Xem `lib/api.ts` § vì sao `orThrow` tồn tại.
+  const posts = orThrow(await api.posts(50), 'danh sách bài viết');
 
   const items = posts
     .map((p) =>

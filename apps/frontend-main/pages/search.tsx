@@ -542,14 +542,15 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
     params.set('page_size', query.page_size);
   }
 
-  const initial =
+  const rSearch =
     initialQ.trim().length >= MIN_QUERY || initialTag || initialCategory
       ? await api.searchPosts(params.toString())
-      : EMPTY_RESULT;
+      : { data: EMPTY_RESULT, failed: false };
+  const initial = rSearch.data;
 
   // Nguồn thẻ để DUYỆT. Lấy từ danh sách bài mới nhất, đúng cách /blog từng dựng
   // thanh thẻ của nó - giữ nguyên tập thẻ mà người dùng đã quen thấy.
-  const recent = await api.posts(50);
+  const recent = (await api.posts(50)).data;
   const allTags = [...new Set(recent.flatMap((p) => p.tags || []))].sort((a, b) =>
     a.localeCompare(b, 'vi')
   );

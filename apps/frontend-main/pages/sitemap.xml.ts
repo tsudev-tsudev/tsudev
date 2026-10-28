@@ -1,5 +1,5 @@
 import { MAIN_URL } from '@tsudev/ui';
-import { api } from '../lib/api';
+import { api, orThrow } from '../lib/api';
 import type { GetServerSidePropsContext } from 'next';
 
 // Sinh động chứ không phải file tĩnh trong public/: bài viết, tài liệu và dự án
@@ -54,14 +54,32 @@ const urlTag = ({ path, lastmod, priority = '0.6', changefreq = 'weekly' }: UrlE
     .join('\n');
 
 export async function getServerSideProps({ res }: GetServerSidePropsContext) {
-  // Mỗi lời gọi tự nuốt lỗi thành [] (lib/api.ts). Nghĩa là một service chết chỉ
-  // làm sitemap thiếu phần đó, không làm cả sitemap 500 - đúng đánh đổi cho một
-  // file mà bot đọc chứ người không đọc.
+  // 🔴 ĐỔI CHIỀU 28/10/2026 - đọc trước khi "sửa lại cho khỏi 500".
+  //
+  // Bản trước cố ý để mỗi lời gọi nuốt lỗi thành [], lập luận rằng "một service
+  // chết chỉ làm sitemap thiếu phần đó, không làm cả sitemap 500 - đúng đánh đổi
+  // cho một file mà bot đọc chứ người không đọc".
+  //
+  // Lập luận đó SAI, và cái giá đã được trả. Sitemap không phải "thiếu thông
+  // tin" khi rỗng; nó là THÔNG TIN SAI: nó khẳng định với Google rằng site này
+  // chỉ có đúng 7 trang tĩnh. Đo ngày 28/10/2026, khi Neon treo compute:
+  // `/sitemap.xml` trả 200 với đúng 7 `<url>` - tức tsudev.com tự nguyện xin gỡ
+  // toàn bộ blog, tài liệu và dự án khỏi chỉ mục, trong im lặng, suốt hai tháng.
+  //
+  // Crawler hiểu 5xx là "thử lại sau" và KHÔNG gỡ gì. Nó không có cách nào hiểu
+  // một file 7 URL như vậy. Nên ở đây thà ném.
   //
   // Hai lời gọi trust.programs()/trust.directory() đã bị GỠ: sau khi gác, chúng
   // chỉ trả 401 rồi rơi về [], tức một chặng mạng vô nghĩa ở mỗi lần dựng
   // sitemap.
-  const [posts, docs, projects] = await Promise.all([api.posts(50), api.docs(), api.projects(100)]);
+  const [rPosts, rDocs, rProjects] = await Promise.all([
+    api.posts(50),
+    api.docs(),
+    api.projects(100),
+  ]);
+  const posts = orThrow(rPosts, 'danh sách bài viết');
+  const docs = orThrow(rDocs, 'mục lục tài liệu');
+  const projects = orThrow(rProjects, 'danh sách dự án');
 
   const entries = [
     ...STATIC_ROUTES.map((r) => urlTag(r)),
