@@ -16,7 +16,9 @@ Thứ tự phát hành BẤT BIẾN: `prisma migrate deploy` lên Neon **TRƯỚ
 `main` **SAU**. Migration thuần bổ sung (CREATE TYPE/TABLE/INDEX, không DROP),
 nhưng PR #88 ngày 27/08 đã đảo thứ tự này một lần và chỉ sống nhờ may mắn.
 
-🟠 **Frontend Cloudflare vẫn CHƯA deploy** - việc này đã treo từ phiên 30 (bản
-Worker đang chạy là bản dựng next@15). Nay còn thêm đợt này: font tự host, bộ
-icon mới, khu tải về. Lệnh: `npm --workspace apps/frontend-main run deploy` -
-**đừng gọi thẳng `opennextjs-cloudflare deploy`**.
+✅ **Frontend Cloudflare ĐÃ DEPLOY (29/10/2026)** - `Current Version ID:
+004a682e-126f-4ec3-90b3-5fcfce022241`. Món nợ treo từ phiên 30 đã đóng. Font
+tiếng Việt tự host, bộ icon 78, hệ chuyển động, và bản vá vòng poll đều đã LIVE.
+Nghiệm thu ở `logs/STATE.md` đầu file.
+
+🟠 **PR #93 đang mở, CHƯA merge** - chờ `npm run db:migrate`. Xem `STATE.md`.

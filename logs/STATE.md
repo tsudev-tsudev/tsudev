@@ -2,6 +2,45 @@
 
 > **Phiên 31 bắt đầu ở đây** (cập nhật cuối phiên 30).
 >
+> ✅ **FRONTEND ĐÃ DEPLOY LÊN CLOUDFLARE (29/10/2026).** Việc này treo từ phiên 30
+> (Worker vẫn là bản dựng next@15) - nay đã thông, kèm cả đợt tái cấu trúc.
+> `Current Version ID: 004a682e-126f-4ec3-90b3-5fcfce022241`.
+>
+> Nghiệm thu đo trên CSS prod đã build (`6945b702bf896772.css`, **cùng hash với
+> bản local**): `googleapis` = **0** · 25 `@font-face` · `--font-family` mở đầu
+> `"Be Vietnam Pro"` · `/fonts/*.woff2` trả 200 `font/woff2` · 5 quy tắc
+> `data-reveal=on` · `providers` sạch (credentials · passkey · github · google) ·
+> header CSP còn ở edge. **Font tiếng Việt nạp thật trên production lần đầu tiên.**
+>
+> Và bản vá vòng poll 3 giây ĐÃ LÊN, nên nguy cơ cạn CU-giờ lặp lại khi Neon hồi
+> phục đã bị chặn.
+>
+> ✅ **Site nay hỏng ỒN ÀO thay vì im lặng.** Đo trên prod sau deploy:
+> `/blog` `/docs` `/projects` → **503** (trước: 200 + "Chưa có bài viết") ·
+> `sitemap.xml` `feed.xml` → **500** (trước: 200 + 7 URL tĩnh / 0 item) ·
+> `/search?q=test` → **503** + "Không tìm được vì máy chủ không trả lời".
+> Chữ "Chưa có bài viết" đã biến mất khỏi production.
+>
+> 🟠 **PR #93 ĐANG MỞ và CHƯA ĐƯỢC MERGE - có lý do, đọc trước khi bấm.** > https://github.com/tsudev-tsudev/tsudev/pull/93 · 8 commit trên nhánh
+> `feat/cong-canh-kenh-toa-soan`.
+>
+> Commit `d6d21cc` mang migration `20261028140000_project_release`, CHƯA áp lên
+> Neon (Neon đang treo). `services/backend-bundle/src/migrationGate.ts` bỏ qua
+> hôm nay vì không đọc được `_prisma_migrations`, NHƯNG khi Neon mở lại và Render
+> dựng lại backend (nó ngủ mỗi đêm khung 18-22 UTC) cổng sẽ `exit(1)` và **site
+> sập hẳn**. Thứ tự bắt buộc:
+>
+>     npm run db:migrate   (DATABASE_URL của prod)   →   RỒI MỚI merge #93
+>
+> Bảy commit còn lại không chạm schema và merge được bất kỳ lúc nào; muốn merge
+> sớm thì tách `d6d21cc` ra.
+>
+> 🟠 **`gh` đang hoạt động dưới tài khoản `tsudev-tsudev`** (đổi 29/10 vì
+> `dieuhanhcongviecxanuicam` chỉ có `push: false` nên git push ăn 403). Đảo lại:
+> `gh auth switch --user dieuhanhcongviecxanuicam`.
+>
+> ---
+>
 > 🔴 **VIỆC CHẶN TOÀN DỰ ÁN: tsudev.com đang là một website TRỐNG, và đã trống ~2 tháng.**
 >
 > Đo trực tiếp 28/10/2026: `/`, `/blog`, `/docs`, `/projects` đều **HTTP 200**
