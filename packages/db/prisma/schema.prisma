@@ -40,28 +40,28 @@ model User {
   // NULL được: tài khoản chỉ đăng nhập bằng GitHub/Google hoặc chỉ bằng passkey
   // thì không có mật khẩu nào cả. Đừng suy ra "chưa đăng ký" từ cột này.
   /// Argon2id. KHÔNG BAO GIỜ trả cột này ra khỏi tầng service.
-  passwordHash     String?
+  passwordHash        String?
   /// NULL = email chưa xác minh. Đường ghi nhạy cảm phải tự kiểm, vì tài khoản
   /// vẫn tồn tại và vẫn đăng nhập được trước khi xác minh.
-  emailVerifiedAt  DateTime?
+  emailVerifiedAt     DateTime?
   /// Thu hồi phiên mà không cần bảng phiên. JWT mang số này; đổi mật khẩu hoặc
   /// "đăng xuất mọi thiết bị" thì tăng lên, và mọi token đã phát mất hiệu lực
   /// ngay. Phiên lưu DB sẽ đúng hơn về lý thuyết nhưng frontend chạy trên
   /// Cloudflare Workers còn DB ở Neon ap-southeast-1 - nghĩa là một truy vấn
   /// xuyên lục địa cho MỖI request.
-  sessionVersion   Int       @default(0)
+  sessionVersion      Int       @default(0)
   /// Vô hiệu hoá MỀM do chính chủ: tài khoản ẩn/không dùng được, nhưng đăng nhập
   /// lại sẽ KHÔI PHỤC (xoá mốc này). NULL = đang hoạt động.
-  deactivatedAt    DateTime?
+  deactivatedAt       DateTime?
   /// Hẹn XOÁ vĩnh viễn: đăng nhập lại trước mốc này thì huỷ hẹn (khôi phục);
   /// quá mốc mà đăng nhập thì tài khoản bị purge. NULL = không hẹn xoá.
   deletionScheduledAt DateTime?
   /// Đếm số lần sai LIÊN TIẾP; đăng nhập thành công đặt lại về 0.
-  failedLoginCount Int       @default(0)
+  failedLoginCount    Int       @default(0)
   /// Khoá tạm sau quá nhiều lần sai. Khoá theo TÀI KHOẢN, khác với chặn theo IP
   /// ở LoginAttempt - thiếu một trong hai thì kẻ tấn công chỉ cần đổi trục.
-  lockedUntil      DateTime?
-  lastLoginAt      DateTime?
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
 
   /// --- Dấu vết đăng nhập gần nhất, PHI CHUẨN HOÁ có chủ đích ---
   ///
@@ -88,11 +88,11 @@ model User {
   posts Post[]
   files FileObject[]
 
-  oauthAccounts OAuthAccount[]
-  passkeys      WebAuthnCredential[]
-  totp          TotpCredential?
-  backupCodes   BackupCode[]
-  authTokens    AuthToken[]
+  oauthAccounts  OAuthAccount[]
+  passkeys       WebAuthnCredential[]
+  totp           TotpCredential?
+  backupCodes    BackupCode[]
+  authTokens     AuthToken[]
   securityEvents SecurityEvent[]
 
   trustInviteRedemptions TrustInviteRedemption[]
@@ -299,9 +299,9 @@ model EmailAlias {
 }
 
 model SecurityEvent {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Ai THỰC HIỆN, nếu khác chủ tài khoản (OWNER thao tác lên user khác). NULL =
   /// chính chủ. Lưu kèm `actorName` để hiện được mà không cần join.
   actorId   String?
@@ -734,6 +734,28 @@ enum ProjectKind {
   SERVICE
 }
 
+/// Nền tảng của một bản phát hành tải về được.
+///
+/// SOURCE và WEB không phải "tệp tải về" theo nghĩa thường, nhưng chúng thuộc
+/// cùng một bảng có chủ đích: trang tải về cần liệt kê ĐỦ mọi cách dùng được
+/// phần mềm, và một dự án chỉ có mã nguồn vẫn phải xuất hiện ở đó thay vì trông
+/// như chưa phát hành.
+enum ReleasePlatform {
+  ANDROID
+  WINDOWS
+  MACOS
+  LINUX
+  WEB
+  SOURCE
+}
+
+/// Kênh phát hành. Trang công khai mặc định chỉ hiện STABLE.
+enum ReleaseChannel {
+  STABLE
+  BETA
+  ALPHA
+}
+
 enum ProjectStatus {
   WIP
   BETA
@@ -790,10 +812,109 @@ model Project {
   /// đảo thứ tự là làm hỏng một tính năng đang chạy được.
   deletedAt DateTime?
 
+  releases ProjectRelease[]
+
   @@index([published, sortOrder])
   @@index([deletedAt])
   @@index([kind, status])
   @@index([copyrightStatus])
+}
+
+/// Một tệp phát hành tải về được của một dự án.
+///
+/// ──────────────────────────────────────────────────────────────────────────────
+/// VÌ SAO LÀ MỘT BẢNG RIÊNG, KHÔNG PHẢI THÊM CỘT VÀO Project
+/// ──────────────────────────────────────────────────────────────────────────────
+///
+/// `Project.downloadUrl` là MỘT chuỗi. Nó không mô tả nổi "app la bàn cho
+/// Android" và "công cụ quét cho Windows" của cùng một dự án, chưa nói tới nhiều
+/// phiên bản, nhiều kiến trúc, hay kênh beta. Cột đó nay là DI SẢN: nó vẫn ở lại
+/// cho những dự án chỉ có một đường tải duy nhất, nhưng trang tải về đọc bảng
+/// này trước.
+///
+/// ──────────────────────────────────────────────────────────────────────────────
+/// `sha256` VÀ `signature` KHÔNG PHẢI TRANG TRÍ
+/// ──────────────────────────────────────────────────────────────────────────────
+///
+/// Phát hành app ngoài store gặp hai rào cản thật: Windows SmartScreen cảnh báo
+/// mọi tệp không có chứng chỉ ký mã, và Android chặn "nguồn không xác định". Dự
+/// án cá nhân không mua được chứng chỉ ký mã, nên thứ duy nhất ta cho người tải
+/// được là một checksum công khai và một chữ ký kiểm được.
+///
+/// Và repo này có sẵn hạ tầng cho việc đó: `@tsudev/trust-crypto` ký Ed25519 và
+/// JWKS công khai ở `/.well-known/tsudev-trust-jwks.json`. Dùng nó để ký chính
+/// tệp phát hành của mình là hệ con dấu tín nhiệm tự áp lên bản thân.
+model ProjectRelease {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// Theo semver. Chuỗi chứ không phải ba số nguyên: hậu tố `-rc.1`, `+build`
+  /// là phần hợp lệ của semver và sẽ mất nếu tách ra.
+  version  String
+  channel  ReleaseChannel  @default(STABLE)
+  platform ReleasePlatform
+  /// arm64, x86_64, universal...
+  ///
+  /// 🔴 KHÔNG NULL ĐƯỢC, và đây là một bất biến đã được ĐO, không phải sở thích.
+  ///
+  /// Bản đầu khai `arch String?`. Trong SQL `NULL != NULL`, nên ràng buộc
+  /// `@@unique([projectId, version, platform, arch])` KHÔNG hề chặn trùng khi
+  /// `arch` bỏ trống - mà bỏ trống là trường hợp phổ biến nhất (WEB, SOURCE, và
+  /// mọi bản dựng một-kiến-trúc). Đã kiểm trực tiếp trên Postgres: hai lượt
+  /// INSERT cùng (projectId, version, platform) với arch NULL đều lọt, cho ra
+  /// hai hàng y hệt nhau.
+  ///
+  /// Hỏng im lặng theo đúng nghĩa: ràng buộc vẫn ở đó, `\d` vẫn in nó ra, test
+  /// trùng-lặp vẫn xanh - vì test đó truyền `arch: 'arm64'`.
+  ///
+  /// Chuỗi RỖNG nghĩa là "không phân biệt kiến trúc". API công khai chuyển nó
+  /// thành `null` lúc trả ra (`releaseCard`), nên hợp đồng đối ngoại không đổi.
+  arch     String          @default("")
+
+  /// Khoá trong R2, KHÔNG phải URL công khai.
+  ///
+  /// Lưu khoá thay vì URL là có chủ đích: URL công khai của bucket đổi theo môi
+  /// trường (`S3_PUBLIC_ENDPOINT` khác nhau ở dev và production), nên ghi URL
+  /// vào database là nhúng cấu hình môi trường vào dữ liệu. Ngoài ra lượt tải
+  /// phải đi qua route đếm, không đi thẳng vào R2.
+  ///
+  /// Null khi nền tảng là WEB hoặc SOURCE - lúc đó `externalUrl` mang đường dẫn.
+  storageKey  String?
+  /// Đường dẫn ngoài, dùng cho WEB (địa chỉ app) và SOURCE (repo, tag release).
+  externalUrl String?
+
+  fileName   String?
+  /// Byte. Int đủ tới 2 GB - vượt mức đó thì repo này đã có vấn đề khác to hơn.
+  fileSize   Int?
+  /// Chữ thập lục phân 64 ký tự. Người tải đối chiếu được bằng `sha256sum`.
+  sha256     String?
+  /// Chữ ký Ed25519 của `sha256`, base64url. Kiểm bằng khoá công khai ở JWKS.
+  signature  String?
+  /// `kid` của khoá đã ký. BẮT BUỘC đi cùng `signature`: vòng khoá có xoay, nên
+  /// một chữ ký không nói nó được ký bằng khoá nào là một chữ ký không kiểm được
+  /// sau lần xoay đầu tiên.
+  signingKid String?
+
+  releaseNotesMd String  @default("")
+  /// "Android 8.0+", "Windows 10 64-bit"... Chuỗi tự do vì mỗi nền tảng diễn
+  /// đạt phiên bản tối thiểu theo một cách khác nhau.
+  minOsVersion   String?
+
+  downloadCount Int       @default(0)
+  /// Null = bản nháp, chưa hiện ra công khai.
+  publishedAt   DateTime?
+  deletedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Một dự án không thể có hai bản cùng phiên bản, cùng nền tảng, cùng kiến
+  /// trúc. Đây là bất biến THẬT, không phải phòng xa: đường ghi của trang quản
+  /// trị là "tải tệp lên rồi khai phiên bản", và bấm hai lần là chuyện thường.
+  @@unique([projectId, version, platform, arch])
+  @@index([projectId, publishedAt])
+  @@index([deletedAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -986,9 +1107,9 @@ model ContentDraft {
   /// tay, tức là mất sạch dữ liệu cột này. Cái giá phải trả cho tên đúng ở tầng
   /// mã không đáng bằng rủi ro đó; cột trong DB vẫn tên `publishedPostId` và
   /// dòng chú thích này là chỗ giải thích vì sao.
-  publishedRefId  String?  @map("publishedPostId")
+  publishedRefId String?   @map("publishedPostId")
   /// Xoá mềm. CHỈ người đặt được - agent không có route nào chạm tới cột này.
-  deletedAt       DateTime?
+  deletedAt      DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

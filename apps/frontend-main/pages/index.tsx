@@ -1,38 +1,54 @@
 import React from 'react';
 import Seo from '../components/Seo';
-import { Layout, Button, Card, Badge, SectionHeading, Avatar } from '@tsudev/ui';
+import DownloadSection from '../components/DownloadSection';
+import { useScrollReveal } from '../lib/useScrollReveal';
+import { Layout, Button, Card, Badge, SectionHeading, Avatar, EmptyState, Icon } from '@tsudev/ui';
+import type { IconName } from '@tsudev/ui';
 import { api } from '../lib/api';
 import { KIND_LABEL, STATUS_LABEL, copyrightMeta } from '../lib/projectLabels';
-import type { Post, Project } from '../lib/types';
+import type { Post, Project, ProjectWithReleases } from '../lib/types';
 
-const ECOSYSTEM = [
+/**
+ * Bốn phân hệ ở khối "Hệ sinh thái".
+ *
+ * Trước đây mỗi mục mang một chuỗi `d` SVG viết tay cộng một `tone` luân phiên
+ * brand/teal. Hai vấn đề, và cái thứ hai mới là vấn đề thật:
+ *
+ *   1. Bốn icon nằm NGOÀI `@tsudev/ui`, nên chúng không đi qua bảng màu theo
+ *      vai trò và không cổng tương phản nào canh chúng ở ba chế độ.
+ *   2. `tone` luân phiên theo VỊ TRÍ, không theo nghĩa. Con dấu tín nhiệm là
+ *      mục duy nhất thật sự thuộc nhóm "trust", nhưng nó nhận màu brand chỉ vì
+ *      nó đứng thứ ba. Màu như thế là trang trí, không phải tín hiệu.
+ *
+ * Nay mỗi mục khai một `IconName` và màu do VAI TRÒ của icon quyết định: con
+ * dấu ra ngọc vì nó là trust, dự án ra xanh lá vì `package` thuộc nhóm create
+ * (thứ tạo ra và phát hành được). Đó là cùng một dải màu, nhưng lần này nó nói
+ * đúng.
+ */
+const ECOSYSTEM: { title: string; desc: string; href: string; icon: IconName }[] = [
   {
     title: 'Blog',
     desc: 'Bài viết kỹ thuật, hướng dẫn và góc nhìn công nghệ.',
     href: '/blog',
-    icon: 'M4 5h16M4 12h16M4 19h10',
-    tone: 'brand',
+    icon: 'list',
   },
   {
     title: 'Tài liệu',
     desc: 'Kho tri thức chuẩn hoá, guide và API reference.',
     href: '/docs',
-    icon: 'M6 4h9l3 3v13H6zM15 4v3h3',
-    tone: 'teal',
+    icon: 'book',
   },
   {
     title: 'Con dấu tín nhiệm',
     desc: 'Chứng nhận website dùng mã nguồn hoặc do tsudev thực hiện.',
     href: '/trust',
-    icon: 'M12 3l7 4v6c0 4-3 6-7 8-4-2-7-4-7-8V7z M9 12l2 2 4-4',
-    tone: 'brand',
+    icon: 'seal',
   },
   {
     title: 'Dự án',
     desc: 'Ứng dụng, công cụ và thư viện do tsudev phát triển, kèm bản quyền.',
     href: '/projects',
-    icon: 'M4 7l8-3 8 3v10l-8 3-8-3z M12 4v16',
-    tone: 'teal',
+    icon: 'package',
   },
 ];
 
@@ -46,10 +62,26 @@ function timeAgo(date: string | Date | null | undefined): string {
 
 type HomeProps = {
   posts: Post[];
+  postsFailed: boolean;
   projects: Project[];
+  projectsFailed: boolean;
+  downloads: ProjectWithReleases[];
+  downloadsFailed: boolean;
 };
 
-export default function Home({ posts, projects }: HomeProps) {
+export default function Home({
+  posts,
+  postsFailed,
+  projects,
+  projectsFailed,
+  downloads,
+  downloadsFailed,
+}: HomeProps) {
+  // Bật scroll-reveal cho các khối mang class `reveal` bên dưới. Hook này tự tắt
+  // dưới `prefers-reduced-motion` và KHÔNG ẩn gì khi JavaScript không chạy -
+  // xem lý do ở lib/useScrollReveal.ts.
+  useScrollReveal();
+
   return (
     <Layout active="/" bare>
       <Seo
@@ -138,7 +170,7 @@ export default function Home({ posts, projects }: HomeProps) {
 
       <div className="max-w-6xl mx-auto px-4">
         {/* ---------- ECOSYSTEM ---------- */}
-        <section className="py-16">
+        <section className="py-16 reveal">
           <SectionHeading eyebrow="Hệ sinh thái" title="Bốn phân hệ, một tài khoản" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {ECOSYSTEM.map((e) => (
@@ -147,20 +179,8 @@ export default function Home({ posts, projects }: HomeProps) {
                 href={e.href}
                 className="p-5 block group rounded-md transition-colors hover:bg-surface"
               >
-                <span
-                  className={`inline-flex h-11 w-11 items-center justify-center rounded-lg mb-4 ${
-                    e.tone === 'teal' ? 'text-accent bg-glow' : 'text-link bg-glow'
-                  }`}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d={e.icon}
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg mb-4 bg-glow">
+                  <Icon name={e.icon} size={22} />
                 </span>
                 <h3 className="font-semibold text-fg group-hover:text-link transition-colors">
                   {e.title}
@@ -171,8 +191,14 @@ export default function Home({ posts, projects }: HomeProps) {
           </div>
         </section>
 
+        {/* ---------- TẢI VỀ ----------
+            Đặt TRƯỚC khu "Dự án": thứ người lạ vào tsudev.com muốn làm được
+            ngay là TẢI một thứ về dùng, không phải đọc mô tả dự án. Khu này tự
+            ẩn khi chưa có bản phát hành nào - xem DownloadSection. */}
+        <DownloadSection items={downloads} failed={downloadsFailed} />
+
         {/* ---------- PROJECTS ---------- */}
-        <section className="py-6">
+        <section className="py-6 reveal">
           <SectionHeading
             eyebrow="Sản phẩm"
             title="Dự án của tsudev"
@@ -183,8 +209,30 @@ export default function Home({ posts, projects }: HomeProps) {
             }
           />
           <div className="grid md:grid-cols-3 gap-4">
-            {projects.length === 0 && (
-              <p className="p-6 text-fg-muted md:col-span-3">Chưa có dự án nào.</p>
+            {/* `projectsFailed` phải được kiểm TRƯỚC `length === 0`: khi lượt gọi
+                thất bại thì `projects` cũng rỗng, nên đảo thứ tự là nhánh lỗi
+                không bao giờ chạy tới - đúng kiểu hỏng im lặng mà cả đợt này ra
+                đời để chấm dứt. */}
+            {projectsFailed ? (
+              <div className="md:col-span-3">
+                <EmptyState
+                  kind="failed"
+                  icon="warning"
+                  title="Không tải được danh sách dự án"
+                  explain="Máy chủ nội dung không trả lời. Danh sách dự án vẫn còn nguyên."
+                  action={{ label: 'Mở trang dự án', href: '/projects' }}
+                />
+              </div>
+            ) : (
+              projects.length === 0 && (
+                <div className="md:col-span-3">
+                  <EmptyState
+                    icon="tag"
+                    title="Chưa có dự án nào"
+                    explain="Dự án do chủ dự án đăng - agent AI của toà soạn cố ý KHÔNG được tạo dự án mới, vì mỗi dự án mang phiên bản, giấy phép và trạng thái bản quyền."
+                  />
+                </div>
+              )
             )}
             {projects.slice(0, 3).map((p: Project) => {
               const cr = copyrightMeta(p.copyrightStatus);
@@ -213,7 +261,7 @@ export default function Home({ posts, projects }: HomeProps) {
         </section>
 
         {/* ---------- FEATURED POSTS ---------- */}
-        <section className="py-6">
+        <section className="py-6 reveal">
           <SectionHeading
             eyebrow="Mới nhất"
             title="Bài viết nổi bật"
@@ -224,8 +272,27 @@ export default function Home({ posts, projects }: HomeProps) {
             }
           />
           <div className="grid md:grid-cols-3 gap-4">
-            {posts.length === 0 && (
-              <p className="p-6 text-fg-muted md:col-span-3">Chưa có bài viết.</p>
+            {postsFailed ? (
+              <div className="md:col-span-3">
+                <EmptyState
+                  kind="failed"
+                  icon="warning"
+                  title="Không tải được bài viết"
+                  explain="Máy chủ nội dung không trả lời. Các bài đã đăng vẫn còn nguyên."
+                  action={{ label: 'Mở trang blog', href: '/blog' }}
+                />
+              </div>
+            ) : (
+              posts.length === 0 && (
+                <div className="md:col-span-3">
+                  <EmptyState
+                    icon="doc"
+                    title="Chưa có bài viết"
+                    explain="Toà soạn Agent AI đăng theo nhịp mỗi giờ và có trần số bài mỗi ngày cho từng kênh, nên khoảng trống giữa hai bài là bình thường."
+                    action={{ label: 'Xem toàn bộ blog', href: '/blog' }}
+                  />
+                </div>
+              )
             )}
             {posts.slice(0, 3).map((p: Post) => (
               <a
@@ -293,7 +360,26 @@ export async function getServerSideProps() {
   // đếm đó đếm nhầm: nó đếm số bản ghi VỪA TẢI VỀ chứ không phải số bản ghi
   // trên site, nên "Bài viết" đứng yên ở 6 trong khi blog có 48. Hàng số liệu
   // đã bỏ; đừng dựng lại bằng `.length` của một truy vấn có trần.
-  const [posts, projects] = await Promise.all([api.posts(3), api.projects(3)]);
+  const [rPosts, rProjects, rDownloads] = await Promise.all([
+    api.posts(3),
+    api.projects(3),
+    // Trần 6: trang chủ vẽ tối đa hai hàng ba thẻ. Lấy 20 rồi cắt ở client là
+    // trả tiền băng thông cho thứ không hiện ra - đúng lỗi mà khối số liệu hero
+    // cũ đã mắc (lấy 100 dự án chỉ để đếm).
+    api.releases(6),
+  ]);
 
-  return { props: { posts, projects } };
+  // Hai khu độc lập nhau nên hai cờ RIÊNG, không gộp thành một `failed` chung:
+  // blog chết không có nghĩa là danh sách dự án cũng chết, và nói nó chết là nói
+  // sai với người đọc.
+  return {
+    props: {
+      posts: rPosts.data,
+      postsFailed: rPosts.failed,
+      projects: rProjects.data,
+      projectsFailed: rProjects.failed,
+      downloads: rDownloads.data,
+      downloadsFailed: rDownloads.failed,
+    },
+  };
 }

@@ -17,7 +17,7 @@ import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Respon
 import { prisma } from '@tsudev/db'
 import { createAuthMiddleware, lookupUser } from '@tsudev/auth'
 import { createRateLimit, largePageRateLimit } from '@tsudev/ratelimit'
-import type { Post, Prisma, Project, User } from '@prisma/client'
+import type { Post, Prisma, Project, ProjectRelease, User } from '@prisma/client'
 import { hasAtLeastRole, emailUsable, pageMeta, parsePaging, MAX_PAGE_SIZE } from '@tsudev/types'
 import { buildPostSearch, buildSnippet, viNormalizeText } from '@tsudev/search'
 
@@ -578,6 +578,30 @@ app.get(
 // requireAdmin(). Thêm đường ghi mới phải theo đúng khuôn đó.
 
 const PROJECT_KINDS = new Set(['APP', 'TOOL', 'LIBRARY', 'SERVICE'])
+const RELEASE_CHANNELS = new Set(['STABLE', 'BETA', 'ALPHA'])
+const RELEASE_PLATFORMS = new Set(['ANDROID', 'WINDOWS', 'MACOS', 'LINUX', 'WEB', 'SOURCE'])
+
+/// URL đọc CÔNG KHAI của một object trong R2/MinIO.
+///
+/// ⚠️ TRÙNG LẶP CÓ CHỦ ĐÍCH với `publicUrlOf` của storage-service, và đây là
+/// trùng lặp duy nhất được phép. Gộp lại thành một hàm dùng chung thì phải đưa
+/// nó vào một package, và package đó sẽ kéo cấu hình S3 vào mọi workspace nhập
+/// nó - kể cả `frontend-main`, thứ chạy trên Cloudflare Workers và không được
+/// biết khoá S3 nào. Hai bản bốn dòng rẻ hơn một dependency sai hướng.
+///
+/// ⚠️ `S3_PUBLIC_ENDPOINT` khác `S3_ENDPOINT` Ở DEV và TRÙNG ở production:
+/// ở dev `S3_ENDPOINT` trỏ `minio:9000` trong mạng docker mà trình duyệt không
+/// với tới. Và ĐỪNG đặt nó thành `cdn.tsudev.com`: tên miền tuỳ chỉnh của R2
+/// không cài đặt giao thức chữ ký S3, nên URL presign sẽ bị từ chối.
+const publicObjectUrl = (key: string): string => {
+  const base = (
+    process.env.S3_PUBLIC_ENDPOINT ||
+    process.env.S3_ENDPOINT ||
+    'http://minio:9000'
+  ).replace(/\/+$/, '')
+  const bucket = process.env.S3_BUCKET || 'tsudev'
+  return `${base}/${bucket}/${key.split('/').map(encodeURIComponent).join('/')}`
+}
 const PROJECT_STATUSES = new Set(['WIP', 'BETA', 'STABLE', 'ARCHIVED'])
 const COPYRIGHT_STATUSES = new Set(['NONE', 'PENDING', 'REGISTERED'])
 
@@ -751,6 +775,172 @@ app.get(
   })
 )
 
+/// Thẻ phát hành công khai.
+///
+/// `storageKey` KHÔNG BAO GIỜ ra ngoài. Nó là khoá nội bộ trong R2, và để nó rò
+/// ra là mời người ta thử gọi thẳng bucket - trong khi lượt tải PHẢI đi qua
+/// route đếm ở dưới. Đường tải đối ngoại duy nhất là `downloadPath`.
+const releaseCard = (r: ProjectRelease, slug: string) => ({
+  id: r.id,
+  version: r.version,
+  channel: r.channel,
+  platform: r.platform,
+  // Chuỗi rỗng trong database nghĩa là "không phân biệt kiến trúc"; đối ngoại
+  // nó là `null`. Lưu rỗng thay vì NULL là bắt buộc để ràng buộc UNIQUE có tác
+  // dụng (SQL coi NULL != NULL) - xem chú thích ở schema.prisma.
+  arch: r.arch || null,
+  fileName: r.fileName,
+  fileSize: r.fileSize,
+  sha256: r.sha256,
+  signature: r.signature,
+  signingKid: r.signingKid,
+  releaseNotesMd: r.releaseNotesMd,
+  minOsVersion: r.minOsVersion,
+  downloadCount: r.downloadCount,
+  publishedAt: r.publishedAt,
+  /// Nền tảng WEB/SOURCE trỏ ra ngoài (địa chỉ app, repo); mọi nền tảng khác đi
+  /// qua route đếm của chính site. Quyết định điều hướng nằm ở ĐÂY chứ không ở
+  /// giao diện: nếu để client tự chọn thì một ngày nào đó nó sẽ gọi thẳng R2 và
+  /// bộ đếm lặng lẽ đứng yên.
+  externalUrl: r.externalUrl,
+  downloadPath: r.storageKey ? `/api/projects/${slug}/releases/${r.id}/download` : null,
+})
+
+/// Danh sách bản phát hành của một dự án - CÔNG KHAI.
+///
+/// Mặc định chỉ trả kênh STABLE. Beta/alpha phải xin bằng `?channel=`, vì trang
+/// tải về của một người dùng bình thường không được phép mời họ tải bản alpha.
+app.get(
+  '/api/projects/:slug/releases',
+  asyncHandler(async (req, res) => {
+    // Buộc thành `string`: express khai `req.params` lỏng nên dưới `strict` nó
+    // là `string | undefined`, dù route đã khớp `/:slug` thì nó không thể thiếu.
+    const slug = String(req.params.slug || '')
+    const project = await prisma.project.findUnique({
+      where: { slug },
+      select: { id: true, published: true, deletedAt: true },
+    })
+    if (!project || !project.published || project.deletedAt)
+      return res.status(404).json({ error: 'Không tìm thấy dự án' })
+
+    const channel = qStr(req.query.channel)
+    const where: Prisma.ProjectReleaseWhereInput = {
+      projectId: project.id,
+      deletedAt: null,
+      // `publishedAt: null` nghĩa là bản nháp. Điều kiện `not: null` ở đây là
+      // thứ duy nhất ngăn một bản chưa sẵn sàng lọt ra trang công khai.
+      publishedAt: { not: null },
+    }
+    if (channel && RELEASE_CHANNELS.has(channel))
+      where.channel = channel as Prisma.ProjectReleaseWhereInput['channel']
+    else where.channel = 'STABLE'
+
+    const releases = await prisma.projectRelease.findMany({
+      where,
+      orderBy: [{ publishedAt: 'desc' }],
+      take: Math.min(qInt(req.query.limit, 50), 100),
+    })
+    res.json(releases.map((r) => releaseCard(r, slug)))
+  })
+)
+
+/// MỌI bản phát hành đang công bố, gộp theo dự án - CÔNG KHAI.
+///
+/// Vì sao có endpoint này thay vì để trang chủ gọi `/releases` cho từng dự án:
+/// khối "Tải app" ở trang chủ cần biết dự án NÀO có tệp tải về, và câu đó không
+/// trả lời được bằng danh sách dự án - phải đọc bảng phát hành. Gọi lần lượt thì
+/// thành N+1 lượt mạng ở mỗi lần dựng trang chủ, trên một backend ngủ sau 15
+/// phút và một database tính tiền theo thời gian thức.
+///
+/// Trả về MẢNG đã gộp chứ không phải map: thứ tự dự án là thông tin (nó theo
+/// `sortOrder` do chủ dự án đặt), và JSON object không bảo toàn thứ tự một cách
+/// đáng tin.
+app.get(
+  '/api/releases',
+  asyncHandler(async (req, res) => {
+    const channel = qStr(req.query.channel)
+    const kenh = channel && RELEASE_CHANNELS.has(channel) ? channel : 'STABLE'
+
+    const projects = await prisma.project.findMany({
+      where: {
+        published: true,
+        deletedAt: null,
+        releases: {
+          some: {
+            deletedAt: null,
+            publishedAt: { not: null },
+            channel: kenh as Prisma.ProjectReleaseWhereInput['channel'],
+          },
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      take: Math.min(qInt(req.query.limit, 20), 50),
+      include: {
+        releases: {
+          where: {
+            deletedAt: null,
+            publishedAt: { not: null },
+            channel: kenh as Prisma.ProjectReleaseWhereInput['channel'],
+          },
+          orderBy: [{ publishedAt: 'desc' }],
+        },
+      },
+    })
+
+    res.json(
+      projects.map((p) => ({
+        project: projectCard(p),
+        releases: p.releases.map((r) => releaseCard(r, p.slug)),
+      }))
+    )
+  })
+)
+
+/// Đếm lượt tải rồi chuyển hướng tới tệp.
+///
+/// Vì sao phải có một chặng ở giữa thay vì đưa URL R2 ra thẳng giao diện: bộ đếm
+/// sống ở đây. Một đường tải đi thẳng vào bucket thì `downloadCount` đứng yên
+/// mãi mãi và không ai phát hiện, vì con số 0 trông giống hệt "chưa ai tải".
+///
+/// `increment` chạy TRƯỚC khi chuyển hướng và KHÔNG được await lồng trong nhánh
+/// lỗi: đếm hụt một lượt là chấp nhận được, nhưng từ chối một lượt tải vì bộ đếm
+/// lỗi thì không.
+app.get(
+  '/api/projects/:slug/releases/:id/download',
+  asyncHandler(async (req, res) => {
+    const release = await prisma.projectRelease.findFirst({
+      where: {
+        id: req.params.id,
+        deletedAt: null,
+        publishedAt: { not: null },
+        project: { slug: req.params.slug, published: true, deletedAt: null },
+      },
+      select: { id: true, storageKey: true, externalUrl: true },
+    })
+    if (!release) return res.status(404).json({ error: 'Không tìm thấy bản phát hành' })
+
+    const dich = release.storageKey ? publicObjectUrl(release.storageKey) : release.externalUrl
+    if (!dich)
+      return res
+        .status(409)
+        .json({ error: 'Bản phát hành này chưa có tệp hoặc đường dẫn - dữ liệu không đầy đủ' })
+
+    try {
+      await prisma.projectRelease.update({
+        where: { id: release.id },
+        data: { downloadCount: { increment: 1 } },
+      })
+    } catch (e) {
+      // Đếm hụt thì chỉ mất một con số; chặn lượt tải thì mất người dùng.
+      console.error('[content] không tăng được downloadCount:', e)
+    }
+
+    // 302 chứ không 301: đích có thể đổi (xoay bucket, đổi tên miền R2), và 301
+    // bị trình duyệt cache vĩnh viễn nên một lần sai là sai mãi trên máy đó.
+    res.redirect(302, dich)
+  })
+)
+
 /// Danh sách đầy đủ cho trang quản trị - gồm cả dự án chưa công bố.
 app.get(
   '/api/admin/projects',
@@ -779,6 +969,224 @@ app.get(
       }),
     ])
     res.json({ data: projects, meta: pageMeta(total, paging) })
+  })
+)
+
+/// Đọc và kiểm thân request của một bản phát hành.
+///
+/// ──────────────────────────────────────────────────────────────────────────────
+/// BA BẤT BIẾN ĐƯỢC KIỂM Ở ĐÂY, VÀ CẢ BA ĐỀU TỪNG LÀ LỖ IM LẶNG Ở CHỖ KHÁC
+/// ──────────────────────────────────────────────────────────────────────────────
+///
+///   1. Phải có ĐÚNG MỘT trong `storageKey` / `externalUrl`. Không có cái nào
+///      thì nút tải chết; có cả hai thì không ai biết nút dẫn đi đâu, và route
+///      tải sẽ im lặng chọn `storageKey`.
+///   2. `signature` KHÔNG ĐƯỢC đứng một mình. Chữ ký không nói nó được ký bằng
+///      khoá nào là chữ ký không kiểm được sau lần xoay khoá đầu tiên - và vòng
+///      khoá của repo này CÓ xoay (`TRUST_SIGNING_KEYS_RETIRED`). Nên
+///      `signature` đòi `signingKid`, và cả hai đòi `sha256` vì chữ ký là chữ ký
+///      CỦA chuỗi sha256.
+///   3. `sha256` phải đúng hình dạng 64 ký tự thập lục phân. Một checksum sai
+///      hình dạng còn tệ hơn không có: người tải chạy `sha256sum`, thấy không
+///      khớp, và kết luận tệp đã bị can thiệp.
+function readReleaseBody(
+  body: unknown,
+  opts: { partial: boolean }
+): { ok: true; data: Record<string, unknown> } | { ok: false; error: string } {
+  const b = (body ?? {}) as Record<string, unknown>
+  const data: Record<string, unknown> = {}
+
+  const str = (k: string) => (typeof b[k] === 'string' ? (b[k] as string).trim() : undefined)
+
+  const version = str('version')
+  const platform = str('platform')
+
+  if (!opts.partial) {
+    if (!version) return { ok: false, error: 'thiếu version' }
+    if (!platform) return { ok: false, error: 'thiếu platform' }
+  }
+  if (version !== undefined) data.version = version
+  if (platform !== undefined) {
+    if (!RELEASE_PLATFORMS.has(platform))
+      return { ok: false, error: `platform không hợp lệ: ${platform}` }
+    data.platform = platform
+  }
+
+  const channel = str('channel')
+  if (channel !== undefined) {
+    if (!RELEASE_CHANNELS.has(channel))
+      return { ok: false, error: `channel không hợp lệ: ${channel}` }
+    data.channel = channel
+  }
+
+  // `arch` tách riêng khỏi nhóm dưới: nó KHÔNG nhận null. Cột này là NOT NULL
+  // với mặc định chuỗi rỗng, vì một `arch` NULL làm ràng buộc UNIQUE mất tác
+  // dụng ở đúng trường hợp phổ biến nhất (SQL: NULL != NULL). Gửi null hay bỏ
+  // trống đều quy về ''.
+  if (b.arch !== undefined) data.arch = b.arch === null ? '' : str('arch') || ''
+
+  for (const k of ['storageKey', 'externalUrl', 'fileName', 'minOsVersion']) {
+    if (b[k] === null) data[k] = null
+    else {
+      const v = str(k)
+      if (v !== undefined) data[k] = v || null
+    }
+  }
+
+  if (b.releaseNotesMd !== undefined) data.releaseNotesMd = String(b.releaseNotesMd ?? '')
+
+  if (b.fileSize !== undefined && b.fileSize !== null) {
+    const n = parseInt(String(b.fileSize), 10)
+    if (Number.isNaN(n) || n < 0) return { ok: false, error: 'fileSize phải là số không âm' }
+    data.fileSize = n
+  }
+
+  const sha = str('sha256')
+  if (sha !== undefined) {
+    if (sha && !/^[0-9a-f]{64}$/i.test(sha))
+      return { ok: false, error: 'sha256 phải là 64 ký tự thập lục phân' }
+    data.sha256 = sha ? sha.toLowerCase() : null
+  }
+
+  for (const k of ['signature', 'signingKid']) {
+    if (b[k] === null) data[k] = null
+    else {
+      const v = str(k)
+      if (v !== undefined) data[k] = v || null
+    }
+  }
+
+  // `publishedAt` là CÔNG TẮC công bố. Nhận boolean cho tiện gọi từ giao diện
+  // (`published: true`) và nhận cả mốc thời gian tường minh.
+  if (b.published !== undefined) data.publishedAt = b.published ? new Date() : null
+  else if (b.publishedAt !== undefined) {
+    if (b.publishedAt === null) data.publishedAt = null
+    else {
+      const d = new Date(b.publishedAt as string)
+      if (Number.isNaN(d.getTime()))
+        return { ok: false, error: 'publishedAt không phải ngày hợp lệ' }
+      data.publishedAt = d
+    }
+  }
+
+  return { ok: true, data }
+}
+
+/// Kiểm ba bất biến trên giá trị SAU khi ghép, không trên thân request.
+///
+/// Phải làm trên giá trị đã ghép vì PATCH chỉ gửi phần thay đổi: một PATCH đặt
+/// `signature` mà không gửi `signingKid` vẫn hợp lệ nếu bản ghi đã có `kid`.
+/// Kiểm trên thân request sẽ từ chối oan đúng trường hợp đó.
+function kiemBatBienRelease(m: {
+  storageKey?: unknown
+  externalUrl?: unknown
+  sha256?: unknown
+  signature?: unknown
+  signingKid?: unknown
+}): string | null {
+  const coKhoa = Boolean(m.storageKey)
+  const coUrl = Boolean(m.externalUrl)
+  if (!coKhoa && !coUrl) return 'phải có storageKey (tệp đã tải lên) hoặc externalUrl'
+  if (coKhoa && coUrl) return 'chỉ được một trong storageKey hoặc externalUrl, không cả hai'
+  if (m.signature && !m.signingKid)
+    return 'signature phải đi kèm signingKid - chữ ký không nói được ký bằng khoá nào thì không kiểm được sau khi xoay khoá'
+  if (m.signature && !m.sha256) return 'signature là chữ ký CỦA sha256, nên phải có sha256'
+  return null
+}
+
+/// Danh sách phát hành cho trang quản trị - GỒM CẢ bản nháp và bản đã xoá mềm.
+app.get(
+  '/api/admin/projects/:slug/releases',
+  asyncHandler(async (req, res) => {
+    if (!(await requireAdmin(req, res))) return
+    const project = await prisma.project.findUnique({
+      where: { slug: String(req.params.slug || '') },
+      select: { id: true },
+    })
+    if (!project) return res.status(404).json({ error: 'Không tìm thấy dự án' })
+    const releases = await prisma.projectRelease.findMany({
+      where: { projectId: project.id },
+      orderBy: [{ createdAt: 'desc' }],
+    })
+    res.json(releases)
+  })
+)
+
+app.post(
+  '/api/admin/projects/:slug/releases',
+  asyncHandler(async (req, res) => {
+    if (!(await requireAdmin(req, res))) return
+    const project = await prisma.project.findUnique({
+      where: { slug: String(req.params.slug || '') },
+      select: { id: true },
+    })
+    if (!project) return res.status(404).json({ error: 'Không tìm thấy dự án' })
+
+    const parsed = readReleaseBody(req.body, { partial: false })
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+    const loi = kiemBatBienRelease(parsed.data)
+    if (loi) return res.status(400).json({ error: loi })
+
+    try {
+      const r = await prisma.projectRelease.create({
+        data: {
+          ...parsed.data,
+          projectId: project.id,
+        } as Prisma.ProjectReleaseUncheckedCreateInput,
+      })
+      res.status(201).json(r)
+    } catch (e) {
+      // P2002 = vi phạm ràng buộc UNIQUE. Trả 409 thay vì 500: bấm hai lần nút
+      // "Tạo bản phát hành" là chuyện thường, và một mã 500 làm người ta tưởng
+      // hệ thống hỏng rồi thử lại lần thứ ba.
+      if ((e as { code?: string }).code === 'P2002')
+        return res.status(409).json({
+          error: 'Đã có bản phát hành cùng phiên bản, nền tảng và kiến trúc cho dự án này',
+        })
+      throw e
+    }
+  })
+)
+
+app.patch(
+  '/api/admin/releases/:id',
+  asyncHandler(async (req, res) => {
+    if (!(await requireAdmin(req, res))) return
+    const current = await prisma.projectRelease.findUnique({ where: { id: String(req.params.id) } })
+    if (!current) return res.status(404).json({ error: 'Không tìm thấy bản phát hành' })
+
+    const parsed = readReleaseBody(req.body, { partial: true })
+    if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+
+    const loi = kiemBatBienRelease({ ...current, ...parsed.data })
+    if (loi) return res.status(400).json({ error: loi })
+
+    const r = await prisma.projectRelease.update({
+      where: { id: current.id },
+      data: parsed.data as Prisma.ProjectReleaseUncheckedUpdateInput,
+    })
+    res.json(r)
+  })
+)
+
+/// XOÁ MỀM. Đặt `deletedAt`, không DELETE thật.
+///
+/// Lý do giống hệt `Project`: một bản phát hành đã công bố có thể đã được người
+/// ta tải về và đang đối chiếu checksum. Xoá cứng thì checksum đó biến thành
+/// không kiểm được, và người tải không có cách nào biết tệp trên máy họ là thật
+/// hay giả.
+app.delete(
+  '/api/admin/releases/:id',
+  asyncHandler(async (req, res) => {
+    if (!(await requireAdmin(req, res))) return
+    const current = await prisma.projectRelease.findUnique({ where: { id: String(req.params.id) } })
+    if (!current) return res.status(404).json({ error: 'Không tìm thấy bản phát hành' })
+    if (current.deletedAt) return res.status(409).json({ error: 'Bản phát hành đã bị xoá' })
+    await prisma.projectRelease.update({
+      where: { id: current.id },
+      data: { deletedAt: new Date() },
+    })
+    res.json({ ok: true })
   })
 )
 

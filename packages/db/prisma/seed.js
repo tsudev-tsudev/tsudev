@@ -264,6 +264,86 @@ async function main() {
     await prisma.project.upsert({ where: { slug: p.slug }, update: { ...p }, create: { ...p } })
   }
 
+  // --- Bản phát hành tải về được -------------------------------------------
+  //
+  // Seed có bản phát hành là BẮT BUỘC, không phải trang trí: khối "Tải về" ở
+  // trang chủ TỰ ẨN khi không có bản nào (xem components/DownloadSection.tsx),
+  // nên không có dữ liệu seed thì cả tính năng đó vô hình ở môi trường dev và
+  // người rà giao diện sẽ không biết nó tồn tại để mà rà.
+  //
+  // `storageKey` ở đây trỏ tới object KHÔNG CÓ THẬT trong MinIO. Cố ý: seed
+  // không được phép đẻ ra 50 MB tệp nhị phân. Hệ quả cần biết khi thử tay: bấm
+  // "Tải" sẽ chuyển hướng tới MinIO rồi ăn 404 - đường dẫn và bộ đếm vẫn chạy
+  // đúng, chỉ không có tệp ở cuối. Bản SOURCE thì tải được thật vì nó trỏ ra
+  // GitHub.
+  //
+  // sha256 là giá trị GIẢ có hình dạng đúng (64 ký tự hex). Nó phải đúng hình
+  // dạng vì đường ghi của API từ chối chuỗi sai hình dạng - một seed không đi
+  // qua được chính phép kiểm của mình là một seed nói dối về hệ thống.
+  const releases = [
+    {
+      slug: 'tsudev-ui',
+      version: '0.1.0',
+      platform: 'SOURCE',
+      externalUrl: 'https://github.com/tsudev-tsudev/tsudev',
+      releaseNotesMd: '- Bộ token ba chế độ Sáng/Ấm/Tối\n- 78 icon theo vai trò màu\n',
+    },
+    {
+      slug: 'topology-check',
+      version: '1.0.0',
+      platform: 'LINUX',
+      arch: 'x86_64',
+      storageKey: 'releases/topology-check-1.0.0-linux-x86_64.tar.gz',
+      fileName: 'topology-check-1.0.0-linux-x86_64.tar.gz',
+      fileSize: 2_418_176,
+      sha256: '3f7a1c9d2e5b8406af1230bc7d9e45f682a3b1c0d4e7f8a9b2c3d4e5f607182a',
+      minOsVersion: 'glibc 2.31+',
+      releaseNotesMd: '- Bắt ba loại lệch cổng\n- Mã thoát 0/1 để cắm CI\n',
+    },
+    {
+      slug: 'topology-check',
+      version: '1.0.0',
+      platform: 'WINDOWS',
+      arch: 'x86_64',
+      storageKey: 'releases/topology-check-1.0.0-win-x64.zip',
+      fileName: 'topology-check-1.0.0-win-x64.zip',
+      fileSize: 2_883_584,
+      sha256: '91b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90',
+      minOsVersion: 'Windows 10 64-bit',
+    },
+    {
+      slug: 'tsudev-trust-seal',
+      version: '0.1.0',
+      platform: 'WEB',
+      externalUrl: '/trust',
+      releaseNotesMd: '- Chạy ở chế độ mời\n- Huy hiệu SVG nhúng được\n',
+    },
+  ]
+  let soRelease = 0
+  for (const r of releases) {
+    const { slug, ...rest } = r
+    const prj = await prisma.project.findUnique({ where: { slug }, select: { id: true } })
+    if (!prj) continue
+    await prisma.projectRelease.upsert({
+      // Khoá đúng bằng chính ràng buộc UNIQUE của bảng. `arch` phải viết tường
+      // minh thành CHUỖI RỖNG, không phải null: cột là NOT NULL default ''
+      // chính vì một `arch` NULL làm UNIQUE mất tác dụng (SQL: NULL != NULL).
+      // Và Prisma cũng không cho truyền null vào khoá tổ hợp - thử rồi, nó báo
+      // "Argument `arch` must not be null".
+      where: {
+        projectId_version_platform_arch: {
+          projectId: prj.id,
+          version: rest.version,
+          platform: rest.platform,
+          arch: rest.arch ?? '',
+        },
+      },
+      update: { ...rest, arch: rest.arch ?? '', publishedAt: new Date() },
+      create: { ...rest, arch: rest.arch ?? '', projectId: prj.id, publishedAt: new Date() },
+    })
+    soRelease += 1
+  }
+
   console.log('Seed hoàn tất:', {
     admin: admin.username,
     users: 3,
@@ -271,6 +351,7 @@ async function main() {
     docs: docs.length,
     trustPrograms: programs.length,
     projects: projects.length,
+    releases: soRelease,
   })
 }
 
