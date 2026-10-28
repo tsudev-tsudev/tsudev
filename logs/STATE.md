@@ -46,8 +46,23 @@
 > nhánh đếm và nhịp `*/5` đi vào nhánh giữ ấm · đường báo động chạy và **suy giảm
 > ồn ào** thành `console.error` khi chưa có Telegram.
 >
-> 🟠 **CÒN MỘT VIỆC NHỎ CỦA CHỦ DỰ ÁN: bật báo động.** > `npm run cron:secret-telegram` (đặt `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`).
-> Chưa đặt thì cổng chỉ ghi log - đọc bằng `npm run cron:tail`.
+> 🟠 **CÒN MỘT VIỆC CỦA CHỦ DỰ ÁN: bật báo động. Hướng dẫn đầy đủ ở
+> [`docs/alerting.md`](../docs/alerting.md).**
+>
+> Phải đặt **HAI CHỖ**, cùng tên biến nhưng hai hệ thống khác nhau - đặt một chỗ
+> thì chỗ kia vẫn im lặng:
+>
+> | nơi                                      | ai báo động                            | đặt bằng                       |
+> | ---------------------------------------- | -------------------------------------- | ------------------------------ |
+> | Cloudflare Worker `tsudev-newsroom-cron` | cổng đếm nội dung (site trống)         | `npm run cron:secret-telegram` |
+> | Render `tsudev-backend`                  | `migrationGate` + mọi `notify.alert()` | dashboard → Environment        |
+>
+> `render.yaml` nay đã KHAI hai khoá đó với `sync: false` - blueprint nói chúng
+> tồn tại, không giữ giá trị. Chưa đặt thì cổng vẫn chạy và vẫn đo, chỉ là báo
+> động nằm trong `npm run cron:tail` chứ không đến điện thoại.
+>
+> ⚠️ Đổi biến trên Render **kích hoạt dựng lại service**, và lần dựng lại đó chạy
+> `migrationGate`. Đọc mục migration treo bên dưới TRƯỚC khi đổi.
 >
 > Phát hiện kèm: **kênh báo động của repo chưa bao giờ được cấu hình.** > `packages/observability/notify.js` hỗ trợ Telegram + email webhook, nhưng không
 > biến nào được khai trong `render.yaml` lẫn `.env.example` - nghĩa là báo động
