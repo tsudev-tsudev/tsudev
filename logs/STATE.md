@@ -5,10 +5,48 @@
 > 🆕 **MỤC TIÊU PROJECT ĐỔI (29/10/2026): website cá nhân ĐĂNG VÀ PHÁT HÀNH FILE
 > CÀI ĐẶT của các app/phần mềm tự phát triển.**
 >
-> Hệ quả: **Con dấu tín nhiệm RA KHỎI PHẠM VI, gỡ hoàn toàn.** Khoảng 6.300 dòng
-> mã ứng dụng, 10 model, 6 enum. Kế hoạch bốn bước ở
-> `docs/refactor-tsudev-2026-q4.md` §7; phiếu bàn giao
+> Hai hệ quả, chốt cùng ngày - cả hai đều GỠ HOÀN TOÀN:
+>
+> | gỡ                                                                                 | dòng   | model | enum | kế hoạch |
+> | ---------------------------------------------------------------------------------- | ------ | ----- | ---- | -------- |
+> | **Con dấu tín nhiệm**                                                              | ~6.300 | 10    | 6    | §7       |
+> | **Toà soạn Agent AI** (bỏ hẳn tự động đăng bài, để tiết kiệm token/ngữ cảnh Agent) | ~5.300 | 8     | 6    | §8       |
+>
+> Tổng **~11.600 dòng**. Schema **33 model → 15**. Kế hoạch ở
+> `docs/refactor-tsudev-2026-q4.md` §7 và §8; phiếu bàn giao
 > [`20261029-01`](handover/20261029-01_bo-con-dau-va-24-24.md).
+>
+> 🟢 **LÀM NGAY, 5 PHÚT, KHÔNG GỠ MỘT DÒNG MÃ NÀO - dừng tiêu token hôm nay:**
+>
+> `dispatcher.ts:851` có công tắc `NEWSROOM_ENABLED`, nằm TRƯỚC mọi lời gọi LLM.
+>
+> 1. đặt `NEWSROOM_ENABLED=false` trên dashboard Render
+> 2. gỡ nhịp `"7 0-17,23 * * *"` khỏi `infrastructure/newsroom-cron/wrangler.jsonc`
+>    rồi `npm run cron:deploy`
+>
+> Việc (2) quan trọng hơn vẻ ngoài: nhịp giờ đó là **nguồn đánh thức Neon theo
+> lịch duy nhất**. Gỡ nó cộng bản vá vòng poll (đã LIVE) ⇒ không còn gì đánh thức
+> database theo lịch. **ĐỪNG gỡ nhịp `*/5`** - đó là giữ ấm Render, không chạm DB,
+> và là chỗ §6.1 cắm cổng đếm nội dung vào.
+>
+> ✅ **BA quyết định đã CHỐT**: huy hiệu **chưa cấp cho ai** ⇒ xoá thẳng, không
+> cần trang bia (nên §7 KHÔNG còn bị chặn bởi Neon) · **giữ `VIP`** trong enum,
+> gỡ khỏi đường mã (nên migration §7 không chạm enum `Role`) · **giữ `AUTHOR`**
+> cùng lý do.
+>
+> 🔴 **CÁI BẪY LỚN NHẤT của §8: gỡ Toà soạn là gỡ đường DUY NHẤT tạo tài liệu.** > `prisma.doc.create` chỉ tồn tại ở `newsroom-service/src/dispatcher.ts` (ngoài
+> seed và test). `Post` thì ổn - `/author` + `/api/author/posts` là đường người
+> viết thật. `Doc` thì KHÔNG CÓ ĐƯỜNG NÀO. Gỡ mà không làm gì thêm ⇒ `/docs` đóng
+> băng vĩnh viễn. Và với mục tiêu mới thì tài liệu quan trọng HƠN (hướng dẫn cài
+> đặt, cách vượt SmartScreen, nhật ký thay đổi). **Phải dựng `/api/author/docs` +
+> tab ở `/author` TRƯỚC khi gỡ `newsroom-service`.**
+>
+> ⚠️ **ĐỪNG xoá hai thứ này - chúng đổi vai, không chết:** > `packages/trust-crypto` → ký file cài đặt (`ProjectRelease` đã có sẵn ba cột
+> chờ) · `infrastructure/newsroom-cron` → nơi cắm cổng đếm nội dung (Worker miễn
+> phí, KHÔNG có kết nối Postgres nên vẫn sống đúng lúc DB chết).
+>
+> ⚠️ **Bốn script chết theo, kể cả hai cái mới dựng**: `canh-kenh-toa-soan.js`
+> (phiên 29) và `don-toa-soan.js` (28/10) - chúng canh/dọn thứ sẽ bị DROP.
 >
 > ⚠️ **ĐỪNG xoá `packages/trust-crypto`** - nó đổi vai sang **ký file cài đặt**.
 > `ProjectRelease` đã có sẵn ba cột `sha256`/`signature`/`signingKid` chờ nó.

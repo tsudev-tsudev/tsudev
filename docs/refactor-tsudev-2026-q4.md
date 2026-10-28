@@ -682,27 +682,28 @@ nghĩa từ _"khoá của con dấu tín nhiệm"_ thành _"khoá ký bản phá
 ra. Đổi tên biến mà không chuyển giá trị sang tên mới ⇒ service từ chối khởi động
 (cố ý, theo CLAUDE.md). Phải đặt biến mới **trước**, gỡ biến cũ **sau**, hai đợt.
 
-### 7.4 Thang vai trò: `VIP` tồn tại CHỈ VÌ con dấu
+### 7.4 Thang vai trò - ĐÃ CHỐT: GIỮ `VIP` trong enum
 
 `packages/types`: `GUEST < MEMBER < VIP < AUTHOR < MODERATOR < ADMIN < OWNER`.
 CLAUDE.md ghi rõ `AUTHOR` được đặt **trên** `VIP` có chủ đích _"để khách VIP của
 Con dấu KHÔNG đăng bài được"_. Bỏ con dấu thì `VIP` mất lý do tồn tại.
 
-Nhưng nó bám vào 7 chỗ: `admin/accounts.tsx` · `components/AccountFilters.tsx` ·
-`lib/trustGate.ts` · `packages/ui/src/lib/useTrustNav.ts` · `packages/types` ·
-enum `Role` của Prisma · và `services/auth-service/src/invite.ts`.
+✅ **Chủ dự án chốt 29/10/2026: GIỮ `VIP`.**
 
-Hai đường, cần chủ dự án chọn:
+Gỡ nó khỏi mọi ĐƯỜNG MÃ (7 chỗ: `admin/accounts.tsx` · `components/AccountFilters.tsx`
+· `lib/trustGate.ts` · `packages/ui/src/lib/useTrustNav.ts` · `packages/types` ·
+enum `Role` của Prisma · `services/auth-service/src/invite.ts`), nhưng **để giá
+trị enum nằm lại** kèm một dòng trong schema nói rõ nó là di sản.
 
-|           | giữ `VIP` trong enum, thôi dùng                | xoá khỏi enum                          |
-| --------- | ---------------------------------------------- | -------------------------------------- |
-| migration | không cần                                      | cần, và là loại khó (xem 7.2)          |
-| rủi ro    | gần như 0                                      | mất dữ liệu `User.role` nếu sai thứ tự |
-| giá       | một giá trị enum chết nằm lại, có thể gây nhầm | sạch                                   |
+Vì sao đây là lựa chọn đúng, không phải lựa chọn dễ: Postgres không cho
+`DROP VALUE` khỏi enum, nên xoá thật phải tạo enum mới + `ALTER COLUMN ... USING`
 
-**Khuyến nghị: giữ trong enum, gỡ khỏi mọi đường mã, ghi một dòng trong schema
-nói rõ nó là di sản.** Một giá trị enum không dùng không làm hỏng gì; một
-migration enum sai thứ tự làm mất cột vai trò của mọi người dùng.
+- xoá enum cũ. Sai thứ tự là **mất cột `User.role` của mọi người dùng**. Một giá
+  trị enum không dùng không làm hỏng gì.
+
+**Hệ quả tốt cho migration của §7**: nó **không chạm enum `Role`** chút nào, nên
+chỉ còn `DROP TABLE` và `DROP TYPE` của các enum RIÊNG của trust - đơn giản và
+quay lui được hơn nhiều so với bản dự tính ban đầu.
 
 ### 7.5 Mã mời: xoá, vì nó chỉ để vào con dấu
 
@@ -714,19 +715,22 @@ bảng, cả trang `/trust/redeem`.
 nó thì phải cập nhật chính khối đó trong CLAUDE.md, nếu không tài liệu nói về một
 cơ chế không còn tồn tại.
 
-### 7.6 Bề mặt đối ngoại: có thể đang có người nhúng huy hiệu
+### 7.6 Bề mặt đối ngoại - ĐÃ CHỐT: xoá thẳng
 
-Con dấu phát ra **huy hiệu SVG nhúng được vào site bên thứ ba**, và
-`/trust/verify/[serial]` là đích của mọi huy hiệu đó. Xoá thẳng thì huy hiệu trên
-site người khác thành ảnh hỏng và link chết.
+✅ **Chủ dự án xác nhận 29/10/2026: huy hiệu CHƯA cấp cho bất kỳ ai.**
 
-Cần chủ dự án chọn, và câu trả lời phụ thuộc vào **đã cấp cho ai chưa** (chưa đo
-được):
+Con dấu phát ra huy hiệu SVG nhúng được vào site bên thứ ba, và
+`/trust/verify/[serial]` là đích của mọi huy hiệu đó - nên nếu đã cấp cho ai thì
+xoá thẳng sẽ làm huy hiệu trên site họ thành ảnh hỏng. **Chưa cấp cho ai, nên
+không có rủi ro đó.**
 
-|                 | làm gì                                                                                                                                    |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| chưa cấp cho ai | xoá thẳng, không cần gì                                                                                                                   |
-| đã cấp          | giữ `/trust/verify/[serial]` làm **trang bia**: nói chương trình đã dừng, chứng chỉ không còn hiệu lực. Hoặc 410 Gone cho mọi đường trust |
+Hệ quả: không cần trang bia, không cần 410 Gone, không cần giữ
+`/trust/verify/[serial]`. **Xoá thẳng toàn bộ.** Việc 7.1 (đếm chứng chỉ đã cấp)
+và 7.2 (quyết định bề mặt) **ĐÓNG LẠI** - không còn phải chờ Neon sống để trả lời
+chúng, nên §7 không bị chặn bởi Neon nữa.
+
+Vẫn xuất backup trước khi DROP, nhưng lý do đổi: không phải để cứu dữ liệu của
+người khác, mà để quay lui được nếu migration sai.
 
 ### 7.7 Thứ tự gỡ - BỐN BƯỚC, không gộp
 
@@ -758,17 +762,17 @@ thứ tư nằm ở workspace KHÁC nên đã lọt lưới một lần: xanh c�
 
 ### 7.8 Việc của §7
 
-| #   | việc                                                                                                | bước | vùng agent                                |
-| --- | --------------------------------------------------------------------------------------------------- | ---- | ----------------------------------------- |
-| 7.1 | **Đo trước**: xuất dữ liệu trust prod ra `backup/`, đếm chứng chỉ đã cấp                            | B0   | cần Neon sống                             |
-| 7.2 | Quyết định bề mặt đối ngoại: xoá thẳng · trang bia · 410                                            | B0   | **chủ dự án**                             |
-| 7.3 | Quyết định `VIP`: giữ trong enum hay xoá                                                            | B0   | **chủ dự án**                             |
-| 7.4 | Gỡ 9 trang + admin + proxy + nav + icon role                                                        | B1   | `frontend-web`                            |
-| 7.5 | Gỡ `trust-service`, sửa bảng tiền tố + 4 chỗ cùng commit                                            | B2   | `infra-deploy` + `qa-test`                |
-| 7.6 | Đổi `trust-crypto` sang ký bản phát hành, đổi tên biến HAI ĐỢT                                      | B2   | `trust-seal` (vùng này còn chủ cuối cùng) |
-| 7.7 | Gỡ mã mời + VIP khỏi đường mã                                                                       | B3   | `backend-api`                             |
-| 7.8 | Migration DROP + xuất backup + `Project.trustProgramSlug`                                           | B4   | `data-schema`                             |
-| 7.9 | Dọn tài liệu: `docs/trust-seal.md` · `refactor-trust-invite-access.md` · khối trust trong CLAUDE.md | B4   | `docs-curator`                            |
+| #       | việc                                                                                                | bước | vùng agent                                |
+| ------- | --------------------------------------------------------------------------------------------------- | ---- | ----------------------------------------- |
+| ~~7.1~~ | ~~đếm chứng chỉ đã cấp~~ - **ĐÓNG**, chưa cấp cho ai. Vẫn xuất backup trước B4 để quay lui được     | B0   | cần Neon sống                             |
+| ~~7.2~~ | ~~quyết định bề mặt đối ngoại~~ - **ĐÓNG**: xoá thẳng                                               | B0   | **chủ dự án**                             |
+| ~~7.3~~ | ~~quyết định `VIP`~~ - **ĐÓNG**: giữ trong enum, gỡ khỏi đường mã                                   | B0   | **chủ dự án**                             |
+| 7.4     | Gỡ 9 trang + admin + proxy + nav + icon role                                                        | B1   | `frontend-web`                            |
+| 7.5     | Gỡ `trust-service`, sửa bảng tiền tố + 4 chỗ cùng commit                                            | B2   | `infra-deploy` + `qa-test`                |
+| 7.6     | Đổi `trust-crypto` sang ký bản phát hành, đổi tên biến HAI ĐỢT                                      | B2   | `trust-seal` (vùng này còn chủ cuối cùng) |
+| 7.7     | Gỡ mã mời + VIP khỏi đường mã                                                                       | B3   | `backend-api`                             |
+| 7.8     | Migration DROP + xuất backup + `Project.trustProgramSlug`                                           | B4   | `data-schema`                             |
+| 7.9     | Dọn tài liệu: `docs/trust-seal.md` · `refactor-trust-invite-access.md` · khối trust trong CLAUDE.md | B4   | `docs-curator`                            |
 
 ### 7.9 Phần được GIỮ LẠI từ con dấu, và nó không nhỏ
 
@@ -779,6 +783,193 @@ mới:
 2. **Khuôn `requireRole()` fail-closed + mặc định-đóng** → đường ghi bản phát hành
    đã dùng đúng khuôn đó.
 3. **Bài học bề mặt bốn-chỗ-một-commit** → nay áp vào `ProjectRelease`.
+
+---
+
+## §8 - Gỡ hoàn toàn Toà soạn Agent AI
+
+> Chủ dự án chốt 29/10/2026: **bỏ cơ chế Toà soạn AI và bỏ hoàn toàn việc tự động
+> đăng bài**, để tiết kiệm tối đa token / hạn mức / cửa sổ ngữ cảnh của Agent AI.
+
+### 8.1 🟢 Làm ĐƯỢC NGAY HÔM NAY, không gỡ một dòng mã nào
+
+Việc gỡ mã mất nhiều ngày. Việc **dừng tiêu token** mất 5 phút, và không cần
+đợi gì cả:
+
+```
+services/newsroom-service/src/dispatcher.ts:851
+  if (process.env.NEWSROOM_ENABLED !== 'true') {
+    return { processed: 0, reclaimed: 0, skipped: 'NEWSROOM_ENABLED chưa bật' }
+  }
+```
+
+Công tắc đã có sẵn và nằm **trước** mọi lời gọi LLM.
+
+| #    | việc                                              | ở đâu                                                         | hiệu lực                                    |
+| ---- | ------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------- |
+| 8.1a | Đặt `NEWSROOM_ENABLED=false`                      | dashboard Render                                              | **dừng mọi lượt gọi LLM ngay**              |
+| 8.1b | Gỡ nhịp `"7 0-17,23 * * *"` khỏi `triggers.crons` | `infrastructure/newsroom-cron/wrangler.jsonc` + `cron:deploy` | dừng cả lượt **truy vấn database** theo giờ |
+
+8.1b quan trọng hơn vẻ ngoài của nó: nhịp giờ đó là **nguồn đánh thức Neon theo
+lịch duy nhất** của hệ thống. Gỡ nó cộng với bản vá vòng poll (đã LIVE) thì
+không còn gì đánh thức database theo lịch nữa.
+
+⚠️ **ĐỪNG gỡ nhịp `*/5`** ở bước này - đó là nhịp giữ ấm Render, không chạm
+database, và nó là chỗ §6.1 sẽ cắm cổng đếm nội dung vào.
+
+### 8.2 Khối lượng, đo được
+
+| phần                                          | dòng      | ghi chú                    |
+| --------------------------------------------- | --------- | -------------------------- |
+| `services/newsroom-service/src`               | **2.073** | 6 tệp                      |
+| `services/newsroom-service/test`              | **1.677** | 13 tệp, 107 test           |
+| `apps/frontend-main/pages/admin/newsroom.tsx` | **780**   |                            |
+| `scripts/*toa-soan*`                          | **654**   | 4 tệp                      |
+| `infrastructure/newsroom-cron/src`            | 151       | **GIỮ, đổi vai** - xem 8.5 |
+
+Database: **8 model** (`AgentProfile` `NewsroomChannel` `NewsroomSource`
+`TopicIdea` `ContentDraft` `DraftRevision` `AgentRun` `NewsroomEvent`) + **6
+enum** (`AgentDept` `AgentStatus` `DraftStatus` `DraftTarget` `Autonomy`
+`NewsroomEventStatus`).
+
+Tổng §7 + §8: khoảng **11.600 dòng**, **18 model**, **12 enum**.
+
+Schema sau khi gỡ cả hai: **33 model → 15**.
+
+```
+User · OAuthAccount · WebAuthnCredential · TotpCredential · BackupCode
+AuthToken · WebAuthnChallenge · LoginAttempt · EmailAlias · SecurityEvent
+Post · Doc · FileObject · Project · ProjectRelease
+```
+
+### 8.3 🔴 CÁI BẪY LỚN NHẤT: gỡ Toà soạn là gỡ đường DUY NHẤT tạo tài liệu
+
+Đo được, và đây là thứ phải sửa TRƯỚC khi gỡ:
+
+```
+$ grep -rn "prisma.doc.create" services/ scripts/ packages/
+services/newsroom-service/src/dispatcher.ts   ← DUY NHẤT trong mã chạy thật
+packages/db/prisma/seed.js                    ← seed
+services/content-service/test/*.test.ts       ← test
+```
+
+`Post` thì ổn: `/author` là một trang người viết thật, có `/api/author/posts`
+(POST/PATCH, gác `requireRole('AUTHOR')`), tạo và sửa bài được. **`Doc` thì
+không có đường nào cả** - mọi tài liệu trên `/docs` hiện có đến từ seed hoặc từ
+dispatcher của Toà soạn.
+
+Gỡ Toà soạn mà không làm gì thêm ⇒ `/docs` đóng băng vĩnh viễn: không thêm, không
+sửa, không xoá được một tài liệu nào.
+
+**Và với mục tiêu mới thì tài liệu càng quan trọng hơn, không ít đi.** Một site
+phát hành phần mềm cần: hướng dẫn cài đặt, cách vượt cảnh báo SmartScreen, nhật
+ký thay đổi, cách gỡ lỗi. Đó đúng là `Doc`.
+
+Nên §8 **buộc phải kèm một việc net-new**:
+
+| #    | việc                                                                      | ghi chú                                                   |
+| ---- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 8.3a | `/api/author/docs` - GET/POST/PATCH/DELETE, soi khuôn `/api/author/posts` | gác `requireRole('AUTHOR')`, tự gọi, không dựa middleware |
+| 8.3b | Mở rộng trang `/author` thành hai thẻ tab: Bài viết · Tài liệu            | tái dùng trình soạn Markdown đã có                        |
+| 8.3c | Test đường ghi tài liệu                                                   | theo khuôn `author.test.ts` đang có                       |
+
+⚠️ **8.3 phải XONG và nghiệm thu TRƯỚC khi gỡ `newsroom-service`** - nếu không sẽ
+có một cửa sổ thời gian mà không ai tạo được tài liệu.
+
+### 8.4 Bốn script chết theo, kể cả hai cái mới dựng
+
+Nói thẳng để phiên sau không cố cứu chúng:
+
+| script                          | số phận                                                   |
+| ------------------------------- | --------------------------------------------------------- |
+| `scripts/kiem-toa-soan.sh`      | **XOÁ**                                                   |
+| `scripts/chan-doan-toa-soan.js` | **XOÁ**                                                   |
+| `scripts/canh-kenh-toa-soan.js` | **XOÁ** - dựng ở phiên 29, canh kênh sẽ không còn tồn tại |
+| `scripts/don-toa-soan.js`       | **XOÁ** - dựng ngày 28/10, dọn bảng sẽ bị DROP            |
+
+Cùng với các lệnh `newsroom:check` · `newsroom:chan-doan` · `newsroom:canh-kenh` ·
+`db:don-toa-soan` · `db:seed:newsroom` trong `package.json`.
+
+Điều này **không phải công sức bỏ đi**: bài học của chúng đã chuyển sang
+`prod:dem-noi-dung`, thứ hỏi câu đúng hơn và không phụ thuộc Toà soạn.
+
+**`prod:dem-noi-dung` phải sửa một chỗ**: ghi chú ở phép đo `/docs` nói _"kênh DOC
+có trần 1 bài/ngày nên dày lên chậm"_ - câu đó thành vô nghĩa khi không còn kênh
+nào. Đổi thành: nội dung chỉ tăng khi chủ dự án viết.
+
+### 8.5 ĐỪNG xoá `infrastructure/newsroom-cron` - nó đổi vai
+
+Nó là một Cloudflare Worker có lịch, **miễn phí**, và **không có kết nối
+Postgres** - tức nó vẫn chạy đúng lúc database chết. Đó chính là nơi §6.1 cắm
+cổng đếm nội dung vào.
+
+| nhịp          | trước                       | sau                               |
+| ------------- | --------------------------- | --------------------------------- |
+| `*/5 0-17,23` | giữ ấm Render               | **giữ** + cắm `prod:dem-noi-dung` |
+| `7 0-17,23`   | nhịp đập Toà soạn (chạm DB) | **XOÁ** (8.1b)                    |
+
+Đổi tên thư mục và Worker (ví dụ `infrastructure/canh-site-cron`) là việc dọn,
+làm sau, và nhớ: **gỡ khỏi repo KHÔNG xoá Worker đang chạy trên Cloudflare** -
+cùng cái bẫy mà `docs/deployment.md` đã ghi về `tsudev-sso` trên Render.
+
+### 8.6 Biến môi trường
+
+| biến                                                                                                 | số phận                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEWSROOM_ENABLED`                                                                                   | **XOÁ** sau khi gỡ mã (đặt `false` trước, ở 8.1a)                                                                                                                                          |
+| `NEWSROOM_DAILY_NEURON_BUDGET` · `_MAX_REVISIONS` · `_GITHUB_TOKEN` · `_TICK_TOKEN` · `_SERVICE_URL` | **XOÁ**                                                                                                                                                                                    |
+| `AI_TOKEN` · `GEMINI_API_KEY`                                                                        | **XOÁ** - không còn gọi LLM nào                                                                                                                                                            |
+| `CF_ACCOUNT_ID`                                                                                      | ⚠️ **GIỮ** - `wrangler` cũng đọc nó. Bản deploy 29/10 in ra: _"Using CF_ACCOUNT_ID environment variable. This is deprecated. Please use CLOUDFLARE_ACCOUNT_ID"_. Xoá mò là làm hỏng deploy |
+
+### 8.7 Vai trò `AUTHOR`: giữ, cùng lý do với `VIP`
+
+`AUTHOR` sinh ra cho "tài khoản đăng bài (đặc quyền tối thiểu)". Không còn agent
+thì chủ dự án (OWNER) tự đăng - nhưng `/api/author/*` gác `requireRole('AUTHOR')`
+và OWNER đã ở trên AUTHOR nên vẫn đi qua.
+
+**Giữ `AUTHOR`**, và vì cùng lý do như `VIP`: Postgres không cho `DROP VALUE`
+khỏi enum, nên không đáng rủi ro cột `User.role` để xoá một giá trị vô hại.
+
+### 8.8 Thứ tự gỡ - BA BƯỚC, sau khi 8.1 và 8.3 đã xong
+
+```
+8.1  TẮT CÔNG TẮC      NEWSROOM_ENABLED=false + gỡ nhịp giờ   ← HÔM NAY, 5 phút
+8.3  ĐƯỜNG GHI DOC     /api/author/docs + tab ở /author       ← TRƯỚC khi gỡ gì
+     ↓
+C1   đường vào         admin/newsroom.tsx · proxy api/newsroom · mục nav
+C2   service           newsroom-service · bảng tiền tố · 4 script · env
+C3   dữ liệu           ← migration DROP. Backup TRƯỚC. Làm CUỐI.
+```
+
+Sau mỗi bước: `typecheck` · toàn bộ test · `topology:check` · `prod:dem-noi-dung`.
+
+### 8.9 Hệ quả lên §6 - và nó LỚN
+
+Gỡ Toà soạn làm bài toán 24/24 **dễ hẳn đi**, vì nó gỡ đúng thứ khó nhất:
+
+|                             | trước                                          | sau khi gỡ §8                                        |
+| --------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| truy cập database theo LỊCH | mỗi giờ, 19 lượt/ngày                          | **không còn lượt nào**                               |
+| database cần sống khi nào   | liên tục                                       | **chỉ khi chủ dự án đăng bài**                       |
+| bảng phình không giới hạn   | `DraftRevision` · `NewsroomEvent` · `AgentRun` | **bị DROP hết**                                      |
+| model trong schema          | 33                                             | **15**                                               |
+| cột `String[]` còn lại      | 4                                              | **2** (`Post.tags`, `WebAuthnCredential.transports`) |
+
+Ba điều này đổi kết luận của §6.7:
+
+1. **Cloudflare D1 từ "để sau" thành PHƯƠNG ÁN THẬT.** Hai trở ngại lớn nhất đã
+   biến mất: schema còn 15 model, và chỉ còn **hai** cột mảng phải chuyển sang
+   JSON. Cộng với việc không còn truy cập theo lịch, mô hình CU-giờ của Neon
+   không còn gì để tiêu. D1 chạy ở biên, không có khái niệm compute-hours.
+2. **Nhịp giữ ấm Render có thể bỏ được** sau khi §6.2-6.3 xong: nếu đường đọc đã
+   được cache ở biên thì Render chỉ còn phục vụ đường GHI và đăng nhập - tức chỉ
+   chủ dự án dùng. Cold start 50s cho chính mình là chấp nhận được, và bỏ giữ ấm
+   trả lại **toàn bộ 750 giờ instance/tháng**.
+3. **`db:don-toa-soan` thành vô nghĩa** - ba bảng phình nhất bị xoá hẳn.
+
+⚠️ Nhưng **đừng đảo thứ tự**: §6.1 (cắm cổng đếm vào cron) vẫn nên làm TRƯỚC mọi
+thứ. Nó nửa ngày, không cần Neon, và nó là thứ sẽ phát hiện nếu một bước gỡ nào
+làm site trống.
 
 ---
 
