@@ -9,7 +9,20 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..', '..');
 const TOPOLOGY_PATH = path.join(ROOT, 'config', 'topology.json');
 
-function loadTopology() {
+/**
+ * Đọc topology. `DEV_PROXY_PORT` ghi đè cổng vào của dev-proxy cho MỘT MÁY -
+ * dùng khi cổng mặc định đã bị dự án khác chiếm, hoặc khi muốn URL sạch không
+ * mang cổng (`DEV_PROXY_PORT=80`, xem docs/refactor-network-topology.md).
+ *
+ * Ghi đè áp NGAY TẠI ĐÂY, không ở chỗ gọi. Bản trước chỉ dev-proxy.js đọc biến
+ * này, còn publicUrl() vẫn lấy topo.dev.proxyPort - nên proxy nghe cổng mới
+ * trong khi NEXTAUTH_URL vẫn trỏ cổng cũ, và đăng nhập chuyển hướng vào một
+ * cổng không có ai nghe. Không có gì báo lỗi. Một nguồn sự thật thì không lệch.
+ *
+ * `raw: true` lấy bản CHƯA ghi đè - dành cho thứ được commit (.env.example),
+ * nơi cổng của một máy không được phép rò vào git.
+ */
+function loadTopology({ raw = false } = {}) {
   const topo = JSON.parse(fs.readFileSync(TOPOLOGY_PATH, 'utf8'));
   const seenId = new Set();
   const seenPort = new Map();
@@ -23,6 +36,20 @@ function loadTopology() {
     }
     seenPort.set(n.port, n.id);
   });
+
+  // Giữ cả giá trị gốc: knownPorts() phải chấp nhận CẢ HAI, nếu không mọi chỗ
+  // nhắc cổng chuẩn (tài liệu, bình luận) bị check.js báo là "số lạ" ngay khi
+  // ai đó đặt biến ghi đè.
+  topo.dev.proxyPortBase = topo.dev.proxyPort;
+  const override = raw ? '' : String(process.env.DEV_PROXY_PORT || '').trim();
+  if (override) {
+    const n = Number(override);
+    if (!Number.isInteger(n) || n < 1 || n > 65535) {
+      throw new Error(`topology: DEV_PROXY_PORT="${override}" không phải cổng hợp lệ (1-65535)`);
+    }
+    topo.dev.proxyPort = n;
+    topo.dev.proxyPortOverridden = n !== topo.dev.proxyPortBase;
+  }
   return topo;
 }
 
@@ -125,6 +152,7 @@ function knownPorts(topo) {
     Object.values(envOv).forEach((o) => o && o.port && set.add(o.port));
   });
   set.add(topo.dev.proxyPort);
+  if (topo.dev.proxyPortBase) set.add(topo.dev.proxyPortBase);
   return set;
 }
 

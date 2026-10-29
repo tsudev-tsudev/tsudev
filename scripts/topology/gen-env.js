@@ -20,7 +20,10 @@ const END = '# <<< topology <<<';
 // localhost lên production.
 const TARGETS = [
   { file: '.env', vars: managedEnv },
-  { file: '.env.example', vars: managedEnv },
+  // Bản mẫu được COMMIT: luôn sinh từ topology THUẦN. Nếu nhận DEV_PROXY_PORT
+  // thì ai đặt biến đó rồi chạy topology:gen sẽ đẩy cổng riêng của máy mình vào
+  // git, và người tiếp theo clone về nhận một cổng không hiểu từ đâu ra.
+  { file: '.env.example', vars: managedEnv, raw: true },
   { file: 'apps/frontend-main/.env.production', vars: managedProdEnv },
 ];
 
@@ -102,10 +105,18 @@ function checkWranglerVars(topo) {
 function main() {
   const check = process.argv.includes('--check');
   const topo = loadTopology();
+  const topoRaw = loadTopology({ raw: true });
+
+  if (topo.dev.proxyPortOverridden) {
+    console.log(
+      `! DEV_PROXY_PORT=${topo.dev.proxyPort} ghi đè cổng ${topo.dev.proxyPortBase} của topology.` +
+        '\n  Áp cho .env và lúc chạy; .env.example giữ nguyên bản chuẩn.'
+    );
+  }
 
   let drifted = false;
-  TARGETS.forEach(({ file, vars }) => {
-    const r = syncFile(file, vars(topo), { check });
+  TARGETS.forEach(({ file, vars, raw }) => {
+    const r = syncFile(file, vars(raw ? topoRaw : topo), { check });
     if (r.skipped) return console.log(`- ${file} (không có, bỏ qua)`);
     if (!r.drifted) return console.log(`✓ ${file} khớp topology`);
     drifted = true;
