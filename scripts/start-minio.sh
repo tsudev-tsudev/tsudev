@@ -15,6 +15,9 @@ MINIO_DATA="${TSUDEV_MINIO_DATA:-$HOME/.tsudev/minio-data}"
 MINIO_PORT="${TSUDEV_MINIO_PORT:-$(node -e "const{loadTopology,port}=require('$ROOT_DIR/scripts/topology/load');process.stdout.write(String(port(loadTopology(),'cdn')))")}"
 MINIO_CONSOLE_PORT="${TSUDEV_MINIO_CONSOLE_PORT:-9001}"
 MINIO_LOG="$HOME/.tsudev/minio.log"
+# Bản dùng ở mọi máy của dự án. Ghim một chỗ để ba đường lấy binary ở dưới cho
+# ra cùng một thứ - MinIO không còn kênh "latest" nào để tin cậy nữa.
+MINIO_VERSION="${TSUDEV_MINIO_VERSION:-RELEASE.2025-09-07T16-13-09Z}"
 
 # Tài khoản lấy từ .env gốc để không tách làm hai nguồn sự thật.
 if [ -f "$ROOT_DIR/.env" ]; then
@@ -25,9 +28,47 @@ MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
 MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}"
 S3_BUCKET="${S3_BUCKET:-tsudev}"
 
+BIN_DIR="$(dirname "$MINIO_BIN")"
+
+# Tự dựng chỉ khi được cho phép TƯỜNG MINH. Không bật theo mặc định: `go install`
+# tải vài trăm MB module và mất nhiều phút, không phải việc một script dev được
+# quyền làm sau lưng người gọi.
+if [ ! -x "$MINIO_BIN" ] && [ "${TSUDEV_MINIO_AUTOBUILD:-0}" = "1" ]; then
+  if command -v go >/dev/null 2>&1; then
+    echo "[minio] không có binary - dựng từ nguồn: github.com/minio/minio@$MINIO_VERSION" >&2
+    mkdir -p "$BIN_DIR"
+    GOBIN="$BIN_DIR" go install "github.com/minio/minio@$MINIO_VERSION"
+  else
+    echo "[minio] TSUDEV_MINIO_AUTOBUILD=1 nhưng không có 'go' trong PATH - bỏ qua bước dựng." >&2
+  fi
+fi
+
 if [ ! -x "$MINIO_BIN" ]; then
-  echo "[minio] KHÔNG tìm thấy binary ở $MINIO_BIN" >&2
-  echo "[minio] Tải về: curl -fSL -o \"$MINIO_BIN\" https://dl.min.io/server/minio/release/linux-amd64/minio && chmod +x \"$MINIO_BIN\"" >&2
+  cat >&2 <<MSG
+[minio] KHÔNG tìm thấy binary ở $MINIO_BIN
+
+[minio] dl.min.io đã NGỪNG phát hành binary dựng sẵn. Mọi URL dạng
+[minio]   https://dl.min.io/server/minio/release/linux-amd64/minio
+[minio] nay trả HTTP 410 VĨNH VIỄN, kể cả dạng có ghim bản và dạng archive;
+[minio] release trên GitHub của minio/minio cũng không kèm asset nào.
+[minio] Đừng đi tìm URL tải khác - không còn cái nào.
+
+[minio] Ba đường lấy binary $MINIO_VERSION, theo thứ tự nên thử:
+
+[minio]   1. Copy từ máy đã có - nhanh nhất, và chắc chắn trùng bản:
+[minio]        scp <user>@<host>:.tsudev/bin/minio "$MINIO_BIN"
+[minio]        chmod +x "$MINIO_BIN"
+
+[minio]   2. Dựng từ nguồn - cần Go >= 1.24, tải nhiều, chậm:
+[minio]        TSUDEV_MINIO_AUTOBUILD=1 npm run minio:up
+
+[minio]   3. Rút từ image Docker - cần Docker:
+[minio]        docker run --rm --entrypoint cat quay.io/minio/minio:$MINIO_VERSION /usr/bin/minio > "$MINIO_BIN"
+[minio]        chmod +x "$MINIO_BIN"
+
+[minio] MinIO chỉ phục vụ đường ký presign ở local. Thiếu nó thì upload ở local
+[minio] không chạy, còn lại bình thường - bộ test không cần nó.
+MSG
   exit 1
 fi
 
