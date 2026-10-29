@@ -1,0 +1,39 @@
+# Danh sách loại trừ khi chuyển bản sao repo này sang máy khác:
+#
+#   rsync -az --exclude-from=.rsync-exclude <nguon>:projects/tsudev/ ~/projects/tsudev/
+#
+# ⚠️ ĐÂY KHÔNG PHẢI .gitignore. Nhiều thứ git bỏ qua thì VẪN PHẢI đi theo -
+# `.env`, `.env.bak-*`, `backup/`, `apps/frontend-main/.dev.vars`,
+# `.claude/settings.local.json`. Mất chúng là mất secret production, và không
+# dựng lại được từ đâu. File này chỉ liệt kê thứ SINH LẠI ĐƯỢC.
+#
+# Lý do file này tồn tại: ngày 29/10/2026 danh sách loại trừ được gõ lại bằng
+# tay cho một đợt chuyển và bị làm rơi - 1,77GB đi qua wifi thay vì 52MB, mang
+# theo `node_modules` biên dịch cho Node 22 sang một máy chạy Node 20. Định
+# nghĩa một chỗ thì không còn chỗ nào để làm rơi.
+
+# Phụ thuộc: chứa native module (argon2) biên dịch cho ABI Node và glibc của
+# máy nguồn. Chuyển sang là tệ hơn không chuyển. Dựng lại bằng `npm install`.
+node_modules/
+
+# Bản dựng và cache biên dịch
+.next/
+.open-next/
+.wrangler/
+dist/
+target/
+.cache/
+.turbo/
+*.tsbuildinfo
+
+# Sinh bởi `npm install` (husky)
+.husky/_/
+
+# `apps/*/.env.local` là bản dẫn từ `.env` gốc, do scripts/run-dev.js ghi lại
+# mỗi lần chạy dev - kèm NEXTAUTH_URL riêng cho từng app. Chuyển sang vô ích vì
+# lần chạy đầu ở máy mới ghi đè ngay.
+.env.local
+
+# Log và trạng thái chạy của một máy cụ thể
+*.log
+.claude/scheduled_tasks.lock
