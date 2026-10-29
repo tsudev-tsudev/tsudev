@@ -17,11 +17,13 @@ token trả tiền mà không dùng đến.
 | _(hồ sơ đã đóng)_ cây thư mục monorepo            | [structure-upstream-proposal.md](structure-upstream-proposal.md)                   |
 | Đưa lên production, biến môi trường, CI           | [deployment.md](deployment.md)                                                     |
 | Hạn mức gói miễn phí, van chi phí                 | [free-tier.md](free-tier.md)                                                       |
-| Con dấu tín nhiệm (trust-service)                 | [trust-seal.md](trust-seal.md)                                                     |
+| Nhận báo động khi site hỏng (Telegram)            | [alerting.md](alerting.md)                                                         |
+| _(SẮP GỠ)_ Con dấu tín nhiệm (trust-service)      | [trust-seal.md](trust-seal.md)                                                     |
 | Vì sao repo mất Diễn đàn/Chợ/Tin nhắn             | [refactor-personal-site.md](refactor-personal-site.md)                             |
 | Vì sao chỉ còn một cổng vào ở dev                 | [refactor-network-topology.md](refactor-network-topology.md)                       |
 | Kế hoạch: Con dấu về chế độ mời, gỡ tín dụng      | [refactor-trust-invite-access.md](refactor-trust-invite-access.md)                 |
 | Kế hoạch: Toà soạn Agent AI (Newsroom)            | [refactor-newsroom-agents.md](refactor-newsroom-agents.md)                         |
+| **Kế hoạch: tái cấu trúc toàn diện Q4/2026**      | [refactor-tsudev-2026-q4.md](refactor-tsudev-2026-q4.md)                           |
 | Logo, favicon, avatar                             | [../packages/brand/README.md](../packages/brand/README.md)                         |
 | Hạ tầng Cloudflare/giám sát (kế hoạch)            | [../infrastructure/README.md](../infrastructure/README.md)                         |
 

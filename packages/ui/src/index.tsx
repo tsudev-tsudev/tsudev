@@ -7,6 +7,7 @@ import { Article } from './components/Article';
 import { Upload } from './components/Upload';
 import { Input } from './components/Input';
 import { Card } from './components/Card';
+import { EmptyState } from './components/EmptyState';
 import { Modal } from './components/Modal';
 import { Toast } from './components/Toast';
 import { Logo } from './components/Logo';
@@ -32,6 +33,7 @@ export {
   Upload,
   Input,
   Card,
+  EmptyState,
   Modal,
   Toast,
   Logo,
@@ -58,3 +60,4 @@ export type { ToastType } from './components/Toast';
 export type { IconName } from './components/Icon';
 export type { TocItem } from './components/TableOfContents';
 export type { RecordFooterProps } from './components/RecordFooter';
+export type { EmptyStateProps } from './components/EmptyState';

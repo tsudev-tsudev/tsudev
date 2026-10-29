@@ -79,6 +79,47 @@ export type Doc = {
   updatedAt?: string | null;
 };
 
+/** Nền tảng của một bản phát hành. Khớp enum `ReleasePlatform` của Prisma. */
+export type ReleasePlatform = 'ANDROID' | 'WINDOWS' | 'MACOS' | 'LINUX' | 'WEB' | 'SOURCE';
+
+export type ReleaseChannel = 'STABLE' | 'BETA' | 'ALPHA';
+
+/**
+ * Một bản phát hành tải về được, ở dạng mà API công khai trả ra.
+ *
+ * ⚠️ KHÔNG có `storageKey` ở đây, và đó là CỐ Ý: khoá object trong R2 không bao
+ * giờ ra khỏi content-service. Đường tải đối ngoại duy nhất là `downloadPath`
+ * (đi qua route đếm) hoặc `externalUrl` (nền tảng WEB/SOURCE). Thêm `storageKey`
+ * vào đây là mời người ta gọi thẳng bucket và vô hiệu hoá bộ đếm.
+ */
+export type ProjectRelease = {
+  id: string;
+  version: string;
+  channel: ReleaseChannel;
+  platform: ReleasePlatform;
+  arch?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+  /** Thập lục phân 64 ký tự. Người tải đối chiếu bằng `sha256sum`. */
+  sha256?: string | null;
+  /** Ed25519 base64url của `sha256`. Kiểm bằng khoá công khai ở JWKS. */
+  signature?: string | null;
+  signingKid?: string | null;
+  releaseNotesMd?: string;
+  minOsVersion?: string | null;
+  downloadCount?: number;
+  publishedAt?: string | null;
+  externalUrl?: string | null;
+  /** Đường tải qua route đếm. Null khi bản này không có tệp (WEB/SOURCE). */
+  downloadPath?: string | null;
+};
+
+/** Một dự án kèm toàn bộ bản phát hành của nó - hình dạng của `GET /api/releases`. */
+export type ProjectWithReleases = {
+  project: Project;
+  releases: ProjectRelease[];
+};
+
 export type Project = {
   id: string;
   slug: string;

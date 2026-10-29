@@ -105,9 +105,27 @@ out += `
    Token không phụ thuộc chế độ.
    ------------------------------------------------------------ */
 :root {
-  /* Chữ */
-  --font-family: ${tokens.typography['font-family']};
-  --font-mono: ${tokens.typography['font-mono']};
+  /* Chữ
+   *
+   * ⚠️ KHÔNG dùng dấu backtick trong khối chú thích này - nó nằm bên trong một
+   * template literal của JavaScript, nên một backtick ở đây đóng luôn chuỗi và
+   * script không chạy. Đã xảy ra một lần.
+   *
+   * Hai chuỗi họ font được phép GHI ĐÈ bởi ext.typography.family/.mono, và đó là
+   * đường duy nhất: bảng chuẩn .standards/ là bất khả xâm phạm, nhưng nó khai
+   * 'Inter' - một font KHÔNG tự host được ở repo này (CSP của production chặn
+   * fonts.gstatic.com) và có dấu tiếng Việt là bản mở rộng thêm vào sau.
+   *
+   * Không ghi đè thì giá trị chuẩn vẫn được dùng, nên thêm hook này không đổi
+   * hành vi của bất kỳ repo nào khác trong hệ sinh thái.
+   *
+   * Chuỗi ghi đè phải trỏ tới họ font ĐÃ ĐƯỢC TẢI VỀ bởi npm run fonts:sync.
+   * Trỏ tới một tên font không có @font-face nào là lỗi im lặng tuyệt đối:
+   * trình duyệt nhảy xuống chuỗi dự phòng và không báo gì. Cổng canh là
+   * apps/frontend-main/test/fontSource.test.ts.
+   */
+  --font-family: ${ext.typography.family ?? tokens.typography['font-family']};
+  --font-mono: ${ext.typography.mono ?? tokens.typography['font-mono']};
 ${Object.entries(tokens.typography['font-size'])
   .map(([k, v]) => `  --fs-${k}: ${v};`)
   .join('\n')}
@@ -122,6 +140,18 @@ ${Object.entries(tokens.typography.weight)
   .join('\n')}
 ${Object.entries(tokens.typography['letter-spacing'])
   .map(([k, v]) => `  --ls-${k}: ${v};`)
+  .join('\n')}
+
+  /* Chuyển động - mở rộng riêng của web.
+   *
+   * Bảng chuẩn khai một đường cong duy nhất, đủ cho giao diện công cụ. Một
+   * website cần phân biệt hướng: đi VÀO thì giảm tốc, đi RA thì tăng tốc. Dùng
+   * một đường cong cho cả hai làm mọi chuyển động trông như nhau.
+   *
+   * Khối này không ghi đè gì của bảng chuẩn: --motion-easing vẫn còn nguyên.
+   * (Không backtick trong khối này - xem cảnh báo ở khối Chữ phía trên.) */
+${Object.entries(ext.motion || {})
+  .map(([k, v]) => `  --motion-${k}: ${v};`)
   .join('\n')}
 
   /* Bo góc - ${usage.radius} */

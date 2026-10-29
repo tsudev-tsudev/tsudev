@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { getProviders, signIn, useSession } from 'next-auth/react';
 import type { GetServerSideProps } from 'next';
 import { startAuthentication } from '@simplewebauthn/browser';
-import { Button, Input } from '@tsudev/ui';
+import { Button, Input, Icon } from '@tsudev/ui';
 
 import { AuthShell, Notice } from '../components/AuthShell';
 
@@ -238,21 +238,13 @@ export default function LoginPage({ oauth }: LoginProps) {
       </div>
 
       <Button variant="secondary" className="w-full" onClick={onPasskey} disabled={busy}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="9.5" cy="8" r="3.6" stroke="currentColor" strokeWidth="1.7" />
-          <path
-            d="M3.5 20c0-3.2 2.7-5.2 6-5.2 1 0 2 .2 2.8.6"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-          />
-          <path
-            d="M20.5 13.2a2.6 2.6 0 1 0-4 2.2V21l1.4-1.2 1.4 1.2v-5.6c.7-.5 1.2-1.3 1.2-2.2Z"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinejoin="round"
-          />
-        </svg>
+        {/* Icon passkey nay nằm TRONG hệ thống (`@tsudev/ui`). Bản inline cũ
+            cắm cứng nét 1.7 và không đi qua bảng màu theo vai trò, nên nó không
+            đổi theo ba chế độ giao diện và không cổng tương phản nào canh nó.
+            Hai logo GitHub/Google phía trên thì CỐ Ý ở lại dạng inline: chúng là
+            nhãn hiệu của bên thứ ba, không phải icon của tsudev, và logo Google
+            vốn nhiều màu nên không thể đi qua hệ màu-một-sắc-theo-vai-trò. */}
+        <Icon name="passkey" size={16} />
         Đăng nhập bằng passkey
       </Button>
 

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Seo from '../../components/Seo';
+import ReleaseManager from '../../components/ReleaseManager';
 import { useSession, signIn } from 'next-auth/react';
 import { Layout, Card, Button, Input, Badge, Icon, SectionHeading, RecordFooter } from '@tsudev/ui';
 import {
@@ -455,6 +456,11 @@ export default function AdminProjects() {
                     Xoá
                   </Button>
                 </div>
+
+                {/* Quản lý bản phát hành, gập lại theo mặc định. Dùng CHUNG vùng
+                    thông báo `msg` của trang này - hai vùng thông báo trên cùng
+                    một trang thì người dùng không biết nhìn vào đâu. */}
+                <ReleaseManager slug={p.slug} onMessage={(tone, text) => setMsg({ tone, text })} />
               </Card>
             );
           })}

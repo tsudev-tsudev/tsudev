@@ -1,6 +1,6 @@
 import React from 'react';
 import Seo from '../../components/Seo';
-import { Layout, Card, Badge, SectionHeading, Avatar, Button, Icon } from '@tsudev/ui';
+import { Layout, Card, Badge, SectionHeading, Avatar, Button, Icon, EmptyState } from '@tsudev/ui';
 import { api } from '../../lib/api';
 import type { Post } from '../../lib/types';
 import type { GetServerSidePropsContext } from 'next';
@@ -12,9 +12,9 @@ function timeAgo(d: string | Date): string {
   return `${Math.floor(s / 86400)} ngày trước`;
 }
 
-type BlogIndexProps = { posts: Post[] };
+type BlogIndexProps = { posts: Post[]; failed: boolean };
 
-export default function BlogIndex({ posts }: BlogIndexProps) {
+export default function BlogIndex({ posts, failed }: BlogIndexProps) {
   return (
     <Layout active="/blog" bare>
       <Seo title="Blog" path="/blog" description="Bài viết và hướng dẫn kỹ thuật trên tsudev." />
@@ -31,8 +31,28 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
         />
 
         <div className="grid md:grid-cols-2 gap-4">
-          {posts.length === 0 && (
-            <Card className="p-6 text-fg-muted md:col-span-2">Chưa có bài viết.</Card>
+          {/* Kiểm `failed` TRƯỚC `length === 0`: gọi thất bại thì danh sách cũng
+              rỗng, nên đảo thứ tự là nhánh lỗi không bao giờ chạy tới. */}
+          {failed ? (
+            <div className="md:col-span-2">
+              <EmptyState
+                kind="failed"
+                icon="warning"
+                title="Không tải được danh sách bài viết"
+                explain="Máy chủ nội dung không trả lời, nên đây không phải là một blog trống - các bài đã đăng vẫn còn nguyên. Thử tải lại sau ít phút."
+              />
+            </div>
+          ) : (
+            posts.length === 0 && (
+              <div className="md:col-span-2">
+                <EmptyState
+                  icon="doc"
+                  title="Chưa có bài viết"
+                  explain="Toà soạn Agent AI đăng theo nhịp mỗi giờ và mỗi kênh có trần số bài trong ngày, nên khoảng trống giữa hai bài là bình thường."
+                  action={{ label: 'Tìm trong toàn bộ nội dung', href: '/search' }}
+                />
+              </div>
+            )
           )}
           {posts.map((p: Post) => (
             <Card
@@ -69,7 +89,7 @@ export default function BlogIndex({ posts }: BlogIndexProps) {
   );
 }
 
-export async function getServerSideProps({ query }: GetServerSidePropsContext) {
+export async function getServerSideProps({ query, res }: GetServerSidePropsContext) {
   // `/blog?tag=x` KHÔNG chết mà đi tiếp sang /search. Lọc theo thẻ đã dời hẳn
   // sang đó, nhưng liên kết cũ vẫn còn trong bookmark, trong lịch sử trình duyệt
   // và trong chính các bài đã đăng - bỏ nhánh này là biến chúng thành trang
@@ -82,6 +102,7 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
     };
   }
 
-  const posts = await api.posts(50);
-  return { props: { posts } };
+  const r = await api.posts(50);
+  if (r.failed) res.statusCode = 503;
+  return { props: { posts: r.data, failed: r.failed } };
 }

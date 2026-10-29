@@ -29,63 +29,58 @@
  * ~50 giây. Nhịp toà soạn phải nghỉ CÙNG khung - nó cũng là một request tới
  * Render, để nó chạy suốt đêm là khung nghỉ chỉ còn hình thức.
  *
- * ⚠️ HAI NHỊP, KHÔNG PHẢI MỘT - và lý do là hạn mức của NEON, không phải của
- * Cloudflare:
+ * ⚠️ MỘT NHỊP DUY NHẤT, và nó KHÔNG chạm database.
  *
- *   - Nhịp 5 phút gọi `GET /health`. Route đó trả JSON tĩnh, KHÔNG chạm
- *     database. Việc duy nhất của nó là không cho Render ngủ.
- *     (Không viết chuỗi cron 5 phút vào chú thích khối: nó chứa dấu đóng
- *     comment và sẽ cắt cụt khối này - đã trả giá một lần.)
- *   - `TICK_CRON` (mỗi giờ) mới gọi `POST /api/newsroom/tick`, và lượt đó
- *     truy vấn database.
+ * Nhịp 5 phút gọi `GET /health`. Route đó trả JSON tĩnh, không đụng Prisma. Việc
+ * duy nhất của nó là không cho Render ngủ.
+ * (Không viết chuỗi cron 5 phút vào chú thích khối: nó chứa dấu đóng comment và
+ * sẽ cắt cụt khối này - đã trả giá một lần.)
  *
- * Gộp cả hai vào nhịp 5 phút thì mỗi lượt đều đánh thức Neon, mà Neon free chỉ
- * cho 100 CU-giờ/tháng và tự ngủ sau ~5 phút không có truy vấn. Truy vấn đúng
- * mỗi 5 phút = compute KHÔNG BAO GIỜ ngủ = ~186 CU-giờ/tháng ở 0,25 CU ⇒ vượt
- * hạn mức ⇒ Neon treo compute tới đầu tháng sau ⇒ CẢ SITE chết, không chỉ toà
- * soạn. Nhịp giờ để Neon ngủ lại giữa hai lượt.
+ * 🔴 NHỊP THỨ HAI ĐÃ BỊ GỠ 29/10/2026. Đừng dựng lại.
  *
- * Toà soạn viết vài bài một ngày, nên nhịp giờ là thừa sức. Đổi TICK_CRON thì
- * phải đổi ĐỒNG THỜI chuỗi trong `wrangler.jsonc` - so khớp bằng chuỗi nguyên
- * văn, lệch một ký tự là lượt đó rơi xuống nhánh giữ ấm và toà soạn đứng yên.
+ * Nó là `'7 0-17,23 * * *'` - nhịp đập của Toà soạn Agent AI, gọi
+ * `POST /api/newsroom/tick` và CÓ truy vấn database. Chủ dự án chốt bỏ hoàn toàn
+ * cơ chế Toà soạn và việc tự động đăng bài (docs/refactor-tsudev-2026-q4.md §8).
+ *
+ * Hệ quả kỹ thuật lớn hơn việc bớt một nhịp: nó là **nguồn đánh thức Neon theo
+ * LỊCH duy nhất** của hệ thống. Gỡ nó, cộng bản vá vòng poll 3 giây của
+ * `/admin/newsroom` (phát hành 29/10), thì database chỉ còn thức khi có người
+ * thật dùng trang quản trị. Neon free cho 100 CU-giờ/tháng và tự ngủ sau ~5 phút
+ * không truy vấn; chính việc giữ nó thức là thứ đã treo compute và làm cả site
+ * trống suốt hai tháng.
+ *
+ * ⚠️ ĐỪNG đổi nhịp giữ ấm sang một endpoint CHẠM DATABASE "cho chắc là backend
+ * còn sống". Làm vậy là dựng lại đúng cái bẫy vừa gỡ, ở dạng dày hơn 12 lần:
+ * truy vấn mỗi 5 phút = compute KHÔNG BAO GIỜ ngủ = ~186 CU-giờ/tháng ở 0,25 CU
+ * ⇒ vượt hạn mức ⇒ Neon treo compute ⇒ CẢ SITE trống.
+ *
+ * 🟢 Việc sắp tới của Worker này: cắm `prod:dem-noi-dung` vào đây (kế hoạch
+ * §6.1). Nó là chỗ ĐÚNG vì Worker này miễn phí, có lịch, và KHÔNG có kết nối
+ * Postgres - tức vẫn trả lời được đúng lúc database chết, tức đúng lúc cần nhất.
  */
 
-/** Phải TRÙNG NGUYÊN VĂN một phần tử trong `triggers.crons` của wrangler.jsonc. */
-const TICK_CRON = '7 0-17,23 * * *';
+import { doNoiDung, thanhDong } from './demNoiDung';
+
+/** Nhịp ĐO NỘI DUNG. Phải TRÙNG NGUYÊN VĂN một phần tử trong `triggers.crons`. */
+const CRON_DEM_NOI_DUNG = '23 1,13 * * *';
 
 export interface Env {
   /** URL gốc của backend trên Render, ví dụ https://tsudev-backend.onrender.com */
   BACKEND_URL: string;
-  /** Bí mật khớp với NEWSROOM_TICK_TOKEN ở Render. Đặt bằng `wrangler secret put`. */
-  NEWSROOM_TICK_TOKEN: string;
+  /** Địa chỉ công khai của site, ví dụ https://tsudev.com */
+  SITE_URL: string;
+  /** Bot Telegram để báo động. Đặt bằng `wrangler secret put`. Thiếu = chỉ log. */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
 }
 
-async function tick(env: Env): Promise<void> {
-  if (!env.BACKEND_URL || !env.NEWSROOM_TICK_TOKEN) {
-    console.error('[cron] thiếu BACKEND_URL hoặc NEWSROOM_TICK_TOKEN - bỏ qua lượt này');
-    return;
-  }
-
-  // Timeout cứng 30 giây: endpoint tick trả 202 NGAY rồi chạy việc ở nền, nên
-  // một lượt gọi lành mạnh phải xong trong vài trăm mili giây. Chờ lâu hơn thế
-  // nghĩa là Render đang khởi động lại từ trạng thái ngủ - lượt sau sẽ tới.
-  try {
-    const res = await fetch(`${env.BACKEND_URL}/api/newsroom/tick`, {
-      method: 'POST',
-      headers: {
-        'x-newsroom-token': env.NEWSROOM_TICK_TOKEN,
-        'content-type': 'application/json',
-      },
-      body: '{}',
-      signal: AbortSignal.timeout(30_000),
-    });
-    // Không ném khi lỗi: cron không có ai để báo, và một lượt hỏng không đáng
-    // làm gì hơn là một dòng log. Lượt sau cách đây một giờ.
-    console.log(`[cron] tick → ${res.status}`);
-  } catch (err) {
-    console.error('[cron] tick thất bại:', err instanceof Error ? err.message : String(err));
-  }
-}
+// `NEWSROOM_TICK_TOKEN` đã bị gỡ khỏi đây 29/10/2026. Nó gác đường `/tick`, và
+// đường đó không còn làm gì - nên giữ lại là giữ một phụ thuộc vào secret chỉ để
+// bảo vệ một endpoint đã chết.
+//
+// Secret trên Cloudflare thì CHƯA xoá, có chủ đích: xoá secret là việc không
+// quay lui được, và nó thuộc bước dọn biến môi trường của kế hoạch §8 (bước C2).
+// Mã không đọc nó nữa là đủ để nó vô hại.
 
 /**
  * Chỉ giữ cho Render khỏi ngủ. `GET /health` trả JSON tĩnh - không Prisma,
@@ -106,26 +101,127 @@ async function keepWarm(env: Env): Promise<void> {
   }
 }
 
+/**
+ * Gửi báo động, và SUY GIẢM ỒN ÀO khi chưa cấu hình.
+ *
+ * ⚠️ Kênh báo động của repo hiện CHƯA được cấu hình ở đâu cả: `notify.js` hỗ trợ
+ * Telegram và email webhook, nhưng `TELEGRAM_BOT_TOKEN` không được khai trong
+ * `render.yaml` lẫn `.env.example` - nghĩa là báo động của `migrationGate` cũng
+ * đang đi vào hư không. Đặt hai secret dưới đây bằng `npm run cron:secret-telegram`.
+ *
+ * Khi chưa có secret thì hàm này `console.error` toàn bộ nội dung, nên
+ * `npm run cron:tail` vẫn đọc được. Im lặng là thứ duy nhất không được phép:
+ * một cổng canh mà hỏng đường báo cũng im lặng thì nó chỉ là một cổng chết đang
+ * chạy - đúng điều đợt này ra đời để chấm dứt.
+ */
+async function baoDong(env: Env, tieuDe: string, than: string): Promise<void> {
+  const text = `🚨 *tsudev* — ${tieuDe}\n\n${than}`;
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+    console.error('[cron] CHƯA cấu hình Telegram - báo động chỉ nằm ở log này:\n' + text);
+    return;
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: env.TELEGRAM_CHAT_ID,
+        text,
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    // Log CẢ KHI thành công: không có nó thì không phân biệt được "đã gửi" với
+    // "chưa bao giờ chạy tới đây".
+    console.log(`[cron] báo động → Telegram ${res.status}`);
+    if (!res.ok) console.error('[cron] Telegram từ chối:\n' + text);
+  } catch (err) {
+    console.error(
+      '[cron] gửi báo động thất bại:',
+      err instanceof Error ? err.message : String(err),
+      '\n' + text
+    );
+  }
+}
+
+/**
+ * Đo nội dung thật mà site đang phục vụ, báo động khi rỗng.
+ *
+ * KHÔNG báo động khi ĐẠT. Một tin nhắn "site vẫn ổn" hai lần mỗi ngày là cách
+ * nhanh nhất để người ta tắt thông báo, và lúc đó tin ĐỎ cũng không ai đọc.
+ */
+async function demNoiDung(env: Env): Promise<void> {
+  if (!env.SITE_URL) {
+    console.error('[cron] thiếu SITE_URL - bỏ qua lượt đo nội dung');
+    return;
+  }
+  const bc = await doNoiDung(env.SITE_URL);
+  const dong = bc.ketQua.map(thanhDong);
+  console.log(`[cron] đếm nội dung ${bc.base} — ${bc.dat ? 'ĐẠT' : 'TRƯỢT'}\n` + dong.join('\n'));
+  if (bc.dat) return;
+
+  const soCanh = bc.ketQua.filter((r) => !r.chiGhiNhan).length;
+  await baoDong(
+    env,
+    `site đang phục vụ nội dung RỖNG (${bc.truot.length}/${soCanh} phép đo)`,
+    [
+      dong.join('\n'),
+      '',
+      'Mã trạng thái 200 KHÔNG chứng minh trang có nội dung.',
+      'Mọi phép đo rỗng trong khi backend /health còn 200 ⇒ nghi DATABASE trước.',
+      'Chẩn: npm run newsroom:canh-kenh · hồ sơ: docs/refactor-tsudev-2026-q4.md §0',
+    ].join('\n')
+  );
+}
+
 export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(event.cron === TICK_CRON ? tick(env) : keepWarm(env));
+    // HAI nhịp, và sự khác nhau giữa chúng là CHẠM DATABASE hay không:
+    //
+    //   nhịp 5 phút     → keepWarm, gọi GET /health (JSON tĩnh, không Prisma)
+    //   CRON_DEM_NOI_DUNG → đo trang công khai, các trang đó CÓ chạm database
+    //
+    // Vì thế nhịp đo nội dung phải THƯA. Xem khối chú thích ở `demNoiDung.ts`.
+    ctx.waitUntil(event.cron === CRON_DEM_NOI_DUNG ? demNoiDung(env) : keepWarm(env));
   },
 
   /**
-   * Đường gõ tay để nghiệm thu mà không phải chờ 5 phút.
+   * Đường `/tick` gõ tay trước đây ép một lượt toà soạn chạy ngay để nghiệm thu.
+   * Nay nó trả 410 vô điều kiện.
    *
-   * Gác bằng CHÍNH token đó: Worker này có URL công khai, và để mở thì bất kỳ
-   * ai cũng ép toà soạn quay vòng liên tục cho tới khi cạn hạn mức Neuron.
+   * 410 Gone chứ không 404: 404 nói "đường này chưa bao giờ có", còn 410 nói
+   * đúng sự thật - nó từng có và đã bị bỏ có chủ đích. Ai gõ lại nó sau này đọc
+   * được ngay lý do thay vì tưởng mình gõ sai URL.
+   *
+   * KHÔNG còn gác bằng token. Cổng đó tồn tại vì để mở thì ai cũng ép toà soạn
+   * quay vòng cho tới khi cạn hạn mức Neuron - nhưng không còn toà soạn để ép,
+   * nên gác một endpoint chết chỉ để lại một phụ thuộc vào secret.
    */
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    void ctx;
     const url = new URL(request.url);
-    if (url.pathname !== '/tick') return new Response('not found', { status: 404 });
-    if (request.headers.get('x-newsroom-token') !== env.NEWSROOM_TICK_TOKEN) {
-      return new Response('unauthorized', { status: 401 });
+
+    // Đường gõ tay để nghiệm thu cổng đếm mà không phải chờ tới nhịp kế tiếp.
+    // KHÔNG gác bằng secret: nó chỉ ĐỌC các trang công khai của chính site và
+    // trả về con số, không đổi gì, không gọi LLM, không tốn hạn mức nào đáng kể.
+    // Gác một endpoint chỉ-đọc công khai là thêm một secret để bảo vệ thông tin
+    // mà ai cũng tự đo được bằng curl.
+    if (url.pathname === '/dem') {
+      const bc = await doNoiDung(env.SITE_URL || '');
+      return new Response(JSON.stringify(bc, null, 2), {
+        status: bc.dat ? 200 : 503,
+        headers: { 'content-type': 'application/json' },
+      });
     }
-    ctx.waitUntil(tick(env));
-    return new Response(JSON.stringify({ accepted: true }), {
-      headers: { 'content-type': 'application/json' },
-    });
+
+    if (url.pathname !== '/tick') return new Response('not found', { status: 404 });
+    return new Response(
+      JSON.stringify({
+        error: 'Toà soạn Agent AI đã bị gỡ 29/10/2026',
+        why: 'docs/refactor-tsudev-2026-q4.md §8',
+      }),
+      { status: 410, headers: { 'content-type': 'application/json' } }
+    );
   },
 };

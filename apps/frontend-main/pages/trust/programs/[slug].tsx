@@ -144,7 +144,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     if (!program) return { notFound: true };
     // Lọc phía server chứ không thêm tham số truy vấn cho /api/projects: số dự án
     // nhỏ, và mỗi tham số lọc mới là một mặt tiếp xúc phải kiểm chứng.
-    const all = await api.projects(100);
+    const all = (await api.projects(100)).data;
     const projects = all.filter((p) => p.trustProgramSlug === slug);
     return { props: { program, projects, slug } };
   });

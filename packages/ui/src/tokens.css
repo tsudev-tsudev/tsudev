@@ -171,9 +171,28 @@
    Token không phụ thuộc chế độ.
    ------------------------------------------------------------ */
 :root {
-  /* Chữ */
-  --font-family: 'Inter', 'SF Pro Text', 'Segoe UI', 'Roboto', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+  /* Chữ
+   *
+   * ⚠️ KHÔNG dùng dấu backtick trong khối chú thích này - nó nằm bên trong một
+   * template literal của JavaScript, nên một backtick ở đây đóng luôn chuỗi và
+   * script không chạy. Đã xảy ra một lần.
+   *
+   * Hai chuỗi họ font được phép GHI ĐÈ bởi ext.typography.family/.mono, và đó là
+   * đường duy nhất: bảng chuẩn .standards/ là bất khả xâm phạm, nhưng nó khai
+   * 'Inter' - một font KHÔNG tự host được ở repo này (CSP của production chặn
+   * fonts.gstatic.com) và có dấu tiếng Việt là bản mở rộng thêm vào sau.
+   *
+   * Không ghi đè thì giá trị chuẩn vẫn được dùng, nên thêm hook này không đổi
+   * hành vi của bất kỳ repo nào khác trong hệ sinh thái.
+   *
+   * Chuỗi ghi đè phải trỏ tới họ font ĐÃ ĐƯỢC TẢI VỀ bởi npm run fonts:sync.
+   * Trỏ tới một tên font không có @font-face nào là lỗi im lặng tuyệt đối:
+   * trình duyệt nhảy xuống chuỗi dự phòng và không báo gì. Cổng canh là
+   * apps/frontend-main/test/fontSource.test.ts.
+   */
+  --font-family: 'Be Vietnam Pro', 'Be Vietnam Pro Fallback', 'Segoe UI', 'Roboto', system-ui,
+    -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', ui-monospace, monospace;
   --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-body-desktop: 14px;
@@ -197,6 +216,21 @@
   --ls-body: 0;
   --ls-heading: -0.01em;
   --ls-caps-label: 0.04em;
+
+  /* Chuyển động - mở rộng riêng của web.
+   *
+   * Bảng chuẩn khai một đường cong duy nhất, đủ cho giao diện công cụ. Một
+   * website cần phân biệt hướng: đi VÀO thì giảm tốc, đi RA thì tăng tốc. Dùng
+   * một đường cong cho cả hai làm mọi chuyển động trông như nhau.
+   *
+   * Khối này không ghi đè gì của bảng chuẩn: --motion-easing vẫn còn nguyên.
+   * (Không backtick trong khối này - xem cảnh báo ở khối Chữ phía trên.) */
+  --motion-easing-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --motion-easing-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
+  --motion-stagger-1: 60ms;
+  --motion-stagger-2: 120ms;
+  --motion-stagger-3: 180ms;
 
   /* Bo góc - none=khung layout/sidebar/header (thẳng tắp) | sm=badge,checkbox,tag | md=button,input,dropdown,modal nhỏ | lg=modal lớn,table container,card */
   --radius-none: 0px;

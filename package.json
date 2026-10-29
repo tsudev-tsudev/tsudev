@@ -12,6 +12,7 @@
     "cron:typecheck": "tsc --noEmit -p infrastructure/newsroom-cron/tsconfig.json",
     "cron:deploy": "npm --prefix infrastructure/newsroom-cron exec -- wrangler deploy --config infrastructure/newsroom-cron/wrangler.jsonc",
     "cron:secret": "npx wrangler secret put NEWSROOM_TICK_TOKEN --config infrastructure/newsroom-cron/wrangler.jsonc",
+    "cron:secret-telegram": "npx wrangler secret put TELEGRAM_BOT_TOKEN --config infrastructure/newsroom-cron/wrangler.jsonc && npx wrangler secret put TELEGRAM_CHAT_ID --config infrastructure/newsroom-cron/wrangler.jsonc",
     "cron:tail": "npx wrangler tail --config infrastructure/newsroom-cron/wrangler.jsonc",
     "dev": "npm run env:local && concurrently \"npm --workspace services/content-service run dev\" \"npm --workspace services/storage-service run dev\" \"npm --workspace services/trust-service run dev\" \"npm --workspace services/auth-service run dev\" \"npm --workspace services/newsroom-service run dev\" \"npm --workspace apps/frontend-main run dev\"",
     "dev:local": "npm run build:ts && node scripts/run-dev.js",
@@ -30,6 +31,9 @@
     "topology:check": "node scripts/topology/check.js && node scripts/topology/gen-env.js --check",
     "tokens:sync": "node scripts/sync-tokens.js",
     "tokens:check": "node scripts/sync-tokens.js --check",
+    "fonts:sync": "node scripts/sync-fonts.js",
+    "fonts:check": "node scripts/sync-fonts.js --check",
+    "icons:check": "node scripts/check-icons.js",
     "db:up": "bash scripts/start-db.sh",
     "minio:up": "bash scripts/start-minio.sh",
     "db:migrate": "node scripts/with-env.js npm --workspace packages/db run migrate:deploy",
@@ -44,7 +48,9 @@
     "db:seed:dev": "node scripts/with-env.js node services/auth-service/scripts/seed-dev-users.js",
     "newsroom:check": "bash scripts/kiem-toa-soan.sh",
     "newsroom:chan-doan": "node scripts/chan-doan-toa-soan.js",
-    "newsroom:canh-kenh": "node scripts/canh-kenh-toa-soan.js"
+    "newsroom:canh-kenh": "node scripts/canh-kenh-toa-soan.js",
+    "db:don-toa-soan": "node scripts/with-env.js node scripts/don-toa-soan.js",
+    "prod:dem-noi-dung": "node scripts/dem-noi-dung-prod.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

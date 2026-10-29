@@ -119,6 +119,14 @@ const PAIRS: Array<[string, string, number, string]> = [
   ['--warning-ink', '--warning-tint', 4.5, 'chữ trên nhãn cảnh báo'],
   ['--danger-ink', '--danger-tint', 4.5, 'chữ trên nhãn lỗi'],
   ['--info-ink', '--info-tint', 4.5, 'chữ trên nhãn thông tin'],
+
+  // Khối "không tải được nội dung" của EmptyState đặt chữ THƯỜNG (không phải
+  // nhãn) lên nền tint cảnh báo. Cặp này khác bốn cặp -ink/-tint ngay trên: ở
+  // đây màu chữ là màu chữ chung của trang, không phải màu trạng thái. Phải gác
+  // riêng - một khối báo lỗi mà chữ của nó chìm vào nền là một khối báo lỗi
+  // không ai đọc được.
+  ['--text-primary', '--warning-tint', 4.5, 'tiêu đề khối tải lỗi'],
+  ['--text-secondary', '--warning-tint', 4.5, 'thân khối tải lỗi'],
   // …và cùng những sắc -ink đó khi đứng làm chữ thẳng trên bề mặt (dòng báo lỗi
   // dưới ô nhập, dấu ✔/✘ trong bảng).
   ['--success-ink', '--bg-surface', 4.5, 'chữ thành công trên card'],

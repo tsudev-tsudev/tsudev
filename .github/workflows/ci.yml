@@ -46,6 +46,18 @@ jobs:
       # thư mục) trôi lệch khỏi nhau.
       - name: Token giao diện khớp nguồn chân lý
         run: npm run tokens:check
+      # Cổng font. `apps/frontend-main/styles/fonts.css` + `public/fonts/*.woff2`
+      # là bản SINH RA bởi `fonts:sync`. Bước này bắt ba chuyện, cả ba đều im lặng
+      # trên production: (a) artifact lệch bảng `HO_FONT` của script, (b) thiếu
+      # tệp woff2 mà CSS trỏ tới - trình duyệt ăn 404 và không nói một lời,
+      # (c) ai đó quay lại dùng `@import` từ fonts.googleapis.com, thứ mà CSP của
+      # production chặn và đã chặn im lặng suốt nhiều tháng.
+      #
+      # CẦN MẠNG: bước này gọi fonts.googleapis.com để đối chiếu. Nếu CI mất mạng
+      # ra ngoài thì nó đỏ - đó là đánh đổi có chủ đích, vì cách duy nhất để khỏi
+      # cần mạng là tin vào artifact đã commit, tức bỏ luôn thứ ta đang canh.
+      - name: Font tự host khớp nguồn
+        run: npm run fonts:check
       - run: npm run format:check
       - run: npm run lint --silent
       # Cổng kiểm kiểu. Trước đây repo có typescript trong devDependencies

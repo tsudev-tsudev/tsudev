@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Seo from '../components/Seo';
-import { Layout, Card, Badge, Avatar, RecordFooter, usePageSize } from '@tsudev/ui';
+import { Layout, Card, Badge, Avatar, RecordFooter, usePageSize, EmptyState } from '@tsudev/ui';
 import { DEFAULT_PAGE_SIZE, normalizePage } from '@tsudev/types';
 import { findMatchRanges } from '@tsudev/search';
 import { api } from '../lib/api';
@@ -78,6 +78,13 @@ type SearchProps = {
   initialSort: SortKey;
   initialPage: number;
   initial: PostSearchResult;
+  /// Lượt gọi SSR đầu tiên có thất bại hay không.
+  ///
+  /// Trang này là nơi lỗi im lặng tệ nhất: khi không gọi được, `results` rỗng và
+  /// bản trước hiện "Không tìm thấy kết quả phù hợp với <từ khoá>" - tức nó nói
+  /// với người dùng rằng TỪ KHOÁ CỦA HỌ sai, trong khi sự thật là máy chủ không
+  /// trả lời. Họ sẽ thử từ khác, rồi kết luận site này không có gì.
+  initialFailed: boolean;
   /// Toàn bộ thẻ đang có, để DUYỆT khi chưa gõ gì. Khác `facets.tag` của kết quả:
   /// facet chỉ tồn tại KHI đã có truy vấn, nên nếu chỉ dựa vào nó thì trang này
   /// mở ra trống trơn và không gợi ý được gì. Thanh duyệt này là thứ dời sang từ
@@ -93,6 +100,7 @@ export default function SearchPage({
   initialSort,
   initialPage,
   initial,
+  initialFailed,
   allTags,
 }: SearchProps) {
   const router = useRouter();
@@ -429,6 +437,24 @@ export default function SearchPage({
             <p className="text-sm text-fg-muted">
               Nhập từ khoá, hoặc chọn một thẻ / chuyên mục để bắt đầu.
             </p>
+          ) : initialFailed ? (
+            /* Kiểm `initialFailed` TRƯỚC `results.length === 0`: gọi thất bại thì
+               danh sách cũng rỗng, nên đảo thứ tự là nhánh lỗi không bao giờ chạy
+               tới - và người dùng sẽ đọc "không tìm thấy từ khoá của bạn" khi sự
+               thật là máy chủ không trả lời. */
+            <EmptyState
+              kind="failed"
+              icon="warning"
+              title="Không tìm được vì máy chủ không trả lời"
+              explain={
+                <>
+                  Đây <strong>không</strong> phải &quot;không có kết quả cho {'\u201C'}
+                  {q || tag || category}
+                  {'\u201D'}&quot; - lượt gọi tới máy chủ nội dung đã thất bại, nên chưa tìm được gì
+                  cả. Thử lại sau ít phút.
+                </>
+              }
+            />
           ) : results.length === 0 ? (
             <Card className="p-6 text-sm text-fg-muted">
               Không tìm thấy kết quả phù hợp với “{q || tag || category}”. Thử kiểm tra chính tả,
@@ -519,7 +545,7 @@ export default function SearchPage({
   );
 }
 
-export async function getServerSideProps({ query }: GetServerSidePropsContext) {
+export async function getServerSideProps({ query, res }: GetServerSidePropsContext) {
   const initialQ = typeof query.q === 'string' ? query.q : '';
   const initialType: TypeKey = query.type === 'post' || query.type === 'doc' ? query.type : 'all';
   const initialTag = typeof query.tag === 'string' && query.tag.trim() ? query.tag.trim() : null;
@@ -542,14 +568,18 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
     params.set('page_size', query.page_size);
   }
 
-  const initial =
+  const rSearch =
     initialQ.trim().length >= MIN_QUERY || initialTag || initialCategory
       ? await api.searchPosts(params.toString())
-      : EMPTY_RESULT;
+      : { data: EMPTY_RESULT, failed: false };
+  const initial = rSearch.data;
+  // 503 chứ không 200: trang tìm kiếm trả 200 kèm "không tìm thấy" khi thật ra
+  // không gọi được là một lời khẳng định SAI về nội dung của site.
+  if (rSearch.failed) res.statusCode = 503;
 
   // Nguồn thẻ để DUYỆT. Lấy từ danh sách bài mới nhất, đúng cách /blog từng dựng
   // thanh thẻ của nó - giữ nguyên tập thẻ mà người dùng đã quen thấy.
-  const recent = await api.posts(50);
+  const recent = (await api.posts(50)).data;
   const allTags = [...new Set(recent.flatMap((p) => p.tags || []))].sort((a, b) =>
     a.localeCompare(b, 'vi')
   );
@@ -563,6 +593,7 @@ export async function getServerSideProps({ query }: GetServerSidePropsContext) {
       initialSort,
       initialPage,
       initial,
+      initialFailed: rSearch.failed,
       allTags,
     },
   };

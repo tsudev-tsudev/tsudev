@@ -1,6 +1,6 @@
 import React from 'react';
 import Seo from '../../components/Seo';
-import { Layout, Card, Badge, Avatar, TableOfContents } from '@tsudev/ui';
+import { Layout, Badge, Avatar, TableOfContents, EmptyState } from '@tsudev/ui';
 import type { TocItem } from '@tsudev/ui';
 import { api } from '../../lib/api';
 import { extractHeadings, renderMarkdown } from '../../lib/md';
@@ -11,15 +11,44 @@ import { formatDateVN } from '../../lib/format';
 
 type BlogPostProps = {
   post: Post | null;
+  failed: boolean;
   slug: string;
   toc: TocItem[];
 };
 
-export default function BlogPost({ post, slug, toc }: BlogPostProps) {
+export default function BlogPost({ post, failed, slug, toc }: BlogPostProps) {
+  // Hai nhánh, không một nhánh. Mã trạng thái tương ứng đã được đặt ở
+  // getServerSideProps - xem khối chú thích ở đó.
+  if (failed)
+    return (
+      <Layout active="/blog">
+        <Seo title="Không tải được bài viết" path={`/blog/${slug}`} noindex />
+        <EmptyState
+          kind="failed"
+          icon="warning"
+          title="Không tải được bài viết"
+          explain={
+            <>
+              Bài viết này có thể vẫn còn nguyên - lượt gọi tới máy chủ nội dung đã thất bại. Thử
+              tải lại sau ít phút.
+            </>
+          }
+          action={{ label: 'Về danh sách bài viết', href: '/blog' }}
+          className="my-10"
+        />
+      </Layout>
+    );
   if (!post)
     return (
-      <Layout>
-        <Card className="p-8 text-center text-fg-muted">Không tìm thấy bài viết.</Card>
+      <Layout active="/blog">
+        <Seo title="Không tìm thấy bài viết" path={`/blog/${slug}`} noindex />
+        <EmptyState
+          icon="doc"
+          title="Không tìm thấy bài viết"
+          explain="Đường dẫn này không trỏ tới bài viết nào. Có thể nó đã được đổi slug."
+          action={{ label: 'Về danh sách bài viết', href: '/blog' }}
+          className="my-10"
+        />
       </Layout>
     );
   return (
@@ -106,10 +135,28 @@ export default function BlogPost({ post, slug, toc }: BlogPostProps) {
   );
 }
 
-export async function getServerSideProps({ params }: GetServerSidePropsContext) {
-  const post = await api.post(routeParam(params, 'slug'));
+/// 🔴 BA MÃ TRẠNG THÁI, KHÔNG PHẢI MỘT. Đọc trước khi gộp lại cho gọn.
+///
+/// Bản trước gọi `api.post()` rồi render "Không tìm thấy bài viết" cho MỌI trường
+/// hợp nó trả về null - kể cả khi lượt gọi THẤT BẠI. Nghĩa là lúc content-service
+/// hoặc database chết, một bài viết đang tồn tại thật sẽ trả HTTP 200 kèm dòng chữ
+/// "không tìm thấy". Với công cụ tìm kiếm đó là soft 404: nó gỡ URL khỏi chỉ mục,
+/// và nó không đọc lại nữa vì ta đã trả lời 200 rất dứt khoát.
+///
+/// Đã xảy ra thật: ngày 28/10/2026 Neon treo compute và toàn bộ nội dung
+/// tsudev.com biến mất khỏi mọi trang trong khi mọi trang vẫn 200 (xem
+/// `lib/api.ts` § vì sao `Fetched` tồn tại).
+///
+///   gọi thất bại         -> 503, "không tải được"  -> crawler THỬ LẠI, không gỡ
+///   gọi xong, null       -> 404, "không tìm thấy"  -> đúng, bài viết này không có
+///   gọi xong, có dữ liệu -> 200
+export async function getServerSideProps({ params, res }: GetServerSidePropsContext) {
+  const r = await api.post(routeParam(params, 'slug'));
+  const post = r.data;
+  if (r.failed) res.statusCode = 503;
+  else if (!post) res.statusCode = 404;
   // Mục lục dựng ở SERVER: dựng ở client thì nó nháy vào sau khi bài đã hiện,
   // và bố cục hai cột nhảy một nhịp ở mỗi lần tải trang.
   const toc = extractHeadings(post?.contentMd || '');
-  return { props: { post, slug: routeParam(params, 'slug'), toc } };
+  return { props: { failed: r.failed, post, slug: routeParam(params, 'slug'), toc } };
 }

@@ -94,20 +94,129 @@ Cái làm compute thức 24/7 không phải người dùng thật (site cá nhâ
 thưa) mà là **cron gọi vào một endpoint có truy vấn database đúng mỗi 5 phút** -
 tức là đánh thức lại ngay trước mỗi lần Neon định ngủ.
 
-Vì thế Worker cron chạy **hai nhịp, gọi hai endpoint khác nhau**:
+### 🔴 Nhịp thứ hai ĐÃ BỊ GỠ 29/10/2026
 
-| Nhịp cron (UTC)     | Gọi gì                    | Chạm DB? | Việc                  |
-| ------------------- | ------------------------- | -------- | --------------------- |
-| `*/5 0-17,23 * * *` | `GET /health`             | Không    | giữ ấm Render         |
-| `7 0-17,23 * * *`   | `POST /api/newsroom/tick` | **Có**   | nhịp đập của toà soạn |
+Worker cron nay có **hai nhịp, và điểm khác nhau là CHẠM DATABASE hay không**:
 
-`GET /health` của `backend-bundle` trả JSON tĩnh, không đụng Prisma - nên giữ ấm
-Render **không** đánh thức Neon. Chỉ nhịp giờ mới đánh thức, và giữa hai lượt
-Neon ngủ lại được.
+| Nhịp cron (UTC)     | Gọi gì            | Chạm DB?                     | Việc                  |
+| ------------------- | ----------------- | ---------------------------- | --------------------- |
+| `*/5 0-17,23 * * *` | `GET /health`     | Không (JSON tĩnh)            | giữ ấm Render         |
+| `23 1,13 * * *`     | 6 trang công khai | **Có** - nên chỉ 2 lượt/ngày | **cổng đếm nội dung** |
+
+Nhịp thứ hai thêm ngày 29/10/2026: nó đo xem người lạ mở tsudev.com lúc này thì
+THẤY được mấy bài, và báo động Telegram khi rỗng. Đó là bản chạy tự động của
+`npm run prod:dem-noi-dung` - cổng đã tồn tại nhưng **không có gì chạy nó**, và
+một cổng không chạy tự động thì không phải cổng.
+
+🔴 **HAI LƯỢT MỘT NGÀY, VÀ ĐỪNG DÀY HƠN.** Các trang nó đo là SSR: mỗi lượt fetch
+đi Worker → Render → Neon và giữ Neon thức thêm ~5 phút. Cắm nó vào nhịp 5 phút =
+288 lượt/ngày = Neon không bao giờ ngủ = ~186 CU-giờ/tháng trên hạn mức 100 ⇒
+**đúng cái bẫy đã làm site trống hai tháng, chỉ lần này do chính cổng canh gây
+ra.** Hai lượt/ngày ≈ 5 CU-giờ/tháng.
+
+Dày lên được CHỈ KHI đường đọc đã cache ở biên (`docs/refactor-tsudev-2026-q4.md`
+§6.2-6.3), lúc đó các trang này không còn chạm Neon.
+
+Giờ 1 và 13 UTC đều nằm TRONG khung thức (0-17), nên lượt đo không đánh thức
+Render khỏi khung nghỉ - nếu không thì mỗi lượt lại cộng ~15 phút giờ instance.
+
+Nhịp `"7 0-17,23 * * *"` - nhịp đập của Toà soạn Agent AI, gọi
+`POST /api/newsroom/tick` và **CÓ** truy vấn database - đã bị gỡ cùng toàn bộ cơ
+chế Toà soạn (`docs/refactor-tsudev-2026-q4.md` §8).
+
+**Hệ quả lớn hơn việc bớt một nhịp**: nó là **nguồn đánh thức Neon theo LỊCH duy
+nhất** của cả hệ thống. Gỡ nó, cộng với bản vá vòng poll 3 giây của
+`/admin/newsroom` (phát hành 29/10), thì **không còn gì đánh thức database theo
+lịch nữa** - Neon chỉ thức khi có người thật dùng trang quản trị hoặc khi dựng
+lại cache.
+
+Đó là đòn trực tiếp vào ngân sách 100 CU-giờ của mục này, và nó làm con số dưới
+đây gần như không còn ý nghĩa thực tế.
+
+⚠️ **ĐỪNG đổi nhịp giữ ấm sang một endpoint chạm database** "cho chắc là backend
+còn sống". `GET /health` của `backend-bundle` trả JSON TĨNH, không đụng Prisma -
+đó là lý do nó được chọn. Đổi sang một đường dưới `/api/` là dựng lại đúng cái
+bẫy vừa gỡ, ở dạng dày hơn 12 lần.
+
+Cổng canh: `services/newsroom-service/test/cronContract.test.ts`, 9 khẳng định.
+Ba cái quan trọng nhất đều đã được chứng minh ĐỎ bằng cách tái tạo lỗi thật:
+
+| khẳng định                                   | tái tạo lỗi gì để chứng minh    |
+| -------------------------------------------- | ------------------------------- |
+| nhịp đếm chạy tối đa 4 lượt/ngày             | dày hoá nó thành `*/5`          |
+| nhịp đếm chạy TRONG khung thức Render        | đặt nó vào `19,20` (khung nghỉ) |
+| bảng ngưỡng không trôi lệch khỏi script Node | đổi một ngưỡng của Worker       |
+
+Cộng với: nhịp GIỮ ẤM chỉ gọi `/health`, và `TICK_CRON` không còn tồn tại.
+
+⚠️ **Báo động hiện CHƯA được cấu hình.** `TELEGRAM_BOT_TOKEN` và
+`TELEGRAM_CHAT_ID` chưa đặt, nên cổng chỉ `console.error` - đọc được bằng
+`npm run cron:tail`. Bật bằng `npm run cron:secret-telegram`. Đây cũng là lý do
+báo động của `migrationGate` đang đi vào hư không: `notify.js` hỗ trợ Telegram và
+email webhook, nhưng không biến nào được khai trong `render.yaml`.
+
+⚠️ Khi §8 gỡ hẳn `newsroom-service`, **chuyển test đó sang workspace khác** chứ
+đừng xoá cùng service - nó nay canh hạn mức Neon, không canh toà soạn.
+
+<details>
+<summary>Lập luận cũ về kiến trúc hai nhịp, giữ lại vì nó giải thích vì sao nhịp giữ ấm phải trỏ `/health`</summary>
+
+Worker cron từng chạy **hai nhịp, gọi hai endpoint khác nhau**:
 
 ⚠️ **Đừng gộp hai nhịp lại làm một** vì thấy "cùng là gõ cửa backend". Đó đúng
 là hình dạng ban đầu của Worker này, và nó sẽ làm site chết vào khoảng giữa
 tháng thứ hai - đủ xa lần sửa để không ai nối được nhân quả.
+
+</details>
+
+### 🔴 Cron KHÔNG phải nguồn đánh thức duy nhất - TRÌNH DUYỆT cũng đánh thức
+
+Bảng hai nhịp ở trên là một kiến trúc đúng, và nó bị vượt qua từ một hướng mà
+chính tài liệu này không canh.
+
+`apps/frontend-main/pages/admin/newsroom.tsx` poll `GET /api/newsroom/state` -
+một endpoint **CHẠM DATABASE** - và bản đầu của nó là `setInterval(load, 3000)`
+trần, không điều kiện dừng nào. Một tab trang đó bị bỏ quên là:
+
+|          |                                                                                                    |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| nhịp     | 3 giây                                                                                             |
+| mỗi giờ  | 1.200 truy vấn                                                                                     |
+| mỗi ngày | 28.800 truy vấn, **24/7**                                                                          |
+| hệ quả   | Neon **không bao giờ** tự ngủ ⇒ `0,25 × 744 = 186` CU-giờ/tháng trên hạn mức 100 ⇒ vỡ sau ~17 ngày |
+
+Và lúc vỡ thì hỏng im lặng: backend `/health` vẫn 200 (nó trả JSON tĩnh),
+`lib/api.ts` nuốt lỗi database thành giá trị rỗng, nên **mọi trang công khai trả
+200 với nội dung trống**. Đo ngày 28/10/2026: `/sitemap.xml` còn 7 URL tĩnh,
+`/feed.xml` 0 item, `/blog` hiện "Chưa có bài viết." trong khi `logs/STATE.md`
+ghi 50 bài ngày 27/08.
+
+Vòng poll nay có **ba van**, và cả ba đều cần:
+
+1. **Tab bị ẩn ⇒ dừng HẲN chuỗi.** Không phải "hẹn lại cho có" - trình duyệt tiết
+   chế timer ở tab nền nhưng KHÔNG dừng `fetch`, nên hẹn-lại-cho-có vẫn đánh thức.
+2. **Không có tương tác trong 10 phút ⇒ dừng hẳn**, hiện nút "Theo dõi lại". Đây
+   là van duy nhất chặn được đúng tình huống đã xảy ra: tab MỞ, HIỆN, và không ai
+   ngồi trước nó.
+3. **Gọi lỗi ⇒ giãn ra 15 giây.** Backend chết thì đừng dồn thêm.
+
+**Bài học chung**: khi kiểm "cái gì đang đánh thức Neon", đừng chỉ đọc
+`wrangler.jsonc`. Ba nguồn đánh thức, chỉ một nằm trong cron:
+
+| nguồn                                  | ở đâu                                         | canh bằng gì                                                                                      |
+| -------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| cron theo lịch                         | `infrastructure/newsroom-cron/wrangler.jsonc` | `cronContract.test.ts`                                                                            |
+| **vòng poll của trình duyệt**          | `pages/admin/*.tsx` - tìm `setInterval`       | **đọc mã, chưa có cổng tự động**                                                                  |
+| `setInterval` trong tiến trình backend | `services/*/src/*.ts`                         | đọc mã; `trust-service/src/recheck.ts` có một cái, chu kỳ 360 phút - đã kiểm, KHÔNG phải nguồn vỡ |
+
+Và cổng đo được hậu quả, không đo nguyên nhân: **`npm run prod:dem-noi-dung`**.
+Nó gọi production từ bên ngoài, không cần `DATABASE_URL` - nên nó vẫn trả lời
+được đúng lúc database chết, tức đúng lúc cần nhất. Có mã thoát 0/1/2.
+
+Dữ liệu tích luỹ thì dọn bằng **`npm run db:don-toa-soan`** (mặc định `--dry-run`,
+chỉ đếm). Nó cũng in ra cảnh báo quan trọng: **dọn dữ liệu KHÔNG chữa được hạn
+mức compute** - hai hạn mức khác nhau cần hai cách chữa trái ngược, nên phải đọc
+Neon console → Usage để biết dòng nào đỏ trước khi xoá bất cứ thứ gì.
 
 Chuỗi cron của nhịp đập nằm ở **hai chỗ phải trùng nguyên văn**: hằng `TICK_CRON`
 trong `infrastructure/newsroom-cron/src/index.ts` và mảng `triggers.crons` trong

@@ -1,5 +1,85 @@
 # STATE.md - Trạng thái project (agent đọc đầu phiên, cập nhật cuối phiên)
 
+> **Phiên 31 bắt đầu ở đây** (cập nhật cuối phiên 30).
+>
+> 🆕 **MỤC TIÊU PROJECT ĐỔI (29/10/2026): website cá nhân ĐĂNG VÀ PHÁT HÀNH FILE
+> CÀI ĐẶT của các app/phần mềm tự phát triển.**
+>
+> Hai hệ quả, chốt cùng ngày - cả hai đều GỠ HOÀN TOÀN:
+>
+> | gỡ                                                                                 | dòng   | model | enum | kế hoạch |
+> | ---------------------------------------------------------------------------------- | ------ | ----- | ---- | -------- |
+> | **Con dấu tín nhiệm**                                                              | ~6.300 | 10    | 6    | §7       |
+> | **Toà soạn Agent AI** (bỏ hẳn tự động đăng bài, để tiết kiệm token/ngữ cảnh Agent) | ~5.300 | 8     | 6    | §8       |
+>
+> Tổng **~11.600 dòng**. Schema **33 model → 15**. Kế hoạch ở
+> `docs/refactor-tsudev-2026-q4.md` §7 và §8; phiếu bàn giao
+> [`20261029-01`](handover/20261029-01_bo-con-dau-va-24-24.md).
+>
+> ✅ **TOÀ SOẠN ĐÃ DỪNG (29/10/2026) - cả hai nửa.**
+>
+> | nửa                                  | ai làm        | trạng thái                                          |
+> | ------------------------------------ | ------------- | --------------------------------------------------- |
+> | gỡ nhịp cron chạm DB                 | agent         | ✅ `Version f720db98`, còn đúng `*/5 0-17,23 * * *` |
+> | `NEWSROOM_ENABLED=false` trên Render | **chủ dự án** | ✅ đã đổi, backend `/health` còn 200                |
+>
+> Nhịp `"7 0-17,23 * * *"` là **nguồn đánh thức Neon theo LỊCH duy nhất**. Gỡ nó
+> cộng bản vá vòng poll 3 giây ⇒ không còn gì đánh thức database theo lịch.
+> `tick()` và `TICK_CRON` gỡ hẳn; `/tick` trả **410** kèm lý do, không còn gác
+> bằng token (gác một endpoint đã chết chỉ để lại phụ thuộc vào secret). Secret
+> `NEWSROOM_TICK_TOKEN` trên Cloudflare **chưa xoá** có chủ đích - xoá secret
+> không quay lui được, thuộc bước C2.
+>
+> ✅ **CỔNG ĐẾM NỘI DUNG ĐÃ CHẠY TỰ ĐỘNG (29/10/2026) - việc §6.1 XONG.** > `Version 6feb76fc`. Nhịp thứ hai `23 1,13 * * *` trong chính Worker cron.
+>
+> Vì sao ở đó: Worker miễn phí, có lịch, và **KHÔNG có kết nối Postgres** - nên nó
+> vẫn trả lời được đúng lúc database chết, tức đúng lúc cần nhất.
+> `newsroom:canh-kenh` thì cần `DATABASE_URL`, mà DB chính là thứ đang chết.
+>
+> 🔴 **HAI LƯỢT/NGÀY, ĐỪNG DÀY HƠN.** Các trang nó đo là SSR: mỗi lượt fetch đi
+> Worker → Render → Neon và giữ Neon thức thêm ~5 phút. Cắm vào nhịp 5 phút = 288
+> lượt/ngày = đúng cái bẫy vừa gỡ, lần này do chính cổng canh gây ra. Dày lên
+> được CHỈ KHI đường đọc đã cache ở biên (§6.2-6.3).
+>
+> Nghiệm thu đã chạy THẬT, không suy luận: `/dem` trên Worker trả **503** với 5/5
+> phép đo rỗng · `wrangler dev --test-scheduled` chứng minh nhịp `23 1,13` đi vào
+> nhánh đếm và nhịp `*/5` đi vào nhánh giữ ấm · đường báo động chạy và **suy giảm
+> ồn ào** thành `console.error` khi chưa có Telegram.
+>
+> ✅ **BÁO ĐỘNG TELEGRAM - NỬA CLOUDFLARE ĐÃ XONG (29/10/2026).**
+> Chủ dự án đã tạo bot, lấy chat id, và đưa hai secret lên Worker. Agent xác nhận
+> độc lập bằng `wrangler secret list`: `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID`
+> đều có mặt (`type: secret_text`).
+>
+> 🟠 **CÒN HAI VIỆC, và cả hai là loại "tưởng xong mà chưa":**
+>
+> **1. Nửa RENDER chưa làm.** `notify.alert()` của backend đọc hai biến CÙNG TÊN
+> nhưng từ môi trường Render, không phải từ Worker. Chưa đặt ⇒ báo động của
+> `migrationGate` vẫn đi vào hư không - đúng trạng thái mà `docs/alerting.md` ra
+> đời để sửa. Dashboard Render → `tsudev-backend` → Environment.
+> `render.yaml` đã khai sẵn hai khoá với `sync: false`.
+>
+> **2. Đường báo động chưa được chứng minh ĐẦU-CUỐI.** Hai phép thử đã làm không
+> chứng minh điều này, và lý do rất cụ thể:
+>
+> | đã thử                       | chứng minh được gì   | KHÔNG chứng minh được gì                                       |
+> | ---------------------------- | -------------------- | -------------------------------------------------------------- |
+> | `/dem` trả JSON đúng         | phần ĐẾM chạy        | phần GỬI - `/dem` cố ý KHÔNG gửi báo động, để thử không làm ồn |
+> | `cron:tail` chạy bình thường | luồng log thông      | rằng một tin đã được gửi                                       |
+> | `secret list` có hai tên     | secret đã TỚI Worker | rằng Telegram nhận được                                        |
+>
+> Bằng chứng duy nhất là dòng này trong `cron:tail`:
+>
+>     [cron] báo động → Telegram 200
+>
+> Hoặc đơn giản hơn: **điện thoại nhận được tin.**
+>
+> 🟢 **Và nó sẽ tự xảy ra, không cần làm gì thêm**: site đang ĐỎ (Neon treo), nên
+> nhịp đếm kế tiếp - **01:23 hoặc 13:23 UTC** (08:23 / 20:23 giờ VN) - sẽ gửi
+> thật. Không nhận được tin vào hai mốc đó nghĩa là có gì đó sai; quay lại
+> `docs/alerting.md` bước 3 (gửi tin thử bằng `sendMessage`) để tách "giá trị sai"
+> khỏi "Worker chưa đọc được giá trị".
+
 > **Phiên 30 bắt đầu ở đây** (cập nhật cuối phiên 29).
 >
 > 🆕 **Có cổng canh kênh toà soạn im lặng: `npm run newsroom:canh-kenh`.**
