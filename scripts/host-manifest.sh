@@ -41,6 +41,26 @@ ra git.head   "$(git rev-parse --short HEAD 2>/dev/null || echo KHONG-PHAI-REPO)
 ra git.branch "$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo -)"
 ra git.dirty  "$(git status --porcelain 2>/dev/null | wc -l)"
 
+# Số file lệch KHỚP NHAU chưa chứng minh nội dung lệch giống nhau. Repo có việc
+# chưa commit (rsync mang theo cây làm việc, nên chuyện này xảy ra thật) cần
+# thêm một vân tay cho chính phần chưa commit đó.
+#
+# Hạn chế đã biết: `git diff` in "Binary files differ" thay vì nội dung, nên
+# thay đổi trong file nhị phân ĐANG THEO DÕI chỉ được phát hiện là "có thay
+# đổi", không phát hiện được thay đổi ở đâu. File nhị phân chưa theo dõi thì
+# vẫn được băm đầy đủ.
+if [ "$(git status --porcelain 2>/dev/null | wc -l)" -eq 0 ]; then
+  ra git.wip.sha256 "(sach)"
+else
+  ra git.wip.sha256 "$(
+    {
+      git diff HEAD 2>/dev/null || true
+      git ls-files --others --exclude-standard -z 2>/dev/null | sort -z \
+        | xargs -0 -r sha256sum 2>/dev/null || true
+    } | sha256sum | cut -d' ' -f1
+  )"
+fi
+
 # ── Tầng 2: nhóm NGOÀI git ──────────────────────────────────────────────────
 # Mẫu nào không khớp file nào thì lặng lẽ bỏ qua, nhưng SỐ LƯỢNG được in ra -
 # nên một file biến mất vẫn hiện thành lệch, không bị che.
