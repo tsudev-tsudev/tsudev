@@ -16,7 +16,9 @@ const http = require('http');
 const { loadTopology } = require('./topology/load');
 
 const topo = loadTopology();
-const PORT = Number(process.env.DEV_PROXY_PORT || topo.dev.proxyPort);
+// DEV_PROXY_PORT được áp bên trong loadTopology(), không đọc lại ở đây: đọc hai
+// nơi là cách bản trước tự tạo ra một cổng nghe khác với cổng trong NEXTAUTH_URL.
+const PORT = topo.dev.proxyPort;
 
 // Upstream ghi 127.0.0.1 TƯỜNG MINH, không dùng hostname: `*.localhost` phân
 // giải ra ::1 trên nhiều máy, để proxy tự phân giải lại tên là mời một vòng DNS
