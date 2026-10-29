@@ -35,6 +35,7 @@
     "fonts:check": "node scripts/sync-fonts.js --check",
     "icons:check": "node scripts/check-icons.js",
     "db:up": "bash scripts/start-db.sh",
+    "host:manifest": "bash scripts/host-manifest.sh",
     "minio:up": "bash scripts/start-minio.sh",
     "db:migrate": "node scripts/with-env.js npm --workspace packages/db run migrate:deploy",
     "db:generate": "npm --workspace packages/db run generate",
